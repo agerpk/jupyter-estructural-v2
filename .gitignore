@@ -25,7 +25,6 @@ MANIFEST
 # Jupyter Notebook
 .ipynb_checkpoints/
 *.ipynb_checkpoints
-*.ipynb
 
 # IDE
 .vscode/
@@ -44,15 +43,6 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
-# Datos y logs
-*.log
-*.sql
-*.sqlite
-*.db
-*.pkl
-*.pickle
-*.parquet
-*.feather
 
 # Configuración local
 config.py

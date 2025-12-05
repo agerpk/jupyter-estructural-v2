@@ -1,0 +1,63 @@
+ID,Elemento,Código,Carga,Estado Climático,Magnitud,Unidad,Direccion
+1,Conductor,Pc,Peso de Gravivano,NA,661.2,daN,Vertical
+2,Cable Guardia,Pcg,Peso de Gravivano,NA,115.71,daN,Vertical
+3,Conductor,Pch,Peso adicional por hielo,NA,430.48,daN,Vertical
+4,Cable Guardia,Pcgh,Peso Adicional por hielo,NA,227.44,daN,Vertical
+5,Cadena,Pa,Peso de Cadena de Aisladores y Herrajes,NA,10.5,daN,Vertical
+6,Estructura,CS,Carga de Servicio,NA,220.0,daN,Vertical
+7,Conductor,Vc,Viento Máximo en Eolovano,Vmax,957.4,daN,Transversal
+8,Conductor,VcL,Viento Máximo en Eolovano,Vmax,0.0,daN,Longitudinal
+9,Cable Guardia,Vcg,Viento Máximo en Eolovano,Vmax,349.05,daN,Transversal
+10,Cable Guardia,VcgL,Viento Máximo en Eolovano,Vmax,0.0,daN,Longitudinal
+11,Conductor,Vc_o_t_1,Viento Máximo en Eolovano - Oblícuo - Lado 1,Vmax,366.76,daN,Transversal
+12,Conductor,Vc_o_l_1,Viento Máximo en Eolovano - Oblícuo - Lado 1,Vmax,0.0,daN,Longitudinal
+13,Conductor,Vc_o_t_2,Viento Máximo en Eolovano - Oblícuo - Lado 2,Vmax,366.76,daN,Transversal
+14,Conductor,Vc_o_l_2,Viento Máximo en Eolovano - Oblícuo - Lado 2,Vmax,0.0,daN,Longitudinal
+15,Cable Guardia,Vcg_o_t_1,Viento Máximo en Eolovano - Oblícuo - Lado 1,Vmax,133.71,daN,Transversal
+16,Cable Guardia,Vcg_o_l_1,Viento Máximo en Eolovano - Oblícuo - Lado 1,Vmax,0.0,daN,Longitudinal
+17,Cable Guardia,Vcg_o_t_2,Viento Máximo en Eolovano - Oblícuo - Lado 2,Vmax,133.71,daN,Transversal
+18,Cable Guardia,Vcg_o_l_2,Viento Máximo en Eolovano - Oblícuo - Lado 2,Vmax,0.0,daN,Longitudinal
+19,Conductor,Vcmed,Viento Medio en Eolovano,Vmed,259.56,daN,Transversal
+20,Conductor,VcmedL,Viento Medio en Eolovano,Vmed,0.0,daN,Longitudinal
+21,Cable Guardia,Vcgmed,Viento Medio en Eolovano,Vmed,162.23,daN,Transversal
+22,Cable Guardia,VcgmedL,Viento Medio en Eolovano,Vmed,0.0,daN,Longitudinal
+23,Conductor,Vcmed_o_t_1,Viento Medio en Eolovano - Oblícuo - Lado 1,Vmed,99.43,daN,Transversal
+24,Conductor,Vcmed_o_l_1,Viento Medio en Eolovano - Oblícuo - Lado 1,Vmed,0.0,daN,Longitudinal
+25,Conductor,Vcmed_o_t_2,Viento Medio en Eolovano - Oblícuo - Lado 2,Vmed,99.43,daN,Transversal
+26,Conductor,Vcmed_o_l_2,Viento Medio en Eolovano - Oblícuo - Lado 2,Vmed,0.0,daN,Longitudinal
+27,Cable Guardia,Vcgmed_o_t_1,Viento Medio en Eolovano - Oblícuo - Lado 1,Vmed,62.15,daN,Transversal
+28,Cable Guardia,Vcgmed_o_l_1,Viento Medio en Eolovano - Oblícuo - Lado 1,Vmed,0.0,daN,Longitudinal
+29,Cable Guardia,Vcgmed_o_t_2,Viento Medio en Eolovano - Oblícuo - Lado 2,Vmed,62.15,daN,Transversal
+30,Cable Guardia,Vcgmed_o_l_2,Viento Medio en Eolovano - Oblícuo - Lado 2,Vmed,0.0,daN,Longitudinal
+31,Cadena,VaT,Viento Máximo en Cadena de Aisladores,Vmax,0.31,daN,Transversal
+32,Cadena,VaL,Viento Máximo en Cadena de Aisladores,Vmax,0.31,daN,Longitudinal
+33,Cadena,VamedT,Viento Medio en Cadena de Aisladores,Vmed,0.05,daN,Transversal
+34,Cadena,VamedL,Viento Medio en Cadena de Aisladores,Vmed,0.05,daN,Longitudinal
+35,Estructura,VeT,Viento Máximo en Estructura,Vmax,148.45,daN,Transversal
+36,Estructura,VeL,Viento Máximo en Estructura,Vmax,162.98,daN,Longitudinal
+37,Estructura,Vemedt,Viento Medio en Estructura,Vmed,23.75,daN,Transversal
+38,Estructura,Vemedl,Viento Medio en Estructura,Vmed,26.08,daN,Longitudinal
+39,Estructura,VeoT,Viento Vmax sobre Estructura - Oblicuo - Comp. Transv.,Vmax,74.23,daN,Transversal
+40,Estructura,VeoL,Viento Vmax sobre Estructura - Oblicuo - Comp. Long.,Vmax,81.49,daN,Longitudinal
+41,Estructura,VemedoT,Viento Vmed sobre Estructura - Oblicuo - Comp. Transv.,Vmed,11.88,daN,Transversal
+42,Estructura,VemedoL,Viento Vmed sobre Estructura - Oblicuo - Comp. Long.,Vmed,13.04,daN,Longitudinal
+43,Conductor,Ttmax_c_t,Componente Transversal - Tiro tmax de conductor,Tmax,0.0,daN,Transversal
+44,Conductor,Ttmax_c_l,Componente Longitudinal - Tiro tmax de conductor,Tmax,2091.56,daN,Longitudinal
+45,Conductor,Ttmin_c_t,Componente Transversal - Tiro tmin de conductor,Tmin,0.0,daN,Transversal
+46,Conductor,Ttmin_c_l,Componente Longitudinal - Tiro tmin de conductor,Tmin,2389.86,daN,Longitudinal
+47,Conductor,Tvmax_c_t,Componente Transversal - Tiro vmax de conductor,Vmax,0.0,daN,Transversal
+48,Conductor,Tvmax_c_l,Componente Longitudinal - Tiro vmax de conductor,Vmax,3688.33,daN,Longitudinal
+49,Conductor,Tvmed_c_t,Componente Transversal - Tiro vmed de conductor,Vmed,0.0,daN,Transversal
+50,Conductor,Tvmed_c_l,Componente Longitudinal - Tiro vmed de conductor,Vmed,3688.15,daN,Longitudinal
+51,Conductor,Ttma_c_t,Componente Transversal - Tiro tma de conductor,Tma,0.0,daN,Transversal
+52,Conductor,Ttma_c_l,Componente Longitudinal - Tiro tma de conductor,Tma,2224.37,daN,Longitudinal
+53,Cable Guardia,Ttmax_cg_t,Componente Transversal - Tiro tmax de cable de guardia,Tmax,0.0,daN,Transversal
+54,Cable Guardia,Ttmax_cg_l,Componente Longitudinal - Tiro tmax de cable de guardia,Tmax,387.78,daN,Longitudinal
+55,Cable Guardia,Ttmin_cg_t,Componente Transversal - Tiro tmin de cable de guardia,Tmin,0.0,daN,Transversal
+56,Cable Guardia,Ttmin_cg_l,Componente Longitudinal - Tiro tmin de cable de guardia,Tmin,436.05,daN,Longitudinal
+57,Cable Guardia,Tvmax_cg_t,Componente Transversal - Tiro vmax de cable de guardia,Vmax,0.0,daN,Transversal
+58,Cable Guardia,Tvmax_cg_l,Componente Longitudinal - Tiro vmax de cable de guardia,Vmax,1120.59,daN,Longitudinal
+59,Cable Guardia,Tvmed_cg_t,Componente Transversal - Tiro vmed de cable de guardia,Vmed,0.0,daN,Transversal
+60,Cable Guardia,Tvmed_cg_l,Componente Longitudinal - Tiro vmed de cable de guardia,Vmed,1175.79,daN,Longitudinal
+61,Cable Guardia,Ttma_cg_t,Componente Transversal - Tiro tma de cable de guardia,Tma,0.0,daN,Transversal
+62,Cable Guardia,Ttma_cg_l,Componente Longitudinal - Tiro tma de cable de guardia,Tma,409.55,daN,Longitudinal

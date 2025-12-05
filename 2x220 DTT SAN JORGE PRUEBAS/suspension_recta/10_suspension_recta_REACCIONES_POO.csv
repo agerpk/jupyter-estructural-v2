@@ -1,0 +1,10 @@
+,Reaccion_Fx_daN,Reaccion_Fy_daN,Reaccion_Fz_daN,Reaccion_Mx_daN_m,Reaccion_My_daN_m,Reaccion_Mz_daN_m,Tiro_X_daN,Tiro_Y_daN,Tiro_resultante_daN,Angulo_grados,Nodo_apoyo,Nodo_cima,Altura_efectiva_m
+HIP_Suspension_Recta_A0_EDS (TMA),0.0,0.0,-4198.6,0.0,-0.0,0.0,-0.0,-0.0,0.0,180.0,BASE,TOP,32.92
+HIP_Suspension_Recta_A1_Vmax Transversal,6591.0,0.0,-4198.6,0.0,183938.2,0.0,5588.3,-0.0,5588.3,-0.0,BASE,TOP,32.92
+HIP_Suspension_Recta_A2_Vmax Longitudinal,0.0,163.0,-4198.6,-3576.3,-0.0,0.0,-0.0,108.7,108.7,90.0,BASE,TOP,32.92
+HIP_Suspension_Recta_A3_Vmax Oblicuo,5010.2,81.5,-4198.6,-1788.2,140058.4,0.0,4255.1,54.3,4255.5,0.7,BASE,TOP,32.92
+HIP_Suspension_Recta_A4_Vmed Transversal + hielo,1905.6,0.0,-7236.4,0.0,53955.4,0.0,1639.2,-0.0,1639.2,-0.0,BASE,TOP,32.92
+HIP_Suspension_Recta_A5_Tiro unilateral reducido,0.0,5366.4,-7236.4,-152463.5,0.0,-0.0,0.0,4632.0,4632.0,90.0,BASE,TOP,32.92
+HIP_Suspension_Recta_B1_Pesos x 2.5 - C.S.,0.0,0.0,-10716.6,0.0,-947.4,0.0,-28.8,-0.0,28.8,180.0,BASE,TOP,32.92
+HIP_Suspension_Recta_C1_Carga longitudinal,0.0,3220.4,-3810.2,-100512.3,1230.8,-7579.3,37.4,3053.7,3053.9,89.3,BASE,TOP,32.92
+HIP_Suspension_Recta_C2_Sismo,0.0,0.0,-4198.6,0.0,-0.0,0.0,-0.0,-0.0,0.0,180.0,BASE,TOP,32.92

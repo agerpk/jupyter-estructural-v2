@@ -78,7 +78,10 @@ class EstructuraAEA_Geometria:
     
     # Variables globales (pueden ser configuradas desde el notebook)
     HG_CENTRADO = True  # Por defecto el cable guardia está centrado
-    ANG_APANTALLAMIENTO = 30.0  # Ángulo de apantallamiento en grados
+    ANG_APANTALLAMIENTO = 30.0  # Ángulo de apantallamiento en grados por defecto
+    AJUSTAR_POR_ALTURA_MSNM = False  # Por defecto no ajustar
+    METODO_ALTURA_MSNM = "AEA 3%/300m"  # Método por defecto
+    ALTURA_MSNM = 1000.0  # Altura sobre el nivel del mar en metros por defecto (no genera variación de distancias)
     
     # Tabla de tensiones máximas del sistema
     TABLA_TENSION_MAXIMA = {
@@ -109,7 +112,8 @@ class EstructuraAEA_Geometria:
                 hadd, hadd_entre_amarres, lk, ancho_cruceta,
                 cable_conductor, cable_guardia, peso_estructura=0, peso_cadena=None,
                 hg_centrado=None, ang_apantallamiento=None, hadd_hg=0.0, hadd_lmen=0.0,
-                dist_reposicionar_hg=0.1):  # ← ESTE PARÁMETRO SE USA EN dimensionar_unifilar
+                dist_reposicionar_hg=0.1, ajustar_por_altura_msnm=None,
+                metodo_altura_msnm=None, altura_msnm=None):  # ← NUEVOS PARÁMETROS
         """
         Inicializa una estructura completa
         
@@ -136,6 +140,9 @@ class EstructuraAEA_Geometria:
             ang_apantallamiento (float): Ángulo de apantallamiento en grados
             hadd_hg (float): Altura adicional para cable guardia
             hadd_lmen (float): Altura adicional para longitud de ménsula
+            ajustar_por_altura_msnm (bool): Si True, ajusta distancias por altura MSNM
+            metodo_altura_msnm (str): Método de ajuste (actualmente solo "AEA 3%/300m")
+            altura_msnm (float): Altura sobre el nivel del mar en metros
         """
         # Parámetros básicos
         self.tipo_estructura = tipo_estructura
@@ -155,7 +162,9 @@ class EstructuraAEA_Geometria:
         self.peso_estructura = peso_estructura
         self.peso_cadena = peso_cadena
         self.dist_reposicionar_hg = dist_reposicionar_hg
-
+        self.ajustar_por_altura_msnm = ajustar_por_altura_msnm if ajustar_por_altura_msnm is not None else self.AJUSTAR_POR_ALTURA_MSNM
+        self.metodo_altura_msnm = metodo_altura_msnm if metodo_altura_msnm is not None else self.METODO_ALTURA_MSNM
+        self.altura_msnm = altura_msnm if altura_msnm is not None else self.ALTURA_MSNM
         
         # Nuevos parámetros
         self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO
@@ -230,7 +239,7 @@ class EstructuraAEA_Geometria:
     def _calcular_altura_base_electrica(self, b):
         """Calcula la altura base eléctrica: a + b >= altura_minima_cable"""
         # a = altura mínima según zona
-        a = self.ALTURAS_MINIMAS_TERRENO.get(self.zona_estructura, 5.90)
+        a = self.ALTURAS_MINIMAS_TERRENO.get(self.zona_estructura, 99)
         
         # Calcular a + b
         h_base = a + b
@@ -319,29 +328,35 @@ class EstructuraAEA_Geometria:
         # 1. Obtener coeficiente k basado en theta_max
         k = self._obtener_coeficiente_k(theta_max)
         
-        # Término común: flecha + longitud de cadena
+        # 2. Calcular coeficiente de ajuste por altura MSNM (Ka)
+        Ka = self._calcular_coeficiente_altura()
+        
+        # 3. Término común: flecha + longitud de cadena
         termino_flecha = flecha_max_conductor + self.lk
         
-        # 2. Distancia mínima entre fases (D)
-        D_fases = k * math.sqrt(termino_flecha) + self.tension_nominal / 150
+        # 4. Distancia mínima entre fases (D) - AJUSTADO POR ALTURA
+        D_fases = k * math.sqrt(termino_flecha) + Ka * self.tension_nominal / 150
         
-        # 3. Distancia mínima fase-estructura (s)
+        # 5. Distancia mínima fase-estructura (s) - AJUSTADO POR ALTURA
         s_base = 0.280 + 0.005 * (self.tension_maxima - 50)
-        s_estructura = max(s_base, self.tension_nominal / 150)
+        s_base = s_base * Ka
+        s_estructura = max(s_base, Ka * self.tension_nominal / 150)
         
-        # 4. Distancia mínima guardia-conductor (Dhg)
-        Dhg = k * math.sqrt(termino_flecha) + (self.tension_nominal / math.sqrt(3)) / 150
+        # 6. Distancia mínima guardia-conductor (Dhg) - AJUSTADO POR ALTURA
+        Dhg = k * math.sqrt(termino_flecha) + Ka * (self.tension_nominal / math.sqrt(3)) / 150
         
-        # 5. Componente eléctrico adicional (b)
+        # 7. Componente eléctrico adicional (b) - AJUSTADO POR ALTURA
         b = 0.01 * (self.tension_nominal / math.sqrt(3) - 22) if self.tension_nominal > 33 else 0.0
+        b = b * Ka
         
-        # 6. Calcular altura base eléctrica (a + b >= altura_minima_cable)
+        # 8. Calcular altura base eléctrica (a + b >= altura_minima_cable)
         h_base_electrica = self._calcular_altura_base_electrica(b)
         
         # Guardar en diccionario de resultados
         distancias = {
             'theta_max': theta_max,
             'k': k,
+            'Ka': Ka,  # ← NUEVO: Guardar coeficiente de altura
             'D_fases': D_fases,
             's_estructura': s_estructura,
             'Dhg': Dhg,
@@ -352,6 +367,7 @@ class EstructuraAEA_Geometria:
         
         print(f"   📊 Distancias calculadas:")
         print(f"      - k: {k:.3f}")
+        print(f"      - Ka (coef. altura): {Ka:.3f}")  # ← NUEVO
         print(f"      - D_fases: {D_fases:.3f} m")
         print(f"      - s_estructura: {s_estructura:.3f} m")
         print(f"      - Dhg: {Dhg:.3f} m")
@@ -868,12 +884,26 @@ class EstructuraAEA_Geometria:
             "Cable guardia centrado": "Sí" if self.hg_centrado else "No",
             "Ángulo apantallamiento": f"{self.ang_apantallamiento}°"
         }
+        
+        # Agregar información de ajuste por altura si aplica
+        if self.ajustar_por_altura_msnm:
+            info["Ajuste por altura MSNM"] = f"Sí ({self.metodo_altura_msnm})"
+            info["Altura MSNM"] = f"{self.altura_msnm} m"
+            Ka = self.dimensiones.get('Ka', 1.0)
+            if Ka != 1.0:
+                info["Coef. ajuste altura (Ka)"] = f"{Ka:.3f}"
+        
         return info
     
     def imprimir_datos_dimensionamiento(self, vano, flecha_max_conductor, flecha_max_guardia):
         """Imprime en consola los datos de dimensionamiento"""
         
         print(f"\n📐 DIMENSIONES MÍNIMAS - {self.zona_estructura.upper()} - {self.tension_nominal}kV - {self.tipo_estructura.upper()}")
+        
+        # Agregar información de ajuste por altura MSNM si aplica
+        if self.ajustar_por_altura_msnm:
+            print(f"   (AJUSTADO POR ALTURA MSNM: {self.altura_msnm}m - Método: {self.metodo_altura_msnm})")
+        
         print(f"{'Parámetro':<50} {'Valor':<12} {'Unidad':<10}")
         print("-" * 80)
         
@@ -884,13 +914,23 @@ class EstructuraAEA_Geometria:
         Dhg = self.dimensiones.get('Dhg', 0.0)
         b = self.dimensiones.get('b', 0.0)
         h_base_electrica = self.dimensiones.get('h_base_electrica', 0.0)
+        Ka = self.dimensiones.get('Ka', 1.0)  # ← NUEVO
         
+        # Agregar Ka a los parámetros a mostrar
         params = [
             ("Tipo de estructura", self.tipo_estructura, ""),
             ("TERNA", self.terna, ""),
             ("Disposición", self.disposicion, ""),
             ("Tensión nominal (Vn)", f"{self.tension_nominal:.1f}", "kV"),
             ("Tensión máxima (Vm)", f"{self.tension_maxima:.1f}", "kV"),
+        ]
+        
+        # Solo mostrar Ka si es diferente de 1.0
+        if Ka != 1.0:
+            params.append(("Coef. ajuste altura (Ka)", f"{Ka:.3f}", ""))
+        
+        # Continuar con el resto de parámetros...
+        params.extend([
             ("Altura mínima sobre terreno (a)", f"{self.ALTURAS_MINIMAS_TERRENO.get(self.zona_estructura, 5.90):.2f}", "m"),
             ("Componente eléctrico (b)", f"{b:.2f}", "m"),
             ("Altura base eléctrica (a+b)", f"{h_base_electrica:.2f}", "m"),
@@ -914,7 +954,7 @@ class EstructuraAEA_Geometria:
             ("Longitud ménsula guardia (lmenhg)", f"{self.dimensiones.get('lmenhg', 0):.2f} {'(CENTRADO)' if self.dimensiones.get('lmenhg', 0) == 0 else ''}", "m"),
             ("Posición conductor más alto", f"({self.dimensiones.get('pcma_x', 0):.2f}, {self.dimensiones.get('pcma_y', 0):.2f})", "m"),
             ("Altura total", f"{self.dimensiones.get('altura_total', 0):.2f}", "m")
-        ]
+        ])
         
         for param, val, unit in params:
             if param == "":
@@ -1182,3 +1222,25 @@ class EstructuraAEA_Geometria:
             self.phg2 = (-self.lmenhg, self.hhg)
         
         print(f"   🔧 lmenhg final: {self.lmenhg:.3f}m")
+
+    def _calcular_coeficiente_altura(self):
+        """
+        Calcula el coeficiente de ajuste por altura sobre el nivel del mar (Ka)
+        
+        Returns:
+            float: Coeficiente Ka
+        """
+        if not self.ajustar_por_altura_msnm:
+            return 1.0
+        
+        if self.metodo_altura_msnm == "AEA 3%/300m":
+            # Fórmula: Ka = 1 + 0.03 * (H - 1000) / 300
+            # donde H es la altura sobre el nivel del mar en metros
+            H = self.altura_msnm
+            if H <= 1000:
+                return 1.0
+            else:
+                Ka = 1.0 + 0.03 * (H - 1000) / 300
+                return Ka
+        else:
+            raise ValueError(f"ERROR: Método de ajuste por altura '{self.metodo_altura_msnm}' no reconocido")
