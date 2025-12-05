@@ -1,0 +1,45 @@
+Velocidad_label,Velocidad_m_s,Dirección,Elemento,Descripción,Fu_daN_per_m,F_total_daN,Angulo
+Vmax - Transversal,38.9,Transversal,Conductor,Sobre CABLE (Transversal),0.88,132.08,90.0°
+Vmax - Transversal,38.9,Transversal,Cable Guardia,Sobre CABLE (Transversal),0.79,118.54,90.0°
+Vmax - Longitudinal,38.9,Longitudinal,Conductor,Sobre CABLE (Longitudinal),0.0,0.0,0.0°
+Vmax - Longitudinal,38.9,Longitudinal,Cable Guardia,Sobre CABLE (Longitudinal),0.0,0.0,0.0°
+Vmax - Oblicua,38.9,Oblicuo,Conductor,Sobre CABLE (Lado 1),0.67,50.2,45.0°
+Vmax - Oblicua,38.9,Transversal,Conductor,Sobre ESTRUCTURA (Lado 1),,50.2,Estruct.
+Vmax - Oblicua,38.9,Longitudinal,Conductor,Sobre ESTRUCTURA (Lado 1),,0.0,Estruct.
+Vmax - Oblicua,38.9,Oblicuo,Conductor,Sobre CABLE (Lado 2),0.67,50.2,45.0°
+Vmax - Oblicua,38.9,Transversal,Conductor,Sobre ESTRUCTURA (Lado 2),,50.2,Estruct.
+Vmax - Oblicua,38.9,Longitudinal,Conductor,Sobre ESTRUCTURA (Lado 2),,0.0,Estruct.
+Vmax - Oblicua,38.9,Oblicuo,Cable Guardia,Sobre CABLE (Lado 1),0.6,45.05,45.0°
+Vmax - Oblicua,38.9,Transversal,Cable Guardia,Sobre ESTRUCTURA (Lado 1),,45.05,Estruct.
+Vmax - Oblicua,38.9,Longitudinal,Cable Guardia,Sobre ESTRUCTURA (Lado 1),,0.0,Estruct.
+Vmax - Oblicua,38.9,Oblicuo,Cable Guardia,Sobre CABLE (Lado 2),0.6,45.05,45.0°
+Vmax - Oblicua,38.9,Transversal,Cable Guardia,Sobre ESTRUCTURA (Lado 2),,45.05,Estruct.
+Vmax - Oblicua,38.9,Longitudinal,Cable Guardia,Sobre ESTRUCTURA (Lado 2),,0.0,Estruct.
+Vmed - Transversal,15.56,Transversal,Conductor,Sobre CABLE (Transversal),0.38,57.26,90.0°
+Vmed - Transversal,15.56,Transversal,Cable Guardia,Sobre CABLE (Transversal),0.37,55.09,90.0°
+Vmed - Longitudinal,15.56,Longitudinal,Conductor,Sobre CABLE (Longitudinal),0.0,0.0,0.0°
+Vmed - Longitudinal,15.56,Longitudinal,Cable Guardia,Sobre CABLE (Longitudinal),0.0,0.0,0.0°
+Vmed - Oblicua,15.56,Oblicuo,Conductor,Sobre CABLE (Lado 1),0.29,21.76,45.0°
+Vmed - Oblicua,15.56,Transversal,Conductor,Sobre ESTRUCTURA (Lado 1),,21.76,Estruct.
+Vmed - Oblicua,15.56,Longitudinal,Conductor,Sobre ESTRUCTURA (Lado 1),,0.0,Estruct.
+Vmed - Oblicua,15.56,Oblicuo,Conductor,Sobre CABLE (Lado 2),0.29,21.76,45.0°
+Vmed - Oblicua,15.56,Transversal,Conductor,Sobre ESTRUCTURA (Lado 2),,21.76,Estruct.
+Vmed - Oblicua,15.56,Longitudinal,Conductor,Sobre ESTRUCTURA (Lado 2),,0.0,Estruct.
+Vmed - Oblicua,15.56,Oblicuo,Cable Guardia,Sobre CABLE (Lado 1),0.28,20.94,45.0°
+Vmed - Oblicua,15.56,Transversal,Cable Guardia,Sobre ESTRUCTURA (Lado 1),,20.94,Estruct.
+Vmed - Oblicua,15.56,Longitudinal,Cable Guardia,Sobre ESTRUCTURA (Lado 1),,0.0,Estruct.
+Vmed - Oblicua,15.56,Oblicuo,Cable Guardia,Sobre CABLE (Lado 2),0.28,20.94,45.0°
+Vmed - Oblicua,15.56,Transversal,Cable Guardia,Sobre ESTRUCTURA (Lado 2),,20.94,Estruct.
+Vmed - Oblicua,15.56,Longitudinal,Cable Guardia,Sobre ESTRUCTURA (Lado 2),,0.0,Estruct.
+Vmax - Transversal,38.9,Transversal,Cadena de Aisladores,Sobre Cadena (Transversal),,0.25,90.0°
+Vmax - Transversal,38.9,Transversal,Estructura,Sobre Estructura (Transversal),,120.05,90.0°
+Vmax - Longitudinal,38.9,Longitudinal,Cadena de Aisladores,Sobre Cadena (Longitudinal),,0.25,0.0°
+Vmax - Longitudinal,38.9,Longitudinal,Estructura,Sobre Estructura (Longitudinal),,131.8,0.0°
+Vmed - Transversal,15.56,Transversal,Cadena de Aisladores,Sobre Cadena (Transversal),,0.04,90.0°
+Vmed - Transversal,15.56,Transversal,Estructura,Sobre Estructura (Transversal),,19.21,90.0°
+Vmed - Longitudinal,15.56,Longitudinal,Cadena de Aisladores,Sobre Cadena (Longitudinal),,0.04,0.0°
+Vmed - Longitudinal,15.56,Longitudinal,Estructura,Sobre Estructura (Longitudinal),,21.09,0.0°
+Vmax - Oblicua,38.9,Transversal,Estructura,Sobre Estructura (Oblicuo),,60.03,45.0°
+Vmax - Oblicua,38.9,Longitudinal,Estructura,Sobre Estructura (Oblicuo),,65.9,45.0°
+Vmed - Oblicua,15.56,Transversal,Estructura,Sobre Estructura (Oblicuo),,9.6,45.0°
+Vmed - Oblicua,15.56,Longitudinal,Estructura,Sobre Estructura (Oblicuo),,10.54,45.0°

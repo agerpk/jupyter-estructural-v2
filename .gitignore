@@ -1,0 +1,65 @@
+@"
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+env.bak/
+venv.bak/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Datos y logs
+*.log
+*.sql
+*.sqlite
+*.db
+*.pkl
+*.pickle
+*.parquet
+*.feather
+
+# Configuración local
+config.py
+.env
+secrets.py
+
+# Outputs de notebooks (si los quieres ignorar)
+# Descomenta la siguiente línea si NO quieres versionar outputs
+# *.ipynb
+"@ | Out-File -FilePath .gitignore -Encoding UTF8
