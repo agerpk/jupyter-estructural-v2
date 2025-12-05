@@ -404,7 +404,8 @@ class EstructuraAEA_Geometria:
         x = lmen
         return (x, y)
     
-    def _calcular_cable_guardia(self, pcma, D_fases, Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg=0.1):
+    def _calcular_cable_guardia(self, pcma, D_fases, Dhg, h1a, h2a, h3a, lmen, lmen2c, 
+                            dist_reposicionar_hg=0.1, autoajustar_lmenhg=True):
         """Calcula las posiciones de los cables de guardia según configuración con ajustes iterativos"""
         x_pcma, y_pcma = pcma
         ang_rad = math.radians(self.ang_apantallamiento)
@@ -440,11 +441,13 @@ class EstructuraAEA_Geometria:
             self.phg1 = (self.lmenhg, self.hhg)
             print(f"   🛡️  Cable guardia no centrado inicial: hhg={self.hhg:.2f}m, lmenhg={self.lmenhg:.2f}m")
             
-            # APLICAR AJUSTES ITERATIVOS
-            # APLICAR AJUSTES ITERATIVOS
-            pcma_conductor = (x_pcma, y_pcma - self.lk)
-            # Llamar al ajuste con la posición del CONDUCTOR
-            self._ajustar_lmenhg_iterativo(Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg)
+            # APLICAR AJUSTES ITERATIVOS (solo si autoajustar_lmenhg es True)
+            if autoajustar_lmenhg:
+                pcma_conductor = (x_pcma, y_pcma - self.lk)
+                # Llamar al ajuste con la posición del CONDUCTOR
+                self._ajustar_lmenhg_iterativo(Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg)
+            else:
+                print(f"   ⏭️  Ajuste iterativo de lmenhg DESACTIVADO (autoajustar_lmenhg=False)")
             
             print(f"   🛡️  Cable guardia no centrado final: lmenhg={self.lmenhg:.3f}m, phg1=({self.phg1[0]:.3f}, {self.phg1[1]:.3f})")
         
@@ -462,10 +465,13 @@ class EstructuraAEA_Geometria:
             self.phg2 = (-self.lmenhg, self.hhg)
             print(f"   🛡️  Dos cables guardia inicial: hhg={self.hhg:.2f}m, lmenhg={self.lmenhg:.2f}m")
             
-            # APLICAR AJUSTES ITERATIVOS
-            pcma_conductor = (x_pcma, y_pcma - self.lk)
-            # Llamar al ajuste con la posición del CONDUCTOR
-            self._ajustar_lmenhg_iterativo(Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg)
+            # APLICAR AJUSTES ITERATIVOS (solo si autoajustar_lmenhg es True)
+            if autoajustar_lmenhg:
+                pcma_conductor = (x_pcma, y_pcma - self.lk)
+                # Llamar al ajuste con la posición del CONDUCTOR
+                self._ajustar_lmenhg_iterativo(Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg)
+            else:
+                print(f"   ⏭️  Ajuste iterativo de lmenhg DESACTIVADO (autoajustar_lmenhg=False)")
             
             print(f"   🛡️  Dos cables guardia final: lmenhg={self.lmenhg:.3f}m")
             print(f"      phg1=({self.phg1[0]:.3f}, {self.phg1[1]:.3f}), phg2=({self.phg2[0]:.3f}, {self.phg2[1]:.3f})")
@@ -499,7 +505,7 @@ class EstructuraAEA_Geometria:
             print(f"   📏 Distancia diagonal CONDUCTOR-guardia1: {dist1:.3f} m (mínimo: {Dhg_min:.3f} m) - {'✅ CUMPLE' if cumple1 else '❌ NO CUMPLE'}")
             print(f"   📏 Distancia diagonal CONDUCTOR-guardia2: {dist2:.3f} m (mínimo: {Dhg_min:.3f} m) - {'✅ CUMPLE' if cumple2 else '❌ NO CUMPLE'}")
     
-    def dimensionar_unifilar(self, vano, flecha_max_conductor, flecha_max_guardia, dist_reposicionar_hg=0.1):
+    def dimensionar_unifilar(self, vano, flecha_max_conductor, flecha_max_guardia, dist_reposicionar_hg=0.1, autoajustar_lmenhg=False):
         """
         Dimensiona la estructura según el proceso indicado paso a paso
         
@@ -508,9 +514,11 @@ class EstructuraAEA_Geometria:
             flecha_max_conductor (float): Flecha máxima del conductor
             flecha_max_guardia (float): Flecha máxima del guardia
             dist_reposicionar_hg (float): Distancia para reposicionar HG (m)
+            autoajustar_lmenhg (bool): Si True, aplica ajuste iterativo de lmenhg
         """
         print(f"📐 DIMENSIONANDO ESTRUCTURA UNIFILAR SEGÚN PROCESO INDICADO...")
         print(f"   Vano: {vano}m, Flechas: cond={flecha_max_conductor:.2f}m, guard={flecha_max_guardia:.2f}m")
+        print(f"   Autoajustar lmenhg: {'✅ ACTIVADO' if autoajustar_lmenhg else '❌ DESACTIVADO'}")
         
         # 1. CALCULAR THETA_MAX
         theta_max = self.calcular_theta_max(vano)
@@ -539,8 +547,9 @@ class EstructuraAEA_Geometria:
         # 10. CALCULAR POSICIÓN CONDUCTOR MÁS ALTO
         self.pcma = self._calcular_posicion_conductor_mas_alto(h1a, h2a, h3a, self.lmen)
         
-        # 11-13. CALCULAR CABLE GUARDIA
-        self._calcular_cable_guardia(self.pcma, D_fases, Dhg, h1a, h2a, h3a, self.lmen, self.lmen2c, dist_reposicionar_hg)
+        # 11-13. CALCULAR CABLE GUARDIA (pasando autoajustar_lmenhg)
+        self._calcular_cable_guardia(self.pcma, D_fases, Dhg, h1a, h2a, h3a, self.lmen, self.lmen2c, 
+                                    dist_reposicionar_hg, autoajustar_lmenhg)
         
         # 14. Verificaciones ya hechas en _calcular_cable_guardia
         
@@ -560,7 +569,8 @@ class EstructuraAEA_Geometria:
             "hg_centrado": self.hg_centrado,
             "ang_apantallamiento": self.ang_apantallamiento,
             "b": b,
-            "altura_total": max(h3a, h2a, h1a, self.hhg)
+            "altura_total": max(h3a, h2a, h1a, self.hhg),
+            "autoajustar_lmenhg": autoajustar_lmenhg  # Guardar el estado
         }
         
         # CREAR DATAFRAME CON PARÁMETROS DEL CABEZAL
