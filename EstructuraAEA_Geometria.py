@@ -109,7 +109,7 @@ class EstructuraAEA_Geometria:
                 hadd, hadd_entre_amarres, lk, ancho_cruceta,
                 cable_conductor, cable_guardia, peso_estructura=0, peso_cadena=None,
                 hg_centrado=None, ang_apantallamiento=None, hadd_hg=0.0, hadd_lmen=0.0,
-                dist_reposicionar_hg=0.1):  # ← NUEVO PARÁMETRO
+                dist_reposicionar_hg=0.1):  # ← ESTE PARÁMETRO SE USA EN dimensionar_unifilar
         """
         Inicializa una estructura completa
         
@@ -241,13 +241,12 @@ class EstructuraAEA_Geometria:
         
         return h_base
     
-    def calcular_theta_max(self, vano, df_cargas_totales=None):
+    def calcular_theta_max(self, vano):
         """
-        Calcula el ángulo máximo de declinación theta_max
+        Calcula el ángulo máximo de declinación theta_max usando cache de viento
         
         Args:
             vano (float): Longitud del vano en metros
-            df_cargas_totales (DataFrame, optional): DataFrame con cargas calculadas
             
         Returns:
             float: Ángulo theta_max en grados
@@ -260,34 +259,29 @@ class EstructuraAEA_Geometria:
             print(f"   📐 theta_max = 0° (estructura no es suspensión o Lk=0)")
         else:
             try:
-                # Obtener cargas reales del DataFrame de cargas si está disponible
-                if df_cargas_totales is not None:
-                    # Buscar carga de viento para conductor en estado de viento máximo
-                    filtro_viento = (df_cargas_totales['Elemento'] == 'Conductor') & \
-                                (df_cargas_totales['Estado Climático'] == 'Vmax') & \
-                                (df_cargas_totales['Direccion'] == 'Transversal') & \
-                                (df_cargas_totales['Carga'].str.contains('Viento'))
-                    
-                    if not df_cargas_totales[filtro_viento].empty:
-                        carga_viento_conductor = df_cargas_totales[filtro_viento]['Magnitud'].iloc[0]
+                # Usar cache de viento del cable conductor
+                cable = self.cable_conductor
+                
+                # Verificar si tiene cache
+                if not hasattr(cable, 'viento_cache') or not cable.viento_cache:
+                    print("   ❌ ERROR: El objeto Cable no tiene datos de viento en cache.")
+                    return 99.0
+                
+                # Intentar obtener del cache
+                if 'V_90' in cable.viento_cache:
+                    resultado_cache = cable.viento_cache['V_90']
+                    if resultado_cache:
+                        carga_viento_conductor = resultado_cache['fuerza_total_daN']
+                        print(f"   📐 Usando cache de viento: V_90")
                     else:
-                        # Fallback: calcular basado en propiedades del cable
-                        resultado_viento = self.cable_conductor.cargaViento(
-                            V=38.9,
-                            phi_rel_deg=90, exp="C", clase="B",
-                            Zc=10.0, Cf=1.0, L_vano=vano
-                        )
-                        carga_viento_conductor = resultado_viento["fuerza_daN_per_m"] * vano
+                        print("   ❌ ERROR: No hay datos de viento en cache para V_90.")
+                        return 99.0
                 else:
-                    # Fallback si no hay DataFrame
-                    resultado_viento = self.cable_conductor.cargaViento(
-                        V=38.9, phi_rel_deg=90, exp="C", clase="B",
-                        Zc=10.0, Cf=1.0, L_vano=vano
-                    )
-                    carga_viento_conductor = resultado_viento["fuerza_daN_per_m"] * vano
+                    print("   ❌ ERROR: No hay datos de viento en cache para V_90.")
+                    return 99.0
                 
                 # Peso del conductor en el vano
-                peso_conductor = self.cable_conductor.peso_unitario_dan_m * vano
+                peso_conductor = cable.peso_unitario_dan_m * vano
                 peso_cadena = self.peso_cadena
                 
                 # Calcular theta_max usando arctan(Fv/P)
@@ -505,8 +499,7 @@ class EstructuraAEA_Geometria:
             print(f"   📏 Distancia diagonal CONDUCTOR-guardia1: {dist1:.3f} m (mínimo: {Dhg_min:.3f} m) - {'✅ CUMPLE' if cumple1 else '❌ NO CUMPLE'}")
             print(f"   📏 Distancia diagonal CONDUCTOR-guardia2: {dist2:.3f} m (mínimo: {Dhg_min:.3f} m) - {'✅ CUMPLE' if cumple2 else '❌ NO CUMPLE'}")
     
-    def dimensionar_unifilar(self, vano, flecha_max_conductor, flecha_max_guardia, 
-                            df_cargas_totales=None, dist_reposicionar_hg=0.1):
+    def dimensionar_unifilar(self, vano, flecha_max_conductor, flecha_max_guardia, dist_reposicionar_hg=0.1):
         """
         Dimensiona la estructura según el proceso indicado paso a paso
         
@@ -514,14 +507,13 @@ class EstructuraAEA_Geometria:
             vano (float): Longitud del vano en metros
             flecha_max_conductor (float): Flecha máxima del conductor
             flecha_max_guardia (float): Flecha máxima del guardia
-            df_cargas_totales (DataFrame, optional): DataFrame con cargas calculadas
             dist_reposicionar_hg (float): Distancia para reposicionar HG (m)
         """
         print(f"📐 DIMENSIONANDO ESTRUCTURA UNIFILAR SEGÚN PROCESO INDICADO...")
         print(f"   Vano: {vano}m, Flechas: cond={flecha_max_conductor:.2f}m, guard={flecha_max_guardia:.2f}m")
         
         # 1. CALCULAR THETA_MAX
-        theta_max = self.calcular_theta_max(vano, df_cargas_totales)
+        theta_max = self.calcular_theta_max(vano)
         
         # 2-3. CALCULAR DISTANCIAS MÍNIMAS Y COMPONENTE b
         distancias = self.calcular_distancias_minimas(flecha_max_conductor, theta_max)
@@ -579,6 +571,7 @@ class EstructuraAEA_Geometria:
         print(f"   - Ménsulas: lmen={self.lmen:.2f}m, lmen2c={self.lmen2c:.2f}m, lmenhg={self.lmenhg:.2f}m")
         print(f"   - Cable guardia: hhg={self.hhg:.2f}m, centrado={self.hg_centrado}")
         print(f"   - Conductor más alto: ({self.pcma[0]:.2f}, {self.pcma[1]:.2f})")
+
     
     def _crear_nodos_estructurales_nuevo(self, h1a, h2a, h3a):
         """Crea todos los nodos según el proceso indicado CORREGIDO"""

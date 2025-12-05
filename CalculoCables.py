@@ -6,10 +6,10 @@ import math
 class Cable_AEA:
     """
     Clase para representar cables según norma AEA 95301-2007
-    con capacidades de cálculo mecánico extendidas
+    con capacidades de cálculo mecánico extendidos
     """
     
-    # Parámetros por exposición según Tabla 10.2-h AEA
+    # Parámetros por exposición según Tabla 10.2-h AEA (los mismos que para cables)
     EXPOSICIONES = {
         "B": {"alpha": 4.5, "k": 0.01,  "Ls": 52,  "Zs": 366},
         "C": {"alpha": 7.5, "k": 0.005, "Ls": 67,  "Zs": 274},
@@ -25,26 +25,106 @@ class Cable_AEA:
         "E":  {"Fc": 1.40, "Vmin": 800, "Vmax": 9999},
     }
     
-    def __init__(self, id_cable, nombre, propiedades):
+    def __init__(self, id_cable, nombre, propiedades, 
+                 viento_base_params=None):
         """
-        Inicializa un objeto cable
+        Inicializa un objeto cable con parámetros de viento base OBLIGATORIOS
         
         Args:
             id_cable (str): Identificador único del cable
             nombre (str): Nombre descriptivo del cable
             propiedades (dict): Diccionario con propiedades mecánicas y geométricas
+            viento_base_params (dict): Parámetros base de viento para cache (OBLIGATORIO)
         """
         self.id = id_cable
         self.nombre = nombre
         self.propiedades = propiedades
         
-        # Propiedades básicas (con conversión a unidades base)
+        # Propiedades básicas
         self.diametro_m = propiedades["diametro_total_mm"] / 1000.0
         self.seccion_mm2 = propiedades["seccion_total_mm2"]
         self.peso_unitario_dan_m = propiedades["peso_unitario_dan_m"]
         self.carga_rotura_dan = propiedades["carga_rotura_minima_dan"]
         self.modulo_elasticidad_dan_mm2 = propiedades["modulo_elasticidad_dan_mm2"]
         self.coeficiente_dilatacion = propiedades["coeficiente_dilatacion_1_c"]
+        
+        # Cache de cálculos de viento base (OBLIGATORIO)
+        if viento_base_params is None:
+            raise ValueError("ERROR: No se pudo crear objeto cable, faltan parámetros iniciales de viento base.")
+        
+        self.viento_base_params = viento_base_params
+        self.viento_cache = {}
+        
+        # Calcular cache de vientos
+        self._calcular_cache_vientos(viento_base_params)
+    
+    def _calcular_cache_vientos(self, params):
+        """
+        Calcula y cachea las 6 combinaciones de viento base para este cable
+        
+        Args:
+            params (dict): Parámetros base de viento que incluyen:
+                - V (float): Velocidad base del viento
+                - t_hielo (float): Espesor de hielo
+                - exp (str): Exposición
+                - clase (str): Clase de línea
+                - Zc (float): Altura efectiva
+                - Cf (float): Coeficiente de fuerza
+                - L_vano (float): Longitud de vano
+        """
+        V = params.get('V')
+        t_hielo = params.get('t_hielo', 0)
+        exp = params.get('exp', 'C')
+        clase = params.get('clase', 'B')
+        Zc = params.get('Zc')
+        Cf = params.get('Cf')
+        L_vano = params.get('L_vano')
+        
+        # Validar parámetros requeridos
+        if V is None or Zc is None or Cf is None or L_vano is None:
+            raise ValueError(f"ERROR: Faltan parámetros de viento base requeridos en {self.nombre}")
+        
+        # Diámetros
+        d_base = self.diametro_m
+        d_hielo = self.diametro_equivalente(t_hielo)
+        
+        # Combinaciones a calcular
+        combinaciones = [
+            ('V_90', V, 90, d_base, 'Viento máximo a 90°'),
+            ('V_45', V, 45, d_base, 'Viento máximo a 45°'),
+            ('V_0', V, 0, d_base, 'Viento máximo a 0°'),
+            ('Vmed_90', V * 0.4, 90, d_hielo, 'Viento medio a 90°'),
+            ('Vmed_45', V * 0.4, 45, d_hielo, 'Viento medio a 45°'),
+            ('Vmed_0', V * 0.4, 0, d_hielo, 'Viento medio a 0°')
+        ]
+        
+        # Calcular y cachear cada combinación
+        for clave, velocidad, angulo, diametro, descripcion in combinaciones:
+            try:
+                resultado = self.cargaViento(
+                    V=velocidad,
+                    phi_rel_deg=angulo,
+                    exp=exp,
+                    clase=clase,
+                    Zc=Zc,
+                    Cf=Cf,
+                    L_vano=L_vano,
+                    d_eff=diametro
+                )
+                
+                # Guardar en cache
+                self.viento_cache[clave] = {
+                    'fuerza_daN_per_m': resultado['fuerza_daN_per_m'],
+                    'fuerza_total_daN': resultado['fuerza_daN_per_m'] * L_vano,
+                    'velocidad': velocidad,
+                    'angulo': angulo,
+                    'diametro': diametro,
+                    'descripcion': descripcion
+                }
+                
+            except Exception as e:
+                print(f"⚠️ Error calculando viento base {clave}: {e}")
+                self.viento_cache[clave] = None
         
     def __str__(self):
         """Representación en string del cable"""
@@ -117,18 +197,17 @@ class Cable_AEA:
         Gt = Gt / (kv**2)
         return Gt, E, Bt
     
-    def cargaViento(self, V, phi_rel_deg=90, exp="C", clase="B", Q=0.613, 
+    def cargaViento(self, V=None, phi_rel_deg=90, exp="C", clase="B", Q=0.613, 
                    Zc=10.0, Cf=1.0, L_vano=150.0, d_eff=None, tipo="cable"):
         """
         Calcula la carga de viento sobre el cable según AEA 95301
         
         Args:
-            V (float): Velocidad del viento en m/s
-            phi_rel_deg (float): Ángulo entre viento y eje del conductor en grados 
-                                (0 = paralelo, 90 = perpendicular)
+            V (float): Velocidad del viento en m/s (OBLIGATORIO)
+            phi_rel_deg (float): Ángulo entre viento y eje del conductor en grados
             exp (str): Tipo de exposición ("B", "C", "D")
             clase (str): Clase de línea ("B", "BB", "C", "D", "E")
-            Q (float): Presión dinámica de referencia (default 0.613)
+            Q (float): Presión dinámica de referencia
             Zc (float): Altura efectiva del cable en metros
             Cf (float): Coeficiente de fuerza
             L_vano (float): Longitud del vano en metros
@@ -138,6 +217,11 @@ class Cable_AEA:
         Returns:
             dict: Diccionario con resultados detallados
         """
+        # Validación: V es obligatorio
+        if V is None:
+            raise ValueError("ERROR: Velocidad del viento (V) es requerida para calcular carga de viento.")
+        
+        # Resto del método (sin cambios)...
         # Validaciones
         if exp not in self.EXPOSICIONES:
             raise ValueError(f"Exposición '{exp}' no válida. Use: {list(self.EXPOSICIONES.keys())}")
@@ -162,11 +246,9 @@ class Cable_AEA:
         # Factor G según tipo de elemento
         if tipo == "cable":
             G, E, B = self._factor_Gw(Zc, alpha_expo, k, Ls, L_vano)
-            # Para cables usar sin(phi) para componente normal
             ang_factor = math.sin(math.radians(phi_rel_deg))
         else:
             G, E, B = self._factor_Gt(Zc, alpha_expo, k, Ls)
-            # Para estructuras usar cos(phi)
             ang_factor = math.cos(math.radians(phi_rel_deg))
         
         # Cálculo de la fuerza unitaria (N/m)
