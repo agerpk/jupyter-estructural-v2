@@ -29,18 +29,18 @@ ID,Elemento,Código,Carga,Estado Climático,Magnitud,Unidad,Direccion
 28,Cable Guardia,Vcgmed_o_l_1,Viento Medio en Eolovano - Oblícuo - Lado 1,Vmed,0.0,daN,Longitudinal
 29,Cable Guardia,Vcgmed_o_t_2,Viento Medio en Eolovano - Oblícuo - Lado 2,Vmed,62.15,daN,Transversal
 30,Cable Guardia,Vcgmed_o_l_2,Viento Medio en Eolovano - Oblícuo - Lado 2,Vmed,0.0,daN,Longitudinal
-31,Cadena,VaT,Viento Máximo en Cadena de Aisladores,Vmax,0.31,daN,Transversal
-32,Cadena,VaL,Viento Máximo en Cadena de Aisladores,Vmax,0.31,daN,Longitudinal
-33,Cadena,VamedT,Viento Medio en Cadena de Aisladores,Vmed,0.05,daN,Transversal
-34,Cadena,VamedL,Viento Medio en Cadena de Aisladores,Vmed,0.05,daN,Longitudinal
-35,Estructura,VeT,Viento Máximo en Estructura,Vmax,148.45,daN,Transversal
-36,Estructura,VeL,Viento Máximo en Estructura,Vmax,162.98,daN,Longitudinal
-37,Estructura,Vemedt,Viento Medio en Estructura,Vmed,23.75,daN,Transversal
-38,Estructura,Vemedl,Viento Medio en Estructura,Vmed,26.08,daN,Longitudinal
-39,Estructura,VeoT,Viento Vmax sobre Estructura - Oblicuo - Comp. Transv.,Vmax,74.23,daN,Transversal
-40,Estructura,VeoL,Viento Vmax sobre Estructura - Oblicuo - Comp. Long.,Vmax,81.49,daN,Longitudinal
-41,Estructura,VemedoT,Viento Vmed sobre Estructura - Oblicuo - Comp. Transv.,Vmed,11.88,daN,Transversal
-42,Estructura,VemedoL,Viento Vmed sobre Estructura - Oblicuo - Comp. Long.,Vmed,13.04,daN,Longitudinal
+31,Cadena,VaT,Viento Máximo en Cadena de Aisladores,Vmax,3.05,daN,Transversal
+32,Cadena,VaL,Viento Máximo en Cadena de Aisladores,Vmax,3.05,daN,Longitudinal
+33,Cadena,VamedT,Viento Medio en Cadena de Aisladores,Vmed,0.49,daN,Transversal
+34,Cadena,VamedL,Viento Medio en Cadena de Aisladores,Vmed,0.49,daN,Longitudinal
+35,Estructura,VeT,Viento Máximo en Estructura,Vmax,1484.51,daN,Transversal
+36,Estructura,VeL,Viento Máximo en Estructura,Vmax,1629.76,daN,Longitudinal
+37,Estructura,Vemedt,Viento Medio en Estructura,Vmed,237.52,daN,Transversal
+38,Estructura,Vemedl,Viento Medio en Estructura,Vmed,260.76,daN,Longitudinal
+39,Estructura,VeoT,Viento Vmax sobre Estructura - Oblicuo - Comp. Transv.,Vmax,742.25,daN,Transversal
+40,Estructura,VeoL,Viento Vmax sobre Estructura - Oblicuo - Comp. Long.,Vmax,814.88,daN,Longitudinal
+41,Estructura,VemedoT,Viento Vmed sobre Estructura - Oblicuo - Comp. Transv.,Vmed,118.76,daN,Transversal
+42,Estructura,VemedoL,Viento Vmed sobre Estructura - Oblicuo - Comp. Long.,Vmed,130.38,daN,Longitudinal
 43,Conductor,Ttmax_c_t,Componente Transversal - Tiro tmax de conductor,Tmax,0.0,daN,Transversal
 44,Conductor,Ttmax_c_l,Componente Longitudinal - Tiro tmax de conductor,Tmax,2091.56,daN,Longitudinal
 45,Conductor,Ttmin_c_t,Componente Transversal - Tiro tmin de conductor,Tmin,0.0,daN,Transversal
