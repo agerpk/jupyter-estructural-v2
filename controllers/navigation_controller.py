@@ -7,6 +7,7 @@ from components.vista_home import crear_vista_home
 from components.vista_ajuste_parametros import crear_vista_ajuste_parametros
 from components.vista_eliminar_estructura import crear_vista_eliminar_estructura
 from components.vista_calculo_mecanico import crear_vista_calculo_mecanico
+from components.vista_gestion_cables import crear_vista_agregar_cable, crear_vista_modificar_cable, crear_vista_eliminar_cable
 from models.app_state import AppState
 
 
@@ -24,11 +25,17 @@ def register_callbacks(app):
         Input("menu-nueva-estructura", "n_clicks"),
         Input("menu-guardar-estructura", "n_clicks"),
         Input("menu-calculo-mecanico", "n_clicks"),
+        Input("menu-agregar-cable", "n_clicks"),
+        Input("menu-modificar-cable", "n_clicks"),
+        Input("menu-eliminar-cable", "n_clicks"),
+        Input("menu-diseno-geometrico", "n_clicks"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
-                       n_clicks_eliminar, n_clicks_nueva, n_clicks_guardar, n_clicks_cmc, estructura_actual):
+                       n_clicks_eliminar, n_clicks_nueva, n_clicks_guardar, n_clicks_cmc,
+                       n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
+                       n_clicks_diseno_geom, estructura_actual):
         ctx = callback_context
         
         if not ctx.triggered:
@@ -48,6 +55,23 @@ def register_callbacks(app):
         
         elif trigger_id == "menu-calculo-mecanico":
             return crear_vista_calculo_mecanico(estructura_actual)
+        
+        elif trigger_id == "menu-agregar-cable":
+            cables_disponibles = state.cable_manager.obtener_cables()
+            from components.vista_gestion_cables import crear_vista_agregar_cable_con_opciones
+            return crear_vista_agregar_cable_con_opciones(cables_disponibles)
+        
+        elif trigger_id == "menu-modificar-cable":
+            cables_disponibles = state.cable_manager.obtener_cables()
+            return crear_vista_modificar_cable(cables_disponibles)
+        
+        elif trigger_id == "menu-eliminar-cable":
+            cables_disponibles = state.cable_manager.obtener_cables()
+            return crear_vista_eliminar_cable(cables_disponibles)
+        
+        elif trigger_id == "menu-diseno-geometrico":
+            from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
+            return crear_vista_diseno_geometrico(estructura_actual)
         
         elif "btn-volver" in trigger_id:
             try:

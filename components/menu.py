@@ -52,6 +52,10 @@ def crear_menu_editar():
         children=[
             dbc.DropdownMenuItem("Ajustar Parámetros", id="menu-ajustar-parametros"),
             dbc.DropdownMenuItem("Eliminar Estructura de DB", id="menu-eliminar-estructura"),
+            dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem("Agregar Cable", id="menu-agregar-cable"),
+            dbc.DropdownMenuItem("Modificar Cable", id="menu-modificar-cable"),
+            dbc.DropdownMenuItem("Eliminar Cable", id="menu-eliminar-cable"),
         ],
         nav=True,
         in_navbar=True,
@@ -65,6 +69,7 @@ def crear_menu_calcular():
     return dbc.DropdownMenu(
         children=[
             dbc.DropdownMenuItem("Cálculo Mecánico de Cables", id="menu-calculo-mecanico"),
+            dbc.DropdownMenuItem("Diseño Geométrico de Estructura", id="menu-diseno-geometrico"),
         ],
         nav=True,
         in_navbar=True,

@@ -32,3 +32,29 @@ class CableManager:
     def obtener_opciones_select(self) -> List[Dict[str, str]]:
         """Obtener opciones para dropdown de cables"""
         return [{"label": cable_id, "value": cable_id} for cable_id in self.obtener_cables()]
+    
+    def guardar_cables(self):
+        """Guardar datos de cables en archivo JSON"""
+        with open(self.cables_path, 'w', encoding='utf-8') as f:
+            json.dump(self.cables_data, f, indent=2, ensure_ascii=False)
+    
+    def agregar_cable(self, cable_id: str, datos_cable: Dict[str, Any]):
+        """Agregar un nuevo cable"""
+        self.cables_data[cable_id] = datos_cable
+        self.guardar_cables()
+    
+    def modificar_cable(self, cable_id: str, datos_cable: Dict[str, Any]):
+        """Modificar un cable existente"""
+        if cable_id in self.cables_data:
+            self.cables_data[cable_id] = datos_cable
+            self.guardar_cables()
+        else:
+            raise ValueError(f"Cable '{cable_id}' no existe")
+    
+    def eliminar_cable(self, cable_id: str):
+        """Eliminar un cable"""
+        if cable_id in self.cables_data:
+            del self.cables_data[cable_id]
+            self.guardar_cables()
+        else:
+            raise ValueError(f"Cable '{cable_id}' no existe")
