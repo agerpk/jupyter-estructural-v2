@@ -3,7 +3,7 @@
   "Zona_climatica": "D",
   "exposicion": "C",
   "clase": "C",
-  "TITULO": "PRUEBA2",
+  "TITULO": "2x220 DTT SAN JORGE PRUEBAS",
   "cable_conductor_id": "AlAc 435/55",
   "cable_guardia_id": "OPGW FiberHome 24FO 58mm2",
   "Vmax": 38.9,
@@ -62,5 +62,6 @@
   "REEMPLAZAR_TITULO_GRAFICO": false,
   "Vn": 220,
   "fecha_creacion": "2024-01-01",
-  "version": "1.0"
+  "version": "1.0",
+  "fecha_modificacion": "2025-12-09T10:20:44.469708"
 }
