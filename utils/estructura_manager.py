@@ -26,8 +26,17 @@ class EstructuraManager:
     
     def cargar_plantilla(self) -> Dict[str, Any]:
         """Cargar estructura de plantilla"""
-        with open(self.plantilla_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(self.plantilla_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            # Crear estructura básica si no existe plantilla
+            return {
+                "TIPO_ESTRUCTURA": "Suspensión Recta",
+                "TITULO": "Estructura Base",
+                "fecha_creacion": datetime.datetime.now().isoformat(),
+                "version": "1.0"
+            }
     
     def guardar_estructura(self, estructura: Dict[str, Any], ruta_destino: Path):
         """Guardar estructura en archivo JSON"""

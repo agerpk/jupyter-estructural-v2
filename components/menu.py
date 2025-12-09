@@ -15,6 +15,7 @@ def crear_menu_archivo():
             dbc.DropdownMenuItem("Cargar desde Computadora", id="menu-cargar-desde-pc"),
             dbc.DropdownMenuItem(divider=True),
             dbc.DropdownMenuItem("Guardar Estructura", id="menu-guardar-estructura"),
+            dbc.DropdownMenuItem("Descargar Estructura", id="menu-descargar-estructura"),
             dbc.DropdownMenuItem("Guardar Estructura Como...", id="menu-guardar-como"),
             dbc.DropdownMenuItem("Guardar como Plantilla", id="menu-guardar-plantilla"),
         ],
@@ -24,6 +25,26 @@ def crear_menu_archivo():
         className="ms-2",
         direction="down",
     )
+
+def crear_modal_nueva_estructura():
+    """Crear modal para nueva estructura"""
+    return dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Nueva Estructura")),
+        dbc.ModalBody([
+            dbc.Label("Nombre de la estructura:"),
+            dbc.Input(
+                id="input-nombre-nueva-estructura",
+                type="text",
+                placeholder="Ingrese nombre de la estructura..."
+            ),
+            html.Small("El archivo se guardará como: [nombre].estructura.json", 
+                      className="text-muted mt-2 d-block")
+        ]),
+        dbc.ModalFooter([
+            dbc.Button("Cancelar", id="btn-cancelar-nueva", color="secondary", className="me-2"),
+            dbc.Button("Crear", id="btn-crear-nueva-confirmar", color="primary")
+        ])
+    ], id="modal-nueva-estructura", is_open=False)
 
 def crear_menu_editar():
     """Crear menú EDITAR"""

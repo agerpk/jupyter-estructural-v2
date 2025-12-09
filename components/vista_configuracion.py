@@ -4,7 +4,6 @@ Vista para configuración de nueva estructura
 
 from dash import html
 import dash_bootstrap_components as dbc
-from components.parametro_input import crear_grupo_parametros
 
 def crear_vista_configuracion():
     """Crear vista de configuración de nueva estructura"""
@@ -46,28 +45,6 @@ def crear_vista_configuracion():
         ]),
     ]
     
-    # Opciones especiales para ciertos parámetros
-    opciones_especiales = {
-        "TIPO_ESTRUCTURA": ["Suspensión Recta", "Suspensión angular", "Retención / Ret. Angular", "Terminal"],
-        "exposicion": ["B", "C", "D"],
-        "clase": ["A", "B", "BB", "C", "D", "E"],
-        "Zona_climatica": ["A", "B", "C", "D", "E"],
-        "FORZAR_ORIENTACION": ["Longitudinal", "Transversal", "No"],
-        "PRIORIDAD_DIMENSIONADO": ["altura_libre", "longitud_total"],
-        "Zona_estructura": ["Peatonal", "Rural", "Urbana", "Autopista", "Ferrocarril", "Línea Eléctrica"],
-        "DISPOSICION": ["triangular", "horizontal", "vertical"],
-        "TERNA": ["Simple", "Doble"],
-        "OBJ_CONDUCTOR": ["FlechaMin", "TiroMin"],
-        "OBJ_GUARDIA": ["FlechaMin", "TiroMin"],
-    }
-    
-    # Crear acordeón con grupos de parámetros
-    items_acordeon = []
-    for grupo_nombre, parametros in grupos_parametros:
-        items_acordeon.append(
-            crear_grupo_parametros(grupo_nombre, parametros, {}, opciones_especiales)
-        )
-    
     return html.Div([
         dbc.Card([
             dbc.CardHeader(html.H4("Configurar Nueva Estructura", className="mb-0")),
@@ -78,11 +55,9 @@ def crear_vista_configuracion():
                     className="mb-4"
                 ),
                 
-                dbc.Accordion(
-                    items_acordeon,
-                    always_open=True,
-                    className="mb-4"
-                ),
+                html.Div([
+                    "Nota: Esta funcionalidad está en desarrollo. Use 'Ajustar Parámetros' en el menú EDITAR para modificar la estructura actual."
+                ], className="mb-4 text-muted"),
                 
                 dbc.Row([
                     dbc.Col(
@@ -98,7 +73,7 @@ def crear_vista_configuracion():
                     dbc.Col(
                         dbc.Button(
                             "Volver",
-                            id="btn-volver-home",
+                            id={"type": "btn-volver", "index": "configuracion"},
                             color="secondary",
                             size="lg",
                             className="w-100"
