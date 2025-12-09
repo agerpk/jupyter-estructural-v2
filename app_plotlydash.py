@@ -32,6 +32,7 @@ from utils.estructura_manager import EstructuraManager
 from utils.validaciones import validar_estructura_json, validar_nombre_archivo
 from utils.calculo_objetos import CalculoObjetosAEA
 from utils.calculo_mecanico_cables import CalculoMecanicoCables
+from utils.plot_flechas import crear_grafico_flechas
 
 # Inicializar la aplicación Dash
 app = dash.Dash(
@@ -1049,6 +1050,30 @@ def calcular_cmc(n_clicks, L_vano, alpha, theta, Vmax, Vmed, t_hielo,
                     dbc.Table.from_dataframe(resultado["df_cargas_totales"], striped=True, bordered=True, hover=True, size="sm"),
                     dbc.Button("Descargar CSV", id="btn-descargar-cargas-csv", color="primary", className="mt-2")
                 ])
+            
+            # Agregar gráficos de flechas
+            if calculo_mecanico.resultados_conductor and calculo_mecanico.resultados_guardia:
+                try:
+                    fig_combinado, fig_conductor, fig_guardia = crear_grafico_flechas(
+                        calculo_mecanico.resultados_conductor,
+                        calculo_mecanico.resultados_guardia,
+                        float(L_vano)
+                    )
+                    resultados_html.extend([
+                        html.H5("Gráficos de Flechas", className="mt-4"),
+                        html.H6("Conductor y Guardia", className="mt-3"),
+                        dcc.Graph(figure=fig_combinado, config={'displayModeBar': True}),
+                        html.H6("Solo Conductor", className="mt-3"),
+                        dcc.Graph(figure=fig_conductor, config={'displayModeBar': True}),
+                        html.H6("Solo Cable de Guardia", className="mt-3"),
+                        dcc.Graph(figure=fig_guardia, config={'displayModeBar': True})
+                    ])
+                except Exception as e:
+                    print(f"Error generando gráficos de flechas: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print("No hay resultados de conductor o guardia para graficar")
             
             return resultados_html, True, "Éxito", "Cálculo completado", "success", "success"
         else:
