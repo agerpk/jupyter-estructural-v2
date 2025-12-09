@@ -60,6 +60,30 @@ def crear_menu_editar():
         direction="down",
     )
 
+def crear_menu_calcular():
+    """Crear menú CALCULAR"""
+    submenu_aea = dbc.DropdownMenu(
+        children=[
+            dbc.DropdownMenuItem("Crear Todos los Objetos", id="menu-crear-todos-objetos"),
+            dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem("Crear Objetos Cable", id="menu-crear-cables"),
+            dbc.DropdownMenuItem("Crear Objetos Cadena", id="menu-crear-cadena"),
+            dbc.DropdownMenuItem("Crear Objetos Estructura", id="menu-crear-estructura-obj"),
+        ],
+        label="AEA-95301-2007",
+        direction="end",
+        toggle_style={"background": "transparent", "border": "none", "color": "inherit"},
+    )
+    
+    return dbc.DropdownMenu(
+        children=[submenu_aea],
+        nav=True,
+        in_navbar=True,
+        label="CALCULAR",
+        className="ms-2",
+        direction="down",
+    )
+
 def crear_modal_cargar_db(estructuras_disponibles):
     """Crear modal para cargar estructura desde DB"""
     return dbc.Modal([

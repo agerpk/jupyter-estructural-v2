@@ -13,7 +13,8 @@ from pathlib import Path
 # Importar componentes personalizados
 from components.menu import (
     crear_menu_archivo, 
-    crear_menu_editar, 
+    crear_menu_editar,
+    crear_menu_calcular,
     crear_modal_cargar_db, 
     crear_modal_guardar_como,
     crear_modal_guardar_plantilla,
@@ -28,6 +29,7 @@ from components.vista_configuracion import crear_vista_configuracion
 from utils.cable_manager import CableManager
 from utils.estructura_manager import EstructuraManager
 from utils.validaciones import validar_estructura_json, validar_nombre_archivo
+from utils.calculo_objetos import CalculoObjetosAEA
 
 # Inicializar la aplicación Dash
 app = dash.Dash(
@@ -97,6 +99,7 @@ data_dir = Path("data")
 cables_path = data_dir / "cables.json"
 estructura_manager = EstructuraManager(data_dir)
 cable_manager = CableManager(cables_path)
+calculo_objetos = CalculoObjetosAEA()
 
 # Ruta del archivo actual
 archivo_actual = Path("actual.estructura.json")
@@ -146,7 +149,7 @@ app.layout = html.Div([
             dbc.Nav([
                 crear_menu_archivo(),
                 crear_menu_editar(),
-
+                crear_menu_calcular(),
             ], navbar=True),
             
             # Información de estructura actual
@@ -778,6 +781,95 @@ def eliminar_estructura_callback(n_clicks, nombre_estructura):
     except Exception as e:
         print(f"Error eliminando estructura: {e}")
         return True, "Error", f"Error al eliminar la estructura: {str(e)}", "danger", "danger", dash.no_update
+
+# ============================================================================
+# CALLBACKS PARA CÁLCULOS AEA-95301
+# ============================================================================
+
+@app.callback(
+    Output("toast-notificacion", "is_open", allow_duplicate=True),
+    Output("toast-notificacion", "header", allow_duplicate=True),
+    Output("toast-notificacion", "children", allow_duplicate=True),
+    Output("toast-notificacion", "icon", allow_duplicate=True),
+    Output("toast-notificacion", "color", allow_duplicate=True),
+    Input("menu-crear-cables", "n_clicks"),
+    State("estructura-actual", "data"),
+    prevent_initial_call=True
+)
+def crear_cables_callback(n_clicks, estructura_actual):
+    if not estructura_actual:
+        return True, "Error", "No hay estructura cargada", "danger", "danger"
+    
+    resultado = calculo_objetos.crear_objetos_cable(estructura_actual)
+    
+    if resultado["exito"]:
+        mensaje = f"{resultado['mensaje']}\n✓ Conductor: {resultado['conductor']}\n✓ Guardia: {resultado['guardia']}"
+        return True, "Éxito", mensaje, "success", "success"
+    else:
+        return True, "Error", resultado["mensaje"], "danger", "danger"
+
+@app.callback(
+    Output("toast-notificacion", "is_open", allow_duplicate=True),
+    Output("toast-notificacion", "header", allow_duplicate=True),
+    Output("toast-notificacion", "children", allow_duplicate=True),
+    Output("toast-notificacion", "icon", allow_duplicate=True),
+    Output("toast-notificacion", "color", allow_duplicate=True),
+    Input("menu-crear-cadena", "n_clicks"),
+    State("estructura-actual", "data"),
+    prevent_initial_call=True
+)
+def crear_cadena_callback(n_clicks, estructura_actual):
+    if not estructura_actual:
+        return True, "Error", "No hay estructura cargada", "danger", "danger"
+    
+    resultado = calculo_objetos.crear_objetos_cadena(estructura_actual)
+    
+    if resultado["exito"]:
+        return True, "Éxito", resultado["mensaje"], "success", "success"
+    else:
+        return True, "Error", resultado["mensaje"], "danger", "danger"
+
+@app.callback(
+    Output("toast-notificacion", "is_open", allow_duplicate=True),
+    Output("toast-notificacion", "header", allow_duplicate=True),
+    Output("toast-notificacion", "children", allow_duplicate=True),
+    Output("toast-notificacion", "icon", allow_duplicate=True),
+    Output("toast-notificacion", "color", allow_duplicate=True),
+    Input("menu-crear-estructura-obj", "n_clicks"),
+    State("estructura-actual", "data"),
+    prevent_initial_call=True
+)
+def crear_estructura_obj_callback(n_clicks, estructura_actual):
+    if not estructura_actual:
+        return True, "Error", "No hay estructura cargada", "danger", "danger"
+    
+    resultado = calculo_objetos.crear_objetos_estructura(estructura_actual)
+    
+    if resultado["exito"]:
+        return True, "Éxito", resultado["mensaje"], "success", "success"
+    else:
+        return True, "Error", resultado["mensaje"], "danger", "danger"
+
+@app.callback(
+    Output("toast-notificacion", "is_open", allow_duplicate=True),
+    Output("toast-notificacion", "header", allow_duplicate=True),
+    Output("toast-notificacion", "children", allow_duplicate=True),
+    Output("toast-notificacion", "icon", allow_duplicate=True),
+    Output("toast-notificacion", "color", allow_duplicate=True),
+    Input("menu-crear-todos-objetos", "n_clicks"),
+    State("estructura-actual", "data"),
+    prevent_initial_call=True
+)
+def crear_todos_objetos_callback(n_clicks, estructura_actual):
+    if not estructura_actual:
+        return True, "Error", "No hay estructura cargada", "danger", "danger"
+    
+    resultado = calculo_objetos.crear_todos_objetos(estructura_actual)
+    
+    if resultado["exito"]:
+        return True, "Éxito", resultado["mensaje"], "success", "success"
+    else:
+        return True, "Error", resultado["mensaje"], "danger", "danger"
 
 # ============================================================================
 # EJECUCIÓN PRINCIPAL
