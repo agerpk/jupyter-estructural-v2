@@ -62,3 +62,57 @@ def register_callbacks(app):
             return False
         
         return False
+    
+    @app.callback(
+        Output("contenido-principal", "children", allow_duplicate=True),
+        Input("estructuras-disponibles", "data"),
+        Input("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def actualizar_vista_home_estructuras(estructuras_data, estructura_actual):
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+        
+        # Solo actualizar si estamos en home
+        from config.app_config import NAVEGACION_STATE_FILE
+        try:
+            if NAVEGACION_STATE_FILE.exists():
+                import json
+                with open(NAVEGACION_STATE_FILE, 'r') as f:
+                    vista = json.load(f).get("ultima_vista", "home")
+                    if vista == "home":
+                        from components.vista_home import crear_vista_home
+                        return crear_vista_home()
+        except:
+            pass
+        
+        raise dash.exceptions.PreventUpdate
+    
+    @app.callback(
+        Output("badge-vista-actual", "children"),
+        Input("contenido-principal", "children")
+    )
+    def actualizar_badge_vista(contenido):
+        from config.app_config import NAVEGACION_STATE_FILE
+        try:
+            if NAVEGACION_STATE_FILE.exists():
+                import json
+                with open(NAVEGACION_STATE_FILE, 'r') as f:
+                    data = json.load(f)
+                    vista = data.get("ultima_vista", "home")
+                    
+                    nombres_vistas = {
+                        "home": "Inicio",
+                        "ajustar-parametros": "Ajustar Parámetros",
+                        "calculo-mecanico": "CMC",
+                        "diseno-geometrico": "DGE",
+                        "diseno-mecanico": "DME",
+                        "arboles-carga": "Árboles de Carga",
+                        "seleccion-poste": "SPH",
+                        "calcular-todo": "Calcular Todo"
+                    }
+                    return nombres_vistas.get(vista, "Vista")
+        except:
+            pass
+        return "Inicio"

@@ -63,6 +63,13 @@ def crear_layout():
                             className="ms-2"
                         )
                     ),
+                    dbc.NavItem(
+                        html.Span(
+                            id="badge-vista-actual",
+                            className="badge ms-2",
+                            style={"backgroundColor": "#6c757d !important", "color": "#2084f2 !important", "padding": "0.35em 0.65em", "fontSize": "0.75em", "fontWeight": "700", "lineHeight": "1", "borderRadius": "0.25rem"}
+                        )
+                    ),
                 ], navbar=True, className="ms-auto"),
             ]),
             color="dark",
