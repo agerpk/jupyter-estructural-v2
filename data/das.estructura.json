@@ -1,5 +1,5 @@
 {
-  "TIPO_ESTRUCTURA": "Retención / Ret. Angular",
+  "TIPO_ESTRUCTURA": "Suspensión Recta",
   "Zona_climatica": "D",
   "exposicion": "C",
   "clase": "C",
@@ -63,5 +63,5 @@
   "Vn": 220,
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-10T14:07:36.664957"
+  "fecha_modificacion": "2025-12-10T14:05:10.063354"
 }

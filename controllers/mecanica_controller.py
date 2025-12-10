@@ -1,9 +1,10 @@
 """Controlador de diseño mecánico"""
 
 import dash
-from dash import html, Input, Output, State
+from dash import html, Input, Output, State, ALL
 import dash_bootstrap_components as dbc
 from models.app_state import AppState
+import json
 
 
 def register_callbacks(app):
@@ -12,34 +13,166 @@ def register_callbacks(app):
     state = AppState()
     
     @app.callback(
+        Output("modal-editor-hipotesis", "is_open"),
+        Output("modal-editor-hipotesis", "children"),
+        Input("btn-modificar-hipotesis", "n_clicks"),
+        Input("btn-cancelar-hipotesis", "n_clicks"),
+        Input("btn-guardar-hipotesis", "n_clicks"),
+        State("modal-editor-hipotesis", "is_open"),
+        State("estructura-actual", "data"),
+        State("hipotesis-actuales", "data"),
+        prevent_initial_call=True
+    )
+    def toggle_modal_hipotesis(n_abrir, n_cancelar, n_guardar, is_open, estructura_actual, hipotesis_actuales):
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            return is_open, dash.no_update
+        
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if button_id == "btn-modificar-hipotesis":
+            # Regenerar modal con tipo de estructura actual
+            from components.editor_hipotesis import crear_modal_editor_hipotesis
+            tipo_estructura = estructura_actual.get("TIPO_ESTRUCTURA", "Suspensión Recta")
+            modal_content = crear_modal_editor_hipotesis(tipo_estructura, hipotesis_actuales)
+            return True, modal_content.children
+        elif button_id in ["btn-cancelar-hipotesis", "btn-guardar-hipotesis"]:
+            return False, dash.no_update
+        
+        return is_open, dash.no_update
+    
+    @app.callback(
         Output("toast-notificacion", "is_open", allow_duplicate=True),
         Output("toast-notificacion", "header", allow_duplicate=True),
         Output("toast-notificacion", "children", allow_duplicate=True),
         Output("toast-notificacion", "icon", allow_duplicate=True),
         Output("toast-notificacion", "color", allow_duplicate=True),
+        Output("hipotesis-actuales", "data"),
+        Input("btn-guardar-hipotesis", "n_clicks"),
+        State({"type": "hip-desc", "index": ALL}, "value"),
+        State({"type": "hip-desc", "index": ALL}, "id"),
+        State({"type": "hip-viento-estado", "index": ALL}, "value"),
+        State({"type": "hip-viento-dir", "index": ALL}, "value"),
+        State({"type": "hip-viento-factor", "index": ALL}, "value"),
+        State({"type": "hip-tiro-estado", "index": ALL}, "value"),
+        State({"type": "hip-tiro-patron", "index": ALL}, "value"),
+        State({"type": "hip-tiro-red-cond", "index": ALL}, "value"),
+        State({"type": "hip-tiro-red-guard", "index": ALL}, "value"),
+        State({"type": "hip-tiro-factor-cond", "index": ALL}, "value"),
+        State({"type": "hip-tiro-factor-guard", "index": ALL}, "value"),
+        State({"type": "hip-peso-factor", "index": ALL}, "value"),
+        State({"type": "hip-peso-hielo", "index": ALL}, "value"),
+        State({"type": "hip-sobrecarga", "index": ALL}, "value"),
+        State("estructura-actual", "data"),
+        State("hipotesis-actuales", "data"),
+        prevent_initial_call=True
+    )
+    def guardar_hipotesis_modificadas(n_clicks, descs, desc_ids, viento_estados, viento_dirs, viento_factors,
+                                      tiro_estados, tiro_patrones, tiro_red_conds, tiro_red_guards,
+                                      tiro_factor_conds, tiro_factor_guards, peso_factors, peso_hielos,
+                                      sobrecargas, estructura_actual, hipotesis_actuales):
+        if not n_clicks:
+            raise dash.exceptions.PreventUpdate
+        
+        try:
+            from utils.hipotesis_manager import HipotesisManager
+            
+            tipo_estructura = estructura_actual.get("TIPO_ESTRUCTURA")
+            nombre_estructura = estructura_actual.get("TITULO", "estructura")
+            
+            # Reconstruir hipótesis desde los campos
+            hipotesis_modificadas = {}
+            
+            for i, desc_id in enumerate(desc_ids):
+                codigo_hip = desc_id["index"]
+                
+                # Construir viento
+                viento = None
+                if viento_estados[i] and viento_estados[i] != "None":
+                    viento = {
+                        "estado": viento_estados[i],
+                        "direccion": viento_dirs[i],
+                        "factor": float(viento_factors[i])
+                    }
+                
+                # Construir tiro
+                tiro = {
+                    "estado": tiro_estados[i],
+                    "patron": tiro_patrones[i],
+                    "reduccion_cond": float(tiro_red_conds[i]),
+                    "reduccion_guardia": float(tiro_red_guards[i])
+                }
+                
+                # Agregar factores si existen
+                if tiro_factor_conds[i] is not None:
+                    tiro["factor_cond"] = float(tiro_factor_conds[i])
+                if tiro_factor_guards[i] is not None:
+                    tiro["factor_guardia"] = float(tiro_factor_guards[i])
+                
+                # Construir peso
+                peso = {
+                    "factor": float(peso_factors[i]),
+                    "hielo": bool(peso_hielos[i])
+                }
+                
+                # Sobrecarga
+                sobrecarga = float(sobrecargas[i]) if sobrecargas[i] and sobrecargas[i] > 0 else None
+                
+                hipotesis_modificadas[codigo_hip] = {
+                    "desc": descs[i],
+                    "viento": viento,
+                    "tiro": tiro,
+                    "peso": peso,
+                    "sobrecarga": sobrecarga
+                }
+            
+            # Actualizar hipótesis completas
+            hipotesis_completas = hipotesis_actuales.copy()
+            hipotesis_completas[tipo_estructura] = hipotesis_modificadas
+            
+            # Guardar en archivo
+            from config.app_config import DATA_DIR
+            estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
+            hash_estructura = HipotesisManager.calcular_hash_estructura(estructura_json_path)
+            HipotesisManager.guardar_hipotesis(nombre_estructura, hash_estructura, hipotesis_completas)
+            
+            return True, "Éxito", "Hipótesis guardadas correctamente", "success", "success", hipotesis_completas
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return True, "Error", f"Error al guardar hipótesis: {str(e)}", "danger", "danger", hipotesis_actuales
+    
+    @app.callback(
+        Output("toast-notificacion", "is_open", allow_duplicate=True),
+        Output("toast-notificacion", "header", allow_duplicate=True),
+        Output("toast-notificacion", "children", allow_duplicate=True),
+        Output("toast-notificacion", "icon", allow_duplicate=True),
+        Output("toast-notificacion", "color", allow_duplicate=True),
+        Output("estructura-actual", "data", allow_duplicate=True),
         Input("btn-guardar-params-dme", "n_clicks"),
         State("select-tipo-estructura-dme", "value"),
         State("switch-mostrar-c2", "value"),
         State("slider-zoom-cabezal", "value"),
         State("switch-reemplazar-titulo", "value"),
+        State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def guardar_parametros_mecanica(n_clicks, tipo_estructura, mostrar_c2, zoom_cabezal, reemplazar_titulo):
+    def guardar_parametros_mecanica(n_clicks, tipo_estructura, mostrar_c2, zoom_cabezal, reemplazar_titulo, estructura_actual):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
         try:
-            parametros = {
-                "TIPO_ESTRUCTURA": tipo_estructura,
-                "MOSTRAR_C2": mostrar_c2,
-                "ZOOM_CABEZAL": zoom_cabezal,
-                "REEMPLAZAR_TITULO_GRAFICO": reemplazar_titulo
-            }
+            estructura_actualizada = estructura_actual.copy()
+            estructura_actualizada["TIPO_ESTRUCTURA"] = tipo_estructura
+            estructura_actualizada["MOSTRAR_C2"] = mostrar_c2
+            estructura_actualizada["ZOOM_CABEZAL"] = zoom_cabezal
+            estructura_actualizada["REEMPLAZAR_TITULO_GRAFICO"] = reemplazar_titulo
             
-            state.estructura_manager.actualizar_parametros(parametros)
-            return True, "Éxito", "Parámetros de mecánica guardados", "success", "success"
+            state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
+            return True, "Éxito", "Parámetros de mecánica guardados", "success", "success", estructura_actualizada
         except Exception as e:
-            return True, "Error", f"Error al guardar: {str(e)}", "danger", "danger"
+            return True, "Error", f"Error al guardar: {str(e)}", "danger", "danger", dash.no_update
     
     @app.callback(
         Output("output-diseno-mecanico", "children"),
@@ -146,9 +279,10 @@ def register_callbacks(app):
                     from EstructuraAEA_Graficos import EstructuraAEA_Graficos
                     from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_maestro_base
                     from utils.hipotesis_manager import HipotesisManager
+                    from config.app_config import DATA_DIR
                     
                     # Obtener ruta del archivo estructura.json
-                    estructura_json_path = f"data/{nombre_estructura}.estructura.json"
+                    estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
                     hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
                         nombre_estructura,
                         estructura_json_path,
@@ -238,10 +372,11 @@ def register_callbacks(app):
                 
                 from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_maestro_base
                 from utils.hipotesis_manager import HipotesisManager
+                from config.app_config import DATA_DIR
                 
                 # Obtener ruta del archivo estructura.json
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                estructura_json_path = f"data/{nombre_estructura}.estructura.json"
+                estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
                 hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
                     nombre_estructura,
                     estructura_json_path,

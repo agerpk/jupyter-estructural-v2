@@ -94,23 +94,32 @@ def register_callbacks(app):
             elif ultima_vista == "diseno-mecanico":
                 from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
                 from utils.calculo_cache import CalculoCache
-                calculo_guardado = None
-                if estructura_actual:
-                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                    calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
-                    if calculo_guardado:
-                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                        if not vigente:
-                            calculo_guardado = None
-                else:
+                from utils.hipotesis_manager import HipotesisManager
+                from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_base
+                
+                if not estructura_actual:
                     estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
-                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                    calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
-                    if calculo_guardado:
-                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                        if not vigente:
-                            calculo_guardado = None
-                return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado)
+                
+                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                
+                # Cargar hipótesis
+                from config.app_config import DATA_DIR
+                estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
+                hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
+                    nombre_estructura,
+                    estructura_json_path,
+                    hipotesis_base
+                )
+                
+                # Cargar cálculo guardado
+                calculo_guardado = None
+                calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
+                if calculo_guardado:
+                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                    if not vigente:
+                        calculo_guardado = None
+                
+                return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro)
             elif ultima_vista == "seleccion-poste":
                 from components.vista_seleccion_poste import crear_vista_seleccion_poste
                 from utils.calculo_cache import CalculoCache
@@ -195,16 +204,32 @@ def register_callbacks(app):
             guardar_navegacion_state("diseno-mecanico")
             from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
             from utils.calculo_cache import CalculoCache
+            from utils.hipotesis_manager import HipotesisManager
+            from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_base
+            
             if not estructura_actual:
                 estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
-            calculo_guardado = None
+            
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            
+            # Cargar hipótesis
+            from config.app_config import DATA_DIR
+            estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
+            hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
+                nombre_estructura,
+                estructura_json_path,
+                hipotesis_base
+            )
+            
+            # Cargar cálculo guardado
+            calculo_guardado = None
             calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
             if calculo_guardado:
                 vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
                 if not vigente:
                     calculo_guardado = None
-            return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado)
+            
+            return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro)
         
         elif trigger_id == "menu-arboles-carga":
             guardar_navegacion_state("arboles-carga")

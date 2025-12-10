@@ -55,6 +55,7 @@ def register_callbacks(app):
             return dash.no_update, True, "Error", "Ingrese un título válido", "danger", "danger"
         
         try:
+            titulo_origen = estructura_actual.get("TITULO", "")
             estructura_actualizada = estructura_actual.copy()
             estructura_actualizada["TITULO"] = nuevo_titulo.strip()
             
@@ -63,6 +64,14 @@ def register_callbacks(app):
             
             state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_destino)
             state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
+            
+            # Copiar hipótesis de estructura origen si existen
+            from utils.hipotesis_manager import HipotesisManager
+            HipotesisManager.copiar_hipotesis_guardar_como(
+                titulo_origen,
+                nuevo_titulo.strip(),
+                str(ruta_destino)
+            )
             
             return estructura_actualizada, True, "Éxito", f"Estructura guardada como '{nuevo_titulo}'", "success", "success"
         except Exception as e:

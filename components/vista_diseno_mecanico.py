@@ -6,6 +6,7 @@ import pandas as pd
 import base64
 from pathlib import Path
 from config.app_config import DATA_DIR
+from components.editor_hipotesis import crear_modal_editor_hipotesis
 
 
 def generar_resultados_dme(calculo_guardado, estructura_actual):
@@ -96,13 +97,20 @@ def generar_resultados_dme(calculo_guardado, estructura_actual):
         return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")
 
 
-def crear_vista_diseno_mecanico(estructura_actual, calculo_guardado=None):
+def crear_vista_diseno_mecanico(estructura_actual, calculo_guardado=None, hipotesis_maestro=None):
     """Vista para diseño mecánico con parámetros y cálculo"""
     
     # Generar resultados si hay cálculo guardado
     resultados_previos = None
     if calculo_guardado:
         resultados_previos = generar_resultados_dme(calculo_guardado, estructura_actual)
+    
+    # Cargar hipótesis si no se proporcionan
+    if hipotesis_maestro is None:
+        from HipotesisMaestro_Especial import hipotesis_maestro as hip_base
+        hipotesis_maestro = hip_base
+    
+    tipo_estructura = estructura_actual.get("TIPO_ESTRUCTURA", "Suspensión Recta")
     
     return html.Div([
         dbc.Card([
@@ -158,10 +166,13 @@ def crear_vista_diseno_mecanico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Button("Guardar Parámetros", id="btn-guardar-params-dme", color="primary", size="lg", className="w-100"),
-                    ], md=6),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Button("Modificar Hipótesis", id="btn-modificar-hipotesis", color="warning", size="lg", className="w-100"),
+                    ], md=4),
                     dbc.Col([
                         dbc.Button("Calcular Diseño Mecánico", id="btn-calcular-dme", color="success", size="lg", className="w-100"),
-                    ], md=6),
+                    ], md=4),
                 ], className="mb-4"),
                 
                 html.Hr(),
@@ -169,5 +180,11 @@ def crear_vista_diseno_mecanico(estructura_actual, calculo_guardado=None):
                 # Área de resultados
                 html.Div(id="output-diseno-mecanico", children=resultados_previos)
             ])
-        ])
+        ]),
+        
+        # Modal de edición de hipótesis
+        crear_modal_editor_hipotesis(tipo_estructura, hipotesis_maestro),
+        
+        # Store para hipótesis actuales
+        dcc.Store(id="hipotesis-actuales", data=hipotesis_maestro)
     ])
