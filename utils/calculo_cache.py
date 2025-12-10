@@ -195,3 +195,26 @@ class CalculoCache:
             return True, "Cálculo vigente"
         else:
             return False, "Se debe recalcular (parámetros modificados)"
+
+    @staticmethod
+    def guardar_calculo_todo(nombre_estructura, estructura_data, resultados_completos):
+        """Guarda resultados de Calcular Todo"""
+        hash_params = CalculoCache.calcular_hash(estructura_data)
+        
+        calculo_data = {
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "resultados": resultados_completos
+        }
+        
+        archivo = DATA_DIR / f"{nombre_estructura}.calculoTODO.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+        return hash_params
+    
+    @staticmethod
+    def cargar_calculo_todo(nombre_estructura):
+        """Carga resultados de Calcular Todo"""
+        archivo = DATA_DIR / f"{nombre_estructura}.calculoTODO.json"
+        if not archivo.exists():
+            return None
+        return json.loads(archivo.read_text(encoding="utf-8"))
