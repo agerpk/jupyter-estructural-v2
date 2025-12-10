@@ -65,6 +65,8 @@ def crear_layout():
             color="dark",
             dark=True,
             className="mb-4",
+            sticky="top",
+            style={"zIndex": 1000}
         ),
         
         # Contenedor principal
@@ -87,7 +89,8 @@ def crear_layout():
             dismissable=True,
             duration=TOAST_DURATION,
             className="position-fixed top-0 end-0 m-3",
-            style={"zIndex": 1000},
+            style={"zIndex": 1050},
+            color="info"
         ),
         
         # Componente para cargar archivos

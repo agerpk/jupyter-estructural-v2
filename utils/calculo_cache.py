@@ -140,6 +140,21 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
+    def guardar_calculo_sph(nombre_estructura, calculo_data):
+        """Guarda resultados de Selección de Postes de Hormigón"""
+        archivo = DATA_DIR / f"{nombre_estructura}.calculoSPH.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+        return calculo_data.get('hash_parametros')
+    
+    @staticmethod
+    def cargar_calculo_sph(nombre_estructura):
+        """Carga resultados de Selección de Postes de Hormigón"""
+        archivo = DATA_DIR / f"{nombre_estructura}.calculoSPH.json"
+        if not archivo.exists():
+            return None
+        return json.loads(archivo.read_text(encoding="utf-8"))
+    
+    @staticmethod
     def verificar_vigencia(calculo_guardado, estructura_actual):
         """Verifica si el cálculo guardado sigue vigente"""
         if not calculo_guardado:

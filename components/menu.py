@@ -71,6 +71,8 @@ def crear_menu_calcular():
             dbc.DropdownMenuItem("Cálculo Mecánico de Cables", id="menu-calculo-mecanico"),
             dbc.DropdownMenuItem("Diseño Geométrico de Estructura", id="menu-diseno-geometrico"),
             dbc.DropdownMenuItem("Diseño Mecánico de Estructura", id="menu-diseno-mecanico"),
+            dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem("Selección Poste Hormigón (SPH)", id="menu-seleccion-poste"),
         ],
         nav=True,
         in_navbar=True,
