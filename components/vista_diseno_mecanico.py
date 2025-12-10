@@ -12,6 +12,9 @@ def generar_resultados_dme(calculo_guardado, estructura_actual):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
         df_reacciones_dict = calculo_guardado.get('df_reacciones', {})
+        if not df_reacciones_dict:
+            return None
+        
         if isinstance(df_reacciones_dict, dict):
             df_reacciones = pd.DataFrame.from_dict(df_reacciones_dict, orient='index')
         else:
@@ -23,7 +26,7 @@ def generar_resultados_dme(calculo_guardado, estructura_actual):
                                'Tiro_X_daN', 'Tiro_Y_daN', 'Tiro_resultante_daN', 'Angulo_grados']
         
         if df_reacciones.empty or not all(col in df_reacciones.columns for col in columnas_requeridas):
-            return None  # No hay resultados válidos
+            return None
         
         hash_params = calculo_guardado.get('hash_parametros')
         
@@ -68,15 +71,15 @@ def generar_resultados_dme(calculo_guardado, estructura_actual):
             dbc.Table.from_dataframe(df_display, striped=True, bordered=True, hover=True, size="sm"),
         ]
         
-        # Cargar imágenes si existen
+        # Cargar imágenes guardadas
         if hash_params:
             img_polar = DATA_DIR / f"DME_Polar.{hash_params}.png"
             if img_polar.exists():
                 with open(img_polar, 'rb') as f:
                     img_str = base64.b64encode(f.read()).decode()
                 resultados_html.extend([
-                    html.H5("DIAGRAMA POLAR DE TIROS", className="mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})
+                    html.H5("DIAGRAMA POLAR DE TIROS", className="mb-2 mt-4"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1000px'})
                 ])
             
             img_barras = DATA_DIR / f"DME_Barras.{hash_params}.png"
@@ -84,8 +87,8 @@ def generar_resultados_dme(calculo_guardado, estructura_actual):
                 with open(img_barras, 'rb') as f:
                     img_str = base64.b64encode(f.read()).decode()
                 resultados_html.extend([
-                    html.H5("DIAGRAMA DE BARRAS", className="mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})
+                    html.H5("DIAGRAMA DE BARRAS", className="mb-2 mt-4"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1200px'})
                 ])
         
         return html.Div(resultados_html)

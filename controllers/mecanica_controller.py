@@ -271,21 +271,20 @@ def register_callbacks(app):
             estructura_graficos.diagrama_barras_tiros(mostrar_c2=estructura_actual.get('MOSTRAR_C2', False))
             fig_barras = plt.gcf()
             
-            # Guardar en cache con thread separado
+            # Guardar en cache ANTES de cerrar figuras
             from utils.calculo_cache import CalculoCache
-            import threading
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            CalculoCache.guardar_calculo_dme(
+                nombre_estructura,
+                estructura_actual,
+                df_reacciones,
+                fig_polar,
+                fig_barras
+            )
             
-            def guardar_async():
-                CalculoCache.guardar_calculo_dme(
-                    nombre_estructura,
-                    estructura_actual,
-                    df_reacciones,
-                    fig_polar,
-                    fig_barras
-                )
-            
-            threading.Thread(target=guardar_async, daemon=True).start()
+            # Cerrar figuras DESPUÉS de guardar
+            plt.close(fig_polar)
+            plt.close(fig_barras)
             
             # Preparar DataFrame con nombres de hipótesis legibles
             df_display = df_reacciones.copy()

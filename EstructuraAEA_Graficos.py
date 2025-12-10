@@ -666,7 +666,6 @@ class EstructuraAEA_Graficos:
         ax.legend(loc='upper right', title="Hipótesis")
         
         plt.tight_layout()
-        plt.show()
         
         print(f"✅ Diagrama polar generado")
     
@@ -707,24 +706,24 @@ class EstructuraAEA_Graficos:
         # Crear gráfico de barras sin borde
         barras = plt.bar(hipotesis_barras, tiros_barras, color=colores_barras, alpha=0.7, edgecolor='none')
         
-        # Añadir valores en la cima de las barras
+        # Configurar ejes y título primero
+        plt.ylabel('Tiro Resultante [daN]', fontweight='bold', fontsize=11)
+        plt.xlabel('Hipótesis de Carga', fontweight='bold', fontsize=11)
+        
+        titulo_grafico = titulo if titulo else f'COMPARACIÓN DE TIROS EN LA CIMA\n{self.geometria.tension_nominal}kV - {self.geometria.tipo_estructura.upper()}'
+        plt.title(titulo_grafico, fontsize=12, fontweight='bold', pad=10)
+        
+        plt.ylim(0, max(tiros_barras) * 1.15)
+        plt.grid(True, alpha=0.3, axis='y')
+        plt.xticks(rotation=45, ha='right')
+        
+        # Añadir valores en la cima de las barras DESPUÉS de configurar ejes
         for barra, valor, angulo in zip(barras, tiros_barras, angulos_barras):
             height = barra.get_height()
             plt.text(barra.get_x() + barra.get_width()/2., height,
                     f'{valor:.1f} daN\n({angulo:.0f}°)', 
                     ha='center', va='bottom', fontweight='bold', fontsize=9)
         
-        # Configurar gráfico con escala vertical ampliada
-        plt.ylim(0, max(tiros_barras) * 1.15)
-        plt.ylabel('Tiro Resultante [daN]', fontweight='bold')
-        plt.xlabel('Hipótesis de Carga', fontweight='bold')
-        
-        titulo_grafico = titulo if titulo else f'COMPARACIÓN DE TIROS EN LA CIMA\n{self.geometria.tension_nominal}kV - {self.geometria.tipo_estructura.upper()}'
-        plt.title(titulo_grafico, fontsize=12, fontweight='bold')
-        
-        plt.grid(True, alpha=0.3, axis='y')
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
-        plt.show()
+        plt.subplots_adjust(left=0.08, right=0.98, top=0.92, bottom=0.12)
         
         print(f"✅ Diagrama de barras generado")

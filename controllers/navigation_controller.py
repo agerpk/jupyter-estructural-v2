@@ -3,13 +3,34 @@
 import dash
 from dash import Input, Output, State, ALL, callback_context
 import json
+from pathlib import Path
 from components.vista_home import crear_vista_home
 from components.vista_ajuste_parametros import crear_vista_ajuste_parametros
 from components.vista_eliminar_estructura import crear_vista_eliminar_estructura
 from components.vista_calculo_mecanico import crear_vista_calculo_mecanico
 from components.vista_gestion_cables import crear_vista_agregar_cable, crear_vista_modificar_cable, crear_vista_eliminar_cable
 from models.app_state import AppState
+from config.app_config import NAVEGACION_STATE_FILE
 
+
+def guardar_navegacion_state(vista_id):
+    """Guarda el estado de navegación"""
+    try:
+        NAVEGACION_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(NAVEGACION_STATE_FILE, 'w') as f:
+            json.dump({"ultima_vista": vista_id}, f)
+    except:
+        pass
+
+def cargar_navegacion_state():
+    """Carga el estado de navegación"""
+    try:
+        if NAVEGACION_STATE_FILE.exists():
+            with open(NAVEGACION_STATE_FILE, 'r') as f:
+                return json.load(f).get("ultima_vista", "home")
+    except:
+        pass
+    return "home"
 
 def register_callbacks(app):
     """Registrar callbacks de navegación"""
@@ -31,7 +52,6 @@ def register_callbacks(app):
         Input("menu-diseno-geometrico", "n_clicks"),
         Input("menu-diseno-mecanico", "n_clicks"),
         State("estructura-actual", "data"),
-        prevent_initial_call=True
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
                        n_clicks_eliminar, n_clicks_nueva, n_clicks_guardar, n_clicks_cmc,
@@ -40,14 +60,65 @@ def register_callbacks(app):
         ctx = callback_context
         
         if not ctx.triggered:
+            ultima_vista = cargar_navegacion_state()
+            if ultima_vista == "home":
+                return crear_vista_home()
+            elif ultima_vista == "ajustar-parametros":
+                cables_disponibles = state.cable_manager.obtener_cables()
+                return crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
+            elif ultima_vista == "calculo-mecanico":
+                from utils.calculo_cache import CalculoCache
+                calculo_guardado = None
+                if estructura_actual:
+                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                    calculo_guardado = CalculoCache.cargar_calculo_cmc(nombre_estructura)
+                    if calculo_guardado:
+                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                        if not vigente:
+                            calculo_guardado = None
+                return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado)
+            elif ultima_vista == "diseno-geometrico":
+                from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
+                from utils.calculo_cache import CalculoCache
+                calculo_guardado = None
+                if estructura_actual:
+                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                    calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
+                    if calculo_guardado:
+                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                        if not vigente:
+                            calculo_guardado = None
+                return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
+            elif ultima_vista == "diseno-mecanico":
+                from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
+                from utils.calculo_cache import CalculoCache
+                calculo_guardado = None
+                if estructura_actual:
+                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                    calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
+                    if calculo_guardado:
+                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                        if not vigente:
+                            calculo_guardado = None
+                else:
+                    estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
+                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                    calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
+                    if calculo_guardado:
+                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                        if not vigente:
+                            calculo_guardado = None
+                return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado)
             return crear_vista_home()
         
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         
         if trigger_id == "btn-inicio":
+            guardar_navegacion_state("home")
             return crear_vista_home()
         
         elif trigger_id == "menu-ajustar-parametros":
+            guardar_navegacion_state("ajustar-parametros")
             cables_disponibles = state.cable_manager.obtener_cables()
             return crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
         
@@ -55,6 +126,7 @@ def register_callbacks(app):
             return crear_vista_eliminar_estructura()
         
         elif trigger_id == "menu-calculo-mecanico":
+            guardar_navegacion_state("calculo-mecanico")
             from utils.calculo_cache import CalculoCache
             calculo_guardado = None
             if estructura_actual:
@@ -80,6 +152,7 @@ def register_callbacks(app):
             return crear_vista_eliminar_cable(cables_disponibles)
         
         elif trigger_id == "menu-diseno-geometrico":
+            guardar_navegacion_state("diseno-geometrico")
             from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
             from utils.calculo_cache import CalculoCache
             calculo_guardado = None
@@ -93,22 +166,25 @@ def register_callbacks(app):
             return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
         
         elif trigger_id == "menu-diseno-mecanico":
+            guardar_navegacion_state("diseno-mecanico")
             from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
             from utils.calculo_cache import CalculoCache
+            if not estructura_actual:
+                estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
             calculo_guardado = None
-            if estructura_actual:
-                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
-                if calculo_guardado:
-                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                    if not vigente:
-                        calculo_guardado = None
+            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
+            if calculo_guardado:
+                vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                if not vigente:
+                    calculo_guardado = None
             return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado)
         
         elif "btn-volver" in trigger_id:
             try:
                 trigger_json = json.loads(trigger_id.replace("'", '"'))
                 if trigger_json.get("type") == "btn-volver":
+                    guardar_navegacion_state("home")
                     return crear_vista_home()
             except:
                 pass

@@ -61,3 +61,6 @@ ARCHIVOS_PROTEGIDOS = ["actual.estructura.json", "plantilla.estructura.json"]
 
 # Configuración de notificaciones
 TOAST_DURATION = 4000
+
+# Persistencia de navegación
+NAVEGACION_STATE_FILE = DATA_DIR / "navegacion_state.json"

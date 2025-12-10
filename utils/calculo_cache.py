@@ -110,18 +110,18 @@ class CalculoCache:
         try:
             if fig_polar:
                 img_path = DATA_DIR / f"DME_Polar.{hash_params}.png"
-                fig_polar.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
+                fig_polar.savefig(str(img_path), format='png', dpi=100)
             
             if fig_barras:
                 img_path = DATA_DIR / f"DME_Barras.{hash_params}.png"
-                fig_barras.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
+                fig_barras.savefig(str(img_path), format='png', dpi=100)
         except Exception as e:
             print(f"Advertencia: No se pudieron guardar imágenes DME: {e}")
         
         calculo_data = {
             "hash_parametros": hash_params,
             "fecha_calculo": datetime.now().isoformat(),
-            "df_reacciones": df_reacciones.to_dict() if df_reacciones is not None else None,
+            "df_reacciones": df_reacciones.to_dict(orient='index') if df_reacciones is not None else None,
             "imagen_polar": f"DME_Polar.{hash_params}.png" if fig_polar else None,
             "imagen_barras": f"DME_Barras.{hash_params}.png" if fig_barras else None
         }
