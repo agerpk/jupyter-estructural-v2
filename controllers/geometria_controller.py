@@ -21,7 +21,7 @@ def register_callbacks(app):
         State("slider-tension-geom", "value"),
         State("select-zona-estructura", "value"),
         State("slider-lk-geom", "value"),
-        State("input-ang-apantallamiento", "value"),
+        State("slider-ang-apantallamiento", "value"),
         State("select-disposicion-geom", "value"),
         State("select-terna-geom", "value"),
         State("slider-cant-hg-geom", "value"),
@@ -137,16 +137,185 @@ def register_callbacks(app):
             # Guardar en estado
             state.calculo_objetos.estructura_geometria = estructura_geometria
             
-            # Generar output
+            # Listar nodos (imprime info detallada)
+            estructura_geometria.listar_nodos()
+            
+            # Crear mecánica y gráficos
+            from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
+            from EstructuraAEA_Graficos import EstructuraAEA_Graficos
+            from HipotesisMaestro import hipotesis_maestro
+            
+            estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
+            estructura_mecanica.asignar_cargas_hipotesis(
+                state.calculo_mecanico.df_cargas_totales,
+                state.calculo_mecanico.resultados_conductor,
+                state.calculo_mecanico.resultados_guardia,
+                estructura_actual.get('L_vano'),
+                hipotesis_maestro,
+                estructura_actual.get('t_hielo')
+            )
+            
+            estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
+            
+            # Generar gráficos y capturar figuras
+            import matplotlib.pyplot as plt
+            
+            # Graficar estructura
+            estructura_graficos.graficar_estructura(
+                zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+            )
+            fig_estructura = plt.gcf()
+            
+            # Graficar cabezal
+            estructura_graficos.graficar_cabezal(
+                zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95) * 1.5,
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+            )
+            fig_cabezal = plt.gcf()
+            
+            # Guardar en estado
+            state.calculo_objetos.estructura_mecanica = estructura_mecanica
+            state.calculo_objetos.estructura_graficos = estructura_graficos
+            
+            # Generar output completo como en notebook
             nodes_key = estructura_geometria.obtener_nodes_key()
-            altura_total = estructura_geometria.dimensiones.get('altura_total', 0)
+            
+            # Obtener dimensiones del diccionario dimensiones
+            dims = estructura_geometria.dimensiones
+            altura_total = dims.get('altura_total', 0)
+            h1a = dims.get('h1a', 0)
+            h2a = dims.get('h2a', 0)
+            lmen = dims.get('lmen', 0)
+            lmenhg = dims.get('lmenhg', 0)
+            hhg = dims.get('hhg', 0)
+            
+            # Obtener parámetros de cálculo del diccionario dimensiones
+            theta_max = dims.get('theta_max', 0)
+            k = dims.get('k', 0)
+            Ka = dims.get('Ka', 1)
+            D_fases = dims.get('D_fases', 0)
+            Dhg = dims.get('Dhg', 0)
+            s_estructura = dims.get('s_estructura', 0)
+            # Intentar diferentes nombres de clave para a, b, altura_base_electrica
+            a = dims.get('a', dims.get('altura_libre', 0))
+            b = dims.get('b', 0)
+            altura_base_electrica = dims.get('altura_base_electrica', dims.get('h_base_electrica', dims.get('altura_libre', 0)))
+            
+            # Si aún son 0, calcular desde nodos
+            if altura_base_electrica == 0 and 'C1_R' in nodes_key:
+                altura_base_electrica = nodes_key['C1_R'][2] - estructura_actual.get('Lk', 0)
+            if a == 0:
+                a = estructura_actual.get('ALTURA_MINIMA_CABLE', 6.5)
+            
+            # Flechas máximas
+            flechas_txt = f"Flechas máximas: conductor={fmax_conductor:.2f}m, guardia={fmax_guardia:.2f}m"
+            
+            # Parámetros de diseño
+            params_txt = (
+                f"Tipo estructura: {estructura_actual.get('TIPO_ESTRUCTURA')}\n" +
+                f"Tensión nominal: {estructura_actual.get('TENSION')} kV\n" +
+                f"Zona: {estructura_actual.get('Zona_estructura')}\n" +
+                f"Disposición: {estructura_actual.get('DISPOSICION')}\n" +
+                f"Terna: {estructura_actual.get('TERNA')}\n" +
+                f"Cantidad HG: {estructura_actual.get('CANT_HG')}\n" +
+                f"Vano: {estructura_actual.get('L_vano')} m\n" +
+                f"Autoajustar lmenhg: {'ACTIVADO' if estructura_actual.get('AUTOAJUSTAR_LMENHG') else 'DESACTIVADO'}"
+            )
+            
+            # Dimensiones de estructura
+            dims_txt = (
+                f"Altura total: {altura_total:.2f} m\n" +
+                f"Alturas: h1a={h1a:.2f}m, h2a={h2a:.2f}m\n" +
+                f"Ménsulas: lmen={lmen:.2f}m, lmenhg={lmenhg:.2f}m\n" +
+                f"Cable guardia: hhg={hhg:.2f}m"
+            )
+            
+            # Nodos por categoría
+            nodos_base = {k: v for k, v in nodes_key.items() if k == 'BASE'}
+            nodos_cross = {k: v for k, v in nodes_key.items() if k.startswith('CROSS')}
+            nodos_cond = {k: v for k, v in nodes_key.items() if k.startswith('C')}
+            nodos_guard = {k: v for k, v in nodes_key.items() if k.startswith('HG')}
+            nodos_gen = {k: v for k, v in nodes_key.items() if k in ['MEDIO', 'TOP', 'V']}
+            
+            nodos_txt = "BASE:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_base.items()])
+            if nodos_cross:
+                nodos_txt += "\n\nCRUCE:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_cross.items()])
+            if nodos_cond:
+                nodos_txt += "\n\nCONDUCTOR:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_cond.items()])
+            if nodos_guard:
+                nodos_txt += "\n\nGUARDIA:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_guard.items()])
+            if nodos_gen:
+                nodos_txt += "\n\nGENERAL:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_gen.items()])
+            
+            # Parámetros dimensionantes
+            param_dim_txt = (
+                f"theta_max: {theta_max:.2f}°\n" +
+                f"Lk: {estructura_actual.get('Lk', 0):.2f} m\n" +
+                f"Coeficiente k: {k:.3f}\n" +
+                f"Coeficiente Ka (altura): {Ka:.3f}"
+            )
+            
+            # Distancias
+            dist_txt = (
+                f"D_fases: {D_fases:.3f} m\n" +
+                f"Dhg: {Dhg:.3f} m\n" +
+                f"s_estructura: {s_estructura:.3f} m\n" +
+                f"a: {a:.3f} m\n" +
+                f"b: {b:.3f} m\n" +
+                f"Altura base eléctrica: {altura_base_electrica:.3f} m"
+            )
             
             output = [
-                dbc.Alert("✅ Diseño Geométrico Completado", color="success"),
-                html.H5(f"Altura Total: {altura_total:.2f} m", className="mb-3"),
-                html.H6("Nodos Estructurales:", className="mb-2"),
-                html.Pre("\n".join([f"{k}: ({v[0]:.2f}, {v[1]:.2f}, {v[2]:.2f})" for k, v in nodes_key.items()]))
+                dbc.Alert("GEOMETRIA COMPLETADA: {} nodos creados".format(len(nodes_key)), color="success", className="mb-3"),
+                
+                html.H6(flechas_txt, className="mb-3"),
+                
+                html.H5("PARAMETROS DE DISEÑO", className="mb-2 mt-4"),
+                html.Pre(params_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
+                
+                html.H5("DIMENSIONES DE ESTRUCTURA", className="mb-2 mt-4"),
+                html.Pre(dims_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
+                
+                html.H5("NODOS ESTRUCTURALES ({} nodos)".format(len(nodes_key)), className="mb-2 mt-4"),
+                html.Pre(nodos_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.85rem"}),
             ]
+            
+            output.extend([
+                html.H5("PARAMETROS DIMENSIONANTES", className="mb-2 mt-4"),
+                html.Pre(param_dim_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
+                
+                html.H5("DISTANCIAS", className="mb-2 mt-4"),
+                html.Pre(dist_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"})
+            ])
+            
+            # Agregar gráficos - convertir matplotlib a plotly
+            from dash import dcc
+            import plotly.graph_objects as go
+            from io import BytesIO
+            import base64
+            
+            if fig_estructura:
+                # Convertir figura matplotlib a imagen
+                buf = BytesIO()
+                fig_estructura.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+                buf.seek(0)
+                img_str = base64.b64encode(buf.read()).decode()
+                output.extend([
+                    html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
+                ])
+            
+            if fig_cabezal:
+                # Convertir figura matplotlib a imagen
+                buf = BytesIO()
+                fig_cabezal.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+                buf.seek(0)
+                img_str = base64.b64encode(buf.read()).decode()
+                output.extend([
+                    html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
+                ])
             
             return html.Div(output)
             

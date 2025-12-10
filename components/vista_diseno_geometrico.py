@@ -39,21 +39,23 @@ def crear_vista_diseno_geometrico(estructura_actual):
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Ángulo Apantallamiento (°)", style={"fontSize": "1.125rem"}),
-                        dbc.Input(id="input-ang-apantallamiento", type="number", value=estructura_actual.get("ANG_APANTALLAMIENTO", 30.0)),
+                        dcc.Slider(id="slider-ang-apantallamiento", min=0, max=45, step=1, value=estructura_actual.get("ANG_APANTALLAMIENTO", 30.0),
+                                   marks={i: str(i) for i in range(0, 46, 15)},
+                                   tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
+                        dbc.Label("TERNA", style={"fontSize": "1.125rem"}),
+                        dbc.Select(id="select-terna-geom", value=estructura_actual.get("TERNA", "Simple"),
+                                   options=[{"label": "Simple", "value": "Simple"}, {"label": "Doble", "value": "Doble"}]),
+                    ], md=4),
+                    dbc.Col([
                         dbc.Label("DISPOSICION", style={"fontSize": "1.125rem"}),
                         dbc.Select(id="select-disposicion-geom", value=estructura_actual.get("DISPOSICION", "triangular"),
                                    options=[{"label": "Triangular", "value": "triangular"}, {"label": "Horizontal", "value": "horizontal"},
                                            {"label": "Vertical", "value": "vertical"}]),
-                    ], md=4),
-                    dbc.Col([
-                        dbc.Label("TERNA", style={"fontSize": "1.125rem"}),
-                        dbc.Select(id="select-terna-geom", value=estructura_actual.get("TERNA", "Simple"),
-                                   options=[{"label": "Simple", "value": "Simple"}, {"label": "Doble", "value": "Doble"}]),
                     ], md=4),
                     dbc.Col([
                         dbc.Label("CANT_HG", style={"fontSize": "1.125rem"}),

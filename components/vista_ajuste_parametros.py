@@ -129,6 +129,27 @@ def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
             marks={0: '0', 1: '1', 2: '2'},
             tooltip={"placement": "bottom", "always_visible": True}
         )
+    elif nombre == "ANG_APANTALLAMIENTO":
+        input_comp = dcc.Slider(
+            id={"type": "param-input", "index": nombre},
+            min=0, max=45, step=1, value=valor,
+            marks={i: str(i) for i in range(0, 46, 15)},
+            tooltip={"placement": "bottom", "always_visible": True}
+        )
+    elif nombre == "ALTURA_MINIMA_CABLE":
+        input_comp = dcc.Slider(
+            id={"type": "param-input", "index": nombre},
+            min=0, max=10, step=0.1, value=valor,
+            marks={i: str(i) for i in range(0, 11, 2)},
+            tooltip={"placement": "bottom", "always_visible": True}
+        )
+    elif nombre == "DIST_REPOSICIONAR_HG":
+        input_comp = dcc.Slider(
+            id={"type": "param-input", "index": nombre},
+            min=0, max=1, step=0.05, value=valor,
+            marks={i*0.2: str(round(i*0.2, 1)) for i in range(6)},
+            tooltip={"placement": "bottom", "always_visible": True}
+        )
     elif opciones:
         input_comp = dbc.Select(
             id={"type": "param-input", "index": nombre},
