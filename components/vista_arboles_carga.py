@@ -1,6 +1,6 @@
 """Vista para Árboles de Carga 2D"""
 
-from dash import html
+from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 
@@ -34,25 +34,54 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Zoom"),
-                        dbc.Input(id="param-zoom-arboles", type="number", value=0.5, step=0.1, min=0.1, max=2.0)
-                    ], md=3),
+                        dcc.Slider(id="param-zoom-arboles", min=0.25, max=2.0, step=0.25, value=0.5,
+                                  marks={i/4: f'{int(i*25)}%' for i in range(1, 9)},
+                                  tooltip={"placement": "bottom", "always_visible": True})
+                    ], md=6),
                     dbc.Col([
                         dbc.Label("Escala de Flechas"),
-                        dbc.Input(id="param-escala-flechas", type="number", value=1.8, step=0.1, min=0.5, max=3.0)
-                    ], md=3),
+                        dcc.Slider(id="param-escala-flechas", min=0.5, max=3.0, step=0.5, value=1.8,
+                                  marks={i/2: f'{int(i*50)}%' for i in range(1, 7)},
+                                  tooltip={"placement": "bottom", "always_visible": True})
+                    ], md=6),
+                ], className="mb-3"),
+                dbc.Row([
                     dbc.Col([
                         dbc.Label("Grosor de Líneas"),
-                        dbc.Input(id="param-grosor-lineas", type="number", value=3.5, step=0.5, min=1.0, max=10.0)
-                    ], md=3),
+                        dcc.Slider(id="param-grosor-lineas", min=1, max=5, step=1, value=3.5,
+                                  marks={i: str(i) for i in range(1, 6)},
+                                  tooltip={"placement": "bottom", "always_visible": True})
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Tamaño letra nodos"),
+                        dcc.Slider(id="param-fontsize-nodos", min=4, max=16, step=2, value=8,
+                                  marks={i: str(i) for i in range(4, 17, 2)},
+                                  tooltip={"placement": "bottom", "always_visible": True})
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Tamaño letra flechas"),
+                        dcc.Slider(id="param-fontsize-flechas", min=4, max=16, step=2, value=10,
+                                  marks={i: str(i) for i in range(4, 17, 2)},
+                                  tooltip={"placement": "bottom", "always_visible": True})
+                    ], md=4),
+                ], className="mb-3"),
+                dbc.Row([
                     dbc.Col([
                         dbc.Checklist(
                             id="param-mostrar-nodos",
                             options=[{"label": "Mostrar etiquetas de nodos", "value": True}],
                             value=[True],
-                            switch=True,
-                            className="mt-4"
+                            switch=True
                         )
-                    ], md=3),
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Checklist(
+                            id="param-mostrar-sismo",
+                            options=[{"label": "Mostrar Sismo (C2)", "value": True}],
+                            value=[],
+                            switch=True
+                        )
+                    ], md=6),
                 ])
             ])
         ], className="mb-3"),
@@ -86,6 +115,8 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual):
                      color="info", className="mb-3")
         ]
         
+        # Organizar imágenes en dos columnas
+        imagenes_cards = []
         for img_info in imagenes:
             img_path = DATA_DIR / img_info['nombre']
             
@@ -96,13 +127,21 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual):
             with open(img_path, 'rb') as f:
                 img_str = base64.b64encode(f.read()).decode()
             
-            imagenes_html.extend([
-                html.H5(f"Hipótesis: {img_info['hipotesis']}", className="mt-4"),
-                html.P(f"Archivo: {img_info['nombre']}", className="text-muted small"),
-                html.Img(src=f'data:image/png;base64,{img_str}', 
-                        style={'width': '100%', 'maxWidth': '1200px'}, 
-                        className="mb-4")
-            ])
+            imagenes_cards.append(
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
+                        dbc.CardBody([
+                            html.Img(src=f'data:image/png;base64,{img_str}', 
+                                    style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
+                                    className="img-fluid")
+                        ], style={'padding': '0.5rem'})
+                    ], className="mb-3")
+                ], lg=5, md=6)
+            )
+        
+        # Crear filas de 2 columnas centradas
+        imagenes_html.append(dbc.Row(imagenes_cards, justify="center"))
         
         return html.Div(imagenes_html)
         

@@ -17,7 +17,7 @@ def calcular_hash_estructura(estructura_dict):
 
 
 def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, escala_flecha=1.8, 
-                          grosor_linea=3.5, mostrar_nodos=True):
+                          grosor_linea=3.5, mostrar_nodos=True, fontsize_nodos=8, fontsize_flechas=9, mostrar_sismo=False):
     """
     Genera árboles de carga 2D para todas las hipótesis
     
@@ -62,6 +62,10 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
         
         # Generar imagen para cada hipótesis
         for hipotesis_nombre, cargas_hipotesis in cargas_key.items():
+            # Filtrar hipótesis C2 si mostrar_sismo es False
+            if not mostrar_sismo and '_C2_' in hipotesis_nombre:
+                continue
+            
             # Verificar si hay cargas
             nodos_con_cargas = [nombre for nombre, carga in cargas_hipotesis.items() 
                                if any(val != 0 for val in carga)]
@@ -82,14 +86,14 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
             dibujar_estructura_2d(ax, nodes_key, grosor_linea)
             
             # Dibujar flechas de cargas
-            dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala_flecha)
+            dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala_flecha, fontsize_flechas)
             
             # Panel de reacciones
             dibujar_panel_reacciones_2d(ax, datos_reacciones, rangos)
             
             # Etiquetas de nodos si está activado
             if mostrar_nodos:
-                dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key)
+                dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key, fontsize_nodos)
             
             # Configurar ejes
             ax.set_xlim(rangos['x_min'], rangos['x_max'])
@@ -98,7 +102,14 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
             ax.grid(True, alpha=0.3)
             ax.set_xlabel('X (m)')
             ax.set_ylabel('Z (m)')
-            ax.set_title(f'Árbol de Cargas - {hipotesis_nombre}', fontsize=14, fontweight='bold')
+            
+            # Título mejorado: Hip. XX / Descripción / Tipo estructura
+            codigo_hip = hipotesis_nombre.split('_')[-2] if '_' in hipotesis_nombre else hipotesis_nombre
+            descripcion_hip = hipotesis_nombre.split('_')[-1] if '_' in hipotesis_nombre else ''
+            tipo_estructura = estructura_actual.get('TIPO_ESTRUCTURA', '')
+            
+            titulo_grafico = f"Hip. {codigo_hip}\n{descripcion_hip}\n{tipo_estructura}"
+            ax.set_title(titulo_grafico, fontsize=12, fontweight='bold')
             
             # Leyenda
             from matplotlib.patches import Patch
@@ -109,8 +120,9 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
             ]
             ax.legend(handles=legend_elements, loc='upper right')
             
-            # Guardar imagen
-            nombre_archivo = f"{titulo}.arbolcarga.{hash_estructura}.{hipotesis_nombre.replace(' ', '_')}.png"
+            # Guardar imagen (sanitizar nombre de archivo)
+            titulo_sanitizado = titulo.replace('\n', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+            nombre_archivo = f"{titulo_sanitizado}.arbolcarga.{hash_estructura}.{hipotesis_nombre.replace(' ', '_')}.png"
             ruta_imagen = DATA_DIR / nombre_archivo
             
             fig.savefig(ruta_imagen, dpi=150, bbox_inches='tight', facecolor='white')
@@ -278,7 +290,7 @@ def dibujar_estructura_2d(ax, nodes_key, linewidth):
                            color='black', linewidth=linewidth*0.85, alpha=0.8)
 
 
-def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala):
+def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala, fontsize=9):
     """Dibuja flechas de cargas en 2D"""
     colores = {'x': 'red', 'y': 'green', 'z': 'blue'}
     longitud_base = 0.08 * rangos['max_range'] * escala
@@ -307,7 +319,7 @@ def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala):
                         head_length=longitud_base*0.2, fc=color, ec=color, 
                         linewidth=1.2, alpha=0.95, length_includes_head=True, zorder=500)
                 ax.text(x + dx/2, z + longitud_base*0.1, f"{fuerza_daN:.1f}", 
-                       color='darkred', fontsize=9, fontweight='bold', zorder=1000,
+                       color='darkred', fontsize=fontsize, fontweight='bold', zorder=1000,
                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.95, 
                                edgecolor=color, linewidth=1.2), ha='center', va='center')
             
@@ -317,7 +329,7 @@ def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala):
                         head_length=longitud_base*0.2, fc=color, ec=color,
                         linewidth=1.2, alpha=0.95, length_includes_head=True, zorder=500)
                 ax.text(x + longitud_base*0.1, z + dz/2, f"{fuerza_daN:.1f}",
-                       color='darkblue', fontsize=9, fontweight='bold', zorder=1000,
+                       color='darkblue', fontsize=fontsize, fontweight='bold', zorder=1000,
                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.95,
                                edgecolor=color, linewidth=1.2), ha='center', va='center')
             
@@ -329,7 +341,7 @@ def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala):
                         linewidth=1.2, alpha=0.95, linestyle='--', 
                         length_includes_head=True, zorder=500)
                 ax.text(x + dx/2, z + dz/2 + longitud_base*0.1, f"{fuerza_daN:.1f}",
-                       color='darkgreen', fontsize=9, fontweight='bold', zorder=1000,
+                       color='darkgreen', fontsize=fontsize, fontweight='bold', zorder=1000,
                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.95,
                                edgecolor=color, linewidth=1.2), ha='center', va='center')
 
@@ -353,7 +365,7 @@ def dibujar_panel_reacciones_2d(ax, datos_reacciones, rangos):
             ha='left', va='bottom')
 
 
-def dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key):
+def dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key, fontsize=8):
     """Dibuja etiquetas de nodos cargados"""
     for nombre_nodo in nodos_con_cargas:
         if nombre_nodo not in nodes_key:
@@ -362,6 +374,6 @@ def dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key):
         coords = nodes_key[nombre_nodo]
         x, z = coords[0], coords[2]
         
-        ax.text(x - 0.3, z + 0.2, nombre_nodo, fontsize=8, fontweight='bold',
+        ax.text(x - 0.3, z + 0.2, nombre_nodo, fontsize=fontsize, fontweight='bold',
                ha='center', va='center',
                bbox=dict(boxstyle="round,pad=0.2", facecolor="yellow", alpha=0.7, edgecolor='black'))

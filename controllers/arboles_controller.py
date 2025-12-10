@@ -26,11 +26,14 @@ def register_callbacks(app):
         State("param-zoom-arboles", "value"),
         State("param-escala-flechas", "value"),
         State("param-grosor-lineas", "value"),
+        State("param-fontsize-nodos", "value"),
+        State("param-fontsize-flechas", "value"),
         State("param-mostrar-nodos", "value"),
+        State("param-mostrar-sismo", "value"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def generar_arboles_callback(n_clicks, zoom, escala, grosor, mostrar_nodos, estructura_actual):
+    def generar_arboles_callback(n_clicks, zoom, escala, grosor, fontsize_nodos, fontsize_flechas, mostrar_nodos, mostrar_sismo, estructura_actual):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
@@ -200,7 +203,10 @@ def register_callbacks(app):
                 zoom=float(zoom),
                 escala_flecha=float(escala),
                 grosor_linea=float(grosor),
-                mostrar_nodos=bool(mostrar_nodos)
+                mostrar_nodos=bool(mostrar_nodos),
+                fontsize_nodos=int(fontsize_nodos),
+                fontsize_flechas=int(fontsize_flechas),
+                mostrar_sismo=bool(mostrar_sismo)
             )
             
             if not resultado['exito']:
@@ -214,23 +220,31 @@ def register_callbacks(app):
             # PERSISTENCIA: Guardar en cache
             CalculoCache.guardar_calculo_arboles(nombre_estructura, estructura_actual, resultado['imagenes'])
             
-            # Crear HTML con las imágenes generadas
+            # Crear HTML con las imágenes generadas en dos columnas
             imagenes_html = [
                 dbc.Alert(f"✓ {resultado['mensaje']}", color="success", className="mb-3")
             ]
             
+            imagenes_cards = []
             for img_info in resultado['imagenes']:
                 # Leer imagen y convertir a base64
                 with open(img_info['ruta'], 'rb') as f:
                     img_str = base64.b64encode(f.read()).decode()
                 
-                imagenes_html.extend([
-                    html.H5(f"Hipótesis: {img_info['hipotesis']}", className="mt-4"),
-                    html.P(f"Archivo: {img_info['nombre']}", className="text-muted small"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', 
-                            style={'width': '100%', 'maxWidth': '1200px'}, 
-                            className="mb-4")
-                ])
+                imagenes_cards.append(
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
+                            dbc.CardBody([
+                                html.Img(src=f'data:image/png;base64,{img_str}', 
+                                        style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
+                                        className="img-fluid")
+                            ], style={'padding': '0.5rem'})
+                        ], className="mb-3")
+                    ], lg=5, md=6)
+                )
+            
+            imagenes_html.append(dbc.Row(imagenes_cards, justify="center"))
             
             return (
                 html.Div(imagenes_html),

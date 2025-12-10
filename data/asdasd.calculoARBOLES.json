@@ -1,6 +1,6 @@
 {
   "hash_parametros": "eaa731ee5b7904c1e925b92dd23b6a55",
-  "fecha_calculo": "2025-12-10T10:52:29.164377",
+  "fecha_calculo": "2025-12-10T11:09:31.908097",
   "imagenes": [
     {
       "hipotesis": "HIP_Suspension_Recta_A0_EDS (TMA)",
@@ -33,10 +33,6 @@
     {
       "hipotesis": "HIP_Suspension_Recta_C1_Carga longitudinal",
       "nombre": "asdasd.arbolcarga.eaa731ee5b7904c1e925b92dd23b6a55.HIP_Suspension_Recta_C1_Carga_longitudinal.png"
-    },
-    {
-      "hipotesis": "HIP_Suspension_Recta_C2_Sismo",
-      "nombre": "asdasd.arbolcarga.eaa731ee5b7904c1e925b92dd23b6a55.HIP_Suspension_Recta_C2_Sismo.png"
     }
   ]
 }
