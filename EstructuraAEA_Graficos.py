@@ -624,7 +624,7 @@ class EstructuraAEA_Graficos:
         
         print(f"\n🎨 GENERANDO DIAGRAMA POLAR DE TIROS EN CIMA...")
         
-        plt.figure(figsize=(10, 8))
+        plt.figure(figsize=(10, 10))
         ax = plt.subplot(111, projection='polar')
         
         # Colores para hipótesis
@@ -662,15 +662,15 @@ class EstructuraAEA_Graficos:
         titulo_grafico = titulo if titulo else f'DIAGRAMA POLAR DE TIROS EN LA CIMA\n{self.geometria.tension_nominal}kV - {self.geometria.tipo_estructura.upper()}'
         ax.set_title(titulo_grafico, fontsize=12, fontweight='bold', pad=20)
         
-        # Leyenda
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title="Hipótesis")
+        # Leyenda arriba a la derecha
+        ax.legend(loc='upper right', title="Hipótesis")
         
         plt.tight_layout()
         plt.show()
         
         print(f"✅ Diagrama polar generado")
     
-    def diagrama_barras_tiros(self, titulo=None):
+    def diagrama_barras_tiros(self, titulo=None, mostrar_c2=False):
         """
         Genera diagrama de barras comparativo de tiros en cima
         """
@@ -696,22 +696,26 @@ class EstructuraAEA_Graficos:
         for hipotesis, datos in self.mecanica.df_reacciones.iterrows():
             codigo = hipotesis.split('_')[-2] if len(hipotesis.split('_')) >= 2 else hipotesis
             
+            if codigo == 'C2' and not mostrar_c2:
+                continue
+            
             hipotesis_barras.append(codigo)
             tiros_barras.append(datos['Tiro_resultante_daN'])
             angulos_barras.append(datos['Angulo_grados'])
             colores_barras.append(colores_hipotesis.get(codigo, 'black'))
         
-        # Crear gráfico de barras
-        barras = plt.bar(hipotesis_barras, tiros_barras, color=colores_barras, alpha=0.7, edgecolor='black')
+        # Crear gráfico de barras sin borde
+        barras = plt.bar(hipotesis_barras, tiros_barras, color=colores_barras, alpha=0.7, edgecolor='none')
         
-        # Añadir valores en las barras
-        for i, (barra, valor, angulo) in enumerate(zip(barras, tiros_barras, angulos_barras)):
+        # Añadir valores en la cima de las barras
+        for barra, valor, angulo in zip(barras, tiros_barras, angulos_barras):
             height = barra.get_height()
-            plt.text(barra.get_x() + barra.get_width()/2., height + max(tiros_barras)*0.01,
+            plt.text(barra.get_x() + barra.get_width()/2., height,
                     f'{valor:.1f} daN\n({angulo:.0f}°)', 
                     ha='center', va='bottom', fontweight='bold', fontsize=9)
         
-        # Configurar gráfico
+        # Configurar gráfico con escala vertical ampliada
+        plt.ylim(0, max(tiros_barras) * 1.15)
         plt.ylabel('Tiro Resultante [daN]', fontweight='bold')
         plt.xlabel('Hipótesis de Carga', fontweight='bold')
         

@@ -268,7 +268,7 @@ def register_callbacks(app):
             fig_polar = plt.gcf()
             
             # Diagrama de barras
-            estructura_graficos.diagrama_barras_tiros()
+            estructura_graficos.diagrama_barras_tiros(mostrar_c2=estructura_actual.get('MOSTRAR_C2', False))
             fig_barras = plt.gcf()
             
             # Guardar en cache con thread separado
