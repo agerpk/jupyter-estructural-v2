@@ -8,7 +8,7 @@ CABLES_PATH = DATA_DIR / "cables.json"
 ARCHIVO_ACTUAL = Path("actual.estructura.json")
 
 # Configuración de la aplicación
-APP_TITLE = "Gestor de Estructuras de Líneas Eléctricas"
+APP_TITLE = "AGP - Análisis General de Postaciones"
 APP_PORT = 8050
 DEBUG_MODE = True
 

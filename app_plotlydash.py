@@ -40,7 +40,7 @@ app = dash.Dash(
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True
 )
-app.title = "Gestor de Estructuras de Líneas Eléctricas"
+app.title = "AGP - Análisis General de Postaciones"
 
 # Estilos personalizados
 app.index_string = '''

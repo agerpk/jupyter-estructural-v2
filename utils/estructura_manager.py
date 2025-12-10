@@ -1,5 +1,5 @@
 """
-Gestor de estructuras para carga y guardado de archivos JSON
+AGP - Gestor de estructuras para carga y guardado de archivos JSON
 """
 
 import json

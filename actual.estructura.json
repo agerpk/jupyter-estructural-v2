@@ -3,7 +3,7 @@
   "Zona_climatica": "D",
   "exposicion": "C",
   "clase": "C",
-  "TITULO": "das",
+  "TITULO": "prueba1",
   "cable_conductor_id": "AlAc 435/55",
   "cable_guardia_id": "OPGW FiberHome 24FO 58mm2",
   "Vmax": 38.9,
@@ -19,7 +19,7 @@
   "Cf_guardia": 1,
   "Cf_cadena": 0.9,
   "Cf_estructura": 0.9,
-  "L_vano": 400,
+  "L_vano": 150,
   "alpha": 0,
   "theta": 45,
   "A_cadena": 0.03,
@@ -63,5 +63,5 @@
   "Vn": 220,
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-10T14:07:36.664957"
+  "fecha_modificacion": "2025-12-10T15:28:00.021810"
 }

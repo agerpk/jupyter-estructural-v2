@@ -1,6 +1,6 @@
 """
 Aplicación principal - Arquitectura MVC
-Gestor de Estructuras de Líneas Eléctricas
+AGP - Análisis General de Postaciones
 """
 
 import dash
