@@ -56,6 +56,13 @@ def register_callbacks(app):
             
             state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
             
+            # También guardar en DB si tiene título
+            if "TITULO" in estructura_actualizada:
+                from config.app_config import DATA_DIR
+                titulo = estructura_actualizada["TITULO"]
+                nombre_archivo = f"{titulo}.estructura.json"
+                state.estructura_manager.guardar_estructura(estructura_actualizada, DATA_DIR / nombre_archivo)
+            
             return (
                 estructura_actualizada,
                 True, 

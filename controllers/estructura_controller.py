@@ -148,6 +148,7 @@ def register_callbacks(app):
         Output("toast-notificacion", "children", allow_duplicate=True),
         Output("toast-notificacion", "icon", allow_duplicate=True),
         Output("toast-notificacion", "color", allow_duplicate=True),
+        Output("estructuras-disponibles", "data", allow_duplicate=True),
         Input("menu-guardar-estructura", "n_clicks"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
@@ -158,10 +159,12 @@ def register_callbacks(app):
                 titulo = estructura_actual["TITULO"]
                 nombre_archivo = f"{titulo}.estructura.json"
                 state.estructura_manager.guardar_estructura(estructura_actual, DATA_DIR / nombre_archivo)
-                return True, "Éxito", f"Estructura guardada: {nombre_archivo}", "success", "success"
+                state.estructura_manager.guardar_estructura(estructura_actual, state.archivo_actual)
+                estructuras = state.estructura_manager.listar_estructuras()
+                return True, "Éxito", f"Estructura guardada: {nombre_archivo}", "success", "success", estructuras
             except Exception as e:
-                return True, "Error", f"Error al guardar: {str(e)}", "danger", "danger"
-        return True, "Error", "No hay estructura para guardar", "danger", "danger"
+                return True, "Error", f"Error al guardar: {str(e)}", "danger", "danger", dash.no_update
+        return True, "Error", "No hay estructura para guardar", "danger", "danger", dash.no_update
     
     @app.callback(
         Output("toast-notificacion", "is_open", allow_duplicate=True),

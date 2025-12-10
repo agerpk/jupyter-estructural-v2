@@ -170,6 +170,14 @@ def register_callbacks(app):
             estructura_actualizada["REEMPLAZAR_TITULO_GRAFICO"] = reemplazar_titulo
             
             state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
+            
+            # También guardar en DB
+            if "TITULO" in estructura_actualizada:
+                from config.app_config import DATA_DIR
+                titulo = estructura_actualizada["TITULO"]
+                nombre_archivo = f"{titulo}.estructura.json"
+                state.estructura_manager.guardar_estructura(estructura_actualizada, DATA_DIR / nombre_archivo)
+            
             return True, "Éxito", "Parámetros de mecánica guardados", "success", "success", estructura_actualizada
         except Exception as e:
             return True, "Error", f"Error al guardar: {str(e)}", "danger", "danger", dash.no_update

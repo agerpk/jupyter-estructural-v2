@@ -51,8 +51,8 @@ def crear_tarjeta_estructuras_disponibles():
                 elif "doble" in terna.lower():
                     codigo += "dt"
                 
-                if hadd > 0.99:
-                    codigo += f"+{hadd:.0f}"
+                if float(hadd) >= 1.0:
+                    codigo += f"+{int(round(hadd))}"
                 
                 info_extra = f"{tipo} | {terna} | {disposicion} | {tension} kV"
             except:
@@ -137,8 +137,8 @@ def crear_tarjeta_estructura_actual():
     elif "doble" in terna.lower():
         codigo += "dt"
     
-    if hadd > 0.99:
-        codigo += f"+{hadd:.1f}"
+    if hadd >= 1.0:
+        codigo += f"+{int(round(hadd))}"
     
     return dbc.Card([
         dbc.Row([
