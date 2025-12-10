@@ -280,12 +280,31 @@ def register_callbacks(app):
                             html.H6("Solo Cable de Guardia", className="mt-3"),
                             dcc.Graph(figure=fig_guardia, config={'displayModeBar': True})
                         ])
+                        
+                        # Guardar imágenes en background sin bloquear
+                        from utils.calculo_cache import CalculoCache
+                        import threading
+                        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                        
+                        def guardar_async():
+                            CalculoCache.guardar_calculo_cmc(
+                                nombre_estructura, 
+                                estructura_actual, 
+                                state.calculo_mecanico.resultados_conductor,
+                                state.calculo_mecanico.resultados_guardia,
+                                state.calculo_mecanico.df_cargas_totales,
+                                fig_combinado,
+                                fig_conductor,
+                                fig_guardia
+                            )
+                        
+                        threading.Thread(target=guardar_async, daemon=True).start()
                     except Exception as e:
                         print(f"Error generando gráficos de flechas: {e}")
                         import traceback
                         traceback.print_exc()
                 
-                return resultados_html, True, "Éxito", "Cálculo completado", "success", "success"
+                return resultados_html, True, "Éxito", "Cálculo completado y guardado", "success", "success"
             else:
                 return html.Div(), True, "Error", resultado["mensaje"], "danger", "danger"
                 

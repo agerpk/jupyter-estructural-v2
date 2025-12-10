@@ -4,10 +4,19 @@ Vista para Cálculo Mecánico de Conductores
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+import pandas as pd
+import base64
+from pathlib import Path
+from config.app_config import DATA_DIR
 
 
-def crear_vista_calculo_mecanico(estructura_actual):
+def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
     """Crear vista de cálculo mecánico de cables"""
+    
+    # Generar resultados si hay cálculo guardado
+    resultados_previos = None
+    if calculo_guardado:
+        resultados_previos = generar_resultados_cmc(calculo_guardado, estructura_actual)
     
     return html.Div([
         dbc.Row([
@@ -133,8 +142,77 @@ def crear_vista_calculo_mecanico(estructura_actual):
         ], className="mb-3"),
         
         # Área de resultados
-        html.Div(id="resultados-cmc", className="mt-4")
+        html.Div(id="resultados-cmc", children=resultados_previos, className="mt-4")
     ])
+
+
+def generar_resultados_cmc(calculo_guardado, estructura_actual):
+    """Generar HTML de resultados desde cálculo guardado"""
+    try:
+        import pandas as pd
+        
+        # Convertir resultados a DataFrames
+        resultados_conductor = calculo_guardado.get('resultados_conductor', {})
+        resultados_guardia = calculo_guardado.get('resultados_guardia', {})
+        
+        # Crear DataFrames
+        df_conductor = pd.DataFrame(resultados_conductor).T
+        df_guardia = pd.DataFrame(resultados_guardia).T
+        
+        resultados_html = [
+            dbc.Alert("Resultados cargados desde cálculo anterior", color="info", className="mb-3"),
+            html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"),
+            
+            html.H5("Conductor"),
+            dbc.Table.from_dataframe(df_conductor, striped=True, bordered=True, hover=True, size="sm"),
+            
+            html.H5("Cable de Guardia", className="mt-4"),
+            dbc.Table.from_dataframe(df_guardia, striped=True, bordered=True, hover=True, size="sm"),
+        ]
+        
+        # Cargar tabla de cargas si existe
+        if calculo_guardado.get('df_cargas_totales'):
+            df_cargas = pd.DataFrame(calculo_guardado['df_cargas_totales'])
+            resultados_html.extend([
+                html.H5("Lista Total de Cargas", className="mt-4"),
+                dbc.Table.from_dataframe(df_cargas, striped=True, bordered=True, hover=True, size="sm"),
+            ])
+        
+        # Cargar imágenes si existen y hash coincide
+        hash_params = calculo_guardado.get('hash_parametros')
+        if hash_params:
+            resultados_html.append(html.H5("Gráficos de Flechas", className="mt-4"))
+            
+            img_combinado = DATA_DIR / f"CMC_Combinado.{hash_params}.png"
+            if img_combinado.exists():
+                with open(img_combinado, 'rb') as f:
+                    img_str = base64.b64encode(f.read()).decode()
+                resultados_html.extend([
+                    html.H6("Conductor y Guardia", className="mt-3"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})
+                ])
+            
+            img_conductor = DATA_DIR / f"CMC_Conductor.{hash_params}.png"
+            if img_conductor.exists():
+                with open(img_conductor, 'rb') as f:
+                    img_str = base64.b64encode(f.read()).decode()
+                resultados_html.extend([
+                    html.H6("Solo Conductor", className="mt-3"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})
+                ])
+            
+            img_guardia = DATA_DIR / f"CMC_Guardia.{hash_params}.png"
+            if img_guardia.exists():
+                with open(img_guardia, 'rb') as f:
+                    img_str = base64.b64encode(f.read()).decode()
+                resultados_html.extend([
+                    html.H6("Solo Cable de Guardia", className="mt-3"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})
+                ])
+        
+        return html.Div(resultados_html)
+    except Exception as e:
+        return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")
 
 
 def crear_tabla_estados_climaticos(estructura_actual):

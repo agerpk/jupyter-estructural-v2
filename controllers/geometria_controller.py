@@ -6,6 +6,98 @@ import dash_bootstrap_components as dbc
 from models.app_state import AppState
 
 
+def ejecutar_calculo_cmc_automatico(estructura_actual, state):
+    """Ejecuta cálculo CMC automáticamente con parámetros de estructura"""
+    try:
+        # Crear objetos
+        resultado_objetos = state.calculo_objetos.crear_todos_objetos(estructura_actual)
+        if not resultado_objetos["exito"]:
+            return {"exito": False, "mensaje": resultado_objetos["mensaje"]}
+        
+        # Estados climáticos por defecto
+        estados_ids = ["I", "II", "III", "IV", "V"]
+        descripciones = ["Tmáx", "Tmín", "Vmáx", "Vmed", "TMA"]
+        estados_climaticos = {
+            "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
+            "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
+            "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": estructura_actual.get("Vmax", 38.9), "espesor_hielo": 0},
+            "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": estructura_actual.get("Vmed", 15.56), "espesor_hielo": estructura_actual.get("t_hielo", 0.01)},
+            "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
+        }
+        
+        # Restricciones por defecto
+        restricciones_dict = {
+            "conductor": {"tension_max_porcentaje": {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}},
+            "guardia": {
+                "tension_max_porcentaje": {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7},
+                "relflecha_max": estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95)
+            }
+        }
+        
+        # Parámetros de cálculo
+        params = {
+            "L_vano": estructura_actual.get("L_vano", 400),
+            "alpha": estructura_actual.get("alpha", 0),
+            "theta": estructura_actual.get("theta", 45),
+            "Vmax": estructura_actual.get("Vmax", 38.9),
+            "Vmed": estructura_actual.get("Vmed", 15.56),
+            "t_hielo": estructura_actual.get("t_hielo", 0.01),
+            "exposicion": estructura_actual.get("exposicion", "C"),
+            "clase": estructura_actual.get("clase", "C"),
+            "Zco": estructura_actual.get("Zco", 13.0),
+            "Zcg": estructura_actual.get("Zcg", 13.0),
+            "Zca": estructura_actual.get("Zca", 13.0),
+            "Zes": estructura_actual.get("Zes", 10.0),
+            "Cf_cable": estructura_actual.get("Cf_cable", 1.0),
+            "Cf_guardia": estructura_actual.get("Cf_guardia", 1.0),
+            "Cf_cadena": estructura_actual.get("Cf_cadena", 0.9),
+            "Cf_estructura": estructura_actual.get("Cf_estructura", 0.9),
+            "PCADENA": estructura_actual.get("PCADENA", 10.5),
+            "SALTO_PORCENTUAL": estructura_actual.get("SALTO_PORCENTUAL", 0.05),
+            "PASO_AFINADO": estructura_actual.get("PASO_AFINADO", 0.005),
+            "OBJ_CONDUCTOR": estructura_actual.get("OBJ_CONDUCTOR", "FlechaMin"),
+            "OBJ_GUARDIA": estructura_actual.get("OBJ_GUARDIA", "TiroMin"),
+            "RELFLECHA_MAX_GUARDIA": estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95),
+            "RELFLECHA_SIN_VIENTO": estructura_actual.get("RELFLECHA_SIN_VIENTO", True)
+        }
+        
+        # Ejecutar cálculo
+        resultado = state.calculo_mecanico.calcular(params, estados_climaticos, restricciones_dict)
+        
+        if resultado["exito"]:
+            # Guardar en cache
+            from utils.calculo_cache import CalculoCache
+            from utils.plot_flechas import crear_grafico_flechas
+            
+            # Generar gráficos
+            fig_combinado, fig_conductor, fig_guardia = None, None, None
+            try:
+                fig_combinado, fig_conductor, fig_guardia = crear_grafico_flechas(
+                    state.calculo_mecanico.resultados_conductor,
+                    state.calculo_mecanico.resultados_guardia,
+                    params["L_vano"]
+                )
+            except:
+                pass
+            
+            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            CalculoCache.guardar_calculo_cmc(
+                nombre_estructura,
+                estructura_actual,
+                state.calculo_mecanico.resultados_conductor,
+                state.calculo_mecanico.resultados_guardia,
+                state.calculo_mecanico.df_cargas_totales,
+                fig_combinado,
+                fig_conductor,
+                fig_guardia
+            )
+            return {"exito": True, "mensaje": "Cálculo CMC completado automáticamente"}
+        else:
+            return {"exito": False, "mensaje": resultado["mensaje"]}
+    except Exception as e:
+        return {"exito": False, "mensaje": str(e)}
+
+
 def register_callbacks(app):
     """Registrar callbacks de diseño geométrico"""
     
@@ -83,13 +175,40 @@ def register_callbacks(app):
         
         try:
             from EstructuraAEA_Geometria import EstructuraAEA_Geometria
+            from utils.calculo_cache import CalculoCache
+            
+            # Verificar si existe cálculo CMC guardado
+            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia:
+                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
+                
+                if calculo_cmc:
+                    vigente, _ = CalculoCache.verificar_vigencia(calculo_cmc, estructura_actual)
+                    if vigente:
+                        # Cargar resultados desde cache
+                        state.calculo_mecanico.resultados_conductor = calculo_cmc.get('resultados_conductor', {})
+                        state.calculo_mecanico.resultados_guardia = calculo_cmc.get('resultados_guardia', {})
+                        if calculo_cmc.get('df_cargas_totales'):
+                            import pandas as pd
+                            state.calculo_mecanico.df_cargas_totales = pd.DataFrame(calculo_cmc['df_cargas_totales'])
+                        
+                        # Crear objetos de cable si no existen
+                        if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
+                            state.calculo_objetos.crear_todos_objetos(estructura_actual)
+                    else:
+                        # Ejecutar cálculo CMC automáticamente
+                        resultado_auto = ejecutar_calculo_cmc_automatico(estructura_actual, state)
+                        if not resultado_auto["exito"]:
+                            return dbc.Alert(f"Error en cálculo automático CMC: {resultado_auto['mensaje']}", color="danger")
+                else:
+                    # Ejecutar cálculo CMC automáticamente
+                    resultado_auto = ejecutar_calculo_cmc_automatico(estructura_actual, state)
+                    if not resultado_auto["exito"]:
+                        return dbc.Alert(f"Error en cálculo automático CMC: {resultado_auto['mensaje']}", color="danger")
             
             # Verificar que existen objetos de cálculo
             if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
-                return dbc.Alert("Error: Primero debe crear los objetos Cable en Cálculo Mecánico", color="danger")
-            
-            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia:
-                return dbc.Alert("Error: Primero debe ejecutar el Cálculo Mecánico de Cables", color="danger")
+                state.calculo_objetos.crear_todos_objetos(estructura_actual)
             
             # Obtener flechas máximas
             fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
@@ -288,6 +407,18 @@ def register_callbacks(app):
                 html.H5("DISTANCIAS", className="mb-2 mt-4"),
                 html.Pre(dist_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"})
             ])
+            
+            # Guardar cálculo en cache
+            from utils.calculo_cache import CalculoCache
+            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            CalculoCache.guardar_calculo_dge(
+                nombre_estructura,
+                estructura_actual,
+                dims,
+                nodes_key,
+                fig_estructura,
+                fig_cabezal
+            )
             
             # Agregar gráficos - convertir matplotlib a plotly
             from dash import dcc

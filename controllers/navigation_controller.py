@@ -54,7 +54,16 @@ def register_callbacks(app):
             return crear_vista_eliminar_estructura()
         
         elif trigger_id == "menu-calculo-mecanico":
-            return crear_vista_calculo_mecanico(estructura_actual)
+            from utils.calculo_cache import CalculoCache
+            calculo_guardado = None
+            if estructura_actual:
+                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                calculo_guardado = CalculoCache.cargar_calculo_cmc(nombre_estructura)
+                if calculo_guardado:
+                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                    if not vigente:
+                        calculo_guardado = None
+            return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado)
         
         elif trigger_id == "menu-agregar-cable":
             cables_disponibles = state.cable_manager.obtener_cables()
@@ -71,7 +80,16 @@ def register_callbacks(app):
         
         elif trigger_id == "menu-diseno-geometrico":
             from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
-            return crear_vista_diseno_geometrico(estructura_actual)
+            from utils.calculo_cache import CalculoCache
+            calculo_guardado = None
+            if estructura_actual:
+                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
+                if calculo_guardado:
+                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                    if not vigente:
+                        calculo_guardado = None
+            return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
         
         elif "btn-volver" in trigger_id:
             try:

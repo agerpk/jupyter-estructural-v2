@@ -2,10 +2,142 @@
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+import base64
+from pathlib import Path
+from config.app_config import DATA_DIR
 
 
-def crear_vista_diseno_geometrico(estructura_actual):
+def generar_resultados_dge(calculo_guardado, estructura_actual):
+    """Generar HTML de resultados desde cálculo guardado"""
+    try:
+        dims = calculo_guardado.get('dimensiones', {})
+        nodes_key = calculo_guardado.get('nodes_key', {})
+        hash_params = calculo_guardado.get('hash_parametros')
+        
+        # Extraer valores
+        altura_total = dims.get('altura_total', 0)
+        h1a = dims.get('h1a', 0)
+        h2a = dims.get('h2a', 0)
+        lmen = dims.get('lmen', 0)
+        lmenhg = dims.get('lmenhg', 0)
+        hhg = dims.get('hhg', 0)
+        theta_max = dims.get('theta_max', 0)
+        k = dims.get('k', 0)
+        Ka = dims.get('Ka', 1)
+        D_fases = dims.get('D_fases', 0)
+        Dhg = dims.get('Dhg', 0)
+        s_estructura = dims.get('s_estructura', 0)
+        a = dims.get('a', dims.get('altura_libre', 0))
+        b = dims.get('b', 0)
+        altura_base_electrica = dims.get('altura_base_electrica', dims.get('h_base_electrica', dims.get('altura_libre', 0)))
+        
+        # Parámetros de diseño
+        params_txt = (
+            f"Tipo estructura: {estructura_actual.get('TIPO_ESTRUCTURA')}\n" +
+            f"Tensión nominal: {estructura_actual.get('TENSION')} kV\n" +
+            f"Zona: {estructura_actual.get('Zona_estructura')}\n" +
+            f"Disposición: {estructura_actual.get('DISPOSICION')}\n" +
+            f"Terna: {estructura_actual.get('TERNA')}\n" +
+            f"Cantidad HG: {estructura_actual.get('CANT_HG')}\n" +
+            f"Vano: {estructura_actual.get('L_vano')} m\n" +
+            f"Autoajustar lmenhg: {'ACTIVADO' if estructura_actual.get('AUTOAJUSTAR_LMENHG') else 'DESACTIVADO'}"
+        )
+        
+        # Dimensiones
+        dims_txt = (
+            f"Altura total: {altura_total:.2f} m\n" +
+            f"Alturas: h1a={h1a:.2f}m, h2a={h2a:.2f}m\n" +
+            f"Ménsulas: lmen={lmen:.2f}m, lmenhg={lmenhg:.2f}m\n" +
+            f"Cable guardia: hhg={hhg:.2f}m"
+        )
+        
+        # Nodos
+        nodos_base = {k: v for k, v in nodes_key.items() if k == 'BASE'}
+        nodos_cross = {k: v for k, v in nodes_key.items() if k.startswith('CROSS')}
+        nodos_cond = {k: v for k, v in nodes_key.items() if k.startswith('C')}
+        nodos_guard = {k: v for k, v in nodes_key.items() if k.startswith('HG')}
+        nodos_gen = {k: v for k, v in nodes_key.items() if k in ['MEDIO', 'TOP', 'V']}
+        
+        nodos_txt = "BASE:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_base.items()])
+        if nodos_cross:
+            nodos_txt += "\n\nCRUCE:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_cross.items()])
+        if nodos_cond:
+            nodos_txt += "\n\nCONDUCTOR:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_cond.items()])
+        if nodos_guard:
+            nodos_txt += "\n\nGUARDIA:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_guard.items()])
+        if nodos_gen:
+            nodos_txt += "\n\nGENERAL:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_gen.items()])
+        
+        # Parámetros dimensionantes
+        param_dim_txt = (
+            f"theta_max: {theta_max:.2f}°\n" +
+            f"Lk: {estructura_actual.get('Lk', 0):.2f} m\n" +
+            f"Coeficiente k: {k:.3f}\n" +
+            f"Coeficiente Ka (altura): {Ka:.3f}"
+        )
+        
+        # Distancias
+        dist_txt = (
+            f"D_fases: {D_fases:.3f} m\n" +
+            f"Dhg: {Dhg:.3f} m\n" +
+            f"s_estructura: {s_estructura:.3f} m\n" +
+            f"a: {a:.3f} m\n" +
+            f"b: {b:.3f} m\n" +
+            f"Altura base eléctrica: {altura_base_electrica:.3f} m"
+        )
+        
+        output = [
+            dbc.Alert("Resultados cargados desde cálculo anterior", color="info", className="mb-3"),
+            dbc.Alert("GEOMETRIA COMPLETADA: {} nodos creados".format(len(nodes_key)), color="success", className="mb-3"),
+            
+            html.H5("PARAMETROS DE DISEÑO", className="mb-2 mt-4"),
+            html.Pre(params_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
+            
+            html.H5("DIMENSIONES DE ESTRUCTURA", className="mb-2 mt-4"),
+            html.Pre(dims_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
+            
+            html.H5("NODOS ESTRUCTURALES ({} nodos)".format(len(nodes_key)), className="mb-2 mt-4"),
+            html.Pre(nodos_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.85rem"}),
+            
+            html.H5("PARAMETROS DIMENSIONANTES", className="mb-2 mt-4"),
+            html.Pre(param_dim_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
+            
+            html.H5("DISTANCIAS", className="mb-2 mt-4"),
+            html.Pre(dist_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"})
+        ]
+        
+        # Cargar imágenes
+        if hash_params:
+            img_estructura = DATA_DIR / f"Estructura.{hash_params}.png"
+            if img_estructura.exists():
+                with open(img_estructura, 'rb') as f:
+                    img_str = base64.b64encode(f.read()).decode()
+                output.extend([
+                    html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
+                ])
+            
+            img_cabezal = DATA_DIR / f"Cabezal.{hash_params}.png"
+            if img_cabezal.exists():
+                with open(img_cabezal, 'rb') as f:
+                    img_str = base64.b64encode(f.read()).decode()
+                output.extend([
+                    html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"),
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
+                ])
+        
+        return html.Div(output)
+    except Exception as e:
+        return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")
+
+
+def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
     """Vista para diseño geométrico con parámetros y cálculo"""
+    
+    # Generar resultados si hay cálculo guardado
+    resultados_previos = None
+    if calculo_guardado:
+        resultados_previos = generar_resultados_dge(calculo_guardado, estructura_actual)
     
     return html.Div([
         dbc.Card([
@@ -148,7 +280,7 @@ def crear_vista_diseno_geometrico(estructura_actual):
                 html.Hr(),
                 
                 # Área de resultados
-                html.Div(id="output-diseno-geometrico")
+                html.Div(id="output-diseno-geometrico", children=resultados_previos)
             ])
         ])
     ])
