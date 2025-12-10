@@ -64,7 +64,7 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
-    def guardar_calculo_dge(nombre_estructura, estructura_data, dimensiones, nodes_key, fig_estructura, fig_cabezal):
+    def guardar_calculo_dge(nombre_estructura, estructura_data, dimensiones, nodes_key, fig_estructura, fig_cabezal, memoria_calculo=None):
         """Guarda resultados de Diseño Geométrico de Estructura"""
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
@@ -86,7 +86,8 @@ class CalculoCache:
             "dimensiones": dimensiones,
             "nodes_key": nodes_key,
             "imagen_estructura": f"Estructura.{hash_params}.png",
-            "imagen_cabezal": f"Cabezal.{hash_params}.png"
+            "imagen_cabezal": f"Cabezal.{hash_params}.png",
+            "memoria_calculo": memoria_calculo
         }
         
         archivo = DATA_DIR / f"{nombre_estructura}.calculoDGE.json"

@@ -126,6 +126,28 @@ def generar_resultados_dge(calculo_guardado, estructura_actual):
                     html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
                 ])
         
+        # Agregar memoria de cálculo
+        memoria_calculo = calculo_guardado.get('memoria_calculo')
+        if memoria_calculo:
+            output.extend([
+                html.Hr(className="mt-5"),
+                dbc.Card([
+                    dbc.CardHeader(html.H5("Memoria de Cálculo: Diseño Geométrico de Estructura", className="mb-0")),
+                    dbc.CardBody([
+                        html.Pre(memoria_calculo, style={
+                            "backgroundColor": "#1e1e1e",
+                            "color": "#d4d4d4",
+                            "padding": "15px",
+                            "borderRadius": "5px",
+                            "fontSize": "0.85rem",
+                            "fontFamily": "'Courier New', monospace",
+                            "overflowX": "auto",
+                            "whiteSpace": "pre"
+                        })
+                    ])
+                ], className="mt-3")
+            ])
+        
         return html.Div(output)
     except Exception as e:
         return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")

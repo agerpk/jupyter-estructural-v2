@@ -408,6 +408,10 @@ def register_callbacks(app):
                 html.Pre(dist_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"})
             ])
             
+            # Generar memoria de cálculo
+            from utils.memoria_calculo_dge import gen_memoria_calculo_DGE
+            memoria_calculo = gen_memoria_calculo_DGE(estructura_geometria)
+            
             # Guardar cálculo en cache
             from utils.calculo_cache import CalculoCache
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
@@ -417,7 +421,8 @@ def register_callbacks(app):
                 dims,
                 nodes_key,
                 fig_estructura,
-                fig_cabezal
+                fig_cabezal,
+                memoria_calculo
             )
             
             # Agregar gráficos - convertir matplotlib a plotly
@@ -447,6 +452,26 @@ def register_callbacks(app):
                     html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"),
                     html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
                 ])
+            
+            # Agregar memoria de cálculo
+            output.extend([
+                html.Hr(className="mt-5"),
+                dbc.Card([
+                    dbc.CardHeader(html.H5("Memoria de Cálculo: Diseño Geométrico de Estructura", className="mb-0")),
+                    dbc.CardBody([
+                        html.Pre(memoria_calculo, style={
+                            "backgroundColor": "#1e1e1e",
+                            "color": "#d4d4d4",
+                            "padding": "15px",
+                            "borderRadius": "5px",
+                            "fontSize": "0.85rem",
+                            "fontFamily": "'Courier New', monospace",
+                            "overflowX": "auto",
+                            "whiteSpace": "pre"
+                        })
+                    ])
+                ], className="mt-3")
+            ])
             
             return html.Div(output)
             

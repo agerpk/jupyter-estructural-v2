@@ -144,7 +144,16 @@ def register_callbacks(app):
                     # Guardar DGE
                     import matplotlib.pyplot as plt
                     from EstructuraAEA_Graficos import EstructuraAEA_Graficos
-                    from HipotesisMaestro import hipotesis_maestro
+                    from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_maestro_base
+                    from utils.hipotesis_manager import HipotesisManager
+                    
+                    # Obtener ruta del archivo estructura.json
+                    estructura_json_path = f"data/{nombre_estructura}.estructura.json"
+                    hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
+                        nombre_estructura,
+                        estructura_json_path,
+                        hipotesis_maestro_base
+                    )
                     
                     estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
                     estructura_mecanica.asignar_cargas_hipotesis(
@@ -227,7 +236,18 @@ def register_callbacks(app):
             else:
                 estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
                 
-                from HipotesisMaestro import hipotesis_maestro
+                from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_maestro_base
+                from utils.hipotesis_manager import HipotesisManager
+                
+                # Obtener ruta del archivo estructura.json
+                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                estructura_json_path = f"data/{nombre_estructura}.estructura.json"
+                hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
+                    nombre_estructura,
+                    estructura_json_path,
+                    hipotesis_maestro_base
+                )
+                
                 estructura_mecanica.asignar_cargas_hipotesis(
                     state.calculo_mecanico.df_cargas_totales,
                     state.calculo_mecanico.resultados_conductor,
@@ -322,7 +342,7 @@ def register_callbacks(app):
             output = [
                 dbc.Alert(f"REACCIONES Y TIROS EN CIMA COMPLETADO: {len(df_reacciones)} hipótesis procesadas", color="success", className="mb-3"),
                 
-                html.H5("RESUMEN EJECUTIVO", className="mb-2 mt-4"),
+                html.H5("RESUMEN", className="mb-2 mt-4"),
                 html.Pre(resumen_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
                 
                 html.H5("TABLA RESUMEN DE REACCIONES Y TIROS", className="mb-2 mt-4"),

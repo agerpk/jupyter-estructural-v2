@@ -250,12 +250,13 @@ class EstructuraAEA_Geometria:
         
         return h_base
     
-    def calcular_theta_max(self, vano):
+    def calcular_theta_max(self, vano, elemento_cadena=None):
         """
         Calcula el ángulo máximo de declinación theta_max usando cache de viento
         
         Args:
             vano (float): Longitud del vano en metros
+            elemento_cadena (Elemento_AEA, optional): Objeto cadena para calcular viento en cadena
             
         Returns:
             float: Ángulo theta_max en grados
@@ -289,19 +290,31 @@ class EstructuraAEA_Geometria:
                     print("   ❌ ERROR: No hay datos de viento en cache para V_90.")
                     return 99.0
                 
+                # Calcular viento en cadena si se proporciona el elemento
+                carga_viento_cadena = 0.0
+                if elemento_cadena is not None and hasattr(elemento_cadena, 'viento_cache'):
+                    if 'V_90' in elemento_cadena.viento_cache:
+                        resultado_cache_cadena = elemento_cadena.viento_cache['V_90']
+                        if resultado_cache_cadena:
+                            carga_viento_cadena = resultado_cache_cadena['fuerza_total_daN']
+                            print(f"   📐 Viento en cadena incluido: {carga_viento_cadena:.2f} daN")
+                
                 # Peso del conductor en el vano
                 peso_conductor = cable.peso_unitario_dan_m * vano
                 peso_cadena = self.peso_cadena
                 
-                # Calcular theta_max usando arctan(Fv/P)
+                # Calcular theta_max usando arctan((Fv + Fca) / (Pc + Pcadena))
+                fuerza_viento_total = carga_viento_conductor + carga_viento_cadena
                 if (peso_conductor + peso_cadena) > 0:
-                    theta_max_rad = math.atan(carga_viento_conductor / (peso_conductor + peso_cadena))
+                    theta_max_rad = math.atan(fuerza_viento_total / (peso_conductor + peso_cadena))
                     theta_max = math.degrees(theta_max_rad)
                 else:
                     theta_max = 99.0
 
                 print(f"   📐 Cálculo theta_max (suspensión con Lk>0):")
-                print(f"      - Carga viento conductor: {carga_viento_conductor:.2f} daN")
+                print(f"      - Carga viento conductor (Fv): {carga_viento_conductor:.2f} daN")
+                print(f"      - Carga viento cadena (Fca): {carga_viento_cadena:.2f} daN")
+                print(f"      - Fuerza viento total (Fv + Fca): {fuerza_viento_total:.2f} daN")
                 print(f"      - Peso conductor: {peso_conductor:.2f} daN")
                 print(f"      - Peso cadena: {peso_cadena:.2f} daN")
                 print(f"      - theta_max calculado: {theta_max:.2f}°")
@@ -521,7 +534,7 @@ class EstructuraAEA_Geometria:
             print(f"   📏 Distancia diagonal CONDUCTOR-guardia1: {dist1:.3f} m (mínimo: {Dhg_min:.3f} m) - {'✅ CUMPLE' if cumple1 else '❌ NO CUMPLE'}")
             print(f"   📏 Distancia diagonal CONDUCTOR-guardia2: {dist2:.3f} m (mínimo: {Dhg_min:.3f} m) - {'✅ CUMPLE' if cumple2 else '❌ NO CUMPLE'}")
     
-    def dimensionar_unifilar(self, vano, flecha_max_conductor, flecha_max_guardia, dist_reposicionar_hg=0.1, autoajustar_lmenhg=False):
+    def dimensionar_unifilar(self, vano, flecha_max_conductor, flecha_max_guardia, dist_reposicionar_hg=0.1, autoajustar_lmenhg=False, elemento_cadena=None):
         """
         Dimensiona la estructura según el proceso indicado paso a paso
         
@@ -531,13 +544,14 @@ class EstructuraAEA_Geometria:
             flecha_max_guardia (float): Flecha máxima del guardia
             dist_reposicionar_hg (float): Distancia para reposicionar HG (m)
             autoajustar_lmenhg (bool): Si True, aplica ajuste iterativo de lmenhg
+            elemento_cadena (Elemento_AEA, optional): Objeto cadena para calcular viento en cadena
         """
         print(f"📐 DIMENSIONANDO ESTRUCTURA UNIFILAR SEGÚN PROCESO INDICADO...")
         print(f"   Vano: {vano}m, Flechas: cond={flecha_max_conductor:.2f}m, guard={flecha_max_guardia:.2f}m")
         print(f"   Autoajustar lmenhg: {'✅ ACTIVADO' if autoajustar_lmenhg else '❌ DESACTIVADO'}")
         
         # 1. CALCULAR THETA_MAX
-        theta_max = self.calcular_theta_max(vano)
+        theta_max = self.calcular_theta_max(vano, elemento_cadena)
         
         # 2-3. CALCULAR DISTANCIAS MÍNIMAS Y COMPONENTE b
         distancias = self.calcular_distancias_minimas(flecha_max_conductor, theta_max)
