@@ -52,4 +52,9 @@ secrets.py
 # Outputs de notebooks (si los quieres ignorar)
 # Descomenta la siguiente línea si NO quieres versionar outputs
 # *.ipynb
+
+# Data folder - solo trackear .estructura.json y cables.json
+data/*
+!data/*.estructura.json
+!data/cables.json
 "@ | Out-File -FilePath .gitignore -Encoding UTF8
