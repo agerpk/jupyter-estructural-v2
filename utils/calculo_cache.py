@@ -5,6 +5,7 @@ import hashlib
 from pathlib import Path
 from datetime import datetime
 from config.app_config import DATA_DIR
+import glob
 
 
 class CalculoCache:
@@ -150,6 +151,32 @@ class CalculoCache:
     def cargar_calculo_sph(nombre_estructura):
         """Carga resultados de Selección de Postes de Hormigón"""
         archivo = DATA_DIR / f"{nombre_estructura}.calculoSPH.json"
+        if not archivo.exists():
+            return None
+        return json.loads(archivo.read_text(encoding="utf-8"))
+    
+    @staticmethod
+    def guardar_calculo_arboles(nombre_estructura, estructura_data, imagenes_generadas):
+        """Guarda resultados de Árboles de Carga"""
+        hash_params = CalculoCache.calcular_hash(estructura_data)
+        
+        calculo_data = {
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "imagenes": [{
+                "hipotesis": img['hipotesis'],
+                "nombre": img['nombre']
+            } for img in imagenes_generadas]
+        }
+        
+        archivo = DATA_DIR / f"{nombre_estructura}.calculoARBOLES.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        return hash_params
+    
+    @staticmethod
+    def cargar_calculo_arboles(nombre_estructura):
+        """Carga resultados de Árboles de Carga"""
+        archivo = DATA_DIR / f"{nombre_estructura}.calculoARBOLES.json"
         if not archivo.exists():
             return None
         return json.loads(archivo.read_text(encoding="utf-8"))

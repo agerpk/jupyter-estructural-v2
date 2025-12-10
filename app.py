@@ -24,7 +24,8 @@ from controllers import (
     cables_controller,
     geometria_controller,
     mecanica_controller,
-    seleccion_poste_controller
+    seleccion_poste_controller,
+    arboles_controller
 )
 
 # Inicializar la aplicación Dash
@@ -73,6 +74,7 @@ cables_controller.register_callbacks(app)
 geometria_controller.register_callbacks(app)
 mecanica_controller.register_callbacks(app)
 seleccion_poste_controller.register_callbacks(app)
+arboles_controller.register_callbacks(app)
 
 
 def inicializar_datos():
