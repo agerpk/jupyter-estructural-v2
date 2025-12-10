@@ -15,6 +15,9 @@ class CalculoObjetosAEA:
         self.cable_guardia = None
         self.cadena = None
         self.estructura = None
+        self.estructura_geometria = None
+        self.estructura_mecanica = None
+        self.estructura_graficos = None
         self.DATOS_CABLES = datos_cables
     
     def crear_objetos_cable(self, estructura_config):

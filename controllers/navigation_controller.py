@@ -29,13 +29,14 @@ def register_callbacks(app):
         Input("menu-modificar-cable", "n_clicks"),
         Input("menu-eliminar-cable", "n_clicks"),
         Input("menu-diseno-geometrico", "n_clicks"),
+        Input("menu-diseno-mecanico", "n_clicks"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
                        n_clicks_eliminar, n_clicks_nueva, n_clicks_guardar, n_clicks_cmc,
                        n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
-                       n_clicks_diseno_geom, estructura_actual):
+                       n_clicks_diseno_geom, n_clicks_diseno_mec, estructura_actual):
         ctx = callback_context
         
         if not ctx.triggered:
@@ -90,6 +91,19 @@ def register_callbacks(app):
                     if not vigente:
                         calculo_guardado = None
             return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
+        
+        elif trigger_id == "menu-diseno-mecanico":
+            from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
+            from utils.calculo_cache import CalculoCache
+            calculo_guardado = None
+            if estructura_actual:
+                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
+                if calculo_guardado:
+                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+                    if not vigente:
+                        calculo_guardado = None
+            return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado)
         
         elif "btn-volver" in trigger_id:
             try:
