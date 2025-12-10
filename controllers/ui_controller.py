@@ -42,3 +42,23 @@ def register_callbacks(app):
         estructuras = state.estructura_manager.listar_estructuras()
         estructuras_filtradas = [e for e in estructuras if e not in ARCHIVOS_PROTEGIDOS]
         return [{"label": e, "value": e} for e in estructuras_filtradas]
+    
+    @app.callback(
+        Output("modal-acerca-de", "is_open"),
+        Input("menu-acerca-de", "n_clicks"),
+        Input("btn-cerrar-acerca-de", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def toggle_modal_acerca_de(abrir, cerrar):
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            return False
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "menu-acerca-de":
+            return True
+        elif trigger_id == "btn-cerrar-acerca-de":
+            return False
+        
+        return False

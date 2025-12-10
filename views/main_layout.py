@@ -6,10 +6,12 @@ from components.menu import (
     crear_menu_archivo, 
     crear_menu_editar,
     crear_menu_calcular,
+    crear_menu_info,
     crear_modal_cargar_db, 
     crear_modal_guardar_como,
     crear_modal_guardar_plantilla,
-    crear_modal_nueva_estructura
+    crear_modal_nueva_estructura,
+    crear_modal_acerca_de
 )
 from components.vista_home import crear_vista_home
 from models.app_state import AppState
@@ -49,6 +51,7 @@ def crear_layout():
                     crear_menu_archivo(),
                     crear_menu_editar(),
                     crear_menu_calcular(),
+                    crear_menu_info(),
                 ], navbar=True),
                 
                 # Información de estructura actual
@@ -76,6 +79,7 @@ def crear_layout():
             crear_modal_guardar_como(""),
             crear_modal_guardar_plantilla(),
             crear_modal_nueva_estructura(),
+            crear_modal_acerca_de(),
     
             # Área de contenido principal
             html.Div(id="contenido-principal", children=crear_vista_home()),

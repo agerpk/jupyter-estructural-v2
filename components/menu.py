@@ -137,3 +137,34 @@ def crear_modal_guardar_plantilla():
             dbc.Button("Confirmar", id="btn-guardar-plantilla-confirmar", color="danger")
         ])
     ], id="modal-guardar-plantilla", is_open=False)
+
+def crear_menu_info():
+    """Crear menú INFO"""
+    return dbc.DropdownMenu(
+        children=[
+            dbc.DropdownMenuItem("Acerca de AGP", id="menu-acerca-de"),
+        ],
+        nav=True,
+        in_navbar=True,
+        label="INFO",
+        className="ms-2",
+        direction="down",
+    )
+
+def crear_modal_acerca_de():
+    """Crear modal Acerca de AGP"""
+    return dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Acerca de AGP")),
+        dbc.ModalBody([
+            html.Div([
+                html.H5("AGP - Análisis General de Postaciones", className="text-center mb-4"),
+                html.P("Versión 0", className="text-center"),
+                html.P("Programado por AGPK", className="text-center"),
+                html.P(["Tg: ", html.A("@alegerpk", href="https://t.me/alegerpk", target="_blank")], className="text-center"),
+                html.P("Año 2025", className="text-center")
+            ])
+        ]),
+        dbc.ModalFooter([
+            dbc.Button("Cerrar", id="btn-cerrar-acerca-de", color="primary")
+        ])
+    ], id="modal-acerca-de", is_open=False)

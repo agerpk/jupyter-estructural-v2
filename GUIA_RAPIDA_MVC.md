@@ -1,5 +1,138 @@
 # Guía Rápida - Arquitectura MVC
 
+## 📊 ANÁLISIS RESUMIDO DE LA APLICACIÓN
+
+### Nombre del Sistema
+**AGP - Análisis General de Postaciones**
+
+### Arquitectura
+**Patrón MVC (Model-View-Controller)** con Dash/Plotly
+- **Models**: Gestión de datos y lógica de negocio
+- **Views**: Componentes visuales (HTML/Dash)
+- **Controllers**: Callbacks que conectan vistas con modelos
+
+### Estructura de Directorios
+```
+jupyter_estructural_v2/
+├── app.py                          # Punto de entrada principal
+├── config/
+│   └── app_config.py              # Configuración centralizada (tema, puertos, paths)
+├── models/
+│   └── app_state.py               # Estado global (Singleton) con managers
+├── views/
+│   └── main_layout.py             # Layout principal (navbar, modales, stores)
+├── components/                     # Vistas individuales (una por funcionalidad)
+│   ├── vista_home.py
+│   ├── vista_ajuste_parametros.py
+│   ├── vista_calculo_mecanico.py
+│   ├── vista_diseno_geometrico.py
+│   ├── vista_diseno_mecanico.py
+│   ├── vista_arboles_carga.py
+│   ├── vista_seleccion_poste.py
+│   ├── vista_calcular_todo.py
+│   └── vista_gestion_cables.py
+├── controllers/                    # Callbacks organizados por dominio
+│   ├── navigation_controller.py   # Navegación entre vistas
+│   ├── file_controller.py         # Operaciones de archivo
+│   ├── estructura_controller.py   # CRUD de estructuras
+│   ├── parametros_controller.py   # Edición de parámetros
+│   ├── geometria_controller.py    # Cálculo CMC y DGE
+│   ├── mecanica_controller.py     # Cálculo DME
+│   ├── arboles_controller.py      # Árboles de carga
+│   ├── seleccion_poste_controller.py  # SPH
+│   ├── calcular_todo_controller.py    # Ejecución secuencial completa
+│   ├── cables_controller.py       # Gestión de cables
+│   └── ui_controller.py           # Actualizaciones de UI
+├── utils/                          # Utilidades reutilizables
+│   ├── calculo_cache.py           # Persistencia de resultados
+│   ├── estructura_manager.py      # Gestión de archivos .estructura.json
+│   ├── cable_manager.py           # Gestión de cables.json
+│   ├── hipotesis_manager.py       # Gestión de hipótesis de carga
+│   ├── plot_flechas.py            # Gráficos Plotly de flechas
+│   ├── arboles_carga.py           # Generación de árboles de carga
+│   └── memoria_calculo_dge.py     # Generación de memorias de cálculo
+└── data/                           # Datos persistentes
+    ├── *.estructura.json          # Archivos de estructuras
+    ├── *.calculoXXX.json          # Cache de cálculos (CMC, DGE, DME, etc.)
+    ├── *.png                       # Imágenes generadas
+    └── cables.json                 # Base de datos de cables
+```
+
+### Flujo de Datos
+1. **Usuario interactúa** → Componente Dash (botón, input)
+2. **Callback se dispara** → Controller específico
+3. **Controller accede** → AppState (singleton) para obtener managers
+4. **Manager ejecuta** → Lógica de negocio (cálculos, I/O)
+5. **Resultado retorna** → Controller actualiza Output
+6. **Vista se actualiza** → Usuario ve cambios
+
+### Sistema de Cache
+**Estrategia**: Hash MD5 de parámetros de estructura
+- Cada cálculo (CMC, DGE, DME, Árboles, SPH) tiene su propio archivo `.calculoXXX.json`
+- Las imágenes se guardan con el hash en el nombre: `CMC_Combinado.{hash}.png`
+- Al cambiar parámetros, el hash cambia y se invalida el cache
+- Al reiniciar la app, se cargan resultados desde cache si el hash coincide
+
+### Vistas Principales y sus Callbacks
+
+| Vista | Componente | Controller | Función |
+|-------|-----------|------------|----------|
+| Home | `vista_home.py` | `navigation_controller.py` | Pantalla inicial |
+| Ajustar Parámetros | `vista_ajuste_parametros.py` | `parametros_controller.py` | Editar parámetros de estructura |
+| CMC | `vista_calculo_mecanico.py` | `geometria_controller.py` | Cálculo Mecánico de Cables |
+| DGE | `vista_diseno_geometrico.py` | `geometria_controller.py` | Diseño Geométrico de Estructura |
+| DME | `vista_diseno_mecanico.py` | `mecanica_controller.py` | Diseño Mecánico de Estructura |
+| Árboles | `vista_arboles_carga.py` | `arboles_controller.py` | Árboles de Carga |
+| SPH | `vista_seleccion_poste.py` | `seleccion_poste_controller.py` | Selección de Postes |
+| Calcular Todo | `vista_calcular_todo.py` | `calcular_todo_controller.py` | Ejecución secuencial (CMC→DGE→DME→Árboles→SPH) |
+| Gestión Cables | `vista_gestion_cables.py` | `cables_controller.py` | CRUD de cables |
+
+### Secuencia de Cálculo (Calcular Todo)
+```
+CMC (Cálculo Mecánico de Cables)
+  ↓ genera: flechas máximas, tiros, cargas de viento
+DGE (Diseño Geométrico de Estructura)
+  ↓ genera: dimensiones, nodos, gráficos de estructura
+DME (Diseño Mecánico de Estructura)
+  ↓ genera: reacciones en base, gráficos polares
+Árboles de Carga
+  ↓ genera: diagramas de carga por hipótesis
+SPH (Selección de Postes de Hormigón)
+  ↓ genera: postes seleccionados, orientación
+```
+
+### Estado Global (AppState)
+**Singleton Pattern** - Una única instancia compartida
+```python
+class AppState:
+    estructura_manager: EstructuraManager  # CRUD de estructuras
+    cable_manager: CableManager            # CRUD de cables
+    calculo_objetos: CalculoObjetosAEA     # Objetos de cálculo (Cable, Cadena, Estructura)
+    calculo_mecanico: CalculoMecanicoCables # Resultados CMC
+    archivo_actual: Path                    # Ruta del archivo actual
+```
+
+### Persistencia de Navegación
+- Al cambiar de vista, se guarda en `data/navegacion_state.json`
+- Al reiniciar la app, se carga la última vista visitada
+- Permite recuperar el estado de trabajo después de cerrar
+
+### Criterios de Diseño
+1. **Separación de responsabilidades**: Cada controller maneja un dominio específico
+2. **Reutilización**: Lógica común en `utils/`, no duplicada en controllers
+3. **Cache inteligente**: Evita recálculos innecesarios usando hash de parámetros
+4. **Actualización progresiva**: "Calcular Todo" muestra resultados a medida que se generan (dcc.Interval)
+5. **Exportación completa**: HTML con imágenes embebidas en base64
+
+### Cómo Escalar la Aplicación
+1. **Nueva vista de cálculo**: Crear componente en `components/`, controller en `controllers/`, registrar en `app.py`
+2. **Nuevo tipo de cache**: Agregar métodos en `utils/calculo_cache.py` (guardar/cargar)
+3. **Nueva funcionalidad**: Identificar dominio → agregar callback en controller apropiado
+4. **Nuevo manager**: Crear en `utils/`, agregar a `AppState` en `models/app_state.py`
+5. **Nueva configuración**: Agregar constante en `config/app_config.py`
+
+---
+
 ## 🚀 Inicio Rápido
 
 ### Ejecutar la Aplicación
