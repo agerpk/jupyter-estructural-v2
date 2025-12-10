@@ -643,25 +643,20 @@ class EstructuraAEA_Graficos:
             magnitud = datos['Tiro_resultante_daN']
             color = colores_hipotesis.get(codigo, '#000000')
             
-            # Plotear vector (sumando 90° para visualización)
-            angulo_visual = angulo_rad + math.radians(90)
-            ax.plot([0, angulo_visual], [0, magnitud], linewidth=2, color=color, 
+            # Plotear vector
+            ax.plot([0, angulo_rad], [0, magnitud], linewidth=2, color=color, 
                    label=f"{codigo}: {magnitud:.1f} daN", alpha=0.7)
-            ax.plot(angulo_visual, magnitud, 'o', color=color, markersize=6)
+            ax.plot(angulo_rad, magnitud, 'o', color=color, markersize=6)
             
             max_tiro = max(max_tiro, magnitud)
         
-        # Configurar gráfico polar
-        ax.set_theta_offset(math.pi)  # 0° a la izquierda
-        ax.set_theta_direction(-1)    # Sentido horario
+        # Configurar gráfico polar: 0° arriba (Norte), sentido horario
+        ax.set_theta_zero_location('N')
+        ax.set_theta_direction(-1)
         
         # Ajustar límites
         ax.set_ylim(0, max_tiro * 1.2)
         ax.grid(True, alpha=0.3)
-        
-        # Añadir rótulos de ángulos
-        ax.set_xticks(np.linspace(0, 2*math.pi, 8, endpoint=False))
-        ax.set_xticklabels(['0°', '45°', '90°', '135°', '180°', '225°', '270°', '315°'])
         
         # Título
         titulo_grafico = titulo if titulo else f'DIAGRAMA POLAR DE TIROS EN LA CIMA\n{self.geometria.tension_nominal}kV - {self.geometria.tipo_estructura.upper()}'

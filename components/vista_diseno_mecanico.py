@@ -17,6 +17,14 @@ def generar_resultados_dme(calculo_guardado, estructura_actual):
         else:
             df_reacciones = pd.DataFrame(df_reacciones_dict)
         
+        # Verificar que el DataFrame tiene datos y columnas necesarias
+        columnas_requeridas = ['Reaccion_Fx_daN', 'Reaccion_Fy_daN', 'Reaccion_Fz_daN', 
+                               'Reaccion_Mx_daN_m', 'Reaccion_My_daN_m', 'Reaccion_Mz_daN_m',
+                               'Tiro_X_daN', 'Tiro_Y_daN', 'Tiro_resultante_daN', 'Angulo_grados']
+        
+        if df_reacciones.empty or not all(col in df_reacciones.columns for col in columnas_requeridas):
+            return None  # No hay resultados válidos
+        
         hash_params = calculo_guardado.get('hash_parametros')
         
         # Preparar DataFrame con nombres legibles
@@ -26,9 +34,7 @@ def generar_resultados_dme(calculo_guardado, estructura_actual):
         df_display = df_display.reset_index()
         
         # Renombrar columnas
-        df_display = df_display[['Hipótesis', 'Reaccion_Fx_daN', 'Reaccion_Fy_daN', 'Reaccion_Fz_daN', 
-                                 'Reaccion_Mx_daN_m', 'Reaccion_My_daN_m', 'Reaccion_Mz_daN_m',
-                                 'Tiro_X_daN', 'Tiro_Y_daN', 'Tiro_resultante_daN', 'Angulo_grados']]
+        df_display = df_display[['Hipótesis'] + columnas_requeridas]
         df_display.columns = ['Hipótesis', 'Fx [daN]', 'Fy [daN]', 'Fz [daN]', 'Mx [daN·m]', 'My [daN·m]', 
                               'Mz [daN·m]', 'Tiro_X [daN]', 'Tiro_Y [daN]', 'Tiro_Res [daN]', 'Ángulo [°]']
         

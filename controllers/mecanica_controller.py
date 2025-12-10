@@ -144,7 +144,6 @@ def register_callbacks(app):
                     # Guardar DGE
                     import matplotlib.pyplot as plt
                     from EstructuraAEA_Graficos import EstructuraAEA_Graficos
-                    from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
                     from HipotesisMaestro import hipotesis_maestro
                     
                     estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
@@ -181,6 +180,46 @@ def register_callbacks(app):
                     
                     state.calculo_objetos.estructura_mecanica = estructura_mecanica
                     state.calculo_objetos.estructura_graficos = estructura_graficos
+                else:
+                    # Cargar desde cache
+                    from EstructuraAEA_Geometria import EstructuraAEA_Geometria
+                    state.calculo_objetos.estructura_geometria = EstructuraAEA_Geometria(
+                        tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
+                        tension_nominal=estructura_actual.get("TENSION"),
+                        zona_estructura=estructura_actual.get("Zona_estructura"),
+                        disposicion=estructura_actual.get("DISPOSICION"),
+                        terna=estructura_actual.get("TERNA"),
+                        cant_hg=estructura_actual.get("CANT_HG"),
+                        alpha_quiebre=estructura_actual.get("alpha"),
+                        altura_minima_cable=estructura_actual.get("ALTURA_MINIMA_CABLE"),
+                        long_mensula_min_conductor=estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR"),
+                        long_mensula_min_guardia=estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA"),
+                        hadd=estructura_actual.get("HADD"),
+                        hadd_entre_amarres=estructura_actual.get("HADD_ENTRE_AMARRES"),
+                        lk=estructura_actual.get("Lk"),
+                        ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
+                        cable_conductor=state.calculo_objetos.cable_conductor,
+                        cable_guardia=state.calculo_objetos.cable_guardia,
+                        peso_estructura=estructura_actual.get("PESTRUCTURA"),
+                        peso_cadena=estructura_actual.get("PCADENA"),
+                        hg_centrado=estructura_actual.get("HG_CENTRADO"),
+                        ang_apantallamiento=estructura_actual.get("ANG_APANTALLAMIENTO"),
+                        hadd_hg=estructura_actual.get("HADD_HG"),
+                        hadd_lmen=estructura_actual.get("HADD_LMEN"),
+                        dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
+                        ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
+                        metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
+                        altura_msnm=estructura_actual.get("Altura_MSNM")
+                    )
+                    fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
+                    fmax_guardia = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia.values()])
+                    state.calculo_objetos.estructura_geometria.dimensionar_unifilar(
+                        estructura_actual.get("L_vano"),
+                        fmax_conductor,
+                        fmax_guardia,
+                        dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
+                        autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
+                    )
             
             # Usar estructura_mecanica del state si existe y es válida, sino crear nueva
             if state.calculo_objetos.estructura_mecanica and state.calculo_objetos.estructura_mecanica.geometria:
