@@ -1,7 +1,7 @@
 """Controlador para acciones de la vista home"""
 
 import dash
-from dash import Input, Output, State, ALL, callback_context
+from dash import html, Input, Output, State, ALL, callback_context
 import dash_bootstrap_components as dbc
 from models.app_state import AppState
 from config.app_config import DATA_DIR
@@ -170,3 +170,104 @@ def register_callbacks(app):
             return False, estructura, True, "Éxito", f"Estructura duplicada como '{nuevo_nombre}'", "success"
         except Exception as e:
             return False, dash.no_update, True, "Error", f"Error: {str(e)}", "danger"
+    
+    # Ver datos del cable
+    @app.callback(
+        Output("modal-ver-cable", "is_open"),
+        Output("modal-ver-cable-titulo", "children"),
+        Output("modal-ver-cable-contenido", "children"),
+        Input({"type": "btn-ver-cable", "index": ALL}, "n_clicks"),
+        Input("btn-cerrar-ver-cable", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def toggle_modal_ver_cable(n_clicks_ver, n_clicks_cerrar):
+        ctx = callback_context
+        if not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+        
+        trigger_id = ctx.triggered_id
+        
+        if trigger_id and isinstance(trigger_id, dict) and trigger_id.get("type") == "btn-ver-cable":
+            cable_id = trigger_id["index"]
+            cable = state.cable_manager.obtener_cable(cable_id)
+            
+            if not cable:
+                return True, "Error", dbc.Alert("Cable no encontrado", color="danger")
+            
+            contenido = dbc.Container([
+                dbc.Row([
+                    dbc.Col([dbc.Label("Tipo:", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(cable.get("tipo", "N/A"))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Material:", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(cable.get("material", "N/A"))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Sección Nominal:", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("seccion_nominal", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Sección Total (mm²):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("seccion_total_mm2", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Diámetro Total (mm):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("diametro_total_mm", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Peso Unitario (daN/m):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("peso_unitario_dan_m", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Coef. Dilatación (1/°C):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("coeficiente_dilatacion_1_c", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Módulo Elasticidad (daN/mm²):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("modulo_elasticidad_dan_mm2", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Carga Rotura Mínima (daN):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("carga_rotura_minima_dan", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Tensión Rotura Mínima (MPa):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("tension_rotura_minima", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Carga Máx. Trabajo (daN):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("carga_max_trabajo", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Tensión Máx. Trabajo (MPa):", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("tension_max_trabajo", "N/A")))], width=8)
+                ], className="mb-2"),
+                dbc.Row([
+                    dbc.Col([dbc.Label("Norma Fabricación:", className="fw-bold")], width=4),
+                    dbc.Col([html.Span(str(cable.get("norma_fabricacion", "N/A")))], width=8)
+                ], className="mb-2")
+            ], fluid=True)
+            
+            return True, f"Cable: {cable_id}", contenido
+        
+        return False, "", ""
+    
+    # Modificar cable desde home
+    @app.callback(
+        Output("contenido-principal", "children", allow_duplicate=True),
+        Input({"type": "btn-modificar-cable-home", "index": ALL}, "n_clicks"),
+        prevent_initial_call=True
+    )
+    def modificar_cable_home(n_clicks):
+        ctx = callback_context
+        if not ctx.triggered or not any(n_clicks):
+            raise dash.exceptions.PreventUpdate
+        
+        trigger_id = ctx.triggered_id
+        cable_id = trigger_id["index"]
+        
+        # Navegar a vista de modificar cable
+        from components.vista_gestion_cables import crear_vista_modificar_cable
+        cables_disponibles = state.cable_manager.obtener_cables()
+        return crear_vista_modificar_cable(cables_disponibles)

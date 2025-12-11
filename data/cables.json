@@ -1,5 +1,6 @@
 {
   "Ac 70": {
+    "tipo": "ACERO",
     "material": "Ac",
     "seccion_nominal": "70",
     "seccion_total_mm2": 72.23,
@@ -14,6 +15,7 @@
     "norma_fabricacion": "IRAM 722"
   },
   "ADSS 1": {
+    "tipo": "ADSS",
     "material": "Sintético",
     "seccion_nominal": null,
     "seccion_total_mm2": 5.3,
@@ -28,6 +30,7 @@
     "norma_fabricacion": null
   },
   "AlAc 435/55": {
+    "tipo": "ACSR",
     "material": "Al/Ac",
     "seccion_nominal": "435/55",
     "seccion_total_mm2": 490.6,
@@ -42,6 +45,7 @@
     "norma_fabricacion": "DIN 48204"
   },
   "AlAc 300/50": {
+    "tipo": "ACSR",
     "material": "Al/Ac",
     "seccion_nominal": "300/50",
     "seccion_total_mm2": 353.7,
@@ -56,6 +60,7 @@
     "norma_fabricacion": "IRAM 2187"
   },
   "Ac 50": {
+    "tipo": "ACERO",
     "material": "Ac",
     "seccion_nominal": "50",
     "seccion_total_mm2": 49.49,
@@ -70,6 +75,7 @@
     "norma_fabricacion": "ASTM 363"
   },
   "Al/Ac 70/12": {
+    "tipo": "ACSR",
     "material": "Al/Ac",
     "seccion_nominal": "70/12",
     "seccion_total_mm2": 81.3,
@@ -84,6 +90,7 @@
     "norma_fabricacion": "IRAM 2187"
   },
   "OPGW 07A378s 12FO 62mm2": {
+    "tipo": "OPGW",
     "material": "ACS",
     "seccion_nominal": null,
     "seccion_total_mm2": 62.4,
@@ -98,6 +105,7 @@
     "norma_fabricacion": "IEC/EN 60794"
   },
   "OPGW 44F70s 24FO 120mm2": {
+    "tipo": "OPGW",
     "material": "ACS/A",
     "seccion_nominal": "120",
     "seccion_total_mm2": 120.0,
@@ -112,6 +120,7 @@
     "norma_fabricacion": "IEC/EN 60794"
   },
   "OPGW FiberHome 24FO 58mm2": {
+    "tipo": "OPGW",
     "material": "ACS/A",
     "seccion_nominal": "58",
     "seccion_total_mm2": 57.73,

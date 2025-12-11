@@ -7,6 +7,46 @@ import dash_bootstrap_components as dbc
 from models.app_state import AppState
 from config.app_config import ARCHIVOS_PROTEGIDOS, DATA_DIR
 
+def crear_tarjeta_cables_disponibles():
+    """Crear tarjeta con lista de cables disponibles"""
+    state = AppState()
+    cables = state.cable_manager.cables_data
+    
+    if not cables:
+        contenido = dbc.Alert("No hay cables en la base de datos", color="info")
+    else:
+        items = []
+        for cable_id, datos in cables.items():
+            tipo = datos.get("tipo", "N/A")
+            seccion = datos.get("seccion_nominal", "N/A")
+            peso = datos.get("peso_unitario_dan_m", "N/A")
+            
+            items.append(
+                dbc.ListGroupItem([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Span(cable_id, className="text-info me-2", style={"fontSize": "16px", "fontWeight": "bold"}),
+                            html.Small(f"Tipo: {tipo} | Sección: {seccion} | Peso: {peso} daN/m", className="text-light")
+                        ], width=10),
+                        dbc.Col([
+                            dbc.DropdownMenu([
+                                dbc.DropdownMenuItem("Ver datos", id={"type": "btn-ver-cable", "index": cable_id}),
+                                dbc.DropdownMenuItem("Modificar", id={"type": "btn-modificar-cable-home", "index": cable_id}),
+                            ], size="sm", direction="start", label="⋮", color="secondary", className="p-0", style={"fontSize": "1.2rem"})
+                        ], width=2, className="text-end")
+                    ], align="center")
+                ], action=False, className="py-2", style={"backgroundColor": "#1a1d21", "borderColor": "#2d3139"})
+            )
+        contenido = dbc.ListGroup(items, flush=True, style={"backgroundColor": "#1a1d21"})
+    
+    return dbc.Card([
+        dbc.CardHeader(html.H5("Cables Disponibles", className="mb-0")),
+        dbc.CardBody([
+            contenido,
+            html.P(f"Total: {len(cables)} cable(s)", className="text-muted mt-3 mb-0")
+        ])
+    ])
+
 def crear_tarjeta_estructuras_disponibles():
     """Crear tarjeta con lista de estructuras disponibles"""
     state = AppState()
@@ -196,17 +236,24 @@ def crear_vista_home():
             ])
         ], id="modal-duplicar-estructura", is_open=False),
         
-        dbc.Row([
-            # Tarjeta de Estructura Actual
-            dbc.Col([
-                crear_tarjeta_estructura_actual()
-            ], lg=6, md=12, className="mb-4"),
-            
-            # Tarjeta de Estructuras Disponibles
-            dbc.Col([
-                crear_tarjeta_estructuras_disponibles()
-            ], lg=6, md=12, className="mb-4"),
-        ]),
+        html.Div([
+            html.Div(crear_tarjeta_estructura_actual(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
+            html.Div(crear_tarjeta_estructuras_disponibles(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
+            html.Div(crear_tarjeta_cables_disponibles(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
+        ], style={
+            "columnCount": "2",
+            "columnGap": "1rem",
+            "marginBottom": "1rem"
+        }),
+        
+        # Modal para ver datos del cable
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle(id="modal-ver-cable-titulo")),
+            dbc.ModalBody(id="modal-ver-cable-contenido"),
+            dbc.ModalFooter([
+                dbc.Button("Cerrar", id="btn-cerrar-ver-cable", color="secondary")
+            ])
+        ], id="modal-ver-cable", is_open=False, size="lg"),
         
         # Stores para mantener estado
         dcc.Store(id="estructura-a-eliminar"),
