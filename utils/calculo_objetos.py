@@ -13,6 +13,7 @@ class CalculoObjetosAEA:
         self.lib_cables = None
         self.cable_conductor = None
         self.cable_guardia = None
+        self.cable_guardia2 = None
         self.cadena = None
         self.estructura = None
         self.estructura_geometria = None
@@ -25,11 +26,15 @@ class CalculoObjetosAEA:
         try:
             cable_conductor_id = estructura_config.get("cable_conductor_id")
             cable_guardia_id = estructura_config.get("cable_guardia_id")
+            cable_guardia2_id = estructura_config.get("cable_guardia2_id")
+            cant_hg = estructura_config.get("CANT_HG", 1)
             
             if cable_conductor_id not in self.DATOS_CABLES:
                 raise ValueError(f"Cable conductor '{cable_conductor_id}' no encontrado")
             if cable_guardia_id not in self.DATOS_CABLES:
                 raise ValueError(f"Cable guardia '{cable_guardia_id}' no encontrado")
+            if cant_hg == 2 and cable_guardia2_id and cable_guardia2_id not in self.DATOS_CABLES:
+                raise ValueError(f"Cable guardia 2 '{cable_guardia2_id}' no encontrado")
             
             viento_base_params_conductor = {
                 'V': estructura_config.get("Vmax"),
@@ -69,12 +74,30 @@ class CalculoObjetosAEA:
             )
             self.lib_cables.agregar_cable(self.cable_guardia)
             
-            return {
-                "exito": True,
-                "mensaje": f"Cables creados exitosamente",
-                "conductor": self.cable_conductor.nombre,
-                "guardia": self.cable_guardia.nombre
-            }
+            # Si hay 2 cables de guardia y se especifica el segundo
+            if cant_hg == 2 and cable_guardia2_id:
+                self.cable_guardia2 = Cable_AEA(
+                    id_cable=cable_guardia2_id,
+                    nombre=cable_guardia2_id,
+                    propiedades=self.DATOS_CABLES[cable_guardia2_id],
+                    viento_base_params=viento_base_params_guardia
+                )
+                self.lib_cables.agregar_cable(self.cable_guardia2)
+                
+                return {
+                    "exito": True,
+                    "mensaje": f"Cables creados exitosamente",
+                    "conductor": self.cable_conductor.nombre,
+                    "guardia": self.cable_guardia.nombre,
+                    "guardia2": self.cable_guardia2.nombre
+                }
+            else:
+                return {
+                    "exito": True,
+                    "mensaje": f"Cables creados exitosamente",
+                    "conductor": self.cable_conductor.nombre,
+                    "guardia": self.cable_guardia.nombre
+                }
             
         except Exception as e:
             return {"exito": False, "mensaje": f"Error: {str(e)}"}
@@ -137,9 +160,13 @@ class CalculoObjetosAEA:
         resultados.append(resultado_estructura)
         
         if all(r["exito"] for r in resultados):
+            cables_msg = f"{resultado_cables['conductor']}, {resultado_cables['guardia']}"
+            if 'guardia2' in resultado_cables:
+                cables_msg += f", {resultado_cables['guardia2']}"
+            
             return {
                 "exito": True,
-                "mensaje": f"Todos los objetos creados exitosamente\n✓ Cables: {resultado_cables['conductor']}, {resultado_cables['guardia']}\n✓ Cadena de Aisladores\n✓ Estructura"
+                "mensaje": f"Todos los objetos creados exitosamente\n✓ Cables: {cables_msg}\n✓ Cadena de Aisladores\n✓ Estructura"
             }
         else:
             errores = [r["mensaje"] for r in resultados if not r["exito"]]

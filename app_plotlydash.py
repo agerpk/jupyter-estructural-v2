@@ -1040,8 +1040,8 @@ def calcular_cmc(n_clicks, L_vano, alpha, theta, Vmax, Vmed, t_hielo,
                 html.H5("Conductor"),
                 dbc.Table.from_dataframe(resultado["df_conductor"], striped=True, bordered=True, hover=True, size="sm"),
                 
-                html.H5("Cable de Guardia", className="mt-4"),
-                dbc.Table.from_dataframe(resultado["df_guardia"], striped=True, bordered=True, hover=True, size="sm"),
+                html.H5("Cable de Guardia 1", className="mt-4"),
+                dbc.Table.from_dataframe(resultado["df_guardia1"], striped=True, bordered=True, hover=True, size="sm"),
             ]
             
             if resultado["df_cargas_totales"] is not None:
@@ -1051,23 +1051,41 @@ def calcular_cmc(n_clicks, L_vano, alpha, theta, Vmax, Vmed, t_hielo,
                     dbc.Button("Descargar CSV", id="btn-descargar-cargas-csv", color="primary", className="mt-2")
                 ])
             
+            # Agregar tabla guardia2 si existe
+            if resultado.get("df_guardia2") is not None:
+                resultados_html.extend([
+                    html.H5("Cable de Guardia 2", className="mt-4"),
+                    dbc.Table.from_dataframe(resultado["df_guardia2"], striped=True, bordered=True, hover=True, size="sm"),
+                ])
+            
             # Agregar gráficos de flechas
-            if calculo_mecanico.resultados_conductor and calculo_mecanico.resultados_guardia:
+            if calculo_mecanico.resultados_conductor and calculo_mecanico.resultados_guardia1:
                 try:
-                    fig_combinado, fig_conductor, fig_guardia = crear_grafico_flechas(
+                    figs = crear_grafico_flechas(
                         calculo_mecanico.resultados_conductor,
-                        calculo_mecanico.resultados_guardia,
-                        float(L_vano)
+                        calculo_mecanico.resultados_guardia1,
+                        float(L_vano),
+                        calculo_mecanico.resultados_guardia2
                     )
+                    fig_combinado = figs[0]
+                    fig_conductor = figs[1]
+                    fig_guardia1 = figs[2]
+                    fig_guardia2 = figs[3] if len(figs) > 3 else None
                     resultados_html.extend([
                         html.H5("Gráficos de Flechas", className="mt-4"),
                         html.H6("Conductor y Guardia", className="mt-3"),
                         dcc.Graph(figure=fig_combinado, config={'displayModeBar': True}),
                         html.H6("Solo Conductor", className="mt-3"),
                         dcc.Graph(figure=fig_conductor, config={'displayModeBar': True}),
-                        html.H6("Solo Cable de Guardia", className="mt-3"),
-                        dcc.Graph(figure=fig_guardia, config={'displayModeBar': True})
+                        html.H6("Solo Cable de Guardia 1", className="mt-3"),
+                        dcc.Graph(figure=fig_guardia1, config={'displayModeBar': True})
                     ])
+                    
+                    if fig_guardia2:
+                        resultados_html.extend([
+                            html.H6("Solo Cable de Guardia 2", className="mt-3"),
+                            dcc.Graph(figure=fig_guardia2, config={'displayModeBar': True})
+                        ])
                 except Exception as e:
                     print(f"Error generando gráficos de flechas: {e}")
                     import traceback

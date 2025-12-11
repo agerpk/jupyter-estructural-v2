@@ -253,9 +253,15 @@ def register_callbacks(app):
                     html.H5("Conductor"),
                     dbc.Table.from_dataframe(resultado["df_conductor"], striped=True, bordered=True, hover=True, size="sm"),
                     
-                    html.H5("Cable de Guardia", className="mt-4"),
-                    dbc.Table.from_dataframe(resultado["df_guardia"], striped=True, bordered=True, hover=True, size="sm"),
+                    html.H5("Cable de Guardia 1", className="mt-4"),
+                    dbc.Table.from_dataframe(resultado["df_guardia1"], striped=True, bordered=True, hover=True, size="sm"),
                 ]
+                
+                if resultado.get("df_guardia2") is not None:
+                    resultados_html.extend([
+                        html.H5("Cable de Guardia 2", className="mt-4"),
+                        dbc.Table.from_dataframe(resultado["df_guardia2"], striped=True, bordered=True, hover=True, size="sm"),
+                    ])
                 
                 if resultado["df_cargas_totales"] is not None:
                     resultados_html.extend([
@@ -264,22 +270,33 @@ def register_callbacks(app):
                         dbc.Button("Descargar CSV", id="btn-descargar-cargas-csv", color="primary", className="mt-2")
                     ])
                 
-                if state.calculo_mecanico.resultados_conductor and state.calculo_mecanico.resultados_guardia:
+                if state.calculo_mecanico.resultados_conductor and state.calculo_mecanico.resultados_guardia1:
                     try:
-                        fig_combinado, fig_conductor, fig_guardia = crear_grafico_flechas(
+                        figs = crear_grafico_flechas(
                             state.calculo_mecanico.resultados_conductor,
-                            state.calculo_mecanico.resultados_guardia,
-                            float(L_vano)
+                            state.calculo_mecanico.resultados_guardia1,
+                            float(L_vano),
+                            state.calculo_mecanico.resultados_guardia2
                         )
+                        fig_combinado = figs[0]
+                        fig_conductor = figs[1]
+                        fig_guardia1 = figs[2]
+                        fig_guardia2 = figs[3] if len(figs) > 3 else None
                         resultados_html.extend([
                             html.H5("Gráficos de Flechas", className="mt-4"),
                             html.H6("Conductor y Guardia", className="mt-3"),
                             dcc.Graph(figure=fig_combinado, config={'displayModeBar': True}),
                             html.H6("Solo Conductor", className="mt-3"),
                             dcc.Graph(figure=fig_conductor, config={'displayModeBar': True}),
-                            html.H6("Solo Cable de Guardia", className="mt-3"),
-                            dcc.Graph(figure=fig_guardia, config={'displayModeBar': True})
+                            html.H6("Solo Cable de Guardia 1", className="mt-3"),
+                            dcc.Graph(figure=fig_guardia1, config={'displayModeBar': True})
                         ])
+                        
+                        if fig_guardia2:
+                            resultados_html.extend([
+                                html.H6("Solo Cable de Guardia 2", className="mt-3"),
+                                dcc.Graph(figure=fig_guardia2, config={'displayModeBar': True})
+                            ])
                         
                         # Guardar imágenes en background sin bloquear
                         from utils.calculo_cache import CalculoCache
@@ -291,11 +308,11 @@ def register_callbacks(app):
                                 nombre_estructura, 
                                 estructura_actual, 
                                 state.calculo_mecanico.resultados_conductor,
-                                state.calculo_mecanico.resultados_guardia,
+                                state.calculo_mecanico.resultados_guardia1,
                                 state.calculo_mecanico.df_cargas_totales,
                                 fig_combinado,
                                 fig_conductor,
-                                fig_guardia
+                                fig_guardia1
                             )
                         
                         threading.Thread(target=guardar_async, daemon=True).start()

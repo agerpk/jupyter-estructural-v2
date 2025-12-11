@@ -12,9 +12,11 @@ class CalculoMecanicoCables:
     def __init__(self, calculo_objetos):
         self.calculo_objetos = calculo_objetos
         self.df_conductor = None
-        self.df_guardia = None
+        self.df_guardia1 = None
+        self.df_guardia2 = None
         self.resultados_conductor = None
-        self.resultados_guardia = None
+        self.resultados_guardia1 = None
+        self.resultados_guardia2 = None
         self.df_cargas_totales = None
     
     def calcular(self, params, estados_climaticos, restricciones=None):
@@ -71,11 +73,11 @@ class CalculoMecanicoCables:
                 if self.df_conductor[col].dtype == 'float64':
                     self.df_conductor[col] = self.df_conductor[col].round(2)
             
-            # Calcular guardia
+            # Calcular guardia 1
             flecha_max_conductor = max([r["flecha_vertical_m"] for r in self.resultados_conductor.values()])
             flecha_max_guardia = flecha_max_conductor * RELFLECHA_MAX_GUARDIA
             
-            self.df_guardia, self.resultados_guardia, estado_limitante_guard = \
+            self.df_guardia1, self.resultados_guardia1, estado_limitante_guard1 = \
                 self.calculo_objetos.cable_guardia.calculo_mecanico(
                     vano=L_vano,
                     estados_climaticos=estados_climaticos,
@@ -91,15 +93,41 @@ class CalculoMecanicoCables:
                 )
             
             # Redondear valores
-            for col in self.df_guardia.columns:
-                if self.df_guardia[col].dtype == 'float64':
-                    self.df_guardia[col] = self.df_guardia[col].round(2)
+            for col in self.df_guardia1.columns:
+                if self.df_guardia1[col].dtype == 'float64':
+                    self.df_guardia1[col] = self.df_guardia1[col].round(2)
+            
+            # Calcular guardia 2 si existe
+            if self.calculo_objetos.cable_guardia2:
+                self.df_guardia2, self.resultados_guardia2, estado_limitante_guard2 = \
+                    self.calculo_objetos.cable_guardia2.calculo_mecanico(
+                        vano=L_vano,
+                        estados_climaticos=estados_climaticos,
+                        parametros_viento=parametros_viento_guardia,
+                        restricciones=restricciones["guardia"],
+                        objetivo=OBJ_GUARDIA,
+                        es_guardia=True,
+                        flecha_max_permitida=flecha_max_guardia,
+                        resultados_conductor=self.resultados_conductor,
+                        salto_porcentual=SALTO_PORCENTUAL,
+                        paso_afinado=PASO_AFINADO,
+                        relflecha_sin_viento=RELFLECHA_SIN_VIENTO
+                    )
+                
+                # Redondear valores
+                for col in self.df_guardia2.columns:
+                    if self.df_guardia2[col].dtype == 'float64':
+                        self.df_guardia2[col] = self.df_guardia2[col].round(2)
+            else:
+                self.df_guardia2 = None
+                self.resultados_guardia2 = None
             
             # Generar lista de cargas
             if self.calculo_objetos.cadena and self.calculo_objetos.estructura:
                 listador_cargas = ListadorCargas(
                     cable_conductor=self.calculo_objetos.cable_conductor,
-                    cable_guardia=self.calculo_objetos.cable_guardia,
+                    cable_guardia1=self.calculo_objetos.cable_guardia,
+                    cable_guardia2=self.calculo_objetos.cable_guardia2,
                     cadena=self.calculo_objetos.cadena,
                     estructura=self.calculo_objetos.estructura,
                     estados_climaticos=estados_climaticos,
@@ -127,14 +155,16 @@ class CalculoMecanicoCables:
                 # Luego generar lista total de cargas
                 self.df_cargas_totales = listador_cargas.generar_lista_cargas(
                     self.resultados_conductor, 
-                    self.resultados_guardia
+                    self.resultados_guardia1,
+                    self.resultados_guardia2
                 )
             
             return {
                 "exito": True,
                 "mensaje": "Cálculo mecánico completado exitosamente",
                 "df_conductor": self.df_conductor,
-                "df_guardia": self.df_guardia,
+                "df_guardia1": self.df_guardia1,
+                "df_guardia2": self.df_guardia2,
                 "df_cargas_totales": self.df_cargas_totales
             }
             

@@ -228,7 +228,8 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         "OBJ_CONDUCTOR": ["FlechaMin", "TiroMin"],
         "OBJ_GUARDIA": ["FlechaMin", "TiroMin"],
         "cable_conductor_id": cables_disponibles if cables_disponibles else [],
-        "cable_guardia_id": cables_disponibles if cables_disponibles else []
+        "cable_guardia_id": cables_disponibles if cables_disponibles else [],
+        "cable_guardia2_id": cables_disponibles if cables_disponibles else []
     }
     
     # Definir bloques
@@ -286,10 +287,11 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
     bloques.append(crear_bloque(
         "CABLES Y CONDUCTORES",
         [
-            ("cable_conductor_id", str, None, "cable_conductor_id"),
+            ("cable_conductor_id", str, "Cable conductor", "cable_conductor_id"),
+            ("cable_guardia_id", str, "Cable guardia 1 (derecha, x+)", "cable_guardia_id"),
         ],
         [
-            ("cable_guardia_id", str, None, "cable_guardia_id"),
+            ("cable_guardia2_id", str, "Cable guardia 2 (izquierda, x-)", "cable_guardia2_id"),
         ],
         estructura_actual, opciones
     ))

@@ -181,7 +181,9 @@ class EstructuraAEA_Geometria:
         
         # Cables asociados
         self.cable_conductor = cable_conductor
-        self.cable_guardia = cable_guardia
+        self.cable_guardia1 = cable_guardia  # Guardia 1 (derecha, x+)
+        self.cable_guardia2 = None  # Guardia 2 (izquierda, x-) - se asigna después
+        self.cable_guardia = cable_guardia  # Mantener para compatibilidad
         
         # Colección de nodos
         self.nodos = {}
@@ -637,7 +639,10 @@ class EstructuraAEA_Geometria:
             self.nodos["CROSS_H3"] = NodoEstructural("CROSS_H3", (0.0, 0.0, h3a), "cruce")
         
         # NODOS DE CONDUCTORES según configuración
-        if self.terna == "Simple" and self.disposicion == "vertical":
+        if self.disposicion == "horizontal":
+            print("📐 Configuración horizontal")
+            self._crear_nodos_horizontal_default(h1a)
+        elif self.terna == "Simple" and self.disposicion == "vertical":
             self._crear_nodos_simple_vertical(h1a, h2a, h3a)
         elif self.terna == "Simple" and self.disposicion == "triangular":
             self._crear_nodos_simple_triangular(h1a, h2a)
@@ -645,9 +650,6 @@ class EstructuraAEA_Geometria:
             self._crear_nodos_doble_vertical(h1a, h2a, h3a)
         elif self.terna == "Doble" and self.disposicion == "triangular":
             self._crear_nodos_doble_triangular(h1a, h2a)
-        elif self.disposicion == "horizontal":
-            print("⚠️  Configuración horizontal - usando configuración por defecto")
-            self._crear_nodos_horizontal_default(h1a)
         else:
             print(f"⚠️  Configuración no reconocida: terna={self.terna}, disposicion={self.disposicion}")
             self._crear_nodos_horizontal_default(h1a)
@@ -762,34 +764,37 @@ class EstructuraAEA_Geometria:
         print(f"      - Nodos creados: 6 conductores (4 en h1a, 2 en h2a)")
     
     def _crear_nodos_horizontal_default(self, altura):
-        """Crea nodos por defecto para configuración horizontal"""
-        # Para terna simple: C1_R, C1_L
-        # Para terna doble: se necesitan más conductores
-        if self.terna == "Simple":
-            self.nodos["C1_R"] = NodoEstructural("C1_R", (self.lmen, 0.0, altura), "conductor",
-                                          self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
-            self.nodos["C1_L"] = NodoEstructural("C1_L", (-self.lmen, 0.0, altura), "conductor",
-                                          self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
-        else:  # Terna Doble
-            # Para doble terna horizontal, necesitamos 3 conductores por lado
-            # Asumimos separación D_fases entre conductores
-            D_fases = self.dimensiones.get('D_fases', 1.5)
-            
-            # Lado derecho: C1_R, C2_R, C3_R
-            self.nodos["C1_R"] = NodoEstructural("C1_R", (self.lmen, 0.0, altura), "conductor",
-                                          self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
-            self.nodos["C2_R"] = NodoEstructural("C2_R", (self.lmen + D_fases, 0.0, altura), "conductor",
-                                          self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
-            self.nodos["C3_R"] = NodoEstructural("C3_R", (self.lmen + 2*D_fases, 0.0, altura), "conductor",
-                                          self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
-            
-            # Lado izquierdo: C1_L, C2_L, C3_L
-            self.nodos["C1_L"] = NodoEstructural("C1_L", (-self.lmen, 0.0, altura), "conductor",
-                                          self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
-            self.nodos["C2_L"] = NodoEstructural("C2_L", (-self.lmen - D_fases, 0.0, altura), "conductor",
-                                          self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
-            self.nodos["C3_L"] = NodoEstructural("C3_L", (-self.lmen - 2*D_fases, 0.0, altura), "conductor",
-                                          self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
+        """Crea nodos para configuración horizontal con nueva lógica"""
+        # Obtener parámetros necesarios
+        h1a = altura
+        s_estructura = self.dimensiones.get('s_estructura', 0.5)
+        D_fases = self.dimensiones.get('D_fases', 1.5)
+        theta_max = self.dimensiones.get('theta_max', 0.0)
+        
+        # Calcular distancia para C1 y C3
+        dist_cable_estructuraY = s_estructura + self.lk * math.sin(math.radians(theta_max)) + self.ancho_cruceta/2
+        
+        # 1. Nodo Y1 a la mitad de h1a
+        self.nodos["Y1"] = NodoEstructural("Y1", (0.0, 0.0, h1a/2), "cruce")
+        
+        # 2. Nodos Y2 y Y4 en la cruceta (altura h1a)
+        self.nodos["Y2"] = NodoEstructural("Y2", (0.0, 0.0, h1a), "cruce")
+        self.nodos["Y4"] = NodoEstructural("Y4", (-D_fases, 0.0, h1a), "cruce")
+        
+        # 3. Nodos Y3 y Y5 (columnas laterales)
+        self.nodos["Y3"] = NodoEstructural("Y3", (D_fases, 0.0, h1a), "cruce")
+        self.nodos["Y5"] = NodoEstructural("Y5", (dist_cable_estructuraY, 0.0, h1a), "cruce")
+        
+        # 4. Nodos de conductores C1, C2, C3 (todos a altura h1a)
+        self.nodos["C1"] = NodoEstructural("C1", (dist_cable_estructuraY, 0.0, h1a), "conductor",
+                                  self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
+        self.nodos["C2"] = NodoEstructural("C2", (0.0, 0.0, h1a), "conductor",
+                                  self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
+        self.nodos["C3"] = NodoEstructural("C3", (-dist_cable_estructuraY, 0.0, h1a), "conductor",
+                                  self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
+        
+        print(f"   📍 Horizontal: C1=({dist_cable_estructuraY:.2f}, {h1a:.2f}), C2=(0, {h1a:.2f}), C3=({-dist_cable_estructuraY:.2f}, {h1a:.2f})")
+        print(f"   📍 Columnas: BASE→Y1→Y2, Y1→Y3→Y5, Y1→Y4")
     
     def _crear_nodos_guardia_nuevo(self):
         """Crea nodos para cables de guardia según nueva lógica CORREGIDO"""
@@ -804,7 +809,7 @@ class EstructuraAEA_Geometria:
             # Guardia centrado: HG1 en (0, 0, hhg), NO se crea TOP
             self.nodos["HG1"] = NodoEstructural(
                 "HG1", (0.0, 0.0, self.hhg), "guardia",
-                self.cable_guardia, self.alpha_quiebre, self.tipo_fijacion_base
+                self.cable_guardia1, self.alpha_quiebre, self.tipo_fijacion_base
             )
             crear_top = False  # No crear TOP para guardia centrado
             print(f"   🛡️  Cable guardia centrado: HG1 en (0, {self.hhg:.2f}) - SIN TOP")
@@ -816,7 +821,7 @@ class EstructuraAEA_Geometria:
             )
             self.nodos["HG1"] = NodoEstructural(
                 "HG1", (self.phg1[0], 0.0, self.phg1[1]), "guardia",
-                self.cable_guardia, self.alpha_quiebre, self.tipo_fijacion_base
+                self.cable_guardia1, self.alpha_quiebre, self.tipo_fijacion_base
             )
             print(f"   🛡️  Cable guardia no centrado: TOP en (0, {self.hhg:.2f}), HG1 en ({self.phg1[0]:.2f}, {self.phg1[1]:.2f})")
         
@@ -825,15 +830,20 @@ class EstructuraAEA_Geometria:
             self.nodos["TOP"] = NodoEstructural(
                 "TOP", (0.0, 0.0, self.hhg), "general"
             )
+            # HG1 (derecha, x+) usa cable_guardia1
             self.nodos["HG1"] = NodoEstructural(
                 "HG1", (self.phg1[0], 0.0, self.phg1[1]), "guardia",
-                self.cable_guardia, self.alpha_quiebre, self.tipo_fijacion_base
+                self.cable_guardia1, self.alpha_quiebre, self.tipo_fijacion_base
             )
+            # HG2 (izquierda, x-) usa cable_guardia2 si existe, sino cable_guardia1
+            cable_hg2 = self.cable_guardia2 if self.cable_guardia2 else self.cable_guardia1
             self.nodos["HG2"] = NodoEstructural(
                 "HG2", (self.phg2[0], 0.0, self.phg2[1]), "guardia",
-                self.cable_guardia, self.alpha_quiebre, self.tipo_fijacion_base
+                cable_hg2, self.alpha_quiebre, self.tipo_fijacion_base
             )
             print(f"   🛡️  Dos cables guardia: TOP en (0, {self.hhg:.2f}), HG1 en ({self.phg1[0]:.2f}, {self.phg1[1]:.2f}), HG2 en ({self.phg2[0]:.2f}, {self.phg2[1]:.2f})")
+            if self.cable_guardia2:
+                print(f"      - HG1: {self.cable_guardia1.nombre}, HG2: {self.cable_guardia2.nombre}")
     
     def _actualizar_nodes_key(self):
         """Actualiza el diccionario nodes_key para compatibilidad"""
@@ -1109,6 +1119,11 @@ class EstructuraAEA_Geometria:
             posiciones.append((lmen, h1a - ajuste_lk, "C1_R"))    # Más bajo
             posiciones.append((lmen2c, h1a - ajuste_lk, "C2_R"))  # Medio
             posiciones.append((lmen, h2a - ajuste_lk, "C3_R"))    # Más alto
+        
+        # Si no hay posiciones (otra configuración), salir
+        if not posiciones:
+            print(f"   ⏭️  Ajuste iterativo solo para triangular doble (actual: {self.disposicion} {self.terna})")
+            return
         
         # Identificar el conductor más alto (mayor y)
         posiciones_sorted = sorted(posiciones, key=lambda item: item[1])

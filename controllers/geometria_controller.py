@@ -70,11 +70,11 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
             from utils.plot_flechas import crear_grafico_flechas
             
             # Generar gráficos
-            fig_combinado, fig_conductor, fig_guardia = None, None, None
+            fig_combinado, fig_conductor, fig_guardia1, fig_guardia2 = None, None, None, None
             try:
-                fig_combinado, fig_conductor, fig_guardia = crear_grafico_flechas(
+                fig_combinado, fig_conductor, fig_guardia1 = crear_grafico_flechas(
                     state.calculo_mecanico.resultados_conductor,
-                    state.calculo_mecanico.resultados_guardia,
+                    state.calculo_mecanico.resultados_guardia1,
                     params["L_vano"]
                 )
             except:
@@ -85,11 +85,11 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
                 nombre_estructura,
                 estructura_actual,
                 state.calculo_mecanico.resultados_conductor,
-                state.calculo_mecanico.resultados_guardia,
+                state.calculo_mecanico.resultados_guardia1,
                 state.calculo_mecanico.df_cargas_totales,
                 fig_combinado,
                 fig_conductor,
-                fig_guardia
+                fig_guardia1
             )
             return {"exito": True, "mensaje": "Cálculo CMC completado automáticamente"}
         else:
@@ -178,7 +178,7 @@ def register_callbacks(app):
             from utils.calculo_cache import CalculoCache
             
             # Verificar si existe cálculo CMC guardado
-            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia:
+            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia1:
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                 calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
                 
@@ -186,15 +186,25 @@ def register_callbacks(app):
                     vigente, _ = CalculoCache.verificar_vigencia(calculo_cmc, estructura_actual)
                     if vigente:
                         # Cargar resultados desde cache
-                        state.calculo_mecanico.resultados_conductor = calculo_cmc.get('resultados_conductor', {})
-                        state.calculo_mecanico.resultados_guardia = calculo_cmc.get('resultados_guardia', {})
-                        if calculo_cmc.get('df_cargas_totales'):
-                            import pandas as pd
-                            state.calculo_mecanico.df_cargas_totales = pd.DataFrame(calculo_cmc['df_cargas_totales'])
+                        resultados_cond = calculo_cmc.get('resultados_conductor', {})
+                        resultados_guard = calculo_cmc.get('resultados_guardia', {})
                         
-                        # Crear objetos de cable si no existen
-                        if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
-                            state.calculo_objetos.crear_todos_objetos(estructura_actual)
+                        # Verificar que no estén vacíos
+                        if not resultados_cond or not resultados_guard:
+                            resultado_auto = ejecutar_calculo_cmc_automatico(estructura_actual, state)
+                            if not resultado_auto["exito"]:
+                                return dbc.Alert(f"Error en cálculo automático CMC: {resultado_auto['mensaje']}", color="danger")
+                        else:
+                            state.calculo_mecanico.resultados_conductor = resultados_cond
+                            state.calculo_mecanico.resultados_guardia1 = resultados_guard
+                            state.calculo_mecanico.resultados_guardia2 = calculo_cmc.get('resultados_guardia2', None)
+                            if calculo_cmc.get('df_cargas_totales'):
+                                import pandas as pd
+                                state.calculo_mecanico.df_cargas_totales = pd.DataFrame(calculo_cmc['df_cargas_totales'])
+                            
+                            # Crear objetos de cable si no existen
+                            if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
+                                state.calculo_objetos.crear_todos_objetos(estructura_actual)
                     else:
                         # Ejecutar cálculo CMC automáticamente
                         resultado_auto = ejecutar_calculo_cmc_automatico(estructura_actual, state)
@@ -210,9 +220,19 @@ def register_callbacks(app):
             if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
                 state.calculo_objetos.crear_todos_objetos(estructura_actual)
             
+            # Verificar que hay resultados válidos
+            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia1:
+                return dbc.Alert("No hay resultados de CMC. Ejecute primero el cálculo mecánico de cables.", color="warning")
+            
             # Obtener flechas máximas
             fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
-            fmax_guardia = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia.values()])
+            fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])
+            if state.calculo_mecanico.resultados_guardia2:
+                fmax_guardia2 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()])
+                fmax_guardia = max(fmax_guardia1, fmax_guardia2)
+            else:
+                fmax_guardia2 = fmax_guardia1
+                fmax_guardia = fmax_guardia1
             
             # Crear estructura de geometría
             estructura_geometria = EstructuraAEA_Geometria(
@@ -265,13 +285,19 @@ def register_callbacks(app):
             from HipotesisMaestro import hipotesis_maestro
             
             estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
+            # Asignar cable_guardia2 si existe
+            if state.calculo_objetos.cable_guardia2:
+                estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
+            
             estructura_mecanica.asignar_cargas_hipotesis(
                 state.calculo_mecanico.df_cargas_totales,
                 state.calculo_mecanico.resultados_conductor,
-                state.calculo_mecanico.resultados_guardia,
+                state.calculo_mecanico.resultados_guardia1,
                 estructura_actual.get('L_vano'),
                 hipotesis_maestro,
-                estructura_actual.get('t_hielo')
+                estructura_actual.get('t_hielo'),
+                hipotesis_a_incluir="Todas",
+                resultados_guardia2=state.calculo_mecanico.resultados_guardia2
             )
             
             estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
@@ -328,7 +354,10 @@ def register_callbacks(app):
                 a = estructura_actual.get('ALTURA_MINIMA_CABLE', 6.5)
             
             # Flechas máximas
-            flechas_txt = f"Flechas máximas: conductor={fmax_conductor:.2f}m, guardia={fmax_guardia:.2f}m"
+            if state.calculo_mecanico.resultados_guardia2:
+                flechas_txt = f"Flechas máximas: conductor={fmax_conductor:.2f}m, guardia1={fmax_guardia1:.2f}m, guardia2={fmax_guardia2:.2f}m"
+            else:
+                flechas_txt = f"Flechas máximas: conductor={fmax_conductor:.2f}m, guardia={fmax_guardia:.2f}m"
             
             # Parámetros de diseño
             params_txt = (
@@ -476,4 +505,7 @@ def register_callbacks(app):
             return html.Div(output)
             
         except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"ERROR COMPLETO:\n{error_detail}")
             return dbc.Alert(f"Error en cálculo: {str(e)}", color="danger")

@@ -163,29 +163,34 @@ class EstructuraAEA_Mecanica:
                 return tiro_trans, tiro_long, 1.0, 1.0  # bilateral: factor 1.0
     
     def asignar_cargas_hipotesis(self, df_cargas_totales, resultados_conductor, 
-                                 resultados_guardia, vano, hipotesis_maestro, 
-                                 t_hielo, hipotesis_a_incluir="Todas"):
+                                 resultados_guardia1, vano, hipotesis_maestro, 
+                                 t_hielo, hipotesis_a_incluir="Todas", resultados_guardia2=None):
         """
         Asigna cargas a todos los nodos según las hipótesis definidas
         
         Args:
             df_cargas_totales (DataFrame): DataFrame con todas las cargas
             resultados_conductor (dict): Resultados del cálculo mecánico del conductor
-            resultados_guardia (dict): Resultados del cálculo mecánico del guardia
+            resultados_guardia1 (dict): Resultados del cálculo mecánico del guardia 1
             vano (float): Longitud del vano en metros
             hipotesis_maestro (dict): Diccionario con definición de hipótesis
             t_hielo (float): Espesor de hielo en metros
             hipotesis_a_incluir (str/list): Hipótesis a procesar
+            resultados_guardia2 (dict, optional): Resultados del cálculo mecánico del guardia 2
         """
         print(f"\n🔄 ASIGNANDO CARGAS SEGÚN HIPÓTESIS...")
         
         # Pesos base
         peso_conductor_base = self.geometria.cable_conductor.peso_unitario_dan_m
-        peso_guardia_base = self.geometria.cable_guardia.peso_unitario_dan_m
+        peso_guardia1_base = self.geometria.cable_guardia1.peso_unitario_dan_m
         
         # Pesos con hielo
         peso_hielo_conductor = self.geometria.cable_conductor._calcular_peso_hielo(t_hielo)
-        peso_hielo_guardia = self.geometria.cable_guardia._calcular_peso_hielo(t_hielo)
+        peso_hielo_guardia1 = self.geometria.cable_guardia1._calcular_peso_hielo(t_hielo)
+        
+        if self.geometria.cable_guardia2:
+            peso_guardia2_base = self.geometria.cable_guardia2.peso_unitario_dan_m
+            peso_hielo_guardia2 = self.geometria.cable_guardia2._calcular_peso_hielo(t_hielo)
         
         # Nodos especiales
         NODOS_DOS_UNILATERAL = ["C3_L", "HG1"]
@@ -229,21 +234,31 @@ class EstructuraAEA_Mecanica:
                     # Calcular pesos
                     if config["peso"]["hielo"]:
                         peso_cond = (peso_conductor_base + peso_hielo_conductor) * vano * factor_peso
-                        peso_guardia = (peso_guardia_base + peso_hielo_guardia) * vano * factor_peso
+                        peso_guardia1 = (peso_guardia1_base + peso_hielo_guardia1) * vano * factor_peso
+                        if self.geometria.cable_guardia2:
+                            peso_guardia2 = (peso_guardia2_base + peso_hielo_guardia2) * vano * factor_peso
                     else:
                         peso_cond = peso_conductor_base * vano * factor_peso
-                        peso_guardia = peso_guardia_base * vano * factor_peso
+                        peso_guardia1 = peso_guardia1_base * vano * factor_peso
+                        if self.geometria.cable_guardia2:
+                            peso_guardia2 = peso_guardia2_base * vano * factor_peso
                     
                     # Obtener tiros
                     if estado_tiro == "máximo":
                         tiro_cond_base = max([d["tiro_daN"] for d in resultados_conductor.values()])
-                        tiro_guardia_base = max([d["tiro_daN"] for d in resultados_guardia.values()])
-                    elif estado_tiro in resultados_conductor and estado_tiro in resultados_guardia:
+                        tiro_guardia1_base = max([d["tiro_daN"] for d in resultados_guardia1.values()])
+                        if resultados_guardia2:
+                            tiro_guardia2_base = max([d["tiro_daN"] for d in resultados_guardia2.values()])
+                    elif estado_tiro in resultados_conductor and estado_tiro in resultados_guardia1:
                         tiro_cond_base = resultados_conductor[estado_tiro]["tiro_daN"]
-                        tiro_guardia_base = resultados_guardia[estado_tiro]["tiro_daN"]
+                        tiro_guardia1_base = resultados_guardia1[estado_tiro]["tiro_daN"]
+                        if resultados_guardia2 and estado_tiro in resultados_guardia2:
+                            tiro_guardia2_base = resultados_guardia2[estado_tiro]["tiro_daN"]
                     else:
                         tiro_cond_base = 0.0
-                        tiro_guardia_base = 0.0
+                        tiro_guardia1_base = 0.0
+                        if resultados_guardia2:
+                            tiro_guardia2_base = 0.0
                     
                     # VIENTO SOBRE ESTRUCTURA
                     if config["viento"]:
@@ -388,9 +403,20 @@ class EstructuraAEA_Mecanica:
                     
                     for nodo in nodos_guardia:
                         carga_x, carga_y, carga_z = 0.0, 0.0, 0.0
+                        
+                        # Determinar qué cable de guardia usar según el nodo
+                        if nodo == "HG1" or (nodo.startswith("HG") and self.geometria.nodes_key[nodo][0] > 0):
+                            # HG1 o nodos con x > 0 (derecha) usan guardia1
+                            tiro_guardia_base = tiro_guardia1_base
+                            peso_guardia = peso_guardia1
+                            sufijo_viento = "1"
+                        else:
+                            # HG2 o nodos con x < 0 (izquierda) usan guardia2
+                            tiro_guardia_base = tiro_guardia2_base if resultados_guardia2 else tiro_guardia1_base
+                            peso_guardia = peso_guardia2 if self.geometria.cable_guardia2 else peso_guardia1
+                            sufijo_viento = "2" if self.geometria.cable_guardia2 else "1"
 
                         if patron_tiro == "doble-terna-a-simple":
-                            # Para guardia: aplicar patrón doble-terna-a-simple
                             tiro_trans, tiro_long, factor_peso_nodo, factor_viento_nodo = self._aplicar_patron_doble_terna_a_simple(
                                 nodo, config_tiro, tiro_guardia_base, es_guardia=True
                             )
@@ -403,12 +429,10 @@ class EstructuraAEA_Mecanica:
                             )
                         elif patron_tiro == "dos-unilaterales":
                             if self.geometria.tipo_estructura == "Terminal":
-                                # Para Terminal: patrón inverso
                                 tiro_trans, tiro_long, factor_peso_nodo, factor_viento_nodo = self._aplicar_patron_dos_unilaterales_terminal(
                                     nodo, config_tiro, tiro_guardia_base, es_guardia=True
                                 )
                             else:
-                                # Comportamiento original
                                 es_unilateral = (nodo in NODOS_DOS_UNILATERAL)
                                 factor_peso_nodo = 0.5 if es_unilateral else 1.0
                                 factor_viento_nodo = 0.5 if es_unilateral else 1.0
@@ -442,16 +466,16 @@ class EstructuraAEA_Mecanica:
                             
                             if direccion_viento == "Transversal":
                                 if estado_v == "Vmax":
-                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, "Vcg")
+                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}")
                                 else:
-                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, "Vcgmed")
+                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med")
                                 carga_x += viento_guardia * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Longitudinal":
                                 if estado_v == "Vmax":
-                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, "VcgL")
+                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}L")
                                 else:
-                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, "VcgmedL")
+                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}medL")
                                 carga_y += viento_guardia * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Oblicua":
@@ -459,25 +483,35 @@ class EstructuraAEA_Mecanica:
                                 if es_unilateral:
                                     lado = 1
                                     if estado_v == "Vmax":
-                                        viento_guardia_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg_o_t_{lado}")
-                                        viento_guardia_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg_o_l_{lado}")
+                                        viento_guardia_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_t_{lado}")
+                                        viento_guardia_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_l_{lado}")
                                     else:
-                                        viento_guardia_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcgmed_o_t_{lado}")
-                                        viento_guardia_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcgmed_o_l_{lado}")
+                                        viento_guardia_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_t_{lado}")
+                                        viento_guardia_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_l_{lado}")
                                     
                                     carga_x += viento_guardia_x * factor_viento * factor_viento_nodo
                                     carga_y += viento_guardia_y * factor_viento * factor_viento_nodo
                                 else:
                                     if estado_v == "Vmax":
-                                        viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg_o_t_1") + 
-                                                          self._obtener_carga_por_codigo(df_cargas_totales, "Vcg_o_t_2"))
-                                        viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg_o_l_1") + 
-                                                          self._obtener_carga_por_codigo(df_cargas_totales, "Vcg_o_l_2"))
+                                        viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1_o_t_1") + 
+                                                          self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1_o_t_2"))
+                                        viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1_o_l_1") + 
+                                                          self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1_o_l_2"))
+                                        if self.geometria.cable_guardia2:
+                                            viento_guardia_x += (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2_o_t_1") + 
+                                                              self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2_o_t_2"))
+                                            viento_guardia_y += (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2_o_l_1") + 
+                                                              self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2_o_l_2"))
                                     else:
-                                        viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcgmed_o_t_1") + 
-                                                          self._obtener_carga_por_codigo(df_cargas_totales, "Vcgmed_o_t_2"))
-                                        viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcgmed_o_l_1") + 
-                                                          self._obtener_carga_por_codigo(df_cargas_totales, "Vcgmed_o_l_2"))
+                                        viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1med_o_t_1") + 
+                                                          self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1med_o_t_2"))
+                                        viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1med_o_l_1") + 
+                                                          self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1med_o_l_2"))
+                                        if self.geometria.cable_guardia2:
+                                            viento_guardia_x += (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2med_o_t_1") + 
+                                                              self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2med_o_t_2"))
+                                            viento_guardia_y += (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2med_o_l_1") + 
+                                                              self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2med_o_l_2"))
                                     
                                     carga_x += viento_guardia_x * factor_viento * factor_viento_nodo
                                     carga_y += viento_guardia_y * factor_viento * factor_viento_nodo

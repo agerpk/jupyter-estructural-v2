@@ -199,7 +199,7 @@ def register_callbacks(app):
             from EstructuraAEA_Geometria import EstructuraAEA_Geometria
             
             # Auto-ejecutar CMC si no existe
-            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia:
+            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia1:
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                 calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
                 
@@ -257,7 +257,7 @@ def register_callbacks(app):
                         lk=estructura_actual.get("Lk"),
                         ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
                         cable_conductor=state.calculo_objetos.cable_conductor,
-                        cable_guardia=state.calculo_objetos.cable_guardia,
+                        cable_guardia=state.calculo_objetos.cable_guardia1,
                         peso_estructura=estructura_actual.get("PESTRUCTURA"),
                         peso_cadena=estructura_actual.get("PCADENA"),
                         hg_centrado=estructura_actual.get("HG_CENTRADO"),
@@ -301,7 +301,7 @@ def register_callbacks(app):
                     estructura_mecanica.asignar_cargas_hipotesis(
                         state.calculo_mecanico.df_cargas_totales,
                         state.calculo_mecanico.resultados_conductor,
-                        state.calculo_mecanico.resultados_guardia,
+                        state.calculo_mecanico.resultados_guardia1,
                         estructura_actual.get('L_vano'),
                         hipotesis_maestro,
                         estructura_actual.get('t_hielo')
@@ -350,7 +350,7 @@ def register_callbacks(app):
                         lk=estructura_actual.get("Lk"),
                         ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
                         cable_conductor=state.calculo_objetos.cable_conductor,
-                        cable_guardia=state.calculo_objetos.cable_guardia,
+                        cable_guardia=state.calculo_objetos.cable_guardia1,
                         peso_estructura=estructura_actual.get("PESTRUCTURA"),
                         peso_cadena=estructura_actual.get("PCADENA"),
                         hg_centrado=estructura_actual.get("HG_CENTRADO"),
@@ -394,7 +394,7 @@ def register_callbacks(app):
                 estructura_mecanica.asignar_cargas_hipotesis(
                     state.calculo_mecanico.df_cargas_totales,
                     state.calculo_mecanico.resultados_conductor,
-                    state.calculo_mecanico.resultados_guardia,
+                    state.calculo_mecanico.resultados_guardia1,
                     estructura_actual.get('L_vano'),
                     hipotesis_maestro,
                     estructura_actual.get('t_hielo')

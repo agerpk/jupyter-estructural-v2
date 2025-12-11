@@ -157,7 +157,7 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual):
         
         # Crear DataFrames
         df_conductor = pd.DataFrame(resultados_conductor).T
-        df_guardia = pd.DataFrame(resultados_guardia).T
+        df_guardia1 = pd.DataFrame(resultados_guardia).T
         
         resultados_html = [
             dbc.Alert("Resultados cargados desde cálculo anterior", color="info", className="mb-3"),
@@ -166,8 +166,8 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual):
             html.H5("Conductor"),
             dbc.Table.from_dataframe(df_conductor, striped=True, bordered=True, hover=True, size="sm"),
             
-            html.H5("Cable de Guardia", className="mt-4"),
-            dbc.Table.from_dataframe(df_guardia, striped=True, bordered=True, hover=True, size="sm"),
+            html.H5("Cable de Guardia 1", className="mt-4"),
+            dbc.Table.from_dataframe(df_guardia1, striped=True, bordered=True, hover=True, size="sm"),
         ]
         
         # Cargar tabla de cargas si existe

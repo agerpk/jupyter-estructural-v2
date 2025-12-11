@@ -6,17 +6,18 @@ import plotly.graph_objects as go
 import numpy as np
 
 
-def crear_grafico_flechas(resultados_conductor, resultados_guardia, L_vano):
+def crear_grafico_flechas(resultados_conductor, resultados_guardia1, L_vano, resultados_guardia2=None):
     """
-    Crear tres gráficos de flechas para diferentes estados climáticos
+    Crear gráficos de flechas para diferentes estados climáticos
     
     Args:
         resultados_conductor: Diccionario con resultados del conductor por estado
-        resultados_guardia: Diccionario con resultados del guardia por estado
+        resultados_guardia1: Diccionario con resultados del guardia 1 por estado
         L_vano: Longitud del vano en metros
+        resultados_guardia2: Diccionario con resultados del guardia 2 por estado (opcional)
     
     Returns:
-        Tupla con tres figuras de Plotly (combinado, conductor, guardia)
+        Tupla con figuras de Plotly (combinado, conductor, guardia1, guardia2 si existe)
     """
     
     # Colores para cada estado
@@ -31,10 +32,11 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia, L_vano):
     # Generar puntos para la catenaria
     x = np.linspace(0, L_vano, 100)
     
-    # Crear tres figuras
+    # Crear figuras
     fig_combinado = go.Figure()
     fig_conductor = go.Figure()
-    fig_guardia = go.Figure()
+    fig_guardia1 = go.Figure()
+    fig_guardia2 = go.Figure() if resultados_guardia2 else None
     
     # Plotear conductor en ambos gráficos (combinado y solo conductor)
     for estado_id, resultado in resultados_conductor.items():
@@ -63,8 +65,8 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia, L_vano):
             hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
         ))
     
-    # Plotear guardia en ambos gráficos (combinado y solo guardia)
-    for estado_id, resultado in resultados_guardia.items():
+    # Plotear guardia1
+    for estado_id, resultado in resultados_guardia1.items():
         flecha = resultado["flecha_vertical_m"]
         descripcion = resultado.get("descripcion", estado_id)
         
@@ -75,13 +77,13 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia, L_vano):
             x=x,
             y=y,
             mode='lines',
-            name=f'Guardia - Estado {estado_id} ({descripcion})',
+            name=f'Guardia 1 - Estado {estado_id} ({descripcion})',
             line=dict(color=colores.get(estado_id, "#000000"), width=2, dash='dash'),
             hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
         ))
         
-        # Gráfico solo guardia
-        fig_guardia.add_trace(go.Scatter(
+        # Gráfico solo guardia1
+        fig_guardia1.add_trace(go.Scatter(
             x=x,
             y=y,
             mode='lines',
@@ -90,8 +92,40 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia, L_vano):
             hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
         ))
     
+    # Plotear guardia2 si existe
+    if resultados_guardia2:
+        for estado_id, resultado in resultados_guardia2.items():
+            flecha = resultado["flecha_vertical_m"]
+            descripcion = resultado.get("descripcion", estado_id)
+            
+            y = 4 * flecha * x * (L_vano - x) / (L_vano ** 2)
+            
+            # Gráfico combinado
+            fig_combinado.add_trace(go.Scatter(
+                x=x,
+                y=y,
+                mode='lines',
+                name=f'Guardia 2 - Estado {estado_id} ({descripcion})',
+                line=dict(color=colores.get(estado_id, "#000000"), width=2, dash='dot'),
+                hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
+            ))
+            
+            # Gráfico solo guardia2
+            fig_guardia2.add_trace(go.Scatter(
+                x=x,
+                y=y,
+                mode='lines',
+                name=f'Estado {estado_id} ({descripcion})',
+                line=dict(color=colores.get(estado_id, "#000000"), width=2),
+                hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
+            ))
+    
     # Agregar línea de apoyos a todas las figuras
-    for fig in [fig_combinado, fig_conductor, fig_guardia]:
+    figs = [fig_combinado, fig_conductor, fig_guardia1]
+    if fig_guardia2:
+        figs.append(fig_guardia2)
+    
+    for fig in figs:
         fig.add_trace(go.Scatter(
             x=[0, L_vano],
             y=[0, 0],
@@ -151,8 +185,14 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia, L_vano):
     fig_conductor.update_xaxes(**axes_config_x)
     fig_conductor.update_yaxes(**axes_config_y)
     
-    fig_guardia.update_layout(title='Flechas de Cable de Guardia por Estado Climático', **layout_config)
-    fig_guardia.update_xaxes(**axes_config_x)
-    fig_guardia.update_yaxes(**axes_config_y)
+    fig_guardia1.update_layout(title='Flechas de Cable de Guardia 1 por Estado Climático', **layout_config)
+    fig_guardia1.update_xaxes(**axes_config_x)
+    fig_guardia1.update_yaxes(**axes_config_y)
     
-    return fig_combinado, fig_conductor, fig_guardia
+    if fig_guardia2:
+        fig_guardia2.update_layout(title='Flechas de Cable de Guardia 2 por Estado Climático', **layout_config)
+        fig_guardia2.update_xaxes(**axes_config_x)
+        fig_guardia2.update_yaxes(**axes_config_y)
+        return fig_combinado, fig_conductor, fig_guardia1, fig_guardia2
+    
+    return fig_combinado, fig_conductor, fig_guardia1

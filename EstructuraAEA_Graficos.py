@@ -58,11 +58,11 @@ class EstructuraAEA_Graficos:
                 continue
                 
             # 2.1 Nodos de estructura (x=0 y no son conductores ni guardias)
-            if abs(x) < 0.001 and not nombre.startswith(('C1_', 'C2_', 'C3_', 'HG')):
+            if abs(x) < 0.001 and not nombre.startswith(('C1', 'C2', 'C3', 'HG')):
                 nodos_estructura.append((z, nombre, coordenadas))
             
-            # 2.2 Nodos de conductor
-            elif nombre.startswith(('C1_', 'C2_', 'C3_')):
+            # 2.2 Nodos de conductor (incluye C1, C2, C3 sin sufijos)
+            elif nombre.startswith(('C1', 'C2', 'C3')):
                 if z not in conductores_por_altura:
                     conductores_por_altura[z] = []
                 conductores_por_altura[z].append((x, nombre, coordenadas))
@@ -71,25 +71,53 @@ class EstructuraAEA_Graficos:
             elif nombre.startswith('HG'):
                 nodos_guardia.append((x, nombre, coordenadas))
         
-        # 3. DIBUJAR LÍNEA VERTICAL DE ESTRUCTURA
-        # Ordenar nodos de estructura por altura
-        nodos_estructura.sort(key=lambda x: x[0])
+        # 3. DIBUJAR COLUMNAS DE ESTRUCTURA
+        # Verificar si es configuración horizontal (tiene nodos Y)
+        tiene_y = any('Y' in nombre for nombre in self.geometria.nodes_key.keys())
         
-        if len(nodos_estructura) >= 2:
-            for i in range(len(nodos_estructura)-1):
-                z1, nombre1, coord1 = nodos_estructura[i]
-                z2, nombre2, coord2 = nodos_estructura[i+1]
-                plt.plot([0, 0], [z1, z2], color=self.COLORES['poste'], linewidth=4, 
-                        label='Estructura' if i == 0 else "")
+        if tiene_y:
+            # Configuración horizontal: dibujar columnas específicas
+            # BASE → Y1 → Y2
+            if 'BASE' in self.geometria.nodes_key and 'Y1' in self.geometria.nodes_key and 'Y2' in self.geometria.nodes_key:
+                base_z = self.geometria.nodes_key['BASE'][2]
+                y1_z = self.geometria.nodes_key['Y1'][2]
+                y2_z = self.geometria.nodes_key['Y2'][2]
+                plt.plot([0, 0], [base_z, y1_z], color=self.COLORES['poste'], linewidth=4, label='Estructura')
+                plt.plot([0, 0], [y1_z, y2_z], color=self.COLORES['poste'], linewidth=4)
+            
+            # Y1 → Y3 → Y5 (columna derecha)
+            if 'Y1' in self.geometria.nodes_key and 'Y3' in self.geometria.nodes_key:
+                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+                y3_x, y3_y, y3_z = self.geometria.nodes_key['Y3']
+                plt.plot([y1_x, y3_x], [y1_z, y3_z], color=self.COLORES['poste'], linewidth=4)
+                
+                if 'Y5' in self.geometria.nodes_key:
+                    y5_x, y5_y, y5_z = self.geometria.nodes_key['Y5']
+                    plt.plot([y3_x, y5_x], [y3_z, y5_z], color=self.COLORES['poste'], linewidth=4)
+            
+            # Y1 → Y4 (columna izquierda)
+            if 'Y1' in self.geometria.nodes_key and 'Y4' in self.geometria.nodes_key:
+                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+                y4_x, y4_y, y4_z = self.geometria.nodes_key['Y4']
+                plt.plot([y1_x, y4_x], [y1_z, y4_z], color=self.COLORES['poste'], linewidth=4)
+        else:
+            # Configuración estándar: línea vertical
+            nodos_estructura.sort(key=lambda x: x[0])
+            if len(nodos_estructura) >= 2:
+                for i in range(len(nodos_estructura)-1):
+                    z1, nombre1, coord1 = nodos_estructura[i]
+                    z2, nombre2, coord2 = nodos_estructura[i+1]
+                    plt.plot([0, 0], [z1, z2], color=self.COLORES['poste'], linewidth=4, 
+                            label='Estructura' if i == 0 else "")
         
         # 4. DIBUJAR MENSULAS/CRUCETAS DE CONDUCTORES
         for altura, conductores in conductores_por_altura.items():
-            # Buscar nodo CROSS correspondiente (más cercano en altura)
+            # Buscar nodo CROSS o Y correspondiente (más cercano en altura)
             cross_node = None
             min_diff = float('inf')
             
             for nombre, coordenadas in self.geometria.nodes_key.items():
-                if "CROSS" in nombre:
+                if "CROSS" in nombre or nombre.startswith('Y'):
                     x_cross, y_cross, z_cross = coordenadas
                     diff = abs(z_cross - altura)
                     if diff < min_diff:
@@ -104,24 +132,27 @@ class EstructuraAEA_Graficos:
                 conductores_x = [c[0] for c in conductores]
                 
                 # Determinar si es cruceta (conductores a ambos lados del poste)
-                hay_izq = any(x < 0 for x in conductores_x)
-                hay_der = any(x > 0 for x in conductores_x)
+                hay_izq = any(x < -0.01 for x in conductores_x)
+                hay_der = any(x > 0.01 for x in conductores_x)
+                hay_centro = any(abs(x) < 0.01 for x in conductores_x)
                 
                 if hay_izq and hay_der:
-                    # Cruceta: línea horizontal completa entre el conductor más izquierdo y el más derecho
+                    # Cruceta: línea horizontal completa
                     x_min = min(conductores_x)
                     x_max = max(conductores_x)
+                    
+                    # Dibujar cruceta a la altura de los conductores
                     plt.plot([x_min, x_max], [altura, altura], 
                             color=self.COLORES['poste'], linewidth=3, alpha=0.8,
                             label='Cruceta' if altura == min(conductores_por_altura.keys()) else "")
                     
-                    # También dibujar conexiones verticales al CROSS si no están en la misma altura
+                    # Conexiones verticales desde nodo de cruce a cruceta si difieren
                     if abs(z_cross - altura) > 0.01:
-                        for x_cond, nombre_cond, coord_cond in conductores:
-                            plt.plot([x_cond, x_cond], [z_cross, altura], 
-                                    color=self.COLORES['poste'], linewidth=2, alpha=0.6, linestyle=':')
+                        # Conectar desde el nodo de cruce hasta la cruceta en el centro
+                        plt.plot([0, 0], [z_cross, altura], 
+                                color=self.COLORES['poste'], linewidth=2, alpha=0.6, linestyle=':')
                 else:
-                    # Ménsula: cada conductor se conecta individualmente al CROSS
+                    # Ménsula: cada conductor se conecta individualmente
                     for x_cond, nombre_cond, coord_cond in conductores:
                         plt.plot([x_cross, x_cond], [z_cross, altura], 
                                 color=self.COLORES['poste'], linewidth=3, alpha=0.8,
@@ -175,16 +206,23 @@ class EstructuraAEA_Graficos:
                 continue
                 
             # Nodos de conductor
-            if nombre.startswith(('C1_', 'C2_', 'C3_')):
+            if nombre.startswith(('C1', 'C2', 'C3')):
                 plt.scatter(x, z, color=self.COLORES['conductor'], s=120, marker='o', 
                         edgecolors='white', linewidth=1.5, zorder=5,
-                        label='Amarre de Conductores' if nombre == 'C1_L' else "")
+                        label='Amarre de Conductores' if nombre in ['C1_L', 'C1'] else "")
             
             # Nodos de guardia
             elif nombre.startswith('HG'):
-                plt.scatter(x, z, color=self.COLORES['guardia'], s=120, marker='o', 
-                        edgecolors='white', linewidth=1.5, zorder=5,
-                        label='Cable guardia' if nombre == 'HG1' and 'HG1' in self.geometria.nodes_key else "")
+                # Diferenciar HG1 y HG2 visualmente
+                if nombre == 'HG1':
+                    plt.scatter(x, z, color=self.COLORES['guardia'], s=120, marker='o', 
+                            edgecolors='white', linewidth=1.5, zorder=5, label='Cable guardia 1')
+                elif nombre == 'HG2':
+                    plt.scatter(x, z, color='#228B22', s=120, marker='o', 
+                            edgecolors='white', linewidth=1.5, zorder=5, label='Cable guardia 2')
+                else:
+                    plt.scatter(x, z, color=self.COLORES['guardia'], s=120, marker='o', 
+                            edgecolors='white', linewidth=1.5, zorder=5)
             
             # Nodo base
             elif "BASE" in nombre:
@@ -344,10 +382,10 @@ class EstructuraAEA_Graficos:
             if abs(y) > 0.001:
                 continue
                 
-            if abs(x) < 0.001 and not nombre.startswith(('C1_', 'C2_', 'C3_', 'HG')):
+            if abs(x) < 0.001 and not nombre.startswith(('C1', 'C2', 'C3', 'HG')):
                 nodos_estructura.append((z, nombre, coordenadas))
             
-            elif nombre.startswith(('C1_', 'C2_', 'C3_')):
+            elif nombre.startswith(('C1', 'C2', 'C3')):
                 if z not in conductores_por_altura:
                     conductores_por_altura[z] = []
                 conductores_por_altura[z].append((x, nombre, coordenadas))
@@ -355,12 +393,38 @@ class EstructuraAEA_Graficos:
             elif nombre.startswith('HG'):
                 nodos_guardia.append((x, nombre, coordenadas))
         
-        # 2.1 DIBUJAR LÍNEA VERTICAL DEL POSTE
-        if nodos_estructura:
-            nodos_estructura.sort(key=lambda x: x[0])
-            z_min = min([n[0] for n in nodos_estructura])
-            z_max = max([n[0] for n in nodos_estructura])
-            plt.plot([0, 0], [z_min, z_max], color=self.COLORES['poste'], linewidth=4)
+        # 2.1 DIBUJAR COLUMNAS
+        tiene_y = any('Y' in nombre for nombre in self.geometria.nodes_key.keys())
+        
+        if tiene_y:
+            # Configuración horizontal
+            if 'BASE' in self.geometria.nodes_key and 'Y1' in self.geometria.nodes_key and 'Y2' in self.geometria.nodes_key:
+                base_z = self.geometria.nodes_key['BASE'][2]
+                y1_z = self.geometria.nodes_key['Y1'][2]
+                y2_z = self.geometria.nodes_key['Y2'][2]
+                plt.plot([0, 0], [base_z, y1_z], color=self.COLORES['poste'], linewidth=4)
+                plt.plot([0, 0], [y1_z, y2_z], color=self.COLORES['poste'], linewidth=4)
+            
+            if 'Y1' in self.geometria.nodes_key and 'Y3' in self.geometria.nodes_key:
+                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+                y3_x, y3_y, y3_z = self.geometria.nodes_key['Y3']
+                plt.plot([y1_x, y3_x], [y1_z, y3_z], color=self.COLORES['poste'], linewidth=4)
+                
+                if 'Y5' in self.geometria.nodes_key:
+                    y5_x, y5_y, y5_z = self.geometria.nodes_key['Y5']
+                    plt.plot([y3_x, y5_x], [y3_z, y5_z], color=self.COLORES['poste'], linewidth=4)
+            
+            if 'Y1' in self.geometria.nodes_key and 'Y4' in self.geometria.nodes_key:
+                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+                y4_x, y4_y, y4_z = self.geometria.nodes_key['Y4']
+                plt.plot([y1_x, y4_x], [y1_z, y4_z], color=self.COLORES['poste'], linewidth=4)
+        else:
+            # Configuración estándar
+            if nodos_estructura:
+                nodos_estructura.sort(key=lambda x: x[0])
+                z_min = min([n[0] for n in nodos_estructura])
+                z_max = max([n[0] for n in nodos_estructura])
+                plt.plot([0, 0], [z_min, z_max], color=self.COLORES['poste'], linewidth=4)
         
         # 2.2 DIBUJAR MENSULAS/CRUCETAS DE CONDUCTORES
         for altura, conductores in conductores_por_altura.items():
@@ -368,7 +432,7 @@ class EstructuraAEA_Graficos:
             min_diff = float('inf')
             
             for nombre, coordenadas in self.geometria.nodes_key.items():
-                if "CROSS" in nombre:
+                if "CROSS" in nombre or nombre.startswith('Y'):
                     x_cross, y_cross, z_cross = coordenadas
                     diff = abs(z_cross - altura)
                     if diff < min_diff:
@@ -380,19 +444,22 @@ class EstructuraAEA_Graficos:
                 x_cross, y_cross, z_cross = cross_coord
                 
                 conductores_x = [c[0] for c in conductores]
-                hay_izq = any(x < 0 for x in conductores_x)
-                hay_der = any(x > 0 for x in conductores_x)
+                hay_izq = any(x < -0.01 for x in conductores_x)
+                hay_der = any(x > 0.01 for x in conductores_x)
+                hay_centro = any(abs(x) < 0.01 for x in conductores_x)
                 
                 if hay_izq and hay_der:
                     x_min = min(conductores_x)
                     x_max = max(conductores_x)
+                    
+                    # Dibujar cruceta a la altura de los conductores
                     plt.plot([x_min, x_max], [altura, altura], 
                             color=self.COLORES['poste'], linewidth=3, alpha=0.8)
                     
+                    # Conexión vertical desde nodo de cruce a cruceta si difieren
                     if abs(z_cross - altura) > 0.01:
-                        for x_cond, nombre_cond, coord_cond in conductores:
-                            plt.plot([x_cond, x_cond], [z_cross, altura], 
-                                    color=self.COLORES['poste'], linewidth=2, alpha=0.6, linestyle=':')
+                        plt.plot([0, 0], [z_cross, altura], 
+                                color=self.COLORES['poste'], linewidth=2, alpha=0.6, linestyle=':')
                 else:
                     for x_cond, nombre_cond, coord_cond in conductores:
                         plt.plot([x_cross, x_cond], [z_cross, altura], 
@@ -516,17 +583,19 @@ class EstructuraAEA_Graficos:
                 continue
                 
             # Nodos de cruce - SIN ETIQUETA
-            if "CROSS" in nombre:
+            if "CROSS" in nombre or nombre.startswith('Y'):
                 plt.scatter(x, z, color=self.COLORES['poste'], s=80, marker='o', zorder=5)
             
             # Nodos de conductor - CON CÍRCULO AZUL
-            elif nombre.startswith(('C1_', 'C2_', 'C3_')):
+            elif nombre.startswith(('C1', 'C2', 'C3')):
                 plt.scatter(x, z, color=self.COLORES['conductor'], s=100, marker='o', 
                         edgecolors='white', linewidth=1.5, zorder=5)
             
             # Nodos de guardia
             elif nombre.startswith('HG'):
-                plt.scatter(x, z, color=self.COLORES['guardia'], s=100, marker='o', 
+                # Diferenciar HG1 y HG2 visualmente
+                color_hg = '#228B22' if nombre == 'HG2' else self.COLORES['guardia']
+                plt.scatter(x, z, color=color_hg, s=100, marker='o', 
                         edgecolors='white', linewidth=1.5, zorder=5)
             
             # Nodo top - SIN ETIQUETA

@@ -46,17 +46,18 @@ def register_callbacks(app):
             
             # ENCADENAMIENTO AUTOMÁTICO: CMC -> DGE -> DME
             # 1. Verificar/ejecutar CMC
-            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia:
+            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia1:
                 calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
                 if calculo_cmc:
                     vigente, _ = CalculoCache.verificar_vigencia(calculo_cmc, estructura_actual)
                     if vigente:
                         import pandas as pd
                         state.calculo_mecanico.resultados_conductor = calculo_cmc.get('resultados_conductor', {})
-                        state.calculo_mecanico.resultados_guardia = calculo_cmc.get('resultados_guardia', {})
+                        state.calculo_mecanico.resultados_guardia1 = calculo_cmc.get('resultados_guardia', {})
+                        state.calculo_mecanico.resultados_guardia2 = calculo_cmc.get('resultados_guardia2', None)
                         if calculo_cmc.get('df_cargas_totales'):
                             state.calculo_mecanico.df_cargas_totales = pd.DataFrame(calculo_cmc['df_cargas_totales'])
-                        if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
+                        if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia1:
                             state.calculo_objetos.crear_todos_objetos(estructura_actual)
                     else:
                         resultado_auto = ejecutar_calculo_cmc_automatico(estructura_actual, state)
@@ -76,11 +77,13 @@ def register_callbacks(app):
                         calculo_dge = None
                 
                 if not calculo_dge:
-                    if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
+                    if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia1:
                         state.calculo_objetos.crear_todos_objetos(estructura_actual)
                     
                     fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
-                    fmax_guardia = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia.values()])
+                    fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])
+                    fmax_guardia2 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()]) if state.calculo_mecanico.resultados_guardia2 else fmax_guardia1
+                    fmax_guardia = max(fmax_guardia1, fmax_guardia2)
                     
                     estructura_geometria = EstructuraAEA_Geometria(
                         tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
@@ -98,7 +101,7 @@ def register_callbacks(app):
                         lk=estructura_actual.get("Lk"),
                         ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
                         cable_conductor=state.calculo_objetos.cable_conductor,
-                        cable_guardia=state.calculo_objetos.cable_guardia,
+                        cable_guardia=state.calculo_objetos.cable_guardia1,
                         peso_estructura=estructura_actual.get("PESTRUCTURA"),
                         peso_cadena=estructura_actual.get("PCADENA"),
                         hg_centrado=estructura_actual.get("HG_CENTRADO"),
@@ -122,11 +125,13 @@ def register_callbacks(app):
                     state.calculo_objetos.estructura_geometria = estructura_geometria
                 else:
                     # Cargar desde cache y reconstruir geometría
-                    if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
+                    if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia1:
                         state.calculo_objetos.crear_todos_objetos(estructura_actual)
                     
                     fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
-                    fmax_guardia = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia.values()])
+                    fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])
+                    fmax_guardia2 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()]) if state.calculo_mecanico.resultados_guardia2 else fmax_guardia1
+                    fmax_guardia = max(fmax_guardia1, fmax_guardia2)
                     
                     estructura_geometria = EstructuraAEA_Geometria(
                         tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
@@ -144,7 +149,7 @@ def register_callbacks(app):
                         lk=estructura_actual.get("Lk"),
                         ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
                         cable_conductor=state.calculo_objetos.cable_conductor,
-                        cable_guardia=state.calculo_objetos.cable_guardia,
+                        cable_guardia=state.calculo_objetos.cable_guardia1,
                         peso_estructura=estructura_actual.get("PESTRUCTURA"),
                         peso_cadena=estructura_actual.get("PCADENA"),
                         hg_centrado=estructura_actual.get("HG_CENTRADO"),
@@ -170,13 +175,17 @@ def register_callbacks(app):
             # 3. Verificar/ejecutar DME
             if not state.calculo_objetos.estructura_mecanica:
                 estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
+                if state.calculo_objetos.cable_guardia2:
+                    state.calculo_objetos.estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
                 estructura_mecanica.asignar_cargas_hipotesis(
                     state.calculo_mecanico.df_cargas_totales,
                     state.calculo_mecanico.resultados_conductor,
-                    state.calculo_mecanico.resultados_guardia,
+                    state.calculo_mecanico.resultados_guardia1,
                     estructura_actual.get('L_vano'),
                     hipotesis_maestro,
-                    estructura_actual.get('t_hielo')
+                    estructura_actual.get('t_hielo'),
+                    hipotesis_a_incluir="Todas",
+                    resultados_guardia2=state.calculo_mecanico.resultados_guardia2
                 )
                 
                 nodes_key = state.calculo_objetos.estructura_geometria.nodes_key
