@@ -20,7 +20,32 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia1, L_vano, res
         Tupla con figuras de Plotly (combinado, conductor, guardia1, guardia2 si existe)
     """
     
-    # Colores para cada estado
+    # Colores por tipo de cable y estado
+    colores_conductor = {
+        "I": "#DC143C",    # Rojo oscuro - Tmáx
+        "II": "#FF6347",   # Rojo tomate - Tmín
+        "III": "#B22222",  # Rojo ladrillo - Vmáx
+        "IV": "#CD5C5C",   # Rojo indio - Vmed
+        "V": "#F08080"     # Rojo claro - TMA
+    }
+    
+    colores_guardia1 = {
+        "I": "#191970",    # Azul medianoche - Tmáx
+        "II": "#4169E1",   # Azul real - Tmín
+        "III": "#0000CD",  # Azul medio - Vmáx
+        "IV": "#6495ED",   # Azul aciano - Vmed
+        "V": "#87CEEB"     # Azul cielo - TMA
+    }
+    
+    colores_guardia2 = {
+        "I": "#006400",    # Verde oscuro - Tmáx
+        "II": "#228B22",   # Verde bosque - Tmín
+        "III": "#32CD32",  # Verde lima - Vmáx
+        "IV": "#90EE90",   # Verde claro - Vmed
+        "V": "#98FB98"     # Verde pálido - TMA
+    }
+    
+    # Colores genéricos para gráficos individuales
     colores = {
         "I": "#FF6B6B",    # Rojo - Tmáx
         "II": "#4ECDC4",   # Turquesa - Tmín
@@ -51,7 +76,7 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia1, L_vano, res
             y=y,  # Positivo para que vaya hacia abajo
             mode='lines',
             name=f'Conductor - Estado {estado_id} ({descripcion})',
-            line=dict(color=colores.get(estado_id, "#000000"), width=2),
+            line=dict(color=colores_conductor.get(estado_id, "#DC143C"), width=2),
             hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
         ))
         
@@ -78,7 +103,7 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia1, L_vano, res
             y=y,
             mode='lines',
             name=f'Guardia 1 - Estado {estado_id} ({descripcion})',
-            line=dict(color=colores.get(estado_id, "#000000"), width=2, dash='dash'),
+            line=dict(color=colores_guardia1.get(estado_id, "#191970"), width=2, dash='dash'),
             hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
         ))
         
@@ -106,7 +131,7 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia1, L_vano, res
                 y=y,
                 mode='lines',
                 name=f'Guardia 2 - Estado {estado_id} ({descripcion})',
-                line=dict(color=colores.get(estado_id, "#000000"), width=2, dash='dot'),
+                line=dict(color=colores_guardia2.get(estado_id, "#006400"), width=2, dash='dot'),
                 hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
             ))
             

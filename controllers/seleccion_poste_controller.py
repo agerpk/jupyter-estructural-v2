@@ -98,13 +98,18 @@ def register_callbacks(app):
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
             
             # PASO 1: Auto-ejecutar CMC si no existe
-            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia:
+            tiene_guardia1 = bool(state.calculo_mecanico.resultados_guardia1)
+            tiene_guardia2 = bool(getattr(state.calculo_mecanico, 'resultados_guardia2', None))
+            
+            if not state.calculo_mecanico.resultados_conductor or not tiene_guardia1:
                 calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
                 if calculo_cmc:
                     vigente, _ = CalculoCache.verificar_vigencia(calculo_cmc, estructura_actual)
                     if vigente:
                         state.calculo_mecanico.resultados_conductor = calculo_cmc.get('resultados_conductor', {})
-                        state.calculo_mecanico.resultados_guardia = calculo_cmc.get('resultados_guardia', {})
+                        state.calculo_mecanico.resultados_guardia1 = calculo_cmc.get('resultados_guardia1', {})
+                        if calculo_cmc.get('resultados_guardia2'):
+                            state.calculo_mecanico.resultados_guardia2 = calculo_cmc.get('resultados_guardia2', {})
                         if calculo_cmc.get('df_cargas_totales'):
                             state.calculo_mecanico.df_cargas_totales = pd.DataFrame(calculo_cmc['df_cargas_totales'])
                         if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
@@ -124,7 +129,10 @@ def register_callbacks(app):
                     state.calculo_objetos.crear_todos_objetos(estructura_actual)
                 
                 fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
-                fmax_guardia = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia.values()])
+                flechas_guardia = [r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()]
+                if hasattr(state.calculo_mecanico, 'resultados_guardia2') and state.calculo_mecanico.resultados_guardia2:
+                    flechas_guardia.extend([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()])
+                fmax_guardia = max(flechas_guardia) if flechas_guardia else 0.0
                 
                 estructura_geometria = EstructuraAEA_Geometria(
                     tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
@@ -168,10 +176,15 @@ def register_callbacks(app):
             # PASO 3: Auto-ejecutar DME si no existe
             if not state.calculo_objetos.estructura_mecanica:
                 estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
+                # Combinar resultados de guardia para compatibilidad
+                resultados_guardia_combinados = state.calculo_mecanico.resultados_guardia1.copy()
+                if hasattr(state.calculo_mecanico, 'resultados_guardia2') and state.calculo_mecanico.resultados_guardia2:
+                    resultados_guardia_combinados.update(state.calculo_mecanico.resultados_guardia2)
+                
                 estructura_mecanica.asignar_cargas_hipotesis(
                     state.calculo_mecanico.df_cargas_totales,
                     state.calculo_mecanico.resultados_conductor,
-                    state.calculo_mecanico.resultados_guardia,
+                    resultados_guardia_combinados,
                     estructura_actual.get('L_vano'),
                     hipotesis_maestro,
                     estructura_actual.get('t_hielo')
@@ -220,11 +233,17 @@ def register_callbacks(app):
             desarrollo_texto = buffer.getvalue()
             sys.stdout = old_stdout
             
-            # Preparar datos para guardar
+            # Preparar datos para guardar (remover objetos no serializables)
+            resultados_serializables = resultados.copy()
+            if 'geometria' in resultados_serializables:
+                del resultados_serializables['geometria']
+            if 'mecanica' in resultados_serializables:
+                del resultados_serializables['mecanica']
+            
             calculo_sph = {
                 'parametros': params_temp,
                 'hash_parametros': hashlib.md5(json.dumps(params_temp, sort_keys=True).encode()).hexdigest(),
-                'resultados': resultados,
+                'resultados': resultados_serializables,
                 'desarrollo_texto': desarrollo_texto
             }
             

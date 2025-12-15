@@ -503,14 +503,32 @@ class Estructura_AEA:
     
     def _crear_nodos_conductor_simple_horizontal(self, altura, lmen):
         """Crea nodos para terna simple disposición horizontal"""
-        self.nodos["C1_L"] = NodoEstructural(
-            "C1_L", (-lmen, 0.0, altura), "conductor", 
-            self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base
-        )
-        self.nodos["C1_R"] = NodoEstructural(
-            "C1_R", (lmen, 0.0, altura), "conductor",
-            self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base
-        )
+        h1a = altura
+        s_estructura = self.dimensiones.get('s_estructura', 0.5)
+        D_fases = self.dimensiones.get('D_fases', 1.5)
+        theta_max = self.dimensiones.get('theta_max', 0.0)
+        print(f"   🔍 DEBUG horizontal: s_estructura={s_estructura}, D_fases={D_fases}, theta_max={theta_max}, Lk={self.lk}")
+        
+        # Calcular distancias
+        dist_columna_x = max(self.lk * math.sin(math.radians(theta_max)) + s_estructura, D_fases / 2)
+        dist_conductor_final = max(D_fases, dist_columna_x + self.lk * math.sin(math.radians(theta_max)) + s_estructura + self.ancho_cruceta/2)
+        print(f"   🔍 DEBUG: dist_columna_x={dist_columna_x:.3f}, dist_conductor_final={dist_conductor_final:.3f}")
+        
+        # Nodos estructurales Y#
+        altura_y1 = h1a - 2*self.lk - s_estructura
+        self.nodos["Y1"] = NodoEstructural("Y1", (0.0, 0.0, altura_y1), "general")
+        self.nodos["Y2"] = NodoEstructural("Y2", (dist_columna_x, 0.0, h1a - self.lk), "general")
+        self.nodos["Y3"] = NodoEstructural("Y3", (-dist_columna_x, 0.0, h1a - self.lk), "general")
+        self.nodos["Y4"] = NodoEstructural("Y4", (dist_columna_x, 0.0, h1a), "general")
+        self.nodos["Y5"] = NodoEstructural("Y5", (-dist_columna_x, 0.0, h1a), "general")
+        
+        # Nodos de conductores C1, C2, C3
+        self.nodos["C1"] = NodoEstructural("C1", (dist_conductor_final, 0.0, h1a), "conductor",
+                                  self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
+        self.nodos["C2"] = NodoEstructural("C2", (0.0, 0.0, h1a), "conductor",
+                                  self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
+        self.nodos["C3"] = NodoEstructural("C3", (-dist_conductor_final, 0.0, h1a), "conductor",
+                                  self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
     
     def _crear_nodos_conductor_simple_triangular(self, h1a, h2a, lmen):
         """Crea nodos para terna simple disposición triangular"""

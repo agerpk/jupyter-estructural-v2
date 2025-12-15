@@ -44,7 +44,7 @@
   "ALTURA_MINIMA_CABLE": 6.5,
   "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
   "LONGITUD_MENSULA_MINIMA_GUARDIA": 0.2,
-  "HADD": 0.4,
+  "HADD": 1.1,
   "HADD_ENTRE_AMARRES": 0.2,
   "HADD_HG": 1.5,
   "HADD_LMEN": 0.5,
@@ -63,5 +63,6 @@
   "Vn": 220,
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-09T11:32:02.459479"
+  "fecha_modificacion": "2025-12-15T09:12:27.030526",
+  "cable_guardia2_id": "Ac 70"
 }

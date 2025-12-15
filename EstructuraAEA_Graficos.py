@@ -76,16 +76,24 @@ class EstructuraAEA_Graficos:
         tiene_y = any('Y' in nombre for nombre in self.geometria.nodes_key.keys())
         
         if tiene_y:
-            # Configuración horizontal: dibujar columnas específicas
-            # BASE → Y1 → Y2
-            if 'BASE' in self.geometria.nodes_key and 'Y1' in self.geometria.nodes_key and 'Y2' in self.geometria.nodes_key:
-                base_z = self.geometria.nodes_key['BASE'][2]
-                y1_z = self.geometria.nodes_key['Y1'][2]
-                y2_z = self.geometria.nodes_key['Y2'][2]
-                plt.plot([0, 0], [base_z, y1_z], color=self.COLORES['poste'], linewidth=4, label='Estructura')
-                plt.plot([0, 0], [y1_z, y2_z], color=self.COLORES['poste'], linewidth=4)
+            # Configuración horizontal: BASE-Y1, Y1-Y2-Y4, Y1-Y3-Y5, HG1-Y4, HG2-Y5
+            # BASE → Y1
+            if 'BASE' in self.geometria.nodes_key and 'Y1' in self.geometria.nodes_key:
+                base_x, base_y, base_z = self.geometria.nodes_key['BASE']
+                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+                plt.plot([base_x, y1_x], [base_z, y1_z], color=self.COLORES['poste'], linewidth=4, label='Estructura')
             
-            # Y1 → Y3 → Y5 (columna derecha)
+            # Y1 → Y2 → Y4 (columna derecha)
+            if 'Y1' in self.geometria.nodes_key and 'Y2' in self.geometria.nodes_key:
+                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+                y2_x, y2_y, y2_z = self.geometria.nodes_key['Y2']
+                plt.plot([y1_x, y2_x], [y1_z, y2_z], color=self.COLORES['poste'], linewidth=4)
+                
+                if 'Y4' in self.geometria.nodes_key:
+                    y4_x, y4_y, y4_z = self.geometria.nodes_key['Y4']
+                    plt.plot([y2_x, y4_x], [y2_z, y4_z], color=self.COLORES['poste'], linewidth=4)
+            
+            # Y1 → Y3 → Y5 (columna izquierda)
             if 'Y1' in self.geometria.nodes_key and 'Y3' in self.geometria.nodes_key:
                 y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
                 y3_x, y3_y, y3_z = self.geometria.nodes_key['Y3']
@@ -95,11 +103,17 @@ class EstructuraAEA_Graficos:
                     y5_x, y5_y, y5_z = self.geometria.nodes_key['Y5']
                     plt.plot([y3_x, y5_x], [y3_z, y5_z], color=self.COLORES['poste'], linewidth=4)
             
-            # Y1 → Y4 (columna izquierda)
-            if 'Y1' in self.geometria.nodes_key and 'Y4' in self.geometria.nodes_key:
-                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+            # HG1 → Y4 (columna a guardia derecha)
+            if 'HG1' in self.geometria.nodes_key and 'Y4' in self.geometria.nodes_key:
+                hg1_x, hg1_y, hg1_z = self.geometria.nodes_key['HG1']
                 y4_x, y4_y, y4_z = self.geometria.nodes_key['Y4']
-                plt.plot([y1_x, y4_x], [y1_z, y4_z], color=self.COLORES['poste'], linewidth=4)
+                plt.plot([y4_x, hg1_x], [y4_z, hg1_z], color=self.COLORES['poste'], linewidth=4)
+            
+            # HG2 → Y5 (columna a guardia izquierda)
+            if 'HG2' in self.geometria.nodes_key and 'Y5' in self.geometria.nodes_key:
+                hg2_x, hg2_y, hg2_z = self.geometria.nodes_key['HG2']
+                y5_x, y5_y, y5_z = self.geometria.nodes_key['Y5']
+                plt.plot([y5_x, hg2_x], [y5_z, hg2_z], color=self.COLORES['poste'], linewidth=4)
         else:
             # Configuración estándar: línea vertical
             nodos_estructura.sort(key=lambda x: x[0])
@@ -158,45 +172,46 @@ class EstructuraAEA_Graficos:
                                 color=self.COLORES['poste'], linewidth=3, alpha=0.8,
                                 label='Ménsula' if altura == min(conductores_por_altura.keys()) else "")
         
-        # 5. DIBUJAR MENSULAS/CRUCETAS DE GUARDIAS
-        # Verificar si existe TOP
-        if "TOP" in self.geometria.nodes_key:
-            x_top, y_top, z_top = self.geometria.nodes_key["TOP"]
-            
-            if nodos_guardia:
-                # Determinar si es cruceta o ménsula de guardia
-                guardias_x = [g[0] for g in nodos_guardia]
-                hay_izq = any(x < 0 for x in guardias_x)
-                hay_der = any(x > 0 for x in guardias_x)
+        # 5. DIBUJAR MENSULAS/CRUCETAS DE GUARDIAS (solo si no es horizontal)
+        if not tiene_y:
+            # Verificar si existe TOP
+            if "TOP" in self.geometria.nodes_key:
+                x_top, y_top, z_top = self.geometria.nodes_key["TOP"]
                 
-                if hay_izq and hay_der:
-                    # Cruceta guardia: línea horizontal completa
-                    x_min = min(guardias_x)
-                    x_max = max(guardias_x)
-                    plt.plot([x_min, x_max], [z_top, z_top], 
-                            color=self.COLORES['poste'], linewidth=3, alpha=0.8,
-                            label='Cruceta guardia')
+                if nodos_guardia:
+                    # Determinar si es cruceta o ménsula de guardia
+                    guardias_x = [g[0] for g in nodos_guardia]
+                    hay_izq = any(x < 0 for x in guardias_x)
+                    hay_der = any(x > 0 for x in guardias_x)
                     
-                    # Conexiones verticales a TOP
-                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
-                        z_hg = coord_hg[2]
-                        if abs(z_hg - z_top) > 0.01:
-                            plt.plot([x_hg, x_hg], [z_top, z_hg], 
-                                    color=self.COLORES['poste'], linewidth=2, alpha=0.6, linestyle=':')
-                else:
-                    # Ménsula guardia: cada guardia se conecta individualmente
-                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
-                        z_hg = coord_hg[2]
-                        plt.plot([x_top, x_hg], [z_top, z_hg], 
+                    if hay_izq and hay_der:
+                        # Cruceta guardia: línea horizontal completa
+                        x_min = min(guardias_x)
+                        x_max = max(guardias_x)
+                        plt.plot([x_min, x_max], [z_top, z_top], 
                                 color=self.COLORES['poste'], linewidth=3, alpha=0.8,
-                                label='Ménsula guardia' if x_hg == nodos_guardia[0][0] else "")
-        else:
-            # No hay TOP (guardia centrado o no hay guardias)
-            if nodos_guardia:
-                # Verificar si hay guardia centrado
-                for x_hg, nombre_hg, coord_hg in nodos_guardia:
-                    if abs(x_hg) < 0.001:
-                        print(f"   ℹ️  Guardia centrado en (0, {coord_hg[2]:.2f}) - sin línea horizontal")
+                                label='Cruceta guardia')
+                        
+                        # Conexiones verticales a TOP
+                        for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                            z_hg = coord_hg[2]
+                            if abs(z_hg - z_top) > 0.01:
+                                plt.plot([x_hg, x_hg], [z_top, z_hg], 
+                                        color=self.COLORES['poste'], linewidth=2, alpha=0.6, linestyle=':')
+                    else:
+                        # Ménsula guardia: cada guardia se conecta individualmente
+                        for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                            z_hg = coord_hg[2]
+                            plt.plot([x_top, x_hg], [z_top, z_hg], 
+                                    color=self.COLORES['poste'], linewidth=3, alpha=0.8,
+                                    label='Ménsula guardia' if x_hg == nodos_guardia[0][0] else "")
+            else:
+                # No hay TOP (guardia centrado o no hay guardias)
+                if nodos_guardia:
+                    # Verificar si hay guardia centrado
+                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                        if abs(x_hg) < 0.001:
+                            print(f"   ℹ️  Guardia centrado en (0, {coord_hg[2]:.2f}) - sin línea horizontal")
         
         # 6. DIBUJAR PUNTOS DE NODOS
         for nombre, coordenadas in self.geometria.nodes_key.items():
@@ -397,14 +412,24 @@ class EstructuraAEA_Graficos:
         tiene_y = any('Y' in nombre for nombre in self.geometria.nodes_key.keys())
         
         if tiene_y:
-            # Configuración horizontal
-            if 'BASE' in self.geometria.nodes_key and 'Y1' in self.geometria.nodes_key and 'Y2' in self.geometria.nodes_key:
-                base_z = self.geometria.nodes_key['BASE'][2]
-                y1_z = self.geometria.nodes_key['Y1'][2]
-                y2_z = self.geometria.nodes_key['Y2'][2]
-                plt.plot([0, 0], [base_z, y1_z], color=self.COLORES['poste'], linewidth=4)
-                plt.plot([0, 0], [y1_z, y2_z], color=self.COLORES['poste'], linewidth=4)
+            # Configuración horizontal: BASE-Y1, Y1-Y2-Y4, Y1-Y3-Y5, HG1-Y4, HG2-Y5
+            # BASE → Y1
+            if 'BASE' in self.geometria.nodes_key and 'Y1' in self.geometria.nodes_key:
+                base_x, base_y, base_z = self.geometria.nodes_key['BASE']
+                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+                plt.plot([base_x, y1_x], [base_z, y1_z], color=self.COLORES['poste'], linewidth=4)
             
+            # Y1 → Y2 → Y4
+            if 'Y1' in self.geometria.nodes_key and 'Y2' in self.geometria.nodes_key:
+                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+                y2_x, y2_y, y2_z = self.geometria.nodes_key['Y2']
+                plt.plot([y1_x, y2_x], [y1_z, y2_z], color=self.COLORES['poste'], linewidth=4)
+                
+                if 'Y4' in self.geometria.nodes_key:
+                    y4_x, y4_y, y4_z = self.geometria.nodes_key['Y4']
+                    plt.plot([y2_x, y4_x], [y2_z, y4_z], color=self.COLORES['poste'], linewidth=4)
+            
+            # Y1 → Y3 → Y5
             if 'Y1' in self.geometria.nodes_key and 'Y3' in self.geometria.nodes_key:
                 y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
                 y3_x, y3_y, y3_z = self.geometria.nodes_key['Y3']
@@ -414,10 +439,17 @@ class EstructuraAEA_Graficos:
                     y5_x, y5_y, y5_z = self.geometria.nodes_key['Y5']
                     plt.plot([y3_x, y5_x], [y3_z, y5_z], color=self.COLORES['poste'], linewidth=4)
             
-            if 'Y1' in self.geometria.nodes_key and 'Y4' in self.geometria.nodes_key:
-                y1_x, y1_y, y1_z = self.geometria.nodes_key['Y1']
+            # HG1 → Y4
+            if 'HG1' in self.geometria.nodes_key and 'Y4' in self.geometria.nodes_key:
+                hg1_x, hg1_y, hg1_z = self.geometria.nodes_key['HG1']
                 y4_x, y4_y, y4_z = self.geometria.nodes_key['Y4']
-                plt.plot([y1_x, y4_x], [y1_z, y4_z], color=self.COLORES['poste'], linewidth=4)
+                plt.plot([y4_x, hg1_x], [y4_z, hg1_z], color=self.COLORES['poste'], linewidth=4)
+            
+            # HG2 → Y5
+            if 'HG2' in self.geometria.nodes_key and 'Y5' in self.geometria.nodes_key:
+                hg2_x, hg2_y, hg2_z = self.geometria.nodes_key['HG2']
+                y5_x, y5_y, y5_z = self.geometria.nodes_key['Y5']
+                plt.plot([y5_x, hg2_x], [y5_z, hg2_z], color=self.COLORES['poste'], linewidth=4)
         else:
             # Configuración estándar
             if nodos_estructura:
@@ -465,31 +497,32 @@ class EstructuraAEA_Graficos:
                         plt.plot([x_cross, x_cond], [z_cross, altura], 
                                 color=self.COLORES['poste'], linewidth=3, alpha=0.8)
         
-        # 2.3 DIBUJAR MENSULAS/CRUCETAS DE GUARDIAS
-        if "TOP" in self.geometria.nodes_key:
-            x_top, y_top, z_top = self.geometria.nodes_key["TOP"]
-            
-            if nodos_guardia:
-                guardias_x = [g[0] for g in nodos_guardia]
-                hay_izq = any(x < 0 for x in guardias_x)
-                hay_der = any(x > 0 for x in guardias_x)
+        # 2.3 DIBUJAR MENSULAS/CRUCETAS DE GUARDIAS (solo si no es horizontal)
+        if not tiene_y:
+            if "TOP" in self.geometria.nodes_key:
+                x_top, y_top, z_top = self.geometria.nodes_key["TOP"]
                 
-                if hay_izq and hay_der:
-                    x_min = min(guardias_x)
-                    x_max = max(guardias_x)
-                    plt.plot([x_min, x_max], [z_top, z_top], 
-                            color=self.COLORES['poste'], linewidth=3, alpha=0.8)
+                if nodos_guardia:
+                    guardias_x = [g[0] for g in nodos_guardia]
+                    hay_izq = any(x < 0 for x in guardias_x)
+                    hay_der = any(x > 0 for x in guardias_x)
                     
-                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
-                        z_hg = coord_hg[2]
-                        if abs(z_hg - z_top) > 0.01:
-                            plt.plot([x_hg, x_hg], [z_top, z_hg], 
-                                    color=self.COLORES['poste'], linewidth=2, alpha=0.6, linestyle=':')
-                else:
-                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
-                        z_hg = coord_hg[2]
-                        plt.plot([x_top, x_hg], [z_top, z_hg], 
+                    if hay_izq and hay_der:
+                        x_min = min(guardias_x)
+                        x_max = max(guardias_x)
+                        plt.plot([x_min, x_max], [z_top, z_top], 
                                 color=self.COLORES['poste'], linewidth=3, alpha=0.8)
+                        
+                        for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                            z_hg = coord_hg[2]
+                            if abs(z_hg - z_top) > 0.01:
+                                plt.plot([x_hg, x_hg], [z_top, z_hg], 
+                                        color=self.COLORES['poste'], linewidth=2, alpha=0.6, linestyle=':')
+                    else:
+                        for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                            z_hg = coord_hg[2]
+                            plt.plot([x_top, x_hg], [z_top, z_hg], 
+                                    color=self.COLORES['poste'], linewidth=3, alpha=0.8)
         
         # 3. APANTALLAMIENTO
         if nodos_guardia:

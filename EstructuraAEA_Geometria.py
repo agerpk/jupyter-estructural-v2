@@ -422,21 +422,33 @@ class EstructuraAEA_Geometria:
         
         return lmen
     
-    def _calcular_posicion_conductor_mas_alto(self, h1a, h2a, h3a, lmen):
+    def _calcular_posicion_conductor_mas_alto(self, h1a, h2a, h3a, lmen, s_estructura=None, D_fases=None, theta_max=None):
         """Calcula la posición del conductor más alto (pcma)"""
         # Determinar altura según disposición
         if self.disposicion == "vertical" and h3a > h2a:
             y = h3a - self.lk
+            x = lmen
         elif self.disposicion == "triangular" and h2a > h1a:
             y = h2a - self.lk
+            x = lmen
+        elif self.disposicion == "horizontal":
+            # Para horizontal, el conductor más alejado está en dist_conductor_final
+            y = h1a - self.lk
+            # Usar parámetros pasados o valores por defecto
+            s_estructura = s_estructura if s_estructura is not None else 0.5
+            D_fases = D_fases if D_fases is not None else 1.5
+            theta_max = theta_max if theta_max is not None else 0.0
+            dist_columna_x = max(self.lk * math.sin(math.radians(theta_max)) + s_estructura, D_fases / 2)
+            dist_conductor_final = max(D_fases, dist_columna_x + self.lk * math.sin(math.radians(theta_max)) + s_estructura + self.ancho_cruceta/2)
+            x = dist_conductor_final
         else:
             y = h1a - self.lk
+            x = lmen
         
-        x = lmen
         return (x, y)
     
     def _calcular_cable_guardia(self, pcma, D_fases, Dhg, h1a, h2a, h3a, lmen, lmen2c, 
-                            dist_reposicionar_hg=0.1, autoajustar_lmenhg=True):
+                            dist_reposicionar_hg=0.1, autoajustar_lmenhg=True, s_estructura=None, D_fases_param=None, theta_max=None):
         """Calcula las posiciones de los cables de guardia según configuración con ajustes iterativos"""
         x_pcma, y_pcma = pcma
         ang_rad = math.radians(self.ang_apantallamiento)
@@ -476,7 +488,7 @@ class EstructuraAEA_Geometria:
             if autoajustar_lmenhg:
                 pcma_conductor = (x_pcma, y_pcma - self.lk)
                 # Llamar al ajuste con la posición del CONDUCTOR
-                self._ajustar_lmenhg_iterativo(Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg)
+                self._ajustar_lmenhg_iterativo(Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg, s_estructura, D_fases_param, theta_max)
             else:
                 print(f"   ⏭️  Ajuste iterativo de lmenhg DESACTIVADO (autoajustar_lmenhg=False)")
             
@@ -500,7 +512,7 @@ class EstructuraAEA_Geometria:
             if autoajustar_lmenhg:
                 pcma_conductor = (x_pcma, y_pcma - self.lk)
                 # Llamar al ajuste con la posición del CONDUCTOR
-                self._ajustar_lmenhg_iterativo(Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg)
+                self._ajustar_lmenhg_iterativo(Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg, s_estructura, D_fases_param, theta_max)
             else:
                 print(f"   ⏭️  Ajuste iterativo de lmenhg DESACTIVADO (autoajustar_lmenhg=False)")
             
@@ -577,16 +589,16 @@ class EstructuraAEA_Geometria:
         self.lmen2c = self.lmen + D_fases if (self.disposicion == "triangular" and self.terna == "Doble") else self.lmen
         
         # 10. CALCULAR POSICIÓN CONDUCTOR MÁS ALTO
-        self.pcma = self._calcular_posicion_conductor_mas_alto(h1a, h2a, h3a, self.lmen)
+        self.pcma = self._calcular_posicion_conductor_mas_alto(h1a, h2a, h3a, self.lmen, s_estructura, D_fases, theta_max)
         
-        # 11-13. CALCULAR CABLE GUARDIA (pasando autoajustar_lmenhg)
+        # 11-13. CALCULAR CABLE GUARDIA (pasando autoajustar_lmenhg y parámetros)
         self._calcular_cable_guardia(self.pcma, D_fases, Dhg, h1a, h2a, h3a, self.lmen, self.lmen2c, 
-                                    dist_reposicionar_hg, autoajustar_lmenhg)
+                                    dist_reposicionar_hg, autoajustar_lmenhg, s_estructura, D_fases, theta_max)
         
         # 14. Verificaciones ya hechas en _calcular_cable_guardia
         
         # 15. CREAR NODOS SEGÚN CONFIGURACIÓN
-        self._crear_nodos_estructurales_nuevo(h1a, h2a, h3a)
+        self._crear_nodos_estructurales_nuevo(h1a, h2a, h3a, s_estructura, D_fases, theta_max)
         
         # GUARDAR DIMENSIONES
         self.dimensiones = {
@@ -615,7 +627,7 @@ class EstructuraAEA_Geometria:
         print(f"   - Conductor más alto: ({self.pcma[0]:.2f}, {self.pcma[1]:.2f})")
 
     
-    def _crear_nodos_estructurales_nuevo(self, h1a, h2a, h3a):
+    def _crear_nodos_estructurales_nuevo(self, h1a, h2a, h3a, s_estructura=None, D_fases=None, theta_max=None):
         """Crea todos los nodos según el proceso indicado CORREGIDO"""
         self.nodos = {}
         
@@ -639,9 +651,10 @@ class EstructuraAEA_Geometria:
             self.nodos["CROSS_H3"] = NodoEstructural("CROSS_H3", (0.0, 0.0, h3a), "cruce")
         
         # NODOS DE CONDUCTORES según configuración
+        print(f"   🔍 DEBUG: disposicion='{self.disposicion}', terna='{self.terna}'")
         if self.disposicion == "horizontal":
             print("📐 Configuración horizontal")
-            self._crear_nodos_horizontal_default(h1a)
+            self._crear_nodos_horizontal_default(h1a, s_estructura, D_fases, theta_max)
         elif self.terna == "Simple" and self.disposicion == "vertical":
             self._crear_nodos_simple_vertical(h1a, h2a, h3a)
         elif self.terna == "Simple" and self.disposicion == "triangular":
@@ -652,7 +665,7 @@ class EstructuraAEA_Geometria:
             self._crear_nodos_doble_triangular(h1a, h2a)
         else:
             print(f"⚠️  Configuración no reconocida: terna={self.terna}, disposicion={self.disposicion}")
-            self._crear_nodos_horizontal_default(h1a)
+            self._crear_nodos_horizontal_default(h1a, s_estructura, D_fases, theta_max)
         
         # NODOS DE GUARDIA (ahora se maneja en _crear_nodos_guardia_nuevo)
         self._crear_nodos_guardia_nuevo()
@@ -763,38 +776,44 @@ class EstructuraAEA_Geometria:
         
         print(f"      - Nodos creados: 6 conductores (4 en h1a, 2 en h2a)")
     
-    def _crear_nodos_horizontal_default(self, altura):
+    def _crear_nodos_horizontal_default(self, altura, s_estructura=None, D_fases=None, theta_max=None):
         """Crea nodos para configuración horizontal con nueva lógica"""
         # Obtener parámetros necesarios
         h1a = altura
-        s_estructura = self.dimensiones.get('s_estructura', 0.5)
-        D_fases = self.dimensiones.get('D_fases', 1.5)
-        theta_max = self.dimensiones.get('theta_max', 0.0)
+        s_estructura = s_estructura if s_estructura is not None else self.dimensiones.get('s_estructura', 0.5)
+        D_fases = D_fases if D_fases is not None else self.dimensiones.get('D_fases', 1.5)
+        theta_max = theta_max if theta_max is not None else self.dimensiones.get('theta_max', 0.0)
+        print(f"   🔍 DEBUG _crear_nodos_horizontal: s_estructura={s_estructura:.3f}, D_fases={D_fases:.3f}, theta_max={theta_max:.2f}, Lk={self.lk}")
         
-        # Calcular distancia para C1 y C3
-        dist_cable_estructuraY = s_estructura + self.lk * math.sin(math.radians(theta_max)) + self.ancho_cruceta/2
+        # Calcular distancias
+        dist_columna_x = max(self.lk * math.sin(math.radians(theta_max)) + s_estructura, D_fases / 2)
+        print(f"   🔍 DEBUG: Lk*sin(theta)={self.lk * math.sin(math.radians(theta_max)):.3f}, dist_columna_x={dist_columna_x:.3f}")
+        dist_conductor_x = dist_columna_x + self.lk * math.sin(math.radians(theta_max)) + s_estructura + self.ancho_cruceta/2
+        dist_conductor_final = max(D_fases, dist_conductor_x)
         
-        # 1. Nodo Y1 a la mitad de h1a
-        self.nodos["Y1"] = NodoEstructural("Y1", (0.0, 0.0, h1a/2), "cruce")
+        # 1. Nodo Y1 a altura h1a - 2*Lk - s_estructura (estructural)
+        altura_y1 = h1a - 2*self.lk - s_estructura
+        self.nodos["Y1"] = NodoEstructural("Y1", (0.0, 0.0, altura_y1), "general")
         
-        # 2. Nodos Y2 y Y4 en la cruceta (altura h1a)
-        self.nodos["Y2"] = NodoEstructural("Y2", (0.0, 0.0, h1a), "cruce")
-        self.nodos["Y4"] = NodoEstructural("Y4", (-D_fases, 0.0, h1a), "cruce")
+        # 2. Nodos Y2 y Y3 a altura h1a - Lk, defasados en x (estructurales)
+        self.nodos["Y2"] = NodoEstructural("Y2", (dist_columna_x, 0.0, h1a - self.lk), "general")
+        self.nodos["Y3"] = NodoEstructural("Y3", (-dist_columna_x, 0.0, h1a - self.lk), "general")
         
-        # 3. Nodos Y3 y Y5 (columnas laterales)
-        self.nodos["Y3"] = NodoEstructural("Y3", (D_fases, 0.0, h1a), "cruce")
-        self.nodos["Y5"] = NodoEstructural("Y5", (dist_cable_estructuraY, 0.0, h1a), "cruce")
+        # 3. Nodos Y4 y Y5 en misma posición X que Y2 y Y3, pero a altura h1a (estructurales)
+        self.nodos["Y4"] = NodoEstructural("Y4", (dist_columna_x, 0.0, h1a), "general")
+        self.nodos["Y5"] = NodoEstructural("Y5", (-dist_columna_x, 0.0, h1a), "general")
         
         # 4. Nodos de conductores C1, C2, C3 (todos a altura h1a)
-        self.nodos["C1"] = NodoEstructural("C1", (dist_cable_estructuraY, 0.0, h1a), "conductor",
+        self.nodos["C1"] = NodoEstructural("C1", (dist_conductor_final, 0.0, h1a), "conductor",
                                   self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
         self.nodos["C2"] = NodoEstructural("C2", (0.0, 0.0, h1a), "conductor",
                                   self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
-        self.nodos["C3"] = NodoEstructural("C3", (-dist_cable_estructuraY, 0.0, h1a), "conductor",
+        self.nodos["C3"] = NodoEstructural("C3", (-dist_conductor_final, 0.0, h1a), "conductor",
                                   self.cable_conductor, self.alpha_quiebre, self.tipo_fijacion_base)
         
-        print(f"   📍 Horizontal: C1=({dist_cable_estructuraY:.2f}, {h1a:.2f}), C2=(0, {h1a:.2f}), C3=({-dist_cable_estructuraY:.2f}, {h1a:.2f})")
-        print(f"   📍 Columnas: BASE→Y1→Y2, Y1→Y3→Y5, Y1→Y4")
+        print(f"   📍 Horizontal: C1=({dist_conductor_final:.2f}, {h1a:.2f}), C2=(0, {h1a:.2f}), C3=({-dist_conductor_final:.2f}, {h1a:.2f})")
+        print(f"   📍 Columnas: Y2=({dist_columna_x:.2f}, {h1a-self.lk:.2f}), Y3=({-dist_columna_x:.2f}, {h1a-self.lk:.2f})")
+        print(f"   📍 Estructura: BASE→Y1→Y2→Y4, Y1→Y3→Y5")
     
     def _crear_nodos_guardia_nuevo(self):
         """Crea nodos para cables de guardia según nueva lógica CORREGIDO"""
@@ -1097,7 +1116,7 @@ class EstructuraAEA_Geometria:
         
         print(f"✅ Resultados geométricos guardados en: {folder}")
 
-    def _ajustar_lmenhg_iterativo(self, Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg=0.1):
+    def _ajustar_lmenhg_iterativo(self, Dhg, h1a, h2a, h3a, lmen, lmen2c, dist_reposicionar_hg=0.1, s_estructura=None, D_fases=None, theta_max=None):
         """
         Ajusta lmenhg con la nueva lógica:
         1. Primero: ningún conductor descubierto (diff >= 0)
@@ -1120,9 +1139,23 @@ class EstructuraAEA_Geometria:
             posiciones.append((lmen2c, h1a - ajuste_lk, "C2_R"))  # Medio
             posiciones.append((lmen, h2a - ajuste_lk, "C3_R"))    # Más alto
         
+        # Configuración horizontal simple
+        elif self.disposicion == "horizontal" and self.terna == "Simple":
+            # Usar parámetros pasados o valores por defecto
+            s_estructura_val = s_estructura if s_estructura is not None else 0.5
+            D_fases_val = D_fases if D_fases is not None else 1.5
+            theta_max_val = theta_max if theta_max is not None else 0.0
+            dist_columna_x = max(self.lk * math.sin(math.radians(theta_max_val)) + s_estructura_val, D_fases_val / 2)
+            dist_conductor_final = max(D_fases_val, dist_columna_x + self.lk * math.sin(math.radians(theta_max_val)) + s_estructura_val + self.ancho_cruceta/2)
+            
+            print(f"   🔍 DEBUG ajuste: dist_conductor_final={dist_conductor_final:.3f}m")
+            # Solo verificar conductor del lado derecho (C1) - HG1 lo cubre
+            # HG2 cubre C3 por simetría
+            posiciones.append((dist_conductor_final, h1a - ajuste_lk, "C1"))  # Conductor derecho
+        
         # Si no hay posiciones (otra configuración), salir
         if not posiciones:
-            print(f"   ⏭️  Ajuste iterativo solo para triangular doble (actual: {self.disposicion} {self.terna})")
+            print(f"   ⏭️  Ajuste iterativo no implementado para: {self.disposicion} {self.terna}")
             return
         
         # Identificar el conductor más alto (mayor y)
@@ -1140,7 +1173,16 @@ class EstructuraAEA_Geometria:
         
         # 4. Función para calcular diff de un conductor
         def calcular_diff(x_hg_val, x_c, y_c):
-            return y_hg + pendiente * (x_c - x_hg_val) - y_c
+            # Para horizontal: el guardia debe estar más afuera (x_hg >= x_c)
+            if self.disposicion == "horizontal":
+                # Si x_hg < x_c, el conductor no está cubierto
+                if x_hg_val < x_c:
+                    return -1.0  # Negativo = descubierto
+                # Si x_hg >= x_c, calcular distancia vertical de cobertura
+                return y_hg + pendiente * (x_c - x_hg_val) - y_c
+            else:
+                # Lógica original para triangular
+                return y_hg + pendiente * (x_c - x_hg_val) - y_c
         
         # 5. Verificar condición inicial
         todos_cubiertos = True

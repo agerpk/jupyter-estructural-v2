@@ -13,6 +13,7 @@ class CalculoObjetosAEA:
         self.lib_cables = None
         self.cable_conductor = None
         self.cable_guardia = None
+        self.cable_guardia1 = None
         self.cable_guardia2 = None
         self.cadena = None
         self.estructura = None
@@ -66,13 +67,15 @@ class CalculoObjetosAEA:
             )
             self.lib_cables.agregar_cable(self.cable_conductor)
             
-            self.cable_guardia = Cable_AEA(
+            # Cable guardia 1 (derecha, HG1)
+            self.cable_guardia1 = Cable_AEA(
                 id_cable=cable_guardia_id,
                 nombre=cable_guardia_id,
                 propiedades=self.DATOS_CABLES[cable_guardia_id],
                 viento_base_params=viento_base_params_guardia
             )
-            self.lib_cables.agregar_cable(self.cable_guardia)
+            self.lib_cables.agregar_cable(self.cable_guardia1)
+            self.cable_guardia = self.cable_guardia1  # Compatibilidad
             
             # Si hay 2 cables de guardia y se especifica el segundo
             if cant_hg == 2 and cable_guardia2_id:
@@ -88,15 +91,17 @@ class CalculoObjetosAEA:
                     "exito": True,
                     "mensaje": f"Cables creados exitosamente",
                     "conductor": self.cable_conductor.nombre,
-                    "guardia": self.cable_guardia.nombre,
+                    "guardia1": self.cable_guardia1.nombre,
                     "guardia2": self.cable_guardia2.nombre
                 }
             else:
+                # Si solo hay 1 cable de guardia, usar el mismo para ambos
+                self.cable_guardia2 = self.cable_guardia1
                 return {
                     "exito": True,
                     "mensaje": f"Cables creados exitosamente",
                     "conductor": self.cable_conductor.nombre,
-                    "guardia": self.cable_guardia.nombre
+                    "guardia1": self.cable_guardia1.nombre
                 }
             
         except Exception as e:
@@ -160,7 +165,7 @@ class CalculoObjetosAEA:
         resultados.append(resultado_estructura)
         
         if all(r["exito"] for r in resultados):
-            cables_msg = f"{resultado_cables['conductor']}, {resultado_cables['guardia']}"
+            cables_msg = f"{resultado_cables['conductor']}, {resultado_cables['guardia1']}"
             if 'guardia2' in resultado_cables:
                 cables_msg += f", {resultado_cables['guardia2']}"
             

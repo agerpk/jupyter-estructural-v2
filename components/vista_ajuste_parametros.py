@@ -180,15 +180,19 @@ def crear_bloque(titulo, parametros_col1, parametros_col2, estructura, opciones)
     """Crear un bloque de configuración con dos columnas"""
     campos_col1 = []
     for nombre, tipo, desc, opcion_key in parametros_col1:
-        if nombre in estructura:
-            opts = opciones.get(opcion_key) if opcion_key else None
-            campos_col1.append(crear_campo(nombre, tipo, estructura[nombre], desc, opts))
+        valor = estructura.get(nombre, "")
+        if valor is None:
+            valor = ""
+        opts = opciones.get(opcion_key) if opcion_key else None
+        campos_col1.append(crear_campo(nombre, tipo, valor, desc, opts))
     
     campos_col2 = []
     for nombre, tipo, desc, opcion_key in parametros_col2:
-        if nombre in estructura:
-            opts = opciones.get(opcion_key) if opcion_key else None
-            campos_col2.append(crear_campo(nombre, tipo, estructura[nombre], desc, opts))
+        valor = estructura.get(nombre, "")
+        if valor is None:
+            valor = ""
+        opts = opciones.get(opcion_key) if opcion_key else None
+        campos_col2.append(crear_campo(nombre, tipo, valor, desc, opts))
     
     return html.Div([
         html.H5(titulo, style={"color": "#2084f2", "marginTop": "20px", "marginBottom": "15px", "fontSize": "1.5rem"}),
@@ -252,37 +256,6 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         estructura_actual, opciones
     ))
     
-    # PARÁMETROS DE DISEÑO DE LINEA
-    bloques.append(crear_bloque(
-        "PARÁMETROS DE DISEÑO DE LINEA",
-        [
-            ("L_vano", float, "Vano regulador de diseño", None),
-            ("alpha", float, "Ángulo de quiebre máx. de línea", None),
-            ("theta", float, "Ángulo de viento oblicuo", None),
-            ("A_cadena", float, "Área en m² de cadena de aisladores", None),
-            ("PCADENA", float, "Peso en daN de cadena de aisladores", None),
-            ("PESTRUCTURA", float, "Peso en daN de estructura completa sin cables", None),
-            ("A_estr_trans", float, "Área transversal de estructura en m²", None),
-            ("A_estr_long", float, "Área longitudinal de estructura en m²", None),
-            ("Vmax", float, "Viento máximo en m/s", None),
-            ("Vmed", float, "Viento medio en m/s", None),
-        ],
-        [
-            ("Vtormenta", float, "Viento de tormenta en m/s", None),
-            ("t_hielo", float, "Espesor de manguito de hielo en m", None),
-            ("Q", float, "Factor que depende de la densidad del aire, AEA 95301-2007", None),
-            ("Zco", float, "Altura efectiva en m, conductor", None),
-            ("Zcg", float, "Altura efectiva en m, cable de guardia", None),
-            ("Zca", float, "Altura efectiva en m, cadena de aisladores", None),
-            ("Zes", float, "Altura efectiva en m, estructura", None),
-            ("Cf_cable", float, "Coeficiente de arrastre, cable", None),
-            ("Cf_guardia", float, "Coeficiente de arrastre, cable guardia", None),
-            ("Cf_cadena", float, "Coeficiente de arrastre, cadena de aisladores", None),
-            ("Cf_estructura", float, "Coeficiente de arrastre, estructura", None),
-        ],
-        estructura_actual, opciones
-    ))
-    
     # CABLES Y CONDUCTORES
     bloques.append(crear_bloque(
         "CABLES Y CONDUCTORES",
@@ -292,19 +265,6 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         ],
         [
             ("cable_guardia2_id", str, "Cable guardia 2 (izquierda, x-)", "cable_guardia2_id"),
-        ],
-        estructura_actual, opciones
-    ))
-    
-    # CONFIGURACIÓN SELECCIÓN DE POSTES
-    bloques.append(crear_bloque(
-        "CONFIGURACIÓN SELECCIÓN DE POSTES",
-        [
-            ("FORZAR_N_POSTES", int, "0=auto, 1=monoposte, 2=biposte, 3=triposte", None),
-            ("FORZAR_ORIENTACION", str, None, "FORZAR_ORIENTACION"),
-        ],
-        [
-            ("PRIORIDAD_DIMENSIONADO", str, None, "PRIORIDAD_DIMENSIONADO"),
         ],
         estructura_actual, opciones
     ))
@@ -336,6 +296,50 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
             ("ANCHO_CRUCETA", float, None, None),
             ("AUTOAJUSTAR_LMENHG", bool, "Autoajuste ménsula guardia", None),
             ("DIST_REPOSICIONAR_HG", float, None, None),
+        ],
+        estructura_actual, opciones
+    ))
+    
+    # PARÁMETROS DE DISEÑO DE LINEA
+    bloques.append(crear_bloque(
+        "PARÁMETROS DE DISEÑO DE LINEA",
+        [
+            ("L_vano", float, "Vano regulador de diseño", None),
+            ("alpha", float, "Ángulo de quiebre máx. de línea", None),
+            ("theta", float, "Ángulo de viento oblicuo", None),
+            ("A_cadena", float, "Área en m² de cadena de aisladores", None),
+            ("PCADENA", float, "Peso en daN de cadena de aisladores", None),
+            ("PESTRUCTURA", float, "Peso en daN de estructura completa sin cables", None),
+            ("A_estr_trans", float, "Área transversal de estructura en m²", None),
+            ("A_estr_long", float, "Área longitudinal de estructura en m²", None),
+            ("Vmax", float, "Viento máximo en m/s", None),
+            ("Vmed", float, "Viento medio en m/s", None),
+        ],
+        [
+            ("Vtormenta", float, "Viento de tormenta en m/s", None),
+            ("t_hielo", float, "Espesor de manguito de hielo en m", None),
+            ("Q", float, "Factor que depende de la densidad del aire, AEA 95301-2007", None),
+            ("Zco", float, "Altura efectiva en m, conductor", None),
+            ("Zcg", float, "Altura efectiva en m, cable de guardia", None),
+            ("Zca", float, "Altura efectiva en m, cadena de aisladores", None),
+            ("Zes", float, "Altura efectiva en m, estructura", None),
+            ("Cf_cable", float, "Coeficiente de arrastre, cable", None),
+            ("Cf_guardia", float, "Coeficiente de arrastre, cable guardia", None),
+            ("Cf_cadena", float, "Coeficiente de arrastre, cadena de aisladores", None),
+            ("Cf_estructura", float, "Coeficiente de arrastre, estructura", None),
+        ],
+        estructura_actual, opciones
+    ))
+    
+    # CONFIGURACIÓN SELECCIÓN DE POSTES
+    bloques.append(crear_bloque(
+        "CONFIGURACIÓN SELECCIÓN DE POSTES",
+        [
+            ("FORZAR_N_POSTES", int, "0=auto, 1=monoposte, 2=biposte, 3=triposte", None),
+            ("FORZAR_ORIENTACION", str, None, "FORZAR_ORIENTACION"),
+        ],
+        [
+            ("PRIORIDAD_DIMENSIONADO", str, None, "PRIORIDAD_DIMENSIONADO"),
         ],
         estructura_actual, opciones
     ))

@@ -6,6 +6,7 @@
   "TITULO": "2x220 DTT SAN JORGE PRUEBAS",
   "cable_conductor_id": "AlAc 435/55",
   "cable_guardia_id": "OPGW FiberHome 24FO 58mm2",
+  "cable_guardia2_id": null,
   "Vmax": 38.9,
   "Vmed": 15.56,
   "Vtormenta": 20,

@@ -208,7 +208,8 @@ def register_callbacks(app):
                     if vigente:
                         import pandas as pd
                         state.calculo_mecanico.resultados_conductor = calculo_cmc.get('resultados_conductor', {})
-                        state.calculo_mecanico.resultados_guardia = calculo_cmc.get('resultados_guardia', {})
+                        state.calculo_mecanico.resultados_guardia1 = calculo_cmc.get('resultados_guardia', {})
+                        state.calculo_mecanico.resultados_guardia2 = calculo_cmc.get('resultados_guardia2', None)
                         if calculo_cmc.get('df_cargas_totales'):
                             state.calculo_mecanico.df_cargas_totales = pd.DataFrame(calculo_cmc['df_cargas_totales'])
                         if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
@@ -239,7 +240,12 @@ def register_callbacks(app):
                     
                     # Ejecutar DGE automáticamente
                     fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
-                    fmax_guardia = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia.values()])
+                    fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])
+                    if state.calculo_mecanico.resultados_guardia2:
+                        fmax_guardia2 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()])
+                        fmax_guardia = max(fmax_guardia1, fmax_guardia2)
+                    else:
+                        fmax_guardia = fmax_guardia1
                     
                     estructura_geometria = EstructuraAEA_Geometria(
                         tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
@@ -257,7 +263,7 @@ def register_callbacks(app):
                         lk=estructura_actual.get("Lk"),
                         ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
                         cable_conductor=state.calculo_objetos.cable_conductor,
-                        cable_guardia=state.calculo_objetos.cable_guardia1,
+                        cable_guardia=state.calculo_objetos.cable_guardia,
                         peso_estructura=estructura_actual.get("PESTRUCTURA"),
                         peso_cadena=estructura_actual.get("PCADENA"),
                         hg_centrado=estructura_actual.get("HG_CENTRADO"),
@@ -350,7 +356,7 @@ def register_callbacks(app):
                         lk=estructura_actual.get("Lk"),
                         ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
                         cable_conductor=state.calculo_objetos.cable_conductor,
-                        cable_guardia=state.calculo_objetos.cable_guardia1,
+                        cable_guardia=state.calculo_objetos.cable_guardia,
                         peso_estructura=estructura_actual.get("PESTRUCTURA"),
                         peso_cadena=estructura_actual.get("PCADENA"),
                         hg_centrado=estructura_actual.get("HG_CENTRADO"),
@@ -363,7 +369,12 @@ def register_callbacks(app):
                         altura_msnm=estructura_actual.get("Altura_MSNM")
                     )
                     fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
-                    fmax_guardia = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia.values()])
+                    fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])
+                    if state.calculo_mecanico.resultados_guardia2:
+                        fmax_guardia2 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()])
+                        fmax_guardia = max(fmax_guardia1, fmax_guardia2)
+                    else:
+                        fmax_guardia = fmax_guardia1
                     state.calculo_objetos.estructura_geometria.dimensionar_unifilar(
                         estructura_actual.get("L_vano"),
                         fmax_conductor,

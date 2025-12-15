@@ -244,6 +244,8 @@ class EstructuraAEA_Mecanica:
                             peso_guardia2 = peso_guardia2_base * vano * factor_peso
                     
                     # Obtener tiros
+                    tiro_guardia2_base = None
+                    
                     if estado_tiro == "máximo":
                         tiro_cond_base = max([d["tiro_daN"] for d in resultados_conductor.values()])
                         tiro_guardia1_base = max([d["tiro_daN"] for d in resultados_guardia1.values()])

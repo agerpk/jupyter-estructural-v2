@@ -382,9 +382,9 @@ def register_callbacks(app):
             # Nodos por categoría
             nodos_base = {k: v for k, v in nodes_key.items() if k == 'BASE'}
             nodos_cross = {k: v for k, v in nodes_key.items() if k.startswith('CROSS')}
-            nodos_cond = {k: v for k, v in nodes_key.items() if k.startswith('C')}
+            nodos_cond = {k: v for k, v in nodes_key.items() if k.startswith('C') and not k.startswith('CROSS')}
             nodos_guard = {k: v for k, v in nodes_key.items() if k.startswith('HG')}
-            nodos_gen = {k: v for k, v in nodes_key.items() if k in ['MEDIO', 'TOP', 'V']}
+            nodos_gen = {k: v for k, v in nodes_key.items() if k in ['MEDIO', 'TOP', 'V'] or k.startswith('Y')}
             
             nodos_txt = "BASE:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_base.items()])
             if nodos_cross:
