@@ -184,7 +184,7 @@ def calcular_rangos_ejes_2d(nodes_key, zoom_factor):
 
 
 def dibujar_estructura_2d(ax, nodes_key, linewidth):
-    """Dibuja la estructura en 2D (plano XZ) siguiendo lógica de EstructuraAEA_Graficos"""
+    """Dibuja la estructura en 2D (plano XZ) usando la misma lógica que EstructuraAEA_Graficos"""
     
     # 1. RECOLECTAR NODOS POR TIPO
     nodos_estructura = []
@@ -199,11 +199,11 @@ def dibujar_estructura_2d(ax, nodes_key, linewidth):
             continue
         
         # Nodos de estructura (x=0 y no son conductores ni guardias)
-        if abs(x) < 0.001 and not nombre.startswith(('C1_', 'C2_', 'C3_', 'HG')):
+        if abs(x) < 0.001 and not nombre.startswith(('C1', 'C2', 'C3', 'HG')):
             nodos_estructura.append((z, nombre, coordenadas))
         
         # Nodos de conductor
-        elif nombre.startswith(('C1_', 'C2_', 'C3_')):
+        elif nombre.startswith(('C1', 'C2', 'C3')):
             if z not in conductores_por_altura:
                 conductores_por_altura[z] = []
             conductores_por_altura[z].append((x, nombre, coordenadas))
@@ -212,22 +212,64 @@ def dibujar_estructura_2d(ax, nodes_key, linewidth):
         elif nombre.startswith('HG'):
             nodos_guardia.append((x, nombre, coordenadas))
     
-    # 2. DIBUJAR LÍNEA VERTICAL DE ESTRUCTURA
-    nodos_estructura.sort(key=lambda x: x[0])
-    if len(nodos_estructura) >= 2:
-        for i in range(len(nodos_estructura)-1):
-            z1, nombre1, coord1 = nodos_estructura[i]
-            z2, nombre2, coord2 = nodos_estructura[i+1]
-            ax.plot([0, 0], [z1, z2], color='black', linewidth=linewidth, alpha=0.8)
+    # 2. DIBUJAR COLUMNAS DE ESTRUCTURA
+    tiene_y = any('Y' in nombre for nombre in nodes_key.keys())
+    
+    if tiene_y:
+        # Configuración horizontal: BASE-Y1, Y1-Y2-Y4, Y1-Y3-Y5, HG1-Y4, HG2-Y5
+        if 'BASE' in nodes_key and 'Y1' in nodes_key:
+            base_x, base_y, base_z = nodes_key['BASE']
+            y1_x, y1_y, y1_z = nodes_key['Y1']
+            ax.plot([base_x, y1_x], [base_z, y1_z], color='black', linewidth=linewidth, alpha=0.8)
+        
+        # Y1 → Y2 → Y4 (columna derecha)
+        if 'Y1' in nodes_key and 'Y2' in nodes_key:
+            y1_x, y1_y, y1_z = nodes_key['Y1']
+            y2_x, y2_y, y2_z = nodes_key['Y2']
+            ax.plot([y1_x, y2_x], [y1_z, y2_z], color='black', linewidth=linewidth, alpha=0.8)
+            
+            if 'Y4' in nodes_key:
+                y4_x, y4_y, y4_z = nodes_key['Y4']
+                ax.plot([y2_x, y4_x], [y2_z, y4_z], color='black', linewidth=linewidth, alpha=0.8)
+        
+        # Y1 → Y3 → Y5 (columna izquierda)
+        if 'Y1' in nodes_key and 'Y3' in nodes_key:
+            y1_x, y1_y, y1_z = nodes_key['Y1']
+            y3_x, y3_y, y3_z = nodes_key['Y3']
+            ax.plot([y1_x, y3_x], [y1_z, y3_z], color='black', linewidth=linewidth, alpha=0.8)
+            
+            if 'Y5' in nodes_key:
+                y5_x, y5_y, y5_z = nodes_key['Y5']
+                ax.plot([y3_x, y5_x], [y3_z, y5_z], color='black', linewidth=linewidth, alpha=0.8)
+        
+        # HG1 → Y4 (columna a guardia derecha)
+        if 'HG1' in nodes_key and 'Y4' in nodes_key:
+            hg1_x, hg1_y, hg1_z = nodes_key['HG1']
+            y4_x, y4_y, y4_z = nodes_key['Y4']
+            ax.plot([y4_x, hg1_x], [y4_z, hg1_z], color='black', linewidth=linewidth, alpha=0.8)
+        
+        # HG2 → Y5 (columna a guardia izquierda)
+        if 'HG2' in nodes_key and 'Y5' in nodes_key:
+            hg2_x, hg2_y, hg2_z = nodes_key['HG2']
+            y5_x, y5_y, y5_z = nodes_key['Y5']
+            ax.plot([y5_x, hg2_x], [y5_z, hg2_z], color='black', linewidth=linewidth, alpha=0.8)
+    else:
+        # Configuración estándar: línea vertical
+        nodos_estructura.sort(key=lambda x: x[0])
+        if len(nodos_estructura) >= 2:
+            for i in range(len(nodos_estructura)-1):
+                z1, nombre1, coord1 = nodos_estructura[i]
+                z2, nombre2, coord2 = nodos_estructura[i+1]
+                ax.plot([0, 0], [z1, z2], color='black', linewidth=linewidth, alpha=0.8)
     
     # 3. DIBUJAR MENSULAS/CRUCETAS DE CONDUCTORES
     for altura, conductores in conductores_por_altura.items():
-        # Buscar nodo CROSS correspondiente
+        # Buscar nodo CROSS o Y correspondiente
         cross_node = None
         min_diff = float('inf')
         
         for nombre, coordenadas in nodes_key.items():
-            if "CROSS" in nombre:
+            if "CROSS" in nombre or nombre.startswith('Y'):
                 x_cross, y_cross, z_cross = coordenadas
                 diff = abs(z_cross - altura)
                 if diff < min_diff:
@@ -239,8 +281,8 @@ def dibujar_estructura_2d(ax, nodes_key, linewidth):
             x_cross, y_cross, z_cross = cross_coord
             
             conductores_x = [c[0] for c in conductores]
-            hay_izq = any(x < 0 for x in conductores_x)
-            hay_der = any(x > 0 for x in conductores_x)
+            hay_izq = any(x < -0.01 for x in conductores_x)
+            hay_der = any(x > 0.01 for x in conductores_x)
             
             if hay_izq and hay_der:
                 # Cruceta: línea horizontal completa
@@ -249,45 +291,45 @@ def dibujar_estructura_2d(ax, nodes_key, linewidth):
                 ax.plot([x_min, x_max], [altura, altura], 
                        color='black', linewidth=linewidth*0.85, alpha=0.8)
                 
-                # Conexiones verticales al CROSS si no están en la misma altura
+                # Conexión vertical desde nodo de cruce a cruceta si difieren
                 if abs(z_cross - altura) > 0.01:
-                    for x_cond, nombre_cond, coord_cond in conductores:
-                        ax.plot([x_cond, x_cond], [z_cross, altura], 
-                               color='black', linewidth=linewidth*0.6, alpha=0.6, linestyle=':')
+                    ax.plot([0, 0], [z_cross, altura], 
+                           color='black', linewidth=linewidth*0.6, alpha=0.6, linestyle=':')
             else:
-                # Ménsula: cada conductor se conecta individualmente al CROSS
+                # Ménsula: cada conductor se conecta individualmente
                 for x_cond, nombre_cond, coord_cond in conductores:
                     ax.plot([x_cross, x_cond], [z_cross, altura], 
                            color='black', linewidth=linewidth*0.85, alpha=0.8)
     
-    # 4. DIBUJAR MENSULAS/CRUCETAS DE GUARDIAS
-    if "TOP" in nodes_key:
-        x_top, y_top, z_top = nodes_key["TOP"]
-        
-        if nodos_guardia:
-            guardias_x = [g[0] for g in nodos_guardia]
-            hay_izq = any(x < 0 for x in guardias_x)
-            hay_der = any(x > 0 for x in guardias_x)
+    # 4. DIBUJAR MENSULAS/CRUCETAS DE GUARDIAS (solo si no es horizontal)
+    if not tiene_y:
+        if "TOP" in nodes_key:
+            x_top, y_top, z_top = nodes_key["TOP"]
             
-            if hay_izq and hay_der:
-                # Cruceta guardia: línea horizontal completa
-                x_min = min(guardias_x)
-                x_max = max(guardias_x)
-                ax.plot([x_min, x_max], [z_top, z_top], 
-                       color='black', linewidth=linewidth*0.85, alpha=0.8)
+            if nodos_guardia:
+                guardias_x = [g[0] for g in nodos_guardia]
+                hay_izq = any(x < 0 for x in guardias_x)
+                hay_der = any(x > 0 for x in guardias_x)
                 
-                # Conexiones verticales a TOP
-                for x_hg, nombre_hg, coord_hg in nodos_guardia:
-                    z_hg = coord_hg[2]
-                    if abs(z_hg - z_top) > 0.01:
-                        ax.plot([x_hg, x_hg], [z_top, z_hg], 
-                               color='black', linewidth=linewidth*0.6, alpha=0.6, linestyle=':')
-            else:
-                # Ménsula guardia: cada guardia se conecta individualmente
-                for x_hg, nombre_hg, coord_hg in nodos_guardia:
-                    z_hg = coord_hg[2]
-                    ax.plot([x_top, x_hg], [z_top, z_hg], 
+                if hay_izq and hay_der:
+                    # Cruceta guardia: línea horizontal completa
+                    x_min = min(guardias_x)
+                    x_max = max(guardias_x)
+                    ax.plot([x_min, x_max], [z_top, z_top], 
                            color='black', linewidth=linewidth*0.85, alpha=0.8)
+                    
+                    # Conexiones verticales a TOP
+                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                        z_hg = coord_hg[2]
+                        if abs(z_hg - z_top) > 0.01:
+                            ax.plot([x_hg, x_hg], [z_top, z_hg], 
+                                   color='black', linewidth=linewidth*0.6, alpha=0.6, linestyle=':')
+                else:
+                    # Ménsula guardia: cada guardia se conecta individualmente
+                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                        z_hg = coord_hg[2]
+                        ax.plot([x_top, x_hg], [z_top, z_hg], 
+                               color='black', linewidth=linewidth*0.85, alpha=0.8)
 
 
 def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala, fontsize=9):
@@ -310,7 +352,7 @@ def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala, fontsize
             if fuerza == 0:
                 continue
             
-            fuerza_daN = abs(fuerza) / 10
+            fuerza_daN = abs(fuerza)
             direccion = 1 if fuerza > 0 else -1
             
             if componente == 'x':

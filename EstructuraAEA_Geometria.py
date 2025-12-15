@@ -791,8 +791,8 @@ class EstructuraAEA_Geometria:
         dist_conductor_x = dist_columna_x + self.lk * math.sin(math.radians(theta_max)) + s_estructura + self.ancho_cruceta/2
         dist_conductor_final = max(D_fases, dist_conductor_x)
         
-        # 1. Nodo Y1 a altura h1a - 2*Lk - s_estructura (estructural)
-        altura_y1 = h1a - 2*self.lk - s_estructura
+        # 1. Nodo Y1 a altura h1a - 2*Lk (estructural)
+        altura_y1 = h1a - 2*self.lk
         self.nodos["Y1"] = NodoEstructural("Y1", (0.0, 0.0, altura_y1), "general")
         
         # 2. Nodos Y2 y Y3 a altura h1a - Lk, defasados en x (estructurales)

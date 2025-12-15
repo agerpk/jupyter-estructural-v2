@@ -561,14 +561,25 @@ class EstructuraAEA_Graficos:
         # 4. DIBUJAR CADENAS CON DECLINACIÓN
         puntos_conductor = {}
         
+        # Determinar qué conductor declina según configuración
+        es_horizontal_simple = tiene_y and self.geometria.terna == "Simple"
+        
         for altura, conductores in conductores_por_altura.items():
             for x_cond, nombre_cond, coord_cond in conductores:
-                angulo_cadena = theta_max if (nombre_cond.endswith('_L') and "C1" in nombre_cond) else 0.0
+                # Lógica de declinación
+                if es_horizontal_simple:
+                    # Horizontal simple: C3 y C2 declinan a la derecha
+                    angulo_cadena = theta_max if ("C3" in nombre_cond or "C2" in nombre_cond) else 0.0
+                    direccion_declinacion = 1  # Hacia la derecha
+                else:
+                    # Otras configuraciones: C1_L declina
+                    angulo_cadena = theta_max if (nombre_cond.endswith('_L') and "C1" in nombre_cond) else 0.0
+                    direccion_declinacion = 1 if nombre_cond.endswith('_L') else -1
                 
                 if nombre_cond in self.geometria.nodes_key:
                     x_amarre, y_amarre, z_amarre = coord_cond
                     ang_rad = math.radians(angulo_cadena)
-                    x_conductor = x_amarre + self.geometria.lk * math.sin(ang_rad)
+                    x_conductor = x_amarre + direccion_declinacion * self.geometria.lk * math.sin(ang_rad)
                     z_conductor = z_amarre - self.geometria.lk * math.cos(ang_rad)
                     
                     # Dibujar cadena
@@ -581,32 +592,86 @@ class EstructuraAEA_Graficos:
                     
                     puntos_conductor[nombre_cond] = (x_conductor, z_conductor)
                     
-                    # Dibujar círculos de distancia
-                    if nombre_cond.endswith('_L') and "C1" in nombre_cond:
-                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
-                                                    color=self.COLORES['circulo'], fill=False, 
-                                                    linestyle='--', linewidth=1.5, alpha=0.7))
+                    # Dibujar círculos de distancia según configuración
+                    if es_horizontal_simple:
+                        # Horizontal simple: s_estructura en C3 y C2 declinado, D_fases en C2 sin declinar
+                        if "C3" in nombre_cond:
+                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                                                        color=self.COLORES['circulo'], fill=False, 
+                                                        linestyle='--', linewidth=1.5, alpha=0.7))
+                            
+                            plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_estructura), 
+                                        xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
+                                        color=self.COLORES['circulo'], 
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
+                                        horizontalalignment='center', verticalalignment='top')
+                            plt.annotate(f'{s_estructura:.2f} m', xy=(x_conductor, z_conductor - s_estructura), 
+                                        xytext=(0, -23), textcoords='offset points', fontsize=8, fontweight='bold',
+                                        color=self.COLORES['circulo'],
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
+                                        horizontalalignment='center', verticalalignment='top')
                         
-                        plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_estructura), 
-                                    xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
-                                    color=self.COLORES['circulo'], 
-                                    bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
-                                    horizontalalignment='center', verticalalignment='top')
-                        plt.annotate(f'{s_estructura:.2f} m', xy=(x_conductor, z_conductor - s_estructura), 
-                                    xytext=(0, -23), textcoords='offset points', fontsize=8, fontweight='bold',
-                                    color=self.COLORES['circulo'],
-                                    bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
-                                    horizontalalignment='center', verticalalignment='top')
-                    
-                    elif nombre_cond.endswith('_R') and "C2" in nombre_cond:
-                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), D_fases, 
-                                                    color=self.COLORES['circulo'], fill=False, 
-                                                    linestyle='--', linewidth=1.5, alpha=0.7))
-                    
-                    elif nombre_cond.endswith('_L') and "C3" in nombre_cond:
-                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), Dhg, 
-                                                    color=self.COLORES['dhg_circulo'], fill=False, 
-                                                    linestyle='--', linewidth=1.5, alpha=0.7))
+                        elif "C2" in nombre_cond:
+                            # C2 declinado: círculo s_estructura
+                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                                                        color=self.COLORES['circulo'], fill=False, 
+                                                        linestyle='--', linewidth=1.5, alpha=0.7))
+                            
+                            # C2 sin declinar: dibujar cadena vertical y círculos D_fases y s_estructura
+                            x_c2_vertical = x_amarre
+                            z_c2_vertical = z_amarre - self.geometria.lk
+                            
+                            plt.plot([x_amarre, x_c2_vertical], [z_amarre, z_c2_vertical], 
+                                    color=self.COLORES['cadena'], linewidth=2)
+                            plt.scatter(x_c2_vertical, z_c2_vertical, color=self.COLORES['conductor_end'], 
+                                    s=80, marker='o', edgecolors='white', linewidth=1.5, zorder=5)
+                            
+                            # Círculo D_fases con etiqueta arriba
+                            plt.gca().add_patch(plt.Circle((x_c2_vertical, z_c2_vertical), D_fases, 
+                                                        color=self.COLORES['circulo'], fill=False, 
+                                                        linestyle='--', linewidth=1.5, alpha=0.7))
+                            plt.annotate('D (entre fases)', xy=(x_c2_vertical, z_c2_vertical + D_fases), 
+                                        xytext=(0, 8), textcoords='offset points', fontsize=8, fontweight='bold',
+                                        color=self.COLORES['circulo'], 
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
+                                        horizontalalignment='center', verticalalignment='bottom')
+                            plt.annotate(f'{D_fases:.2f} m', xy=(x_c2_vertical, z_c2_vertical + D_fases), 
+                                        xytext=(0, 23), textcoords='offset points', fontsize=8, fontweight='bold',
+                                        color=self.COLORES['circulo'],
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
+                                        horizontalalignment='center', verticalalignment='bottom')
+                            
+                            # Círculo s_estructura sin etiqueta (ya tiene en C3)
+                            plt.gca().add_patch(plt.Circle((x_c2_vertical, z_c2_vertical), s_estructura, 
+                                                        color=self.COLORES['circulo'], fill=False, 
+                                                        linestyle='--', linewidth=1.5, alpha=0.7))
+                    else:
+                        # Otras configuraciones: lógica original
+                        if nombre_cond.endswith('_L') and "C1" in nombre_cond:
+                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                                                        color=self.COLORES['circulo'], fill=False, 
+                                                        linestyle='--', linewidth=1.5, alpha=0.7))
+                            
+                            plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_estructura), 
+                                        xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
+                                        color=self.COLORES['circulo'], 
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
+                                        horizontalalignment='center', verticalalignment='top')
+                            plt.annotate(f'{s_estructura:.2f} m', xy=(x_conductor, z_conductor - s_estructura), 
+                                        xytext=(0, -23), textcoords='offset points', fontsize=8, fontweight='bold',
+                                        color=self.COLORES['circulo'],
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
+                                        horizontalalignment='center', verticalalignment='top')
+                        
+                        elif nombre_cond.endswith('_R') and "C2" in nombre_cond:
+                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), D_fases, 
+                                                        color=self.COLORES['circulo'], fill=False, 
+                                                        linestyle='--', linewidth=1.5, alpha=0.7))
+                        
+                        elif nombre_cond.endswith('_L') and "C3" in nombre_cond:
+                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), Dhg, 
+                                                        color=self.COLORES['dhg_circulo'], fill=False, 
+                                                        linestyle='--', linewidth=1.5, alpha=0.7))
         
         # 5. DIBUJAR NODOS - CON CÍRCULOS AZULES EN CONDUCTORES
         for nombre, coordenadas in self.geometria.nodes_key.items():
@@ -630,10 +695,27 @@ class EstructuraAEA_Graficos:
                 color_hg = '#228B22' if nombre == 'HG2' else self.COLORES['guardia']
                 plt.scatter(x, z, color=color_hg, s=100, marker='o', 
                         edgecolors='white', linewidth=1.5, zorder=5)
+                
+                # Dibujar círculo Dhg en HG1 para horizontal simple con etiqueta abajo
+                if es_horizontal_simple and nombre == 'HG1':
+                    plt.gca().add_patch(plt.Circle((x, z), Dhg, 
+                                                color=self.COLORES['dhg_circulo'], fill=False, 
+                                                linestyle='--', linewidth=1.5, alpha=0.7))
+                    plt.annotate('Dhg (guardia-conductor)', xy=(x, z - Dhg), 
+                                xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
+                                color=self.COLORES['dhg_circulo'], 
+                                bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
+                                horizontalalignment='center', verticalalignment='top')
+                    plt.annotate(f'{Dhg:.2f} m', xy=(x, z - Dhg), 
+                                xytext=(0, -23), textcoords='offset points', fontsize=8, fontweight='bold',
+                                color=self.COLORES['dhg_circulo'],
+                                bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
+                                horizontalalignment='center', verticalalignment='top')
             
-            # Nodo top - SIN ETIQUETA
+            # Nodo top - SIN ETIQUETA (no dibujar para horizontal simple)
             elif "TOP" in nombre:
-                plt.scatter(x, z, color=self.COLORES['poste'], s=120, marker='^', zorder=5)
+                if not es_horizontal_simple:
+                    plt.scatter(x, z, color=self.COLORES['poste'], s=120, marker='^', zorder=5)
         
         # 6. CONFIGURACIÓN DE EJES
         h1a = self.geometria.dimensiones.get('h1a', 0)

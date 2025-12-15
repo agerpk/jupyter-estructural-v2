@@ -296,7 +296,7 @@ class EstructuraAEA_Mecanica:
                             ]
                     
                     # CARGAS EN CONDUCTORES
-                    nodos_conductor = [n for n in self.geometria.nodes_key.keys() if n.startswith(('C1_', 'C2_', 'C3_'))]
+                    nodos_conductor = [n for n in self.geometria.nodes_key.keys() if n.startswith(('C1', 'C2', 'C3')) and not n.startswith('CROSS')]
                     
                     for nodo in nodos_conductor:
                         carga_x, carga_y, carga_z = 0.0, 0.0, 0.0
