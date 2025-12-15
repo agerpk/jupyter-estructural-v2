@@ -6,6 +6,122 @@ import dash_bootstrap_components as dbc
 from models.app_state import AppState
 
 
+def ejecutar_calculo_dge(estructura_actual, state):
+    """Ejecuta cálculo DGE y retorna resultados para mostrar"""
+    try:
+        from EstructuraAEA_Geometria import EstructuraAEA_Geometria
+        from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
+        from EstructuraAEA_Graficos import EstructuraAEA_Graficos
+        from HipotesisMaestro import hipotesis_maestro
+        from utils.calculo_cache import CalculoCache
+        from utils.memoria_calculo_dge import gen_memoria_calculo_DGE
+        import matplotlib.pyplot as plt
+        
+        # Obtener flechas máximas
+        fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
+        fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])
+        if state.calculo_mecanico.resultados_guardia2:
+            fmax_guardia2 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()])
+            fmax_guardia = max(fmax_guardia1, fmax_guardia2)
+        else:
+            fmax_guardia = fmax_guardia1
+        
+        # Crear estructura de geometría
+        estructura_geometria = EstructuraAEA_Geometria(
+            tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
+            tension_nominal=estructura_actual.get("TENSION"),
+            zona_estructura=estructura_actual.get("Zona_estructura"),
+            disposicion=estructura_actual.get("DISPOSICION"),
+            terna=estructura_actual.get("TERNA"),
+            cant_hg=estructura_actual.get("CANT_HG"),
+            alpha_quiebre=estructura_actual.get("alpha"),
+            altura_minima_cable=estructura_actual.get("ALTURA_MINIMA_CABLE"),
+            long_mensula_min_conductor=estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR"),
+            long_mensula_min_guardia=estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA"),
+            hadd=estructura_actual.get("HADD"),
+            hadd_entre_amarres=estructura_actual.get("HADD_ENTRE_AMARRES"),
+            lk=estructura_actual.get("Lk"),
+            ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
+            cable_conductor=state.calculo_objetos.cable_conductor,
+            cable_guardia=state.calculo_objetos.cable_guardia,
+            peso_estructura=estructura_actual.get("PESTRUCTURA"),
+            peso_cadena=estructura_actual.get("PCADENA"),
+            hg_centrado=estructura_actual.get("HG_CENTRADO"),
+            ang_apantallamiento=estructura_actual.get("ANG_APANTALLAMIENTO"),
+            hadd_hg=estructura_actual.get("HADD_HG"),
+            hadd_lmen=estructura_actual.get("HADD_LMEN"),
+            dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
+            ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
+            metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
+            altura_msnm=estructura_actual.get("Altura_MSNM")
+        )
+        
+        estructura_geometria.dimensionar_unifilar(
+            estructura_actual.get("L_vano"),
+            fmax_conductor,
+            fmax_guardia,
+            dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
+            autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
+        )
+        
+        state.calculo_objetos.estructura_geometria = estructura_geometria
+        
+        # Crear mecánica temporal para gráficos
+        estructura_mecanica_temp = EstructuraAEA_Mecanica(estructura_geometria)
+        estructura_mecanica_temp.asignar_cargas_hipotesis(
+            state.calculo_mecanico.df_cargas_totales,
+            state.calculo_mecanico.resultados_conductor,
+            state.calculo_mecanico.resultados_guardia1,
+            estructura_actual.get('L_vano'),
+            hipotesis_maestro,
+            estructura_actual.get('t_hielo'),
+            hipotesis_a_incluir="Todas",
+            resultados_guardia2=state.calculo_mecanico.resultados_guardia2
+        )
+        
+        estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica_temp)
+        
+        # Generar gráficos
+        estructura_graficos.graficar_estructura(
+            zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
+            titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+        )
+        fig_estructura = plt.gcf()
+        
+        estructura_graficos.graficar_cabezal(
+            zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95) * 1.5,
+            titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+        )
+        fig_cabezal = plt.gcf()
+        
+        # Generar memoria
+        memoria_dge = gen_memoria_calculo_DGE(estructura_geometria)
+        
+        # Guardar en cache
+        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+        CalculoCache.guardar_calculo_dge(
+            nombre_estructura,
+            estructura_actual,
+            estructura_geometria.dimensiones,
+            estructura_geometria.nodes_key,
+            fig_estructura,
+            fig_cabezal,
+            memoria_dge
+        )
+        
+        return {
+            "exito": True,
+            "mensaje": "Cálculo DGE completado",
+            "dimensiones": estructura_geometria.dimensiones,
+            "nodes_key": estructura_geometria.nodes_key,
+            "memoria_calculo": memoria_dge,
+            "fmax_conductor": fmax_conductor,
+            "fmax_guardia": fmax_guardia
+        }
+    except Exception as e:
+        return {"exito": False, "mensaje": str(e)}
+
+
 def ejecutar_calculo_cmc_automatico(estructura_actual, state):
     """Ejecuta cálculo CMC automáticamente con parámetros de estructura"""
     try:
@@ -61,8 +177,16 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
             "RELFLECHA_SIN_VIENTO": estructura_actual.get("RELFLECHA_SIN_VIENTO", True)
         }
         
+        # Capturar output de consola
+        import io, sys
+        old_stdout = sys.stdout
+        sys.stdout = buffer = io.StringIO()
+        
         # Ejecutar cálculo
         resultado = state.calculo_mecanico.calcular(params, estados_climaticos, restricciones_dict)
+        
+        console_output = buffer.getvalue()
+        sys.stdout = old_stdout
         
         if resultado["exito"]:
             # Guardar en cache
@@ -89,7 +213,9 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
                 state.calculo_mecanico.df_cargas_totales,
                 fig_combinado,
                 fig_conductor,
-                fig_guardia1
+                fig_guardia1,
+                resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
+                console_output=console_output
             )
             return {"exito": True, "mensaje": "Cálculo CMC completado automáticamente"}
         else:

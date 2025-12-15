@@ -19,35 +19,45 @@ class CalculoCache:
         return hashlib.md5(data_str.encode()).hexdigest()
     
     @staticmethod
-    def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None):
+    def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None, resultados_guardia2=None, console_output=None):
         """Guarda resultados de Cálculo Mecánico de Cables"""
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
         # Guardar imágenes (figuras Plotly)
-        try:
-            if fig_combinado:
-                img_path = DATA_DIR / f"CMC_Combinado.{hash_params}.png"
-                fig_combinado.write_image(str(img_path), width=1200, height=600)
-            
-            if fig_conductor:
-                img_path = DATA_DIR / f"CMC_Conductor.{hash_params}.png"
-                fig_conductor.write_image(str(img_path), width=1200, height=600)
-            
-            if fig_guardia:
-                img_path = DATA_DIR / f"CMC_Guardia.{hash_params}.png"
-                fig_guardia.write_image(str(img_path), width=1200, height=600)
-        except Exception as e:
-            print(f"Advertencia: No se pudieron guardar imágenes CMC: {e}")
+        imagenes_guardadas = []
+        for fig, nombre in [(fig_combinado, "Combinado"), (fig_conductor, "Conductor"), (fig_guardia, "Guardia")]:
+            if fig:
+                img_path = DATA_DIR / f"CMC_{nombre}.{hash_params}.png"
+                try:
+                    fig.write_image(str(img_path), width=1200, height=600)
+                    imagenes_guardadas.append(nombre)
+                except Exception as e:
+                    print(f"Advertencia: No se pudo guardar imagen {nombre}: {e}")
+        
+        if imagenes_guardadas:
+            print(f"✅ Imágenes CMC guardadas: {', '.join(imagenes_guardadas)}")
+        else:
+            print(f"Advertencia: No se pudieron guardar imágenes CMC")
+        
+        # Identificar estados determinantes (el de mayor porcentaje de rotura)
+        estado_det_cond = max(resultados_conductor.items(), key=lambda x: x[1].get('porcentaje_rotura', 0))[0] if resultados_conductor else None
+        estado_det_guard = max(resultados_guardia.items(), key=lambda x: x[1].get('porcentaje_rotura', 0))[0] if resultados_guardia else None
+        estado_det_guard2 = max(resultados_guardia2.items(), key=lambda x: x[1].get('porcentaje_rotura', 0))[0] if resultados_guardia2 else None
         
         calculo_data = {
             "hash_parametros": hash_params,
             "fecha_calculo": datetime.now().isoformat(),
             "resultados_conductor": resultados_conductor,
             "resultados_guardia": resultados_guardia,
+            "resultados_guardia2": resultados_guardia2,
+            "estado_determinante_conductor": estado_det_cond,
+            "estado_determinante_guardia1": estado_det_guard,
+            "estado_determinante_guardia2": estado_det_guard2,
             "df_cargas_totales": df_cargas_totales.to_dict() if df_cargas_totales is not None else None,
             "imagen_combinado": f"CMC_Combinado.{hash_params}.png" if fig_combinado else None,
             "imagen_conductor": f"CMC_Conductor.{hash_params}.png" if fig_conductor else None,
-            "imagen_guardia": f"CMC_Guardia.{hash_params}.png" if fig_guardia else None
+            "imagen_guardia": f"CMC_Guardia.{hash_params}.png" if fig_guardia else None,
+            "console_output": console_output
         }
         
         archivo = DATA_DIR / f"{nombre_estructura}.calculoCMC.json"
@@ -218,3 +228,35 @@ class CalculoCache:
         if not archivo.exists():
             return None
         return json.loads(archivo.read_text(encoding="utf-8"))
+    
+    @staticmethod
+    def eliminar_cache(nombre_estructura):
+        """Elimina todos los archivos de cache de una estructura"""
+        tipos = ['CMC', 'DGE', 'DME', 'ARBOLES', 'SPH', 'TODO']
+        eliminados = []
+        
+        for tipo in tipos:
+            archivo = DATA_DIR / f"{nombre_estructura}.calculo{tipo}.json"
+            if archivo.exists():
+                archivo.unlink()
+                eliminados.append(tipo)
+        
+        # Eliminar imágenes asociadas
+        patrones = [
+            f"CMC_*.*.png",
+            f"Estructura.*.png",
+            f"Cabezal.*.png",
+            f"DME_*.*.png",
+            f"{nombre_estructura}.arbolcarga.*.*.png"
+        ]
+        
+        for patron in patrones:
+            for archivo in DATA_DIR.glob(patron):
+                try:
+                    archivo.unlink()
+                except Exception as e:
+                    print(f"No se pudo eliminar {archivo}: {e}")
+        
+        if eliminados:
+            print(f"✅ Cache eliminado: {', '.join(eliminados)}")
+        return eliminados

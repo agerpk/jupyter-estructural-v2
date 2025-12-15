@@ -244,7 +244,15 @@ def register_callbacks(app):
                 "RELFLECHA_SIN_VIENTO": bool(RELFLECHA_SIN_VIENTO)
             }
             
+            # Capturar console output
+            import io, sys
+            old_stdout = sys.stdout
+            sys.stdout = buffer = io.StringIO()
+            
             resultado = state.calculo_mecanico.calcular(params, estados_climaticos, restricciones_dict)
+            
+            console_output = buffer.getvalue()
+            sys.stdout = old_stdout
             
             if resultado["exito"]:
                 resultados_html = [
@@ -266,8 +274,16 @@ def register_callbacks(app):
                 if resultado["df_cargas_totales"] is not None:
                     resultados_html.extend([
                         html.H5("Lista Total de Cargas", className="mt-4"),
-                        dbc.Table.from_dataframe(resultado["df_cargas_totales"], striped=True, bordered=True, hover=True, size="sm"),
+                        html.Div(dbc.Table.from_dataframe(resultado["df_cargas_totales"], striped=True, bordered=True, hover=True, size="sm"), className="table-responsive"),
                         dbc.Button("Descargar CSV", id="btn-descargar-cargas-csv", color="primary", className="mt-2")
+                    ])
+                
+                # Output de consola
+                if console_output:
+                    resultados_html.extend([
+                        html.Hr(className="mt-4"),
+                        html.H5("Output de Cálculo", className="mb-2"),
+                        html.Pre(console_output, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.75rem', 'maxHeight': '300px', 'overflowY': 'auto'})
                     ])
                 
                 if state.calculo_mecanico.resultados_conductor and state.calculo_mecanico.resultados_guardia1:
@@ -312,7 +328,9 @@ def register_callbacks(app):
                                 state.calculo_mecanico.df_cargas_totales,
                                 fig_combinado,
                                 fig_conductor,
-                                fig_guardia1
+                                fig_guardia1,
+                                resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
+                                console_output=console_output
                             )
                         
                         threading.Thread(target=guardar_async, daemon=True).start()

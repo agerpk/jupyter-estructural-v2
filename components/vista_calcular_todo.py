@@ -7,11 +7,16 @@ import dash_bootstrap_components as dbc
 def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
     """Vista para ejecutar todos los cálculos en secuencia"""
     
-    # Si hay cálculo guardado, cargar los resultados
-    output_inicial = []
+    # Si hay cálculo guardado, NO cargar desde aquí - se cargará con el callback
+    output_inicial = [dbc.Alert("No hay resultados aún. Presione 'Ejecutar Cálculo Completo' para comenzar.", color="warning")]
     btn_disabled = True
     
     if calculo_guardado:
+        output_inicial = [dbc.Alert("✅ Hay resultados guardados. Presione 'Ejecutar Cálculo Completo' para recalcular o ver resultados.", color="info")]
+        btn_disabled = False
+    
+    # CÓDIGO ANTIGUO COMENTADO - Ya no se usa carga desde cache en la vista
+    if False and calculo_guardado:
         from utils.calculo_cache import CalculoCache
         from config.app_config import DATA_DIR
         import base64
@@ -30,14 +35,19 @@ def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
             # Tablas
             import pandas as pd
             if calculo_cmc.get('resultados_conductor'):
-                df_cond = pd.DataFrame(calculo_cmc['resultados_conductor']).T
+                df_cond = pd.DataFrame(calculo_cmc['resultados_conductor']).T.round(2)
                 output_inicial.append(html.H5("Resultados Conductor", className="mt-3"))
                 output_inicial.append(dbc.Table.from_dataframe(df_cond, striped=True, bordered=True, hover=True, size="sm"))
             
             if calculo_cmc.get('resultados_guardia'):
-                df_guard = pd.DataFrame(calculo_cmc['resultados_guardia']).T
-                output_inicial.append(html.H5("Resultados Cable de Guardia", className="mt-3"))
+                df_guard = pd.DataFrame(calculo_cmc['resultados_guardia']).T.round(2)
+                output_inicial.append(html.H5("Resultados Cable de Guardia 1", className="mt-3"))
                 output_inicial.append(dbc.Table.from_dataframe(df_guard, striped=True, bordered=True, hover=True, size="sm"))
+            
+            if calculo_cmc.get('resultados_guardia2'):
+                df_guard2 = pd.DataFrame(calculo_cmc['resultados_guardia2']).T.round(2)
+                output_inicial.append(html.H5("Resultados Cable de Guardia 2", className="mt-3"))
+                output_inicial.append(dbc.Table.from_dataframe(df_guard2, striped=True, bordered=True, hover=True, size="sm"))
             
             # Imágenes CMC
             output_inicial.append(html.H5("Gráficos de Flechas", className="mt-4"))
@@ -97,7 +107,7 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
             # Tabla de reacciones
             if calculo_dme.get('df_reacciones'):
                 import pandas as pd
-                df_reacciones = pd.DataFrame.from_dict(calculo_dme['df_reacciones'], orient='index')
+                df_reacciones = pd.DataFrame.from_dict(calculo_dme['df_reacciones'], orient='index').round(2)
                 output_inicial.append(html.H5("Reacciones en BASE", className="mt-3"))
                 output_inicial.append(dbc.Table.from_dataframe(df_reacciones.head(10), striped=True, bordered=True, hover=True, size="sm"))
             
@@ -159,8 +169,6 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
                     output_inicial.append(html.Pre(calculo_sph['desarrollo_texto'], style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '15px', 'borderRadius': '5px', 'fontSize': '0.8rem', 'whiteSpace': 'pre', 'overflowX': 'auto', 'maxHeight': '500px', 'overflowY': 'auto'}))
         
         btn_disabled = False
-    else:
-        output_inicial = [dbc.Alert("No hay resultados aún. Presione 'Ejecutar Cálculo Completo' para comenzar.", color="warning")]
     
     return html.Div([
         dbc.Card([
@@ -188,7 +196,17 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
                             size="lg",
                             className="w-100"
                         )
-                    ], md=8),
+                    ], md=5),
+                    dbc.Col([
+                        dbc.Button(
+                            "Cargar desde Cache",
+                            id="btn-cargar-cache-todo",
+                            color="info",
+                            size="lg",
+                            className="w-100",
+                            disabled=btn_disabled
+                        )
+                    ], md=4),
                     dbc.Col([
                         dbc.Button(
                             "Descargar HTML",
@@ -198,7 +216,7 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
                             className="w-100",
                             disabled=btn_disabled
                         )
-                    ], md=4)
+                    ], md=3)
                 ], className="mb-4"),
                 
                 html.Hr(),
@@ -210,6 +228,5 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
         
         # Store para guardar el HTML completo
         dcc.Store(id="html-completo-store"),
-        dcc.Download(id="download-html-completo"),
-        dcc.Interval(id="calculo-todo-interval", interval=500, disabled=True)
+        dcc.Download(id="download-html-completo")
     ])

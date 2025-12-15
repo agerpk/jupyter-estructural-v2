@@ -150,32 +150,57 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
         import pandas as pd
-        
-        # Convertir resultados a DataFrames
-        resultados_conductor = calculo_guardado.get('resultados_conductor', {})
-        resultados_guardia = calculo_guardado.get('resultados_guardia', {})
-        
-        # Crear DataFrames
-        df_conductor = pd.DataFrame(resultados_conductor).T
-        df_guardia1 = pd.DataFrame(resultados_guardia).T
+        from utils.format_helpers import formatear_resultados_cmc, formatear_dataframe_cmc
         
         resultados_html = [
             dbc.Alert("Resultados cargados desde cálculo anterior", color="info", className="mb-3"),
             html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"),
-            
-            html.H5("Conductor"),
-            dbc.Table.from_dataframe(df_conductor, striped=True, bordered=True, hover=True, size="sm"),
-            
-            html.H5("Cable de Guardia 1", className="mt-4"),
-            dbc.Table.from_dataframe(df_guardia1, striped=True, bordered=True, hover=True, size="sm"),
         ]
+        
+        # Conductor
+        if calculo_guardado.get('resultados_conductor'):
+            res_fmt = formatear_resultados_cmc(calculo_guardado['resultados_conductor'])
+            df_conductor = pd.DataFrame(res_fmt).T
+            df_conductor = formatear_dataframe_cmc(df_conductor, calculo_guardado.get('estado_determinante_conductor'))
+            resultados_html.extend([
+                html.H5("Conductor"),
+                html.Div(dbc.Table.from_dataframe(df_conductor, striped=True, bordered=True, hover=True, size="sm"), className="table-responsive")
+            ])
+        
+        # Guardia 1
+        if calculo_guardado.get('resultados_guardia'):
+            res_fmt = formatear_resultados_cmc(calculo_guardado['resultados_guardia'])
+            df_guardia1 = pd.DataFrame(res_fmt).T
+            df_guardia1 = formatear_dataframe_cmc(df_guardia1, calculo_guardado.get('estado_determinante_guardia1'))
+            resultados_html.extend([
+                html.H5("Cable de Guardia 1", className="mt-4"),
+                html.Div(dbc.Table.from_dataframe(df_guardia1, striped=True, bordered=True, hover=True, size="sm"), className="table-responsive")
+            ])
+        
+        # Guardia 2
+        if calculo_guardado.get('resultados_guardia2'):
+            res_fmt = formatear_resultados_cmc(calculo_guardado['resultados_guardia2'])
+            df_guardia2 = pd.DataFrame(res_fmt).T
+            df_guardia2 = formatear_dataframe_cmc(df_guardia2, calculo_guardado.get('estado_determinante_guardia2'))
+            resultados_html.extend([
+                html.H5("Cable de Guardia 2", className="mt-4"),
+                html.Div(dbc.Table.from_dataframe(df_guardia2, striped=True, bordered=True, hover=True, size="sm"), className="table-responsive")
+            ])
         
         # Cargar tabla de cargas si existe
         if calculo_guardado.get('df_cargas_totales'):
             df_cargas = pd.DataFrame(calculo_guardado['df_cargas_totales'])
             resultados_html.extend([
                 html.H5("Lista Total de Cargas", className="mt-4"),
-                dbc.Table.from_dataframe(df_cargas, striped=True, bordered=True, hover=True, size="sm"),
+                html.Div(dbc.Table.from_dataframe(df_cargas, striped=True, bordered=True, hover=True, size="sm"), className="table-responsive")
+            ])
+        
+        # Output de consola
+        if calculo_guardado.get('console_output'):
+            resultados_html.extend([
+                html.Hr(className="mt-4"),
+                html.H5("Output de Cálculo", className="mb-2"),
+                html.Pre(calculo_guardado['console_output'], style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.75rem', 'maxHeight': '300px', 'overflowY': 'auto'})
             ])
         
         # Cargar imágenes si existen y hash coincide
@@ -189,7 +214,7 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual):
                     img_str = base64.b64encode(f.read()).decode()
                 resultados_html.extend([
                     html.H6("Conductor y Guardia", className="mt-3"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1000px'})
                 ])
             
             img_conductor = DATA_DIR / f"CMC_Conductor.{hash_params}.png"
@@ -198,7 +223,7 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual):
                     img_str = base64.b64encode(f.read()).decode()
                 resultados_html.extend([
                     html.H6("Solo Conductor", className="mt-3"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1000px'})
                 ])
             
             img_guardia = DATA_DIR / f"CMC_Guardia.{hash_params}.png"
@@ -207,7 +232,7 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual):
                     img_str = base64.b64encode(f.read()).decode()
                 resultados_html.extend([
                     html.H6("Solo Cable de Guardia", className="mt-3"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})
+                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1000px'})
                 ])
         
         return html.Div(resultados_html)
