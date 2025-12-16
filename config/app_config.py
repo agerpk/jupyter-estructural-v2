@@ -8,9 +8,11 @@ CABLES_PATH = DATA_DIR / "cables.json"
 ARCHIVO_ACTUAL = Path("actual.estructura.json")
 
 # Configuración de la aplicación
+import os
+
 APP_TITLE = "AGP - Análisis General de Postaciones"
-APP_PORT = 8050
-DEBUG_MODE = True
+APP_PORT = int(os.environ.get("PORT", 8050))
+DEBUG_MODE = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Tema visual
 THEME = {

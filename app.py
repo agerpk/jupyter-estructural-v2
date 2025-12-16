@@ -37,6 +37,7 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 app.title = APP_TITLE
+server = app.server  # Exponer el servidor Flask para Gunicorn
 
 # Aplicar estilos personalizados
 app.index_string = f'''

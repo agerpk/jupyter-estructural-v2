@@ -1,10 +1,12 @@
-@"
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+env/
+venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -20,41 +22,27 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# Jupyter Notebook
-.ipynb_checkpoints/
-*.ipynb_checkpoints
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Data files (opcional - comentar si quieres versionar)
+data/*.json
+data/*.png
+!data/cables.json
+!data/plantilla.estructura.json
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Entornos virtuales
-venv/
-env/
-.venv/
-env.bak/
-venv.bak/
-
-# Archivos de sistema
+# OS
 .DS_Store
 Thumbs.db
 
-
-# Configuración local
-config.py
-.env
-secrets.py
-
-# Outputs de notebooks (si los quieres ignorar)
-# Descomenta la siguiente línea si NO quieres versionar outputs
-# *.ipynb
-
-# Data folder - solo trackear .estructura.json y cables.json
-data/*
-!data/*.estructura.json
-!data/cables.json
-"@ | Out-File -FilePath .gitignore -Encoding UTF8
+# Logs
+*.log
