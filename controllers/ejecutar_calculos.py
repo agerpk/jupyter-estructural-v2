@@ -100,14 +100,16 @@ def ejecutar_calculo_sph(estructura_actual, state):
         sys.stdout = old_stdout
         
         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-        calculo_sph = {
-            'parametros': estructura_actual,
-            'hash_parametros': hashlib.md5(json.dumps(estructura_actual, sort_keys=True).encode()).hexdigest(),
-            'resultados': resultados_sph,
-            'desarrollo_texto': desarrollo_texto
-        }
-        CalculoCache.guardar_calculo_sph(nombre_estructura, calculo_sph)
         
-        return {"exito": True, "mensaje": "Cálculo SPH completado", "resultados": resultados_sph, "desarrollo_texto": desarrollo_texto}
+        # Remover objetos no serializables
+        resultados_serializables = resultados_sph.copy()
+        if 'geometria' in resultados_serializables:
+            del resultados_serializables['geometria']
+        if 'mecanica' in resultados_serializables:
+            del resultados_serializables['mecanica']
+        
+        CalculoCache.guardar_calculo_sph(nombre_estructura, estructura_actual, resultados_serializables, desarrollo_texto)
+        
+        return {"exito": True, "mensaje": "Cálculo SPH completado", "resultados": resultados_serializables, "desarrollo_texto": desarrollo_texto}
     except Exception as e:
         return {"exito": False, "mensaje": str(e)}

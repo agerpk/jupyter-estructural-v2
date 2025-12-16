@@ -21,25 +21,37 @@ class CalculoCache:
         return hashlib.md5(data_str.encode()).hexdigest()
     
     @staticmethod
-    def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None, resultados_guardia2=None, console_output=None, df_conductor_html=None, df_guardia1_html=None, df_guardia2_html=None):
+    def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None, fig_guardia2=None, resultados_guardia2=None, console_output=None, df_conductor_html=None, df_guardia1_html=None, df_guardia2_html=None):
         """Guarda resultados de Cálculo Mecánico de Cables"""
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
-        # Guardar imágenes (figuras Plotly)
+        # Guardar imágenes (figuras Plotly) - PNG + JSON
         imagenes_guardadas = []
-        for fig, nombre in [(fig_combinado, "Combinado"), (fig_conductor, "Conductor"), (fig_guardia, "Guardia")]:
+        figuras = [(fig_combinado, "Combinado"), (fig_conductor, "Conductor"), (fig_guardia, "Guardia")]
+        if fig_guardia2:
+            figuras.append((fig_guardia2, "Guardia2"))
+        
+        for fig, nombre in figuras:
             if fig:
+                # PNG para exportar
                 img_path = CACHE_DIR / f"CMC_{nombre}.{hash_params}.png"
                 try:
                     fig.write_image(str(img_path), width=1200, height=600)
+                except Exception as e:
+                    print(f"Advertencia: No se pudo guardar PNG {nombre}: {e}")
+                
+                # JSON para interactividad
+                json_path = CACHE_DIR / f"CMC_{nombre}.{hash_params}.json"
+                try:
+                    fig.write_json(str(json_path))
                     imagenes_guardadas.append(nombre)
                 except Exception as e:
-                    print(f"Advertencia: No se pudo guardar imagen {nombre}: {e}")
+                    print(f"Advertencia: No se pudo guardar JSON {nombre}: {e}")
         
         if imagenes_guardadas:
-            print(f"✅ Imágenes CMC guardadas: {', '.join(imagenes_guardadas)}")
+            print(f"✅ Gráficos CMC guardados (PNG+JSON): {', '.join(imagenes_guardadas)}")
         else:
-            print(f"Advertencia: No se pudieron guardar imágenes CMC")
+            print(f"Advertencia: No se pudieron guardar gráficos CMC")
         
         # Identificar estados determinantes (el de mayor porcentaje de rotura)
         estado_det_cond = max(resultados_conductor.items(), key=lambda x: x[1].get('porcentaje_rotura', 0))[0] if resultados_conductor else None
@@ -79,7 +91,7 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
-    def guardar_calculo_dge(nombre_estructura, estructura_data, dimensiones, nodes_key, fig_estructura, fig_cabezal, memoria_calculo=None):
+    def guardar_calculo_dge(nombre_estructura, estructura_data, dimensiones, nodes_key, fig_estructura, fig_cabezal, fig_nodos=None, memoria_calculo=None):
         """Guarda resultados de Diseño Geométrico de Estructura"""
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
@@ -92,6 +104,10 @@ class CalculoCache:
             if fig_cabezal:
                 img_path = CACHE_DIR / f"Cabezal.{hash_params}.png"
                 fig_cabezal.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
+            
+            if fig_nodos:
+                img_path = CACHE_DIR / f"Nodos.{hash_params}.png"
+                fig_nodos.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
         except Exception as e:
             print(f"Advertencia: No se pudieron guardar imágenes DGE: {e}")
         
@@ -102,6 +118,7 @@ class CalculoCache:
             "nodes_key": nodes_key,
             "imagen_estructura": f"Estructura.{hash_params}.png",
             "imagen_cabezal": f"Cabezal.{hash_params}.png",
+            "imagen_nodos": f"Nodos.{hash_params}.png" if fig_nodos else None,
             "memoria_calculo": memoria_calculo
         }
         

@@ -201,6 +201,13 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
                     state.calculo_mecanico.resultados_guardia1,
                     params["L_vano"]
                 )
+                # Generar gráfico para guardia2 si existe
+                if state.calculo_mecanico.resultados_guardia2:
+                    _, _, fig_guardia2 = crear_grafico_flechas(
+                        state.calculo_mecanico.resultados_conductor,
+                        state.calculo_mecanico.resultados_guardia2,
+                        params["L_vano"]
+                    )
             except:
                 pass
             
@@ -214,6 +221,7 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
                 fig_combinado,
                 fig_conductor,
                 fig_guardia1,
+                fig_guardia2,
                 resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
                 console_output=console_output
             )
@@ -445,6 +453,12 @@ def register_callbacks(app):
             )
             fig_cabezal = plt.gcf()
             
+            # Graficar nodos
+            estructura_graficos.graficar_nodos_coordenadas(
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+            )
+            fig_nodos = plt.gcf()
+            
             # Guardar en estado
             state.calculo_objetos.estructura_mecanica = estructura_mecanica
             state.calculo_objetos.estructura_graficos = estructura_graficos
@@ -577,6 +591,7 @@ def register_callbacks(app):
                 nodes_key,
                 fig_estructura,
                 fig_cabezal,
+                fig_nodos,
                 memoria_calculo
             )
             
@@ -600,6 +615,15 @@ def register_callbacks(app):
             if fig_cabezal:
                 buf = BytesIO()
                 fig_cabezal.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+                buf.seek(0)
+                img_str = base64.b64encode(buf.read()).decode()
+                output.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'}))
+            
+            output.append(html.H5("GRAFICO DE NODOS Y COORDENADAS", className="mb-2 mt-4"))
+            
+            if fig_nodos:
+                buf = BytesIO()
+                fig_nodos.savefig(buf, format='png', dpi=150, bbox_inches='tight')
                 buf.seek(0)
                 img_str = base64.b64encode(buf.read()).decode()
                 output.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'}))

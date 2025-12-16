@@ -179,8 +179,9 @@ def generar_seccion_dge(calculo_dge):
     hash_params = calculo_dge.get('hash_parametros')
     if hash_params:
         for nombre, titulo in [
-            (f"DGE_Estructura.{hash_params}.png", "Estructura Completa"),
-            (f"DGE_Cabezal.{hash_params}.png", "Detalle Cabezal")
+            (f"Estructura.{hash_params}.png", "Estructura Completa"),
+            (f"Cabezal.{hash_params}.png", "Detalle Cabezal"),
+            (f"Nodos.{hash_params}.png", "Nodos y Coordenadas")
         ]:
             img_str = ViewHelpers.cargar_imagen_base64(nombre)
             if img_str:

@@ -638,8 +638,8 @@ class EstructuraAEA_Geometria:
         )
         
         # NODOS DE CRUCE (poste-ménsula) - SOLO crear los necesarios
-        # Solo crear CROSS_H1 si hay conductores en h1a
-        if self.disposicion != "vertical" or h1a > 0:
+        # Solo crear CROSS_H1 si NO es horizontal simple
+        if not (self.disposicion == "horizontal" and self.terna == "Simple"):
             self.nodos["CROSS_H1"] = NodoEstructural("CROSS_H1", (0.0, 0.0, h1a), "cruce")
         
         # Crear CROSS_H2 si hay conductores en h2a y h2a > h1a

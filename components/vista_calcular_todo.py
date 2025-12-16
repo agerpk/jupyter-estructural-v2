@@ -16,7 +16,6 @@ def crear_placeholder(titulo):
 
 def generar_resultados_cmc_lista(calculo_guardado, estructura_actual):
     """Genera resultados CMC como lista (sin envolver en html.Div)"""
-    from dash import dcc
     import pandas as pd
     from utils.view_helpers import ViewHelpers
     from utils.calculo_cache import CalculoCache
@@ -63,31 +62,23 @@ def generar_resultados_cmc_lista(calculo_guardado, estructura_actual):
             
             fig_combinado_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Combinado.{hash_params}.json")
             if fig_combinado_dict:
-                resultados_html.extend([
-                    html.H6("Conductor y Guardia", className="mt-3"),
-                    dcc.Graph(figure=fig_combinado_dict, config={'displayModeBar': True})
-                ])
+                resultados_html.append(html.H6("Conductor y Guardia", className="mt-3"))
+                resultados_html.append(dcc.Graph(figure=fig_combinado_dict, config={'displayModeBar': True}))
             
             fig_conductor_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Conductor.{hash_params}.json")
             if fig_conductor_dict:
-                resultados_html.extend([
-                    html.H6("Solo Conductor", className="mt-3"),
-                    dcc.Graph(figure=fig_conductor_dict, config={'displayModeBar': True})
-                ])
+                resultados_html.append(html.H6("Solo Conductor", className="mt-3"))
+                resultados_html.append(dcc.Graph(figure=fig_conductor_dict, config={'displayModeBar': True}))
             
             fig_guardia_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Guardia.{hash_params}.json")
             if fig_guardia_dict:
-                resultados_html.extend([
-                    html.H6("Solo Cable de Guardia 1", className="mt-3"),
-                    dcc.Graph(figure=fig_guardia_dict, config={'displayModeBar': True})
-                ])
+                resultados_html.append(html.H6("Solo Cable de Guardia 1", className="mt-3"))
+                resultados_html.append(dcc.Graph(figure=fig_guardia_dict, config={'displayModeBar': True}))
             
             fig_guardia2_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Guardia2.{hash_params}.json")
             if fig_guardia2_dict:
-                resultados_html.extend([
-                    html.H6("Solo Cable de Guardia 2", className="mt-3"),
-                    dcc.Graph(figure=fig_guardia2_dict, config={'displayModeBar': True})
-                ])
+                resultados_html.append(html.H6("Solo Cable de Guardia 2", className="mt-3"))
+                resultados_html.append(dcc.Graph(figure=fig_guardia2_dict, config={'displayModeBar': True}))
         
         return resultados_html
     except Exception as e:

@@ -41,18 +41,84 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def ejecutar_calculo_completo(n_clicks, estructura_actual):
-        """Ejecuta todos los cálculos en secuencia"""
+        """Ejecuta todos los cálculos en secuencia reutilizando lógica de vistas"""
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
+        from dash import html
+        resultados = []
+        
         try:
-            from components.vista_calcular_todo import cargar_resultados_modulares
+            # 1. CMC
+            from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
+            from components.vista_calcular_todo import generar_resultados_cmc_lista
+            from utils.calculo_cache import CalculoCache
             
-            # Por ahora, solo cargar desde caché
-            # TODO: Implementar ejecución secuencial de cálculos
+            resultados.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
+            resultado_cmc = ejecutar_calculo_cmc_automatico(estructura_actual, state)
+            if resultado_cmc.get('exito'):
+                calculo_cmc = CalculoCache.cargar_calculo_cmc(estructura_actual.get('TITULO', 'estructura'))
+                if calculo_cmc:
+                    lista_cmc = generar_resultados_cmc_lista(calculo_cmc, estructura_actual)
+                    resultados.extend(lista_cmc)
+            else:
+                resultados.append(dbc.Alert(f"Error CMC: {resultado_cmc.get('mensaje')}", color="danger"))
+            
+            # 2. DGE
+            from controllers.geometria_controller import ejecutar_calculo_dge
+            from components.vista_diseno_geometrico import generar_resultados_dge
+            
+            resultados.append(html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"))
+            resultado_dge = ejecutar_calculo_dge(estructura_actual, state)
+            if resultado_dge.get('exito'):
+                calculo_dge = CalculoCache.cargar_calculo_dge(estructura_actual.get('TITULO', 'estructura'))
+                if calculo_dge:
+                    resultados.append(generar_resultados_dge(calculo_dge, estructura_actual))
+            else:
+                resultados.append(dbc.Alert(f"Error DGE: {resultado_dge.get('mensaje')}", color="danger"))
+            
+            # 3. DME
+            from controllers.ejecutar_calculos import ejecutar_calculo_dme
+            from components.vista_diseno_mecanico import generar_resultados_dme
+            
+            resultados.append(html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"))
+            resultado_dme = ejecutar_calculo_dme(estructura_actual, state)
+            if resultado_dme.get('exito'):
+                calculo_dme = CalculoCache.cargar_calculo_dme(estructura_actual.get('TITULO', 'estructura'))
+                if calculo_dme:
+                    resultados.append(generar_resultados_dme(calculo_dme, estructura_actual))
+            else:
+                resultados.append(dbc.Alert(f"Error DME: {resultado_dme.get('mensaje')}", color="danger"))
+            
+            # 4. Árboles
+            from controllers.ejecutar_calculos import ejecutar_calculo_arboles
+            from components.vista_arboles_carga import generar_resultados_arboles
+            
+            resultados.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
+            resultado_arboles = ejecutar_calculo_arboles(estructura_actual, state)
+            if resultado_arboles.get('exito'):
+                calculo_arboles = CalculoCache.cargar_calculo_arboles(estructura_actual.get('TITULO', 'estructura'))
+                if calculo_arboles:
+                    resultados.append(html.Div(generar_resultados_arboles(calculo_arboles, estructura_actual)))
+            else:
+                resultados.append(dbc.Alert(f"Error Árboles: {resultado_arboles.get('mensaje')}", color="danger"))
+            
+            # 5. SPH
+            from controllers.ejecutar_calculos import ejecutar_calculo_sph
+            from components.vista_seleccion_poste import _crear_area_resultados
+            
+            resultados.append(html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"))
+            resultado_sph = ejecutar_calculo_sph(estructura_actual, state)
+            if resultado_sph.get('exito'):
+                calculo_sph = CalculoCache.cargar_calculo_sph(estructura_actual.get('TITULO', 'estructura'))
+                if calculo_sph:
+                    resultados.append(html.Div(_crear_area_resultados(calculo_sph, estructura_actual)))
+            else:
+                resultados.append(dbc.Alert(f"Error SPH: {resultado_sph.get('mensaje')}", color="danger"))
+            
             return (
-                [dbc.Alert("Función en desarrollo. Use 'Cargar desde Cache' para ver resultados.", color="info")],
-                True, "Info", "Función en desarrollo", "info", "info"
+                resultados,
+                True, "Éxito", "Cálculo completo finalizado", "success", "success"
             )
             
         except Exception as e:

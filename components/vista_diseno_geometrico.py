@@ -115,6 +115,13 @@ def generar_resultados_dge(calculo_guardado, estructura_actual):
                     html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"),
                     html.Img(src=f'data:image/png;base64,{img_str_cabezal}', style={'width': '100%', 'maxWidth': '800px'})
                 ])
+            
+            img_str_nodos = ViewHelpers.cargar_imagen_base64(f"Nodos.{hash_params}.png")
+            if img_str_nodos:
+                output.extend([
+                    html.H5("GRAFICO DE NODOS Y COORDENADAS", className="mb-2 mt-4"),
+                    html.Img(src=f'data:image/png;base64,{img_str_nodos}', style={'width': '100%', 'maxWidth': '800px'})
+                ])
         
         # Agregar memoria de cálculo
         memoria_calculo = calculo_guardado.get('memoria_calculo')

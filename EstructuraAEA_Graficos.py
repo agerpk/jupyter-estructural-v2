@@ -914,3 +914,80 @@ class EstructuraAEA_Graficos:
         plt.subplots_adjust(left=0.08, right=0.98, top=0.92, bottom=0.12)
         
         print(f"✅ Diagrama de barras generado")
+    
+    def graficar_nodos_coordenadas(self, titulo_reemplazo=None):
+        """Grafica solo los nodos con lista de coordenadas"""
+        print(f"\n🎨 GENERANDO GRÁFICO DE NODOS Y COORDENADAS...")
+        
+        fig, ax = plt.subplots(figsize=(10, 12))
+        
+        tipo_estructura_titulo = titulo_reemplazo if titulo_reemplazo else self.geometria.tipo_estructura
+        
+        # Recolectar nodos del plano XZ (y ≈ 0)
+        nodos_xz = []
+        for nombre, coordenadas in self.geometria.nodes_key.items():
+            x, y, z = coordenadas
+            if abs(y) < 0.001:  # Solo plano XZ
+                nodos_xz.append((nombre, x, z))
+        
+        # Dibujar nodos
+        for nombre, x, z in nodos_xz:
+            if nombre.startswith(('C1', 'C2', 'C3')):
+                color = self.COLORES['conductor']
+            elif nombre.startswith('HG'):
+                color = self.COLORES['guardia']
+            elif 'BASE' in nombre:
+                color = self.COLORES['poste']
+            elif 'TOP' in nombre:
+                color = self.COLORES['poste']
+            else:
+                color = 'gray'
+            
+            ax.scatter(x, z, color=color, s=150, marker='o', edgecolors='white', linewidth=2, zorder=5)
+            ax.text(x + 0.2, z + 0.2, nombre, fontsize=8, ha='left', va='bottom')
+        
+        # Línea de terreno
+        ax.axhline(y=0, color=self.COLORES['terreno'], linewidth=3, alpha=0.7, label='Nivel del terreno')
+        
+        # Configurar ejes
+        x_coords = [x for _, x, _ in nodos_xz]
+        z_coords = [z for _, _, z in nodos_xz]
+        
+        if x_coords and z_coords:
+            x_range = max(x_coords) - min(x_coords) if len(x_coords) > 1 else 10
+            z_range = max(z_coords) - min(z_coords) if len(z_coords) > 1 else 15
+            max_range = max(x_range, z_range)
+            margin = max_range * 0.15
+            
+            x_center = (max(x_coords) + min(x_coords)) / 2
+            z_center = (max(z_coords) + min(z_coords)) / 2
+            
+            ax.set_xlim(x_center - max_range/2 - margin, x_center + max_range/2 + margin)
+            ax.set_ylim(-1, z_center + max_range/2 + margin)
+        
+        ax.set_xlabel('Distancia Horizontal X [m]', fontsize=11, fontweight='bold')
+        ax.set_ylabel('Altura Z [m]', fontsize=11, fontweight='bold')
+        ax.set_title(f'NODOS DE ESTRUCTURA - {tipo_estructura_titulo.upper()}', fontsize=12, fontweight='bold', pad=15)
+        ax.set_aspect('equal', adjustable='box')
+        
+        # Grilla cada 1 metro
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        ax.set_xticks(np.arange(np.floor(xlim[0]), np.ceil(xlim[1]) + 1, 1))
+        ax.set_yticks(np.arange(np.floor(ylim[0]), np.ceil(ylim[1]) + 1, 1))
+        ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+        
+        # Tabla de coordenadas en esquina inferior izquierda
+        nodos_xz_sorted = sorted(nodos_xz, key=lambda n: n[0])  # Ordenar por nombre
+        tabla_texto = "COORDENADAS (X, Z):\n" + "="*30 + "\n"
+        for nombre, x, z in nodos_xz_sorted:
+            tabla_texto += f"{nombre:12s} ({x:6.2f}, {z:6.2f})\n"
+        
+        ax.text(0.02, 0.02, tabla_texto, transform=ax.transAxes, fontsize=7,
+                bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
+                verticalalignment='bottom', fontfamily='monospace')
+        
+        plt.tight_layout()
+        plt.show()
+        
+        print(f"✅ Gráfico de nodos y coordenadas generado")

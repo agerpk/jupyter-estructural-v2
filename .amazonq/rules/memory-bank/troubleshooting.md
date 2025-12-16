@@ -2,6 +2,24 @@
 
 ## Common Issues and Solutions
 
+### Plotly Graphs Not Appearing When Loading from Cache
+
+**Problem**: Interactive Plotly graphs appear when calculated directly in a view, but disappear when loading from cache or executing from "Calcular Todo".
+
+**Root Cause**: Only PNG files were being saved with `fig.write_image()`, but JSON files are required for `dcc.Graph` to display interactive Plotly figures.
+
+**Solution**: Save BOTH formats when caching Plotly figures:
+```python
+# PNG for static export
+fig.write_image(str(png_path), width=1200, height=600)
+# JSON for interactive display
+fig.write_json(str(json_path))
+```
+
+**Key Learning**: Plotly figures require JSON format for interactivity in Dash. Always save both PNG (export) and JSON (display) when caching.
+
+---
+
 ### View Reloading After Calculation
 
 **Problem**: After clicking "Calcular" in CMC view, results appear briefly then the view reloads showing cached results instead of fresh ones.
@@ -119,6 +137,36 @@ When results show as "from cache" unexpectedly:
 2. Ensure cache loading doesn't verify vigencia when you want to preserve results
 3. Remove vigencia checks from navigation callbacks to always show cached results
 
+### Missing Function Arguments
+
+**Problem**: Function call fails with "missing required positional arguments" error.
+
+**Example**: `CalculoCache.guardar_calculo_sph()` called with single dict argument instead of separate parameters.
+
+**Solution**: Check function signature and pass arguments individually:
+```python
+# Wrong
+CalculoCache.guardar_calculo_sph(nombre, calculo_dict)
+
+# Correct
+CalculoCache.guardar_calculo_sph(nombre, parametros, resultados, desarrollo_texto)
+```
+
+**Key Learning**: Always verify function signatures when calling from different contexts (direct call vs. orchestrated call).
+
+---
+
+### Orchestrated Calculations
+
+**Pattern**: When implementing "Calcular Todo" or similar orchestration:
+1. Reuse existing calculation functions from individual controllers
+2. Reuse existing result generation functions from individual views
+3. Don't duplicate logic - call the same functions used in individual views
+4. Ensure all cache operations save complete data (including JSON for Plotly)
+5. Test that cached results display identically whether calculated individually or orchestrated
+
+**Anti-pattern**: Creating separate calculation logic for orchestrated workflows leads to inconsistencies.
+
 ---
 
 ## Performance Optimization
@@ -128,6 +176,22 @@ When results show as "from cache" unexpectedly:
 - Don't add Inputs that aren't related to the callback's purpose
 - Use `prevent_initial_call=True` liberally
 - Return `dash.no_update` when no update is needed
+
+### List Building for Dash Components
+
+**Problem**: Components not appearing when using `.extend([component1, component2])`.
+
+**Solution**: Use `.append()` for each component individually:
+```python
+# Preferred
+resultados.append(html.H6("Title"))
+resultados.append(dcc.Graph(figure=fig))
+
+# Avoid
+resultados.extend([html.H6("Title"), dcc.Graph(figure=fig)])
+```
+
+**Key Learning**: Individual `.append()` calls ensure proper component registration in Dash's component tree.
 
 ### Minimize File I/O in Callbacks
 
@@ -146,3 +210,26 @@ def guardar_async():
 
 threading.Thread(target=guardar_async, daemon=True).start()
 ```
+
+---
+
+## Lessons Learned
+
+### Dual Format Storage for Plotly
+
+**Context**: Implementing "Calcular Todo" feature that orchestrates multiple calculations.
+
+**Issue**: Plotly graphs appeared when calculated in individual views but not when executed from orchestrated workflow or loaded from cache.
+
+**Root Cause**: Cache system only saved PNG files (`fig.write_image()`), but Dash's `dcc.Graph` component requires JSON format to display interactive Plotly figures.
+
+**Resolution**:
+1. Modified `CalculoCache.guardar_calculo_cmc()` to save both PNG and JSON
+2. Added `fig.write_json()` call for each Plotly figure
+3. Updated `ejecutar_calculo_cmc_automatico()` to generate and pass all figure objects including `fig_guardia2`
+
+**Key Takeaway**: When caching Plotly figures for Dash applications:
+- PNG: For static export and documentation
+- JSON: For interactive display in `dcc.Graph` components
+- Both formats must be saved during the same cache operation
+- Missing JSON files cause graphs to silently fail to render

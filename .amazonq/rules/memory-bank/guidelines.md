@@ -359,10 +359,13 @@ threading.Thread(target=guardar_async, daemon=True).start()
 
 #### Interactive Graph Preservation
 - **Problem**: PNG loses interactivity (zoom, pan, hover, cursor data)
-- **Solution**: Save Plotly figure as JSON using `fig.write_json()`
-- **Loading**: Load JSON dict and create `dcc.Graph(figure=fig_dict)`
+- **Solution**: Save Plotly figure as BOTH PNG and JSON
+  - PNG: `fig.write_image()` for static export
+  - JSON: `fig.write_json()` for interactive display in Dash
+- **Loading**: Load JSON dict with `ViewHelpers.cargar_figura_plotly_json()` and create `dcc.Graph(figure=fig_dict)`
 - **Config**: Include `config={'displayModeBar': True}` for toolbar
 - **No wrappers**: Use `dcc.Graph` directly, avoid responsive containers
+- **CRITICAL**: Always save JSON when saving Plotly figures, otherwise graphs won't appear when loading from cache
 
 #### Encoding Handling
 - **Problem**: Spanish characters (°, á, é, etc.) cause UTF-8 decode errors
@@ -389,9 +392,12 @@ threading.Thread(target=guardar_async, daemon=True).start()
 
 ### Best Practices
 1. **Always save dual format** for Plotly: PNG (export) + JSON (interactivity)
+   - Use `fig.write_image()` AND `fig.write_json()` in same save operation
+   - JSON files are required for `dcc.Graph` to display interactive plots
 2. **Serialize DataFrames** as JSON, not as reconstructed dicts
 3. **Use ViewHelpers** for base64 loading, create components inline
 4. **Test encoding** with Spanish characters (°, á, ñ, etc.)
 5. **Preserve exact format** - no wrappers, no responsive containers
 6. **Background saving** - use threads to avoid blocking UI
 7. **Images in Dash** - use `cargar_imagen_base64()` + inline `html.Img()`, not helper wrappers
+8. **Plotly graphs in lists** - use `.append()` for each component separately, not `.extend([h6, graph])`
