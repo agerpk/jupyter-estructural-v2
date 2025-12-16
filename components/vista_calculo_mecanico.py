@@ -5,9 +5,9 @@ Vista para Cálculo Mecánico de Conductores
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd
-import base64
-from pathlib import Path
 from config.app_config import DATA_DIR
+from utils.view_helpers import ViewHelpers
+from utils.calculo_cache import CalculoCache
 
 
 def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
@@ -88,18 +88,26 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                     dbc.Col([
                         dbc.Label("H_PIQANTERIOR (m)"),
                         html.Small("Altura piquete anterior", className="text-muted d-block mb-2"),
-                        dcc.Slider(id="param-H_PIQANTERIOR", min=-5, max=5, step=0.05,
-                                  value=estructura_actual.get("H_PIQANTERIOR", 0.0),
-                                  marks={i*0.5: str(round(i*0.5, 1)) for i in range(-10, 11)},
-                                  tooltip={"placement": "bottom", "always_visible": True})
+                        dbc.Row([
+                            dbc.Col(dcc.Slider(id="slider-H_PIQANTERIOR", min=-15, max=15, step=0.05,
+                                              value=estructura_actual.get("H_PIQANTERIOR", 0.0),
+                                              marks={i*5: str(i*5) for i in range(-3, 4)},
+                                              tooltip={"placement": "bottom", "always_visible": True}), width=8),
+                            dbc.Col(dbc.Input(id="param-H_PIQANTERIOR", type="number", step=0.05,
+                                             value=estructura_actual.get("H_PIQANTERIOR", 0.0), size="sm"), width=4)
+                        ])
                     ], md=6),
                     dbc.Col([
                         dbc.Label("H_PIQPOSTERIOR (m)"),
                         html.Small("Altura piquete posterior - Visto en gráfico", className="text-muted d-block mb-2"),
-                        dcc.Slider(id="param-H_PIQPOSTERIOR", min=-5, max=5, step=0.05,
-                                  value=estructura_actual.get("H_PIQPOSTERIOR", 0.0),
-                                  marks={i*0.5: str(round(i*0.5, 1)) for i in range(-10, 11)},
-                                  tooltip={"placement": "bottom", "always_visible": True})
+                        dbc.Row([
+                            dbc.Col(dcc.Slider(id="slider-H_PIQPOSTERIOR", min=-15, max=15, step=0.05,
+                                              value=estructura_actual.get("H_PIQPOSTERIOR", 0.0),
+                                              marks={i*5: str(i*5) for i in range(-3, 4)},
+                                              tooltip={"placement": "bottom", "always_visible": True}), width=8),
+                            dbc.Col(dbc.Input(id="param-H_PIQPOSTERIOR", type="number", step=0.05,
+                                             value=estructura_actual.get("H_PIQPOSTERIOR", 0.0), size="sm"), width=4)
+                        ])
                     ], md=6),
                 ], className="mb-3"),
                 dbc.Row([
@@ -179,100 +187,98 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
 def generar_resultados_cmc(calculo_guardado, estructura_actual):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
-        import pandas as pd
         from utils.format_helpers import formatear_resultados_cmc, formatear_dataframe_cmc
-        from utils.calculo_cache import CalculoCache
         
         # Verificar vigencia
-        vigente, mensaje = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-        color_alerta = "success" if vigente else "warning"
-        texto_alerta = "✅ Resultados cargados desde cache (parámetros sin cambios)" if vigente else "⚠️ Resultados cargados desde cache - ATENCIÓN: Los parámetros han cambiado, recalcular para actualizar"
+        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
         
         resultados_html = [
-            dbc.Alert(texto_alerta, color=color_alerta, className="mb-3"),
+            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente),
             html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"),
         ]
         
-        # Conductor
-        if calculo_guardado.get('resultados_conductor'):
-            res_fmt = formatear_resultados_cmc(calculo_guardado['resultados_conductor'])
-            df_conductor = pd.DataFrame(res_fmt).T
-            df_conductor = formatear_dataframe_cmc(df_conductor, calculo_guardado.get('estado_determinante_conductor'))
+        # Conductor - guardar y cargar DataFrames completos
+        if calculo_guardado.get('df_conductor_html'):
+            df_conductor = pd.read_json(calculo_guardado['df_conductor_html'], orient='split').round(2)
             resultados_html.extend([
                 html.H5("Conductor"),
-                html.Div(dbc.Table.from_dataframe(df_conductor, striped=True, bordered=True, hover=True, size="sm"), className="table-responsive")
+                dbc.Table.from_dataframe(
+                    df_conductor,
+                    striped=True, bordered=True, hover=True, size="sm"
+                )
             ])
         
-        # Guardia 1
-        if calculo_guardado.get('resultados_guardia'):
-            res_fmt = formatear_resultados_cmc(calculo_guardado['resultados_guardia'])
-            df_guardia1 = pd.DataFrame(res_fmt).T
-            df_guardia1 = formatear_dataframe_cmc(df_guardia1, calculo_guardado.get('estado_determinante_guardia1'))
+        # Guardia 1 - guardar y cargar DataFrames completos
+        if calculo_guardado.get('df_guardia1_html'):
+            df_guardia1 = pd.read_json(calculo_guardado['df_guardia1_html'], orient='split').round(2)
             resultados_html.extend([
                 html.H5("Cable de Guardia 1", className="mt-4"),
-                html.Div(dbc.Table.from_dataframe(df_guardia1, striped=True, bordered=True, hover=True, size="sm"), className="table-responsive")
+                dbc.Table.from_dataframe(
+                    df_guardia1,
+                    striped=True, bordered=True, hover=True, size="sm"
+                )
             ])
         
-        # Guardia 2
-        if calculo_guardado.get('resultados_guardia2'):
-            res_fmt = formatear_resultados_cmc(calculo_guardado['resultados_guardia2'])
-            df_guardia2 = pd.DataFrame(res_fmt).T
-            df_guardia2 = formatear_dataframe_cmc(df_guardia2, calculo_guardado.get('estado_determinante_guardia2'))
+        # Guardia 2 - guardar y cargar DataFrames completos
+        if calculo_guardado.get('df_guardia2_html'):
+            df_guardia2 = pd.read_json(calculo_guardado['df_guardia2_html'], orient='split').round(2)
             resultados_html.extend([
                 html.H5("Cable de Guardia 2", className="mt-4"),
-                html.Div(dbc.Table.from_dataframe(df_guardia2, striped=True, bordered=True, hover=True, size="sm"), className="table-responsive")
+                dbc.Table.from_dataframe(
+                    df_guardia2,
+                    striped=True, bordered=True, hover=True, size="sm"
+                )
             ])
         
         # Cargar tabla de cargas si existe
         if calculo_guardado.get('df_cargas_totales'):
             df_cargas = pd.DataFrame(calculo_guardado['df_cargas_totales'])
-            resultados_html.extend([
-                html.H5("Lista Total de Cargas", className="mt-4"),
-                html.Div(dbc.Table.from_dataframe(df_cargas, striped=True, bordered=True, hover=True, size="sm"), className="table-responsive")
-            ])
+            resultados_html.extend(
+                ViewHelpers.crear_tabla_desde_dataframe(df_cargas, "Lista Total de Cargas", responsive=True)
+            )
         
         # Output de consola
         if calculo_guardado.get('console_output'):
-            resultados_html.extend([
-                html.Hr(className="mt-4"),
-                html.H5("Output de Cálculo", className="mb-2"),
-                html.Pre(calculo_guardado['console_output'], style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.75rem', 'maxHeight': '300px', 'overflowY': 'auto'})
-            ])
+            resultados_html.append(html.Hr(className="mt-4"))
+            resultados_html.extend(
+                ViewHelpers.crear_pre_output(
+                    calculo_guardado['console_output'],
+                    titulo="Output de Cálculo",
+                    font_size='0.75rem'
+                )
+            )
         
-        # Cargar imágenes si existen y hash coincide
+        # Cargar gráficos interactivos (replicar formato original)
         hash_params = calculo_guardado.get('hash_parametros')
         if hash_params:
             resultados_html.append(html.H5("Gráficos de Flechas", className="mt-4"))
             
-            img_combinado = DATA_DIR / f"CMC_Combinado.{hash_params}.png"
-            if img_combinado.exists():
-                with open(img_combinado, 'rb') as f:
-                    img_str = base64.b64encode(f.read()).decode()
+            # Cargar JSON y crear dcc.Graph igual que cuando se genera
+            fig_combinado_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Combinado.{hash_params}.json")
+            if fig_combinado_dict:
                 resultados_html.extend([
                     html.H6("Conductor y Guardia", className="mt-3"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1000px'})
+                    dcc.Graph(figure=fig_combinado_dict, config={'displayModeBar': True})
                 ])
             
-            img_conductor = DATA_DIR / f"CMC_Conductor.{hash_params}.png"
-            if img_conductor.exists():
-                with open(img_conductor, 'rb') as f:
-                    img_str = base64.b64encode(f.read()).decode()
+            fig_conductor_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Conductor.{hash_params}.json")
+            if fig_conductor_dict:
                 resultados_html.extend([
                     html.H6("Solo Conductor", className="mt-3"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1000px'})
+                    dcc.Graph(figure=fig_conductor_dict, config={'displayModeBar': True})
                 ])
             
-            img_guardia = DATA_DIR / f"CMC_Guardia.{hash_params}.png"
-            if img_guardia.exists():
-                with open(img_guardia, 'rb') as f:
-                    img_str = base64.b64encode(f.read()).decode()
+            fig_guardia_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Guardia.{hash_params}.json")
+            if fig_guardia_dict:
                 resultados_html.extend([
-                    html.H6("Solo Cable de Guardia", className="mt-3"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1000px'})
+                    html.H6("Solo Cable de Guardia 1", className="mt-3"),
+                    dcc.Graph(figure=fig_guardia_dict, config={'displayModeBar': True})
                 ])
         
         return html.Div(resultados_html)
     except Exception as e:
+        import traceback
+        print(f"Error en generar_resultados_cmc: {traceback.format_exc()}")
         return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")
 
 

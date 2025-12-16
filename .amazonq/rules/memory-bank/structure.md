@@ -44,7 +44,8 @@ Helper modules for specific tasks:
 - `plot_flechas.py` - Cable sag plotting
 - `format_helpers.py` - Data formatting utilities
 - `validaciones.py` - Input validation functions
-- `calculo_cache.py` - Calculation result caching
+- `calculo_cache.py` - Calculation result caching (JSON persistence with MD5 hashing)
+- `view_helpers.py` - Centralized helpers for loading/saving cache data in views
 
 ### `/views/` - View Layer
 - `main_layout.py` - Main application layout definition
@@ -127,6 +128,9 @@ User Input → Controllers → AppState → Core Modules → Results (JSON) → 
 - Load hypotheses defined declaratively
 
 ### Caching Strategy
-- Calculation results cached to avoid redundant computations
+- Calculation results cached to avoid redundant computations (JSON + images)
 - State persistence enables session recovery
 - Incremental recalculation when parameters change
+- Dual format storage: PNG for static export, JSON for interactive Plotly graphs
+- DataFrames serialized as JSON (orient='split') to preserve exact formatting
+- Multi-encoding support (utf-8, latin-1, cp1252) for Spanish characters

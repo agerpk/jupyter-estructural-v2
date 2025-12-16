@@ -159,20 +159,19 @@ def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
             marks={i*0.2: str(round(i*0.2, 1)) for i in range(6)},
             tooltip={"placement": "bottom", "always_visible": True}
         )
-    elif nombre in ["H_PIQANTERIOR", "H_PIQPOSTERIOR"]:
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=-5, max=5, step=0.05, value=valor,
-            marks={i*0.5: str(round(i*0.5, 1)) for i in range(-10, 11)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre in ["H_PIQANTERIOR_CMC", "H_PIQPOSTERIOR_CMC"]:
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=-5, max=5, step=0.05, value=valor,
-            marks={i*0.5: str(round(i*0.5, 1)) for i in range(-10, 11)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
+    elif nombre in ["H_PIQANTERIOR", "H_PIQPOSTERIOR", "H_PIQANTERIOR_CMC", "H_PIQPOSTERIOR_CMC"]:
+        input_comp = dbc.Row([
+            dbc.Col(dcc.Slider(
+                id={"type": "param-slider", "index": nombre},
+                min=-15, max=15, step=0.05, value=valor,
+                marks={i*5: str(i*5) for i in range(-3, 4)},
+                tooltip={"placement": "bottom", "always_visible": True}
+            ), width=8),
+            dbc.Col(dbc.Input(
+                id={"type": "param-input", "index": nombre},
+                type="number", value=valor, step=0.05, size="sm"
+            ), width=4)
+        ])
     elif opciones:
         input_comp = dbc.Select(
             id={"type": "param-input", "index": nombre},

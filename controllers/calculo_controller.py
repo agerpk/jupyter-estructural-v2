@@ -302,20 +302,25 @@ def register_callbacks(app):
             sys.stdout = old_stdout
             
             if resultado["exito"]:
+                # Guardar DataFrames para caché
+                df_conductor_cache = resultado["df_conductor"]
+                df_guardia1_cache = resultado["df_guardia1"]
+                df_guardia2_cache = resultado.get("df_guardia2")
+                
                 resultados_html = [
                     html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"),
                     
                     html.H5("Conductor"),
-                    dbc.Table.from_dataframe(resultado["df_conductor"], striped=True, bordered=True, hover=True, size="sm"),
+                    dbc.Table.from_dataframe(df_conductor_cache, striped=True, bordered=True, hover=True, size="sm"),
                     
                     html.H5("Cable de Guardia 1", className="mt-4"),
-                    dbc.Table.from_dataframe(resultado["df_guardia1"], striped=True, bordered=True, hover=True, size="sm"),
+                    dbc.Table.from_dataframe(df_guardia1_cache, striped=True, bordered=True, hover=True, size="sm"),
                 ]
                 
-                if resultado.get("df_guardia2") is not None:
+                if df_guardia2_cache is not None:
                     resultados_html.extend([
                         html.H5("Cable de Guardia 2", className="mt-4"),
-                        dbc.Table.from_dataframe(resultado["df_guardia2"], striped=True, bordered=True, hover=True, size="sm"),
+                        dbc.Table.from_dataframe(df_guardia2_cache, striped=True, bordered=True, hover=True, size="sm"),
                     ])
                 
                 if resultado["df_cargas_totales"] is not None:
@@ -361,13 +366,15 @@ def register_callbacks(app):
                                 dcc.Graph(figure=fig_guardia2, config={'displayModeBar': True})
                             ])
                         
-                        # Guardar imágenes en background sin bloquear
+                        # Guardar imágenes y JSON en background sin bloquear
                         from utils.calculo_cache import CalculoCache
+                        from utils.view_helpers import ViewHelpers
                         import threading
                         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                         
                         def guardar_async():
-                            CalculoCache.guardar_calculo_cmc(
+                            # Guardar datos en cache con DataFrames completos
+                            hash_params = CalculoCache.guardar_calculo_cmc(
                                 nombre_estructura, 
                                 estructura_actual, 
                                 state.calculo_mecanico.resultados_conductor,
@@ -377,8 +384,18 @@ def register_callbacks(app):
                                 fig_conductor,
                                 fig_guardia1,
                                 resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
-                                console_output=console_output
+                                console_output=console_output,
+                                df_conductor_html=df_conductor_cache.to_json(orient='split'),
+                                df_guardia1_html=df_guardia1_cache.to_json(orient='split'),
+                                df_guardia2_html=df_guardia2_cache.to_json(orient='split') if df_guardia2_cache is not None else None
                             )
+                            
+                            # Guardar JSON interactivos
+                            ViewHelpers.guardar_figura_plotly_json(fig_combinado, f"CMC_Combinado.{hash_params}.json")
+                            ViewHelpers.guardar_figura_plotly_json(fig_conductor, f"CMC_Conductor.{hash_params}.json")
+                            ViewHelpers.guardar_figura_plotly_json(fig_guardia1, f"CMC_Guardia.{hash_params}.json")
+                            if fig_guardia2:
+                                ViewHelpers.guardar_figura_plotly_json(fig_guardia2, f"CMC_Guardia2.{hash_params}.json")
                         
                         threading.Thread(target=guardar_async, daemon=True).start()
                     except Exception as e:

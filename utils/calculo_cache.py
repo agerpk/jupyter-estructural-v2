@@ -19,7 +19,7 @@ class CalculoCache:
         return hashlib.md5(data_str.encode()).hexdigest()
     
     @staticmethod
-    def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None, resultados_guardia2=None, console_output=None):
+    def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None, resultados_guardia2=None, console_output=None, df_conductor_html=None, df_guardia1_html=None, df_guardia2_html=None):
         """Guarda resultados de Cálculo Mecánico de Cables"""
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
@@ -54,6 +54,9 @@ class CalculoCache:
             "estado_determinante_guardia1": estado_det_guard,
             "estado_determinante_guardia2": estado_det_guard2,
             "df_cargas_totales": df_cargas_totales.to_dict() if df_cargas_totales is not None else None,
+            "df_conductor_html": df_conductor_html,
+            "df_guardia1_html": df_guardia1_html,
+            "df_guardia2_html": df_guardia2_html,
             "imagen_combinado": f"CMC_Combinado.{hash_params}.png" if fig_combinado else None,
             "imagen_conductor": f"CMC_Conductor.{hash_params}.png" if fig_conductor else None,
             "imagen_guardia": f"CMC_Guardia.{hash_params}.png" if fig_guardia else None,
