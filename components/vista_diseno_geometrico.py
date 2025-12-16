@@ -2,9 +2,9 @@
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-import base64
-from pathlib import Path
 from config.app_config import DATA_DIR
+from utils.view_helpers import ViewHelpers
+from utils.calculo_cache import CalculoCache
 
 
 def generar_resultados_dge(calculo_guardado, estructura_actual):
@@ -86,68 +86,46 @@ def generar_resultados_dge(calculo_guardado, estructura_actual):
             f"Altura base eléctrica: {altura_base_electrica:.3f} m"
         )
         
+        # Verificar vigencia
+        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+        
         output = [
-            dbc.Alert("Resultados cargados desde cálculo anterior", color="info", className="mb-3"),
-            dbc.Alert("GEOMETRIA COMPLETADA: {} nodos creados".format(len(nodes_key)), color="success", className="mb-3"),
-            
-            html.H5("PARAMETROS DE DISEÑO", className="mb-2 mt-4"),
-            html.Pre(params_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
-            
-            html.H5("DIMENSIONES DE ESTRUCTURA", className="mb-2 mt-4"),
-            html.Pre(dims_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
-            
-            html.H5("NODOS ESTRUCTURALES ({} nodos)".format(len(nodes_key)), className="mb-2 mt-4"),
-            html.Pre(nodos_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.85rem"}),
-            
-            html.H5("PARAMETROS DIMENSIONANTES", className="mb-2 mt-4"),
-            html.Pre(param_dim_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"}),
-            
-            html.H5("DISTANCIAS", className="mb-2 mt-4"),
-            html.Pre(dist_txt, style={"backgroundColor": "#1e1e1e", "color": "#d4d4d4", "padding": "10px", "borderRadius": "5px", "fontSize": "0.9rem"})
+            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente),
+            dbc.Alert("GEOMETRIA COMPLETADA: {} nodos creados".format(len(nodes_key)), color="success", className="mb-3")
         ]
+        
+        output.extend(ViewHelpers.crear_pre_output(params_txt, "PARAMETROS DE DISEÑO"))
+        output.extend(ViewHelpers.crear_pre_output(dims_txt, "DIMENSIONES DE ESTRUCTURA"))
+        output.extend(ViewHelpers.crear_pre_output(nodos_txt, f"NODOS ESTRUCTURALES ({len(nodes_key)} nodos)", max_height='400px'))
+        output.extend(ViewHelpers.crear_pre_output(param_dim_txt, "PARAMETROS DIMENSIONANTES"))
+        output.extend(ViewHelpers.crear_pre_output(dist_txt, "DISTANCIAS"))
         
         # Cargar imágenes
         if hash_params:
-            img_estructura = DATA_DIR / f"Estructura.{hash_params}.png"
-            if img_estructura.exists():
-                with open(img_estructura, 'rb') as f:
-                    img_str = base64.b64encode(f.read()).decode()
+            img_str_estructura = ViewHelpers.cargar_imagen_base64(f"Estructura.{hash_params}.png")
+            if img_str_estructura:
                 output.extend([
                     html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
+                    html.Img(src=f'data:image/png;base64,{img_str_estructura}', style={'width': '100%', 'maxWidth': '800px'})
                 ])
             
-            img_cabezal = DATA_DIR / f"Cabezal.{hash_params}.png"
-            if img_cabezal.exists():
-                with open(img_cabezal, 'rb') as f:
-                    img_str = base64.b64encode(f.read()).decode()
+            img_str_cabezal = ViewHelpers.cargar_imagen_base64(f"Cabezal.{hash_params}.png")
+            if img_str_cabezal:
                 output.extend([
                     html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
+                    html.Img(src=f'data:image/png;base64,{img_str_cabezal}', style={'width': '100%', 'maxWidth': '800px'})
                 ])
         
         # Agregar memoria de cálculo
         memoria_calculo = calculo_guardado.get('memoria_calculo')
         if memoria_calculo:
-            output.extend([
-                html.Hr(className="mt-5"),
-                dbc.Card([
-                    dbc.CardHeader(html.H5("Memoria de Cálculo: Diseño Geométrico de Estructura", className="mb-0")),
-                    dbc.CardBody([
-                        html.Pre(memoria_calculo, style={
-                            "backgroundColor": "#1e1e1e",
-                            "color": "#d4d4d4",
-                            "padding": "15px",
-                            "borderRadius": "5px",
-                            "fontSize": "0.85rem",
-                            "fontFamily": "'Courier New', monospace",
-                            "overflowX": "auto",
-                            "whiteSpace": "pre"
-                        })
-                    ])
-                ], className="mt-3")
-            ])
+            output.append(html.Hr(className="mt-5"))
+            output.append(dbc.Card([
+                dbc.CardHeader(html.H5("Memoria de Cálculo: Diseño Geométrico de Estructura", className="mb-0")),
+                dbc.CardBody(ViewHelpers.crear_pre_output(memoria_calculo, max_height='600px', font_size='0.85rem'))
+            ], className="mt-3"))
         
+        print(f"DEBUG: Retornando Div con {len(output)} elementos")
         return html.Div(output)
     except Exception as e:
         return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")

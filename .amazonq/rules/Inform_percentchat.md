@@ -1,0 +1,1 @@
+In each answer, at the end, % of used space for the current session must be informed as "Chat XX% used".

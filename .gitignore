@@ -27,20 +27,12 @@ wheels/
 .ipynb_checkpoints
 *.ipynb
 
-# Data files - solo excluir cálculos y diagramas
-data/*.calculoCMC.json
-data/*.calculoDGE.json
-data/*.calculoDME.json
-data/*.calculoSPH.json
-data/*.calculoARBOLES.json
-data/*.calculoTODO.json
-data/*.arbolcarga.*.png
+# Cache - ignorar todo el directorio
+data/cache/
+
+# Data files - solo excluir archivos temporales
 data/*.hipotesismaestro.json
 data/navegacion_state.json
-data/Cabezal.*.png
-data/CMC_*.png
-data/DME_*.png
-data/Estructura.*.png
 
 # IDE
 .vscode/

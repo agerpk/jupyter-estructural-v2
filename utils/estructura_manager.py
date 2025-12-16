@@ -91,3 +91,17 @@ class EstructuraManager:
             estructura["TITULO"] = f"Nueva_Estructura_{timestamp}"
         
         return estructura
+    
+    def actualizar_parametros(self, parametros: Dict[str, Any]):
+        """Actualizar parámetros de estructura actual y guardar en ambos archivos"""
+        ruta_actual = self.data_dir / "actual.estructura.json"
+        estructura = self.cargar_estructura(ruta_actual)
+        estructura.update(parametros)
+        
+        # Guardar en archivo con nombre de título
+        titulo = estructura.get("TITULO", "estructura")
+        nombre_archivo = f"{titulo}.estructura.json"
+        ruta_titulo = self.data_dir / nombre_archivo
+        
+        self.guardar_estructura(estructura, ruta_titulo)
+        self.guardar_estructura(estructura, ruta_actual)

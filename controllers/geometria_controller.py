@@ -580,33 +580,29 @@ def register_callbacks(app):
                 memoria_calculo
             )
             
-            # Agregar gráficos - convertir matplotlib a plotly
-            from dash import dcc
-            import plotly.graph_objects as go
+            # Agregar gráficos usando base64 directo
             from io import BytesIO
             import base64
             
+            output.extend([
+                html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"),
+            ])
+            
             if fig_estructura:
-                # Convertir figura matplotlib a imagen
                 buf = BytesIO()
                 fig_estructura.savefig(buf, format='png', dpi=150, bbox_inches='tight')
                 buf.seek(0)
                 img_str = base64.b64encode(buf.read()).decode()
-                output.extend([
-                    html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
-                ])
+                output.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'}))
+            
+            output.append(html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"))
             
             if fig_cabezal:
-                # Convertir figura matplotlib a imagen
                 buf = BytesIO()
                 fig_cabezal.savefig(buf, format='png', dpi=150, bbox_inches='tight')
                 buf.seek(0)
                 img_str = base64.b64encode(buf.read()).decode()
-                output.extend([
-                    html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'})
-                ])
+                output.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'}))
             
             # Agregar memoria de cálculo
             output.extend([

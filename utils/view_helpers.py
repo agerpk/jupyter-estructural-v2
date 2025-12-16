@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from config.app_config import DATA_DIR
+from config.app_config import CACHE_DIR
 
 
 class ViewHelpers:
@@ -23,14 +23,18 @@ class ViewHelpers:
         Returns:
             String base64 o None si no existe
         """
-        img_path = DATA_DIR / nombre_archivo
+        img_path = CACHE_DIR / nombre_archivo
+        print(f"Buscando imagen: {img_path}")
         if not img_path.exists():
+            print(f"❌ Imagen no encontrada: {img_path}")
             return None
         
         try:
             with open(img_path, 'rb') as f:
+                print(f"✅ Imagen cargada: {nombre_archivo}")
                 return base64.b64encode(f.read()).decode()
-        except Exception:
+        except Exception as e:
+            print(f"❌ Error cargando imagen: {e}")
             return None
     
     @staticmethod
@@ -47,11 +51,13 @@ class ViewHelpers:
         """
         img_str = ViewHelpers.cargar_imagen_base64(nombre_archivo)
         if not img_str:
+            print(f"⚠️ No se pudo crear componente para: {nombre_archivo}")
             return None
         
         default_style = {'width': '100%', 'maxWidth': '1000px'}
         final_style = {**default_style, **(style or {})}
         
+        print(f"✅ Componente creado para: {nombre_archivo}")
         return html.Img(
             src=f'data:image/png;base64,{img_str}',
             style=final_style,
@@ -102,7 +108,7 @@ class ViewHelpers:
         if not fig:
             return False
         
-        img_path = DATA_DIR / nombre_archivo
+        img_path = CACHE_DIR / nombre_archivo
         try:
             fig.write_image(str(img_path), width=width, height=height)
             return True
@@ -125,7 +131,7 @@ class ViewHelpers:
             print(f"Advertencia: Figura vacía para {nombre_archivo}")
             return False
         
-        json_path = DATA_DIR / nombre_archivo
+        json_path = CACHE_DIR / nombre_archivo
         try:
             # Usar write_json con encoding explícito
             fig.write_json(str(json_path), pretty=False, engine='json')
@@ -147,7 +153,7 @@ class ViewHelpers:
         Returns:
             Dict con figura Plotly o None si no existe
         """
-        json_path = DATA_DIR / nombre_archivo
+        json_path = CACHE_DIR / nombre_archivo
         if not json_path.exists():
             print(f"⚠️ JSON no encontrado: {nombre_archivo}")
             return None
@@ -224,7 +230,7 @@ class ViewHelpers:
         if not fig:
             return False
         
-        img_path = DATA_DIR / nombre_archivo
+        img_path = CACHE_DIR / nombre_archivo
         try:
             fig.savefig(str(img_path), format='png', dpi=dpi, bbox_inches=bbox_inches)
             return True

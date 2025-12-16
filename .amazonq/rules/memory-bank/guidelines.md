@@ -245,9 +245,11 @@ Frequency: Medium for configuration
 
 ### Cache Storage (calculo_cache.py)
 - **Static class**: `CalculoCache` manages all persistence
-- **Hashing**: MD5 hash of structure parameters for validity checking
+- **Location**: All cache files stored in `data/cache/` directory
+- **Hashing**: MD5 hash of structure parameters (excludes `fecha_creacion`, `fecha_modificacion`, `version`)
 - **File naming**: `{nombre}.{tipo_calculo}.json` (e.g., `proyecto.calculoCMC.json`)
 - **Image naming**: `{tipo}_{nombre}.{hash}.png` or `.json` for Plotly
+- **Git ignore**: Entire `data/cache/` directory ignored
 
 ### Cache Types
 1. **CMC** - Cable Mechanical Calculations
@@ -373,6 +375,12 @@ threading.Thread(target=guardar_async, daemon=True).start()
 - **Solution**: Remove wrapper, use `dbc.Table.from_dataframe()` directly
 - **Responsive**: Only use for tables that need horizontal scrolling
 
+#### Image Rendering in Dash
+- **Problem**: `ViewHelpers.crear_img_component()` creates components but Dash doesn't render them
+- **Solution**: Use `cargar_imagen_base64()` directly and create `html.Img()` inline
+- **Pattern**: `img_str = ViewHelpers.cargar_imagen_base64(filename)` then `html.Img(src=f'data:image/png;base64,{img_str}')`
+- **Don't use**: Helper methods that wrap `html.Img` - create components directly in view
+
 ### Cache Validity Checking
 - **CMC behavior**: Shows warning if parameters changed, but keeps old results
 - **Other views**: Discard cache if parameters changed, force recalculation
@@ -382,8 +390,8 @@ threading.Thread(target=guardar_async, daemon=True).start()
 ### Best Practices
 1. **Always save dual format** for Plotly: PNG (export) + JSON (interactivity)
 2. **Serialize DataFrames** as JSON, not as reconstructed dicts
-3. **Use ViewHelpers** for all cache operations to avoid duplication
+3. **Use ViewHelpers** for base64 loading, create components inline
 4. **Test encoding** with Spanish characters (°, á, ñ, etc.)
 5. **Preserve exact format** - no wrappers, no responsive containers
 6. **Background saving** - use threads to avoid blocking UI
-7. **Graceful degradation** - fallback to PNG if JSON fails
+7. **Images in Dash** - use `cargar_imagen_base64()` + inline `html.Img()`, not helper wrappers

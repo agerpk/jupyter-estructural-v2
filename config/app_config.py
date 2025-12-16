@@ -4,8 +4,12 @@ from pathlib import Path
 
 # Directorios
 DATA_DIR = Path("data")
+CACHE_DIR = DATA_DIR / "cache"
 CABLES_PATH = DATA_DIR / "cables.json"
 ARCHIVO_ACTUAL = Path("actual.estructura.json")
+
+# Crear directorio de cache si no existe
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configuración de la aplicación
 import os

@@ -33,13 +33,13 @@
   "PRIORIDAD_DIMENSIONADO": "altura_libre",
   "TENSION": 220,
   "Zona_estructura": "Rural",
-  "Lk": 2.5,
+  "Lk": 3,
   "ANG_APANTALLAMIENTO": 30,
   "AJUSTAR_POR_ALTURA_MSNM": true,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
   "Altura_MSNM": 3000,
-  "DISPOSICION": "triangular",
-  "TERNA": "Doble",
+  "DISPOSICION": "horizontal",
+  "TERNA": "Simple",
   "CANT_HG": 2,
   "HG_CENTRADO": false,
   "ALTURA_MINIMA_CABLE": 6.5,
@@ -64,5 +64,5 @@
   "Vn": 220,
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-09T10:57:54.302113"
+  "fecha_modificacion": "2025-12-16T11:31:17.305065"
 }

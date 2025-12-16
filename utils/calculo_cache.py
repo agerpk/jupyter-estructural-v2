@@ -4,7 +4,7 @@ import json
 import hashlib
 from pathlib import Path
 from datetime import datetime
-from config.app_config import DATA_DIR
+from config.app_config import CACHE_DIR
 import glob
 
 
@@ -13,9 +13,11 @@ class CalculoCache:
     
     @staticmethod
     def calcular_hash(estructura_data):
-        """Calcula hash MD5 de los parámetros de estructura"""
-        # Serializar datos y calcular hash
-        data_str = json.dumps(estructura_data, sort_keys=True)
+        """Calcula hash MD5 de los parámetros de estructura relevantes para cálculos"""
+        # Excluir campos que no afectan cálculos
+        params_relevantes = {k: v for k, v in estructura_data.items() 
+                            if k not in ['fecha_creacion', 'fecha_modificacion', 'version']}
+        data_str = json.dumps(params_relevantes, sort_keys=True)
         return hashlib.md5(data_str.encode()).hexdigest()
     
     @staticmethod
@@ -27,7 +29,7 @@ class CalculoCache:
         imagenes_guardadas = []
         for fig, nombre in [(fig_combinado, "Combinado"), (fig_conductor, "Conductor"), (fig_guardia, "Guardia")]:
             if fig:
-                img_path = DATA_DIR / f"CMC_{nombre}.{hash_params}.png"
+                img_path = CACHE_DIR / f"CMC_{nombre}.{hash_params}.png"
                 try:
                     fig.write_image(str(img_path), width=1200, height=600)
                     imagenes_guardadas.append(nombre)
@@ -63,14 +65,14 @@ class CalculoCache:
             "console_output": console_output
         }
         
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoCMC.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoCMC.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
         return hash_params
     
     @staticmethod
     def cargar_calculo_cmc(nombre_estructura):
         """Carga resultados de Cálculo Mecánico de Cables"""
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoCMC.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoCMC.json"
         if not archivo.exists():
             return None
         
@@ -84,11 +86,11 @@ class CalculoCache:
         # Guardar imágenes (figuras matplotlib)
         try:
             if fig_estructura:
-                img_path = DATA_DIR / f"Estructura.{hash_params}.png"
+                img_path = CACHE_DIR / f"Estructura.{hash_params}.png"
                 fig_estructura.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
             
             if fig_cabezal:
-                img_path = DATA_DIR / f"Cabezal.{hash_params}.png"
+                img_path = CACHE_DIR / f"Cabezal.{hash_params}.png"
                 fig_cabezal.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
         except Exception as e:
             print(f"Advertencia: No se pudieron guardar imágenes DGE: {e}")
@@ -103,14 +105,14 @@ class CalculoCache:
             "memoria_calculo": memoria_calculo
         }
         
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoDGE.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoDGE.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
         return hash_params
     
     @staticmethod
     def cargar_calculo_dge(nombre_estructura):
         """Carga resultados de Diseño Geométrico de Estructura"""
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoDGE.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoDGE.json"
         if not archivo.exists():
             return None
         
@@ -124,11 +126,11 @@ class CalculoCache:
         # Guardar imágenes (figuras matplotlib)
         try:
             if fig_polar:
-                img_path = DATA_DIR / f"DME_Polar.{hash_params}.png"
+                img_path = CACHE_DIR / f"DME_Polar.{hash_params}.png"
                 fig_polar.savefig(str(img_path), format='png', dpi=100)
             
             if fig_barras:
-                img_path = DATA_DIR / f"DME_Barras.{hash_params}.png"
+                img_path = CACHE_DIR / f"DME_Barras.{hash_params}.png"
                 fig_barras.savefig(str(img_path), format='png', dpi=100)
         except Exception as e:
             print(f"Advertencia: No se pudieron guardar imágenes DME: {e}")
@@ -141,14 +143,14 @@ class CalculoCache:
             "imagen_barras": f"DME_Barras.{hash_params}.png" if fig_barras else None
         }
         
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoDME.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoDME.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
         return hash_params
     
     @staticmethod
     def cargar_calculo_dme(nombre_estructura):
         """Carga resultados de Diseño Mecánico de Estructura"""
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoDME.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoDME.json"
         if not archivo.exists():
             return None
         
@@ -157,14 +159,14 @@ class CalculoCache:
     @staticmethod
     def guardar_calculo_sph(nombre_estructura, calculo_data):
         """Guarda resultados de Selección de Postes de Hormigón"""
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoSPH.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoSPH.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
         return calculo_data.get('hash_parametros')
     
     @staticmethod
     def cargar_calculo_sph(nombre_estructura):
         """Carga resultados de Selección de Postes de Hormigón"""
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoSPH.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoSPH.json"
         if not archivo.exists():
             return None
         return json.loads(archivo.read_text(encoding="utf-8"))
@@ -197,7 +199,7 @@ class CalculoCache:
             "df_cargas_completo": df_dict
         }
         
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoARBOLES.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoARBOLES.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"✅ Cache árboles guardado: {archivo.name}")
         return hash_params
@@ -205,7 +207,7 @@ class CalculoCache:
     @staticmethod
     def cargar_calculo_arboles(nombre_estructura):
         """Carga resultados de Árboles de Carga"""
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoARBOLES.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoARBOLES.json"
         if not archivo.exists():
             return None
         return json.loads(archivo.read_text(encoding="utf-8"))
@@ -235,14 +237,14 @@ class CalculoCache:
             "resultados": resultados_completos
         }
         
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoTODO.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoTODO.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
         return hash_params
     
     @staticmethod
     def cargar_calculo_todo(nombre_estructura):
         """Carga resultados de Calcular Todo"""
-        archivo = DATA_DIR / f"{nombre_estructura}.calculoTODO.json"
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoTODO.json"
         if not archivo.exists():
             return None
         return json.loads(archivo.read_text(encoding="utf-8"))
@@ -254,7 +256,7 @@ class CalculoCache:
         eliminados = []
         
         for tipo in tipos:
-            archivo = DATA_DIR / f"{nombre_estructura}.calculo{tipo}.json"
+            archivo = CACHE_DIR / f"{nombre_estructura}.calculo{tipo}.json"
             if archivo.exists():
                 archivo.unlink()
                 eliminados.append(tipo)
@@ -269,7 +271,7 @@ class CalculoCache:
         ]
         
         for patron in patrones:
-            for archivo in DATA_DIR.glob(patron):
+            for archivo in CACHE_DIR.glob(patron):
                 try:
                     archivo.unlink()
                 except Exception as e:

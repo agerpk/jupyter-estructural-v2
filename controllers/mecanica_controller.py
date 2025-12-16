@@ -153,12 +153,11 @@ def register_callbacks(app):
         Input("btn-guardar-params-dme", "n_clicks"),
         State("select-tipo-estructura-dme", "value"),
         State("switch-mostrar-c2", "value"),
-        State("slider-zoom-cabezal", "value"),
         State("switch-reemplazar-titulo", "value"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def guardar_parametros_mecanica(n_clicks, tipo_estructura, mostrar_c2, zoom_cabezal, reemplazar_titulo, estructura_actual):
+    def guardar_parametros_mecanica(n_clicks, tipo_estructura, mostrar_c2, reemplazar_titulo, estructura_actual):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
@@ -166,7 +165,6 @@ def register_callbacks(app):
             estructura_actualizada = estructura_actual.copy()
             estructura_actualizada["TIPO_ESTRUCTURA"] = tipo_estructura
             estructura_actualizada["MOSTRAR_C2"] = mostrar_c2
-            estructura_actualizada["ZOOM_CABEZAL"] = zoom_cabezal
             estructura_actualizada["REEMPLAZAR_TITULO_GRAFICO"] = reemplazar_titulo
             
             state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)

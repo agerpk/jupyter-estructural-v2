@@ -894,8 +894,11 @@ class EstructuraAEA_Graficos:
         plt.ylabel('Tiro Resultante [daN]', fontweight='bold', fontsize=11)
         plt.xlabel('Hipótesis de Carga', fontweight='bold', fontsize=11)
         
-        titulo_grafico = titulo if titulo else f'COMPARACIÓN DE TIROS EN LA CIMA\n{self.geometria.tension_nominal}kV - {self.geometria.tipo_estructura.upper()}'
-        plt.title(titulo_grafico, fontsize=12, fontweight='bold', pad=10)
+        if titulo:
+            titulo_grafico = titulo
+        else:
+            titulo_grafico = f'COMPARACIÓN DE TIROS EN LA CIMA - {self.geometria.tension_nominal}kV - {self.geometria.tipo_estructura.upper()}'
+        plt.title(titulo_grafico, fontsize=12, fontweight='bold', pad=20)
         
         plt.ylim(0, max(tiros_barras) * 1.15)
         plt.grid(True, alpha=0.3, axis='y')
