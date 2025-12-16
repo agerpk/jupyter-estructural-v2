@@ -27,11 +27,20 @@ wheels/
 .ipynb_checkpoints
 *.ipynb
 
-# Data files (opcional - comentar si quieres versionar)
-data/*.json
-data/*.png
-!data/cables.json
-!data/plantilla.estructura.json
+# Data files - solo excluir cálculos y diagramas
+data/*.calculoCMC.json
+data/*.calculoDGE.json
+data/*.calculoDME.json
+data/*.calculoSPH.json
+data/*.calculoARBOLES.json
+data/*.calculoTODO.json
+data/*.arbolcarga.*.png
+data/*.hipotesismaestro.json
+data/navegacion_state.json
+data/Cabezal.*.png
+data/CMC_*.png
+data/DME_*.png
+data/Estructura.*.png
 
 # IDE
 .vscode/
