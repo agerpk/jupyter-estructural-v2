@@ -274,6 +274,13 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual):
                     html.H6("Solo Cable de Guardia 1", className="mt-3"),
                     dcc.Graph(figure=fig_guardia_dict, config={'displayModeBar': True})
                 ])
+            
+            fig_guardia2_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Guardia2.{hash_params}.json")
+            if fig_guardia2_dict:
+                resultados_html.extend([
+                    html.H6("Solo Cable de Guardia 2", className="mt-3"),
+                    dcc.Graph(figure=fig_guardia2_dict, config={'displayModeBar': True})
+                ])
         
         return html.Div(resultados_html)
     except Exception as e:

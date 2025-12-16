@@ -16,16 +16,18 @@ def register_callbacks(app):
     
     # Callback para cargar resultados guardados
     @app.callback(
-        Output("resultados-sph", "children"),
+        Output("resultados-sph", "children", allow_duplicate=True),
         Input("store-calculo-sph", "data"),
-        prevent_initial_call=False
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
     )
-    def cargar_resultados_sph(calculo_guardado):
+    def cargar_resultados_sph(calculo_guardado, estructura_actual):
         """Cargar resultados guardados al iniciar la vista"""
+        print(f"DEBUG SPH: Callback cargar_resultados_sph ejecutado. Tiene datos: {calculo_guardado is not None}")
         if not calculo_guardado:
-            return ""
+            return []
         from components.vista_seleccion_poste import _crear_area_resultados
-        return _crear_area_resultados(calculo_guardado)
+        return _crear_area_resultados(calculo_guardado, estructura_actual)
     
     @app.callback(
         [Output("estructura-actual", "data", allow_duplicate=True),
@@ -201,13 +203,6 @@ def register_callbacks(app):
                 estructura_mecanica.calcular_reacciones_tiros_cima(nodo_apoyo="BASE", nodo_cima=nodo_cima)
                 state.calculo_objetos.estructura_mecanica = estructura_mecanica
             
-            # Actualizar parámetros temporalmente
-            params_temp = estructura_actual.copy()
-            params_temp['FORZAR_N_POSTES'] = forzar_n
-            params_temp['FORZAR_ORIENTACION'] = orientacion
-            params_temp['PRIORIDAD_DIMENSIONADO'] = prioridad
-            params_temp['ANCHO_CRUCETA'] = ancho_cruceta
-            
             # Recuperar objetos
             geometria = state.calculo_objetos.estructura_geometria
             mecanica = state.calculo_objetos.estructura_mecanica
@@ -241,14 +236,13 @@ def register_callbacks(app):
                 del resultados_serializables['mecanica']
             
             calculo_sph = {
-                'parametros': params_temp,
-                'hash_parametros': hashlib.md5(json.dumps(params_temp, sort_keys=True).encode()).hexdigest(),
+                'parametros': estructura_actual,
                 'resultados': resultados_serializables,
                 'desarrollo_texto': desarrollo_texto
             }
             
-            # Guardar cálculo
-            CalculoCache.guardar_calculo_sph(nombre_estructura, calculo_sph)
+            # Guardar cálculo (el hash se calcula dentro de guardar_calculo_sph)
+            CalculoCache.guardar_calculo_sph(nombre_estructura, estructura_actual, resultados_serializables, desarrollo_texto)
             
             return (
                 calculo_sph,

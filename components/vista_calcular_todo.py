@@ -1,174 +1,166 @@
-"""Vista para Calcular Todo - Ejecución secuencial de todos los cálculos"""
+"""Vista para Calcular Todo - Carga modular de cachés"""
 
-from dash import html, dcc
+from dash import html
 import dash_bootstrap_components as dbc
+from utils.calculo_cache import CalculoCache
+
+
+def crear_placeholder(titulo):
+    """Crea un placeholder para sección sin cálculo"""
+    return dbc.Alert(
+        f"⚠️ {titulo}: No se realizó cálculo de esta sección.",
+        color="secondary",
+        className="mb-3"
+    )
+
+
+def generar_resultados_cmc_lista(calculo_guardado, estructura_actual):
+    """Genera resultados CMC como lista (sin envolver en html.Div)"""
+    from dash import dcc
+    import pandas as pd
+    from utils.view_helpers import ViewHelpers
+    from utils.calculo_cache import CalculoCache
+    
+    try:
+        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+        resultados_html = [
+            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente),
+            html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"),
+        ]
+        
+        if calculo_guardado.get('df_conductor_html'):
+            df_conductor = pd.read_json(calculo_guardado['df_conductor_html'], orient='split').round(2)
+            resultados_html.extend([
+                html.H5("Conductor"),
+                dbc.Table.from_dataframe(df_conductor, striped=True, bordered=True, hover=True, size="sm")
+            ])
+        
+        if calculo_guardado.get('df_guardia1_html'):
+            df_guardia1 = pd.read_json(calculo_guardado['df_guardia1_html'], orient='split').round(2)
+            resultados_html.extend([
+                html.H5("Cable de Guardia 1", className="mt-4"),
+                dbc.Table.from_dataframe(df_guardia1, striped=True, bordered=True, hover=True, size="sm")
+            ])
+        
+        if calculo_guardado.get('df_guardia2_html'):
+            df_guardia2 = pd.read_json(calculo_guardado['df_guardia2_html'], orient='split').round(2)
+            resultados_html.extend([
+                html.H5("Cable de Guardia 2", className="mt-4"),
+                dbc.Table.from_dataframe(df_guardia2, striped=True, bordered=True, hover=True, size="sm")
+            ])
+        
+        if calculo_guardado.get('df_cargas_totales'):
+            df_cargas = pd.DataFrame(calculo_guardado['df_cargas_totales'])
+            resultados_html.extend(ViewHelpers.crear_tabla_desde_dataframe(df_cargas, "Lista Total de Cargas", responsive=True))
+        
+        if calculo_guardado.get('console_output'):
+            resultados_html.append(html.Hr(className="mt-4"))
+            resultados_html.extend(ViewHelpers.crear_pre_output(calculo_guardado['console_output'], titulo="Output de Cálculo", font_size='0.75rem'))
+        
+        hash_params = calculo_guardado.get('hash_parametros')
+        if hash_params:
+            resultados_html.append(html.H5("Gráficos de Flechas", className="mt-4"))
+            
+            fig_combinado_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Combinado.{hash_params}.json")
+            if fig_combinado_dict:
+                resultados_html.extend([
+                    html.H6("Conductor y Guardia", className="mt-3"),
+                    dcc.Graph(figure=fig_combinado_dict, config={'displayModeBar': True})
+                ])
+            
+            fig_conductor_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Conductor.{hash_params}.json")
+            if fig_conductor_dict:
+                resultados_html.extend([
+                    html.H6("Solo Conductor", className="mt-3"),
+                    dcc.Graph(figure=fig_conductor_dict, config={'displayModeBar': True})
+                ])
+            
+            fig_guardia_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Guardia.{hash_params}.json")
+            if fig_guardia_dict:
+                resultados_html.extend([
+                    html.H6("Solo Cable de Guardia 1", className="mt-3"),
+                    dcc.Graph(figure=fig_guardia_dict, config={'displayModeBar': True})
+                ])
+            
+            fig_guardia2_dict = ViewHelpers.cargar_figura_plotly_json(f"CMC_Guardia2.{hash_params}.json")
+            if fig_guardia2_dict:
+                resultados_html.extend([
+                    html.H6("Solo Cable de Guardia 2", className="mt-3"),
+                    dcc.Graph(figure=fig_guardia2_dict, config={'displayModeBar': True})
+                ])
+        
+        return resultados_html
+    except Exception as e:
+        import traceback
+        print(f"Error en generar_resultados_cmc_lista: {traceback.format_exc()}")
+        return [dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")]
+
+
+def cargar_resultados_modulares(estructura_actual):
+    """Carga resultados desde cachés individuales con placeholders donde no existan"""
+    if not estructura_actual:
+        return [dbc.Alert("No hay estructura cargada", color="warning")]
+    
+    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+    componentes = []
+    
+    # 1. CMC
+    calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
+    if calculo_cmc:
+        componentes.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
+        componentes.extend(generar_resultados_cmc_lista(calculo_cmc, estructura_actual))
+    else:
+        componentes.append(crear_placeholder("1. CMC"))
+    
+    # 2. DGE
+    calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
+    if calculo_dge:
+        from components.vista_diseno_geometrico import generar_resultados_dge
+        componentes.extend([
+            html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"),
+            generar_resultados_dge(calculo_dge, estructura_actual)
+        ])
+    else:
+        componentes.append(crear_placeholder("2. DGE"))
+    
+    # 3. DME
+    calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
+    if calculo_dme:
+        from components.vista_diseno_mecanico import generar_resultados_dme
+        componentes.extend([
+            html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"),
+            generar_resultados_dme(calculo_dme, estructura_actual)
+        ])
+    else:
+        componentes.append(crear_placeholder("3. DME"))
+    
+    # 4. Árboles de Carga
+    calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
+    if calculo_arboles:
+        from components.vista_arboles_carga import generar_resultados_arboles
+        componentes.extend([
+            html.H3("4. ÁRBOLES DE CARGA", className="mt-4"),
+            html.Div(generar_resultados_arboles(calculo_arboles, estructura_actual))
+        ])
+    else:
+        componentes.append(crear_placeholder("4. Árboles de Carga"))
+    
+    # 5. SPH
+    calculo_sph = CalculoCache.cargar_calculo_sph(nombre_estructura)
+    if calculo_sph:
+        from components.vista_seleccion_poste import _crear_area_resultados
+        componentes.extend([
+            html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"),
+            html.Div(_crear_area_resultados(calculo_sph, estructura_actual))
+        ])
+    else:
+        componentes.append(crear_placeholder("5. SPH"))
+    
+    return componentes
 
 
 def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
     """Vista para ejecutar todos los cálculos en secuencia"""
-    
-    # Si hay cálculo guardado, NO cargar desde aquí - se cargará con el callback
-    output_inicial = [dbc.Alert("No hay resultados aún. Presione 'Ejecutar Cálculo Completo' para comenzar.", color="warning")]
-    btn_disabled = True
-    
-    if calculo_guardado:
-        output_inicial = [dbc.Alert("✅ Hay resultados guardados. Presione 'Ejecutar Cálculo Completo' para recalcular o ver resultados.", color="info")]
-        btn_disabled = False
-    
-    # CÓDIGO ANTIGUO COMENTADO - Ya no se usa carga desde cache en la vista
-    if False and calculo_guardado:
-        from utils.calculo_cache import CalculoCache
-        from config.app_config import DATA_DIR
-        import base64
-        
-        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-        hash_params = calculo_guardado.get('hash_parametros')
-        
-        # Reconstruir output desde los caches individuales
-        output_inicial.append(dbc.Alert("✅ Resultados cargados desde cache", color="info", className="mb-4"))
-        
-        # 1. CMC
-        calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
-        if calculo_cmc:
-            output_inicial.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
-            
-            # Tablas
-            import pandas as pd
-            if calculo_cmc.get('resultados_conductor'):
-                df_cond = pd.DataFrame(calculo_cmc['resultados_conductor']).T.round(2)
-                output_inicial.append(html.H5("Resultados Conductor", className="mt-3"))
-                output_inicial.append(dbc.Table.from_dataframe(df_cond, striped=True, bordered=True, hover=True, size="sm"))
-            
-            if calculo_cmc.get('resultados_guardia'):
-                df_guard = pd.DataFrame(calculo_cmc['resultados_guardia']).T.round(2)
-                output_inicial.append(html.H5("Resultados Cable de Guardia 1", className="mt-3"))
-                output_inicial.append(dbc.Table.from_dataframe(df_guard, striped=True, bordered=True, hover=True, size="sm"))
-            
-            if calculo_cmc.get('resultados_guardia2'):
-                df_guard2 = pd.DataFrame(calculo_cmc['resultados_guardia2']).T.round(2)
-                output_inicial.append(html.H5("Resultados Cable de Guardia 2", className="mt-3"))
-                output_inicial.append(dbc.Table.from_dataframe(df_guard2, striped=True, bordered=True, hover=True, size="sm"))
-            
-            # Imágenes CMC
-            output_inicial.append(html.H5("Gráficos de Flechas", className="mt-4"))
-            for tipo in ['Combinado', 'Conductor', 'Guardia']:
-                img_path = DATA_DIR / f"CMC_{tipo}.{hash_params}.png"
-                if img_path.exists():
-                    with open(img_path, 'rb') as f:
-                        img_str = base64.b64encode(f.read()).decode()
-                    output_inicial.append(html.H6(f"{tipo}", className="mt-3"))
-                    output_inicial.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '1000px'}))
-        
-        # 2. DGE
-        calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
-        if calculo_dge:
-            output_inicial.append(html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"))
-            
-            dims = calculo_dge.get('dimensiones', {})
-            nodes_key = calculo_dge.get('nodes_key', {})
-            
-            texto_dge = f"""DIMENSIONES DE ESTRUCTURA
-Altura total: {dims.get('altura_total', 0):.2f} m
-Alturas: h1a={dims.get('h1a', 0):.2f}m, h2a={dims.get('h2a', 0):.2f}m
-Ménsulas: lmen={dims.get('lmen', 0):.2f}m, lmenhg={dims.get('lmenhg', 0):.2f}m
-Cable guardia: hhg={dims.get('hhg', 0):.2f}m
-
-NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
-            
-            for categoria, prefijo in [('BASE', 'BASE'), ('CRUCE', 'CROSS'), ('CONDUCTOR', 'C'), ('GUARDIA', 'HG')]:
-                nodos_cat = {k: v for k, v in nodes_key.items() if k.startswith(prefijo)}
-                if nodos_cat:
-                    texto_dge += f"\n{categoria}:\n"
-                    for k, v in nodos_cat.items():
-                        texto_dge += f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})\n"
-            
-            output_inicial.append(html.Pre(texto_dge, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '15px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'whiteSpace': 'pre-wrap'}))
-            
-            # Imágenes DGE
-            output_inicial.append(html.H5("Gráficos de Estructura", className="mt-4"))
-            for tipo in ['Estructura', 'Cabezal']:
-                img_path = DATA_DIR / f"{tipo}.{hash_params}.png"
-                if img_path.exists():
-                    with open(img_path, 'rb') as f:
-                        img_str = base64.b64encode(f.read()).decode()
-                    output_inicial.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '48%', 'margin': '5px', 'display': 'inline-block'}))
-            
-            # Memoria DGE
-            if calculo_dge.get('memoria_calculo'):
-                output_inicial.append(html.Hr(className="mt-4"))
-                output_inicial.append(html.H5("Memoria de Cálculo: Diseño Geométrico de Estructura", className="mb-3"))
-                output_inicial.append(html.Pre(calculo_dge['memoria_calculo'], style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '15px', 'borderRadius': '5px', 'fontSize': '0.8rem', 'whiteSpace': 'pre', 'overflowX': 'auto', 'maxHeight': '500px', 'overflowY': 'auto'}))
-        
-        # 3. DME
-        calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
-        if calculo_dme:
-            output_inicial.append(html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"))
-            
-            # Tabla de reacciones
-            if calculo_dme.get('df_reacciones'):
-                import pandas as pd
-                df_reacciones = pd.DataFrame.from_dict(calculo_dme['df_reacciones'], orient='index').round(2)
-                output_inicial.append(html.H5("Reacciones en BASE", className="mt-3"))
-                output_inicial.append(dbc.Table.from_dataframe(df_reacciones.head(10), striped=True, bordered=True, hover=True, size="sm"))
-            
-            # Imágenes DME
-            for tipo in ['Polar', 'Barras']:
-                img_path = DATA_DIR / f"DME_{tipo}.{hash_params}.png"
-                if img_path.exists():
-                    with open(img_path, 'rb') as f:
-                        img_str = base64.b64encode(f.read()).decode()
-                    output_inicial.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '48%', 'margin': '5px', 'display': 'inline-block'}))
-        
-        # 4. Árboles
-        calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
-        if calculo_arboles:
-            output_inicial.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
-            
-            imagenes_arboles = []
-            for img_info in calculo_arboles.get('imagenes', [])[:6]:
-                img_path = DATA_DIR / img_info['nombre']
-                if img_path.exists():
-                    with open(img_path, 'rb') as f:
-                        img_str = base64.b64encode(f.read()).decode()
-                    imagenes_arboles.append(
-                        dbc.Col([
-                            dbc.Card([
-                                dbc.CardHeader(html.H6(f"{img_info['hipotesis']}", className="mb-0 text-center")),
-                                dbc.CardBody([html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%'})], style={'padding': '0.5rem'})
-                            ], className="mb-3")
-                        ], lg=4, md=6)
-                    )
-            if imagenes_arboles:
-                output_inicial.append(dbc.Row(imagenes_arboles))
-            output_inicial.append(html.P(f"Total de hipótesis generadas: {len(calculo_arboles.get('imagenes', []))}", className="mt-2"))
-        
-        # 5. SPH
-        calculo_sph = CalculoCache.cargar_calculo_sph(nombre_estructura)
-        if calculo_sph:
-            output_inicial.append(html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"))
-            
-            resultados_sph = calculo_sph.get('resultados', {})
-            if resultados_sph:
-                info_postes = []
-                for i, poste in enumerate(resultados_sph.get('postes_seleccionados', []), 1):
-                    info_postes.append(html.Li(f"Poste {i}: {poste.get('nombre', 'N/A')} - {poste.get('longitud_total', 0):.1f}m"))
-                
-                output_inicial.append(dbc.Card([
-                    dbc.CardBody([
-                        html.H5("Postes Seleccionados:"),
-                        html.Ul(info_postes),
-                        html.P(f"Orientación: {resultados_sph.get('orientacion', 'N/A')}"),
-                        html.P(f"Cantidad de postes: {resultados_sph.get('n_postes', 0)}")
-                    ])
-                ], className="mt-2"))
-                
-                # Memoria SPH
-                if calculo_sph.get('desarrollo_texto'):
-                    output_inicial.append(html.Hr(className="mt-4"))
-                    output_inicial.append(html.H5("Memoria de Cálculo: Selección de Postes de Hormigón", className="mb-3"))
-                    output_inicial.append(html.Pre(calculo_sph['desarrollo_texto'], style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '15px', 'borderRadius': '5px', 'fontSize': '0.8rem', 'whiteSpace': 'pre', 'overflowX': 'auto', 'maxHeight': '500px', 'overflowY': 'auto'}))
-        
-        btn_disabled = False
     
     return html.Div([
         dbc.Card([
@@ -196,37 +188,24 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
                             size="lg",
                             className="w-100"
                         )
-                    ], md=5),
+                    ], md=6),
                     dbc.Col([
                         dbc.Button(
                             "Cargar desde Cache",
                             id="btn-cargar-cache-todo",
                             color="info",
                             size="lg",
-                            className="w-100",
-                            disabled=btn_disabled
+                            className="w-100"
                         )
-                    ], md=4),
-                    dbc.Col([
-                        dbc.Button(
-                            "Descargar HTML",
-                            id="btn-descargar-html-todo",
-                            color="primary",
-                            size="lg",
-                            className="w-100",
-                            disabled=btn_disabled
-                        )
-                    ], md=3)
+                    ], md=6)
                 ], className="mb-4"),
                 
                 html.Hr(),
                 
                 # Área de resultados
-                html.Div(output_inicial, id="output-calcular-todo")
+                html.Div(id="output-calcular-todo", children=[
+                    dbc.Alert("Presione un botón para comenzar", color="secondary")
+                ])
             ])
-        ]),
-        
-        # Store para guardar el HTML completo
-        dcc.Store(id="html-completo-store"),
-        dcc.Download(id="download-html-completo")
+        ])
     ])

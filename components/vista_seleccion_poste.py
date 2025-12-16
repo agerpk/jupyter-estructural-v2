@@ -2,6 +2,8 @@
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+from utils.view_helpers import ViewHelpers
+from utils.calculo_cache import CalculoCache
 
 def crear_vista_seleccion_poste(estructura_actual, calculo_guardado=None):
     """Crear vista de selección de postes de hormigón"""
@@ -92,16 +94,14 @@ def crear_vista_seleccion_poste(estructura_actual, calculo_guardado=None):
         ], className="mb-4"),
         
         # Área de resultados
-        html.Div(id="resultados-sph", children=[
-            _crear_area_resultados(calculo_guardado) if calculo_guardado else html.Div()
-        ])
+        html.Div(id="resultados-sph", children=_crear_area_resultados(calculo_guardado, estructura_actual) if calculo_guardado else [])
     ])
 
-def _crear_area_resultados(calculo_guardado):
+def _crear_area_resultados(calculo_guardado, estructura_actual=None):
     """Crear área de resultados del cálculo"""
     
     if not calculo_guardado:
-        return html.Div()
+        return []
     
     resultados = calculo_guardado.get('resultados', {})
     config_seleccionada = resultados.get('config_seleccionada', 'N/A')
@@ -112,41 +112,26 @@ def _crear_area_resultados(calculo_guardado):
     n_postes = 1 if "Monoposte" in config_seleccionada else 2 if "Biposte" in config_seleccionada else 3
     
     # Limpiar emojis del texto
-    import re
-    desarrollo_texto = calculo_guardado.get('desarrollo_texto', 'No disponible')
-    desarrollo_texto = re.sub(r'[\U0001F300-\U0001F9FF\u2600-\u26FF\u2700-\u27BF]', '', desarrollo_texto)
+    desarrollo_texto = ViewHelpers.limpiar_emojis(calculo_guardado.get('desarrollo_texto', 'No disponible'))
     
-    return dbc.Card([
-        dbc.CardHeader(html.H4("Resultados del Cálculo")),
-        dbc.CardBody([
-            dbc.Alert([
-                html.H5("Calculo completado", className="alert-heading"),
-                html.Hr(),
-                html.P([
-                    html.Strong("Configuración: "), f"{config_seleccionada}", html.Br(),
-                    html.Strong("Código: "), f"{n_postes} x {dimensiones.get('Ht_comercial', 0):.1f}m / Ro {Rc_adopt:.0f}daN", html.Br(),
-                    html.Strong("Altura libre: "), f"{dimensiones.get('Hl', 0):.2f} m", html.Br(),
-                    html.Strong("Empotramiento: "), f"{dimensiones.get('He_final', 0):.2f} m", html.Br(),
-                    html.Strong("Resistencia en cima: "), f"{Rc_adopt:.0f} daN"
-                ])
-            ], color="success"),
-            
-            html.Hr(),
-            
-            html.H5("Desarrollo Completo"),
-            html.Pre(
-                desarrollo_texto,
-                style={
-                    'backgroundColor': '#1e1e1e',
-                    'color': '#d4d4d4',
-                    'padding': '15px',
-                    'borderRadius': '5px',
-                    'fontSize': '0.85rem',
-                    'maxHeight': '600px',
-                    'overflowY': 'auto',
-                    'whiteSpace': 'pre-wrap',
-                    'fontFamily': 'monospace'
-                }
-            )
-        ])
-    ], className="mt-4")
+    output = [
+        dbc.Card([
+            dbc.CardHeader(html.H4("Resultados del Cálculo")),
+            dbc.CardBody([
+                dbc.Alert([
+                    html.H5("Calculo completado", className="alert-heading"),
+                    html.Hr(),
+                    html.P([
+                        html.Strong("Configuración: "), f"{config_seleccionada}", html.Br(),
+                        html.Strong("Código: "), f"{n_postes} x {dimensiones.get('Ht_comercial', 0):.1f}m / Ro {Rc_adopt:.0f}daN", html.Br(),
+                        html.Strong("Altura libre: "), f"{dimensiones.get('Hl', 0):.2f} m", html.Br(),
+                        html.Strong("Empotramiento: "), f"{dimensiones.get('He_final', 0):.2f} m", html.Br(),
+                        html.Strong("Resistencia en cima: "), f"{Rc_adopt:.0f} daN"
+                    ])
+                ], color="success"),
+                html.Hr()
+            ] + ViewHelpers.crear_pre_output(desarrollo_texto, "Desarrollo Completo"))
+        ], className="mt-4")
+    ]
+    
+    return output

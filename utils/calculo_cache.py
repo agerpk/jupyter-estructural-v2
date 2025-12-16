@@ -157,11 +157,20 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
-    def guardar_calculo_sph(nombre_estructura, calculo_data):
+    def guardar_calculo_sph(nombre_estructura, estructura_data, resultados, desarrollo_texto):
         """Guarda resultados de Selección de Postes de Hormigón"""
+        hash_params = CalculoCache.calcular_hash(estructura_data)
+        
+        calculo_data = {
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "resultados": resultados,
+            "desarrollo_texto": desarrollo_texto
+        }
+        
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoSPH.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
-        return calculo_data.get('hash_parametros')
+        return hash_params
     
     @staticmethod
     def cargar_calculo_sph(nombre_estructura):

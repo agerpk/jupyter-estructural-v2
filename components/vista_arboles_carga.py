@@ -2,6 +2,9 @@
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+from utils.view_helpers import ViewHelpers
+from utils.calculo_cache import CalculoCache
+import pandas as pd
 
 
 def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
@@ -102,18 +105,16 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
 def generar_resultados_arboles(calculo_guardado, estructura_actual):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
-        import base64
-        import pandas as pd
-        from config.app_config import DATA_DIR
-        
         imagenes = calculo_guardado.get('imagenes', [])
         
         if not imagenes:
             return dbc.Alert("No hay imágenes guardadas", color="info")
         
+        # Verificar vigencia
+        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+        
         imagenes_html = [
-            dbc.Alert(f"✓ Resultados cargados desde cálculo anterior ({len(imagenes)} imágenes)", 
-                     color="info", className="mb-3")
+            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente)
         ]
         
         # Cargar DataFrame de cargas
@@ -134,37 +135,23 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual):
             df_cargas = df_cargas[mask]
             df_cargas_fmt = df_cargas.round(2)
             
-            # Crear HTML con estilos
-            html_table = f'''<html><head><style>
-                body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
-                table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
-                th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
-                th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
-                tr:nth-child(even) {{ background-color: #f8f9fa; }}
-                tr:hover {{ background-color: #e9ecef; }}
-            </style></head><body>{df_cargas_fmt.to_html(border=0, index=False)}</body></html>'''
-            
-            altura_tabla = min(max(len(df_cargas) * 25 + 80, 150), 600)
-            
             imagenes_html.extend([
                 html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
-                html.Iframe(
-                    srcDoc=html_table,
-                    style={'width': '100%', 'height': f'{altura_tabla}px', 'border': '1px solid #dee2e6', 'borderRadius': '4px'}
+                ViewHelpers.crear_tabla_html_iframe(
+                    df_cargas_fmt,
+                    altura_fila=25,
+                    altura_min=150,
+                    altura_max=600
                 )
             ])
         
         # Organizar imágenes en dos columnas
         imagenes_cards = []
         for img_info in imagenes:
-            img_path = DATA_DIR / img_info['nombre']
+            img_str = ViewHelpers.cargar_imagen_base64(img_info['nombre'])
             
-            if not img_path.exists():
+            if not img_str:
                 continue
-            
-            # Leer imagen y convertir a base64
-            with open(img_path, 'rb') as f:
-                img_str = base64.b64encode(f.read()).decode()
             
             imagenes_cards.append(
                 dbc.Col([
@@ -189,4 +176,6 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual):
         return html.Div(imagenes_html)
         
     except Exception as e:
+        import traceback
+        print(f"Error en generar_resultados_arboles: {traceback.format_exc()}")
         return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")

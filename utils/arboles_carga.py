@@ -7,7 +7,7 @@ matplotlib.use('Agg')
 from pathlib import Path
 import hashlib
 import json
-from config.app_config import DATA_DIR
+from config.app_config import CACHE_DIR
 
 
 def calcular_hash_estructura(estructura_dict):
@@ -123,7 +123,7 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
             # Guardar imagen (sanitizar nombre de archivo)
             titulo_sanitizado = titulo.replace('\n', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
             nombre_archivo = f"{titulo_sanitizado}.arbolcarga.{hash_estructura}.{hipotesis_nombre.replace(' ', '_')}.png"
-            ruta_imagen = DATA_DIR / nombre_archivo
+            ruta_imagen = CACHE_DIR / nombre_archivo
             
             fig.savefig(ruta_imagen, dpi=150, bbox_inches='tight', facecolor='white')
             plt.close(fig)

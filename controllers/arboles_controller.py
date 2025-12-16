@@ -7,7 +7,7 @@ import base64
 from models.app_state import AppState
 from utils.arboles_carga import generar_arboles_carga
 from utils.calculo_cache import CalculoCache
-from config.app_config import DATA_DIR
+from config.app_config import CACHE_DIR
 
 
 def register_callbacks(app):
@@ -86,7 +86,7 @@ def register_callbacks(app):
         # Cargar imágenes
         imagenes_cards = []
         for img_info in calculo_arboles.get('imagenes', []):
-            img_path = DATA_DIR / img_info['nombre']
+            img_path = CACHE_DIR / img_info['nombre']
             if img_path.exists():
                 with open(img_path, 'rb') as f:
                     img_str = base64.b64encode(f.read()).decode()
