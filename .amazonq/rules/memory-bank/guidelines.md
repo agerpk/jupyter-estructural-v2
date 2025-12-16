@@ -2,255 +2,227 @@
 
 ## Code Quality Standards
 
-### Documentation Patterns
-- **Module-level docstrings**: Every module starts with triple-quoted docstring describing purpose
-- **Class docstrings**: Classes include description of purpose and responsibilities
-- **Method docstrings**: Methods document parameters with Args section, return values, and purpose
-- **Inline comments**: Used sparingly for complex logic, prefixed with single #
-- **Spanish in user-facing text**: Print statements and user messages in Spanish
-- **English in code**: Variable names, function names, and technical comments in English
+### File Organization
+- Empty `__init__.py` files mark packages without exposing internal APIs
+- Package structure follows clear separation: components, controllers, models, utils, views
+- Core calculation modules remain at root level for backward compatibility with notebooks
 
 ### Naming Conventions
-- **Classes**: PascalCase (e.g., `NodoEstructural`, `Estructura_AEA`, `EstructuraAEA_Geometria`)
-- **Functions/Methods**: snake_case (e.g., `dimensionar_unifilar`, `calcular_reacciones_tiros_cima`)
-- **Variables**: snake_case (e.g., `altura_total`, `peso_conductor_base`, `df_cargas_totales`)
-- **Constants**: UPPER_SNAKE_CASE (e.g., `TABLA_TENSION_MAXIMA`, `COLORES`, `APP_TITLE`)
-- **Private methods**: Prefix with underscore (e.g., `_calcular_parametros_cabezal`, `_crear_nodos_estructurales`)
-- **Dictionary keys**: snake_case for internal data, PascalCase for user-facing configuration
+- **Variables**: Snake_case with descriptive names (e.g., `cable_conductor_id`, `TIPO_ESTRUCTURA`)
+- **Constants**: UPPERCASE_WITH_UNDERSCORES for configuration values (e.g., `ALTURA_MINIMA_CABLE`, `TENSION`)
+- **Functions**: snake_case with verb prefixes (e.g., `cargar_datos_postes`, `agregar_cable`)
+- **Classes**: PascalCase with descriptive suffixes (e.g., `Cable_AEA`, `EstructuraAEA_Geometria`, `PostesHormigon`)
+- **Files**: snake_case for modules, PascalCase for class-based modules (e.g., `DatosCables.py`, `PostesHormigon.py`)
 
-### Code Structure
-- **Imports**: Standard library first, then third-party, then local imports, separated by blank lines
-- **Class organization**: Constants → __init__ → public methods → private methods
-- **Method length**: Keep methods focused; extract complex logic into private helper methods
-- **Line length**: Generally under 120 characters, break long lines logically
-- **Indentation**: 4 spaces (no tabs)
+### Documentation Standards
+- Module-level docstrings in triple quotes describing purpose
+- Function docstrings explaining return values and purpose
+- Inline comments for complex logic or important notes
+- Spanish language used throughout for domain-specific terminology
 
-## Architectural Patterns
+### Code Formatting
+- Indentation: 4 spaces (standard Python)
+- Line continuation: Use backslash or implicit continuation within parentheses
+- String formatting: f-strings preferred for readability
+- Dictionary formatting: Multi-line with proper indentation for large data structures
 
-### MVC Architecture
-- **Models** (`/models/`): Data structures and state management (e.g., `AppState`)
-- **Views** (`/views/`): Layout definitions using Dash components
-- **Controllers** (`/controllers/`): Business logic and Dash callbacks
-- **Separation**: Controllers never directly manipulate DOM, views never contain logic
+## Structural Conventions
 
-### Manager Pattern
-- Specialized manager classes for domain concerns:
-  - `EstructuraManager`: Structure persistence and file operations
-  - `CableManager`: Cable database operations
-  - `HipotesisManager`: Hypothesis configuration management
-  - `CalculoCache`: Calculation result caching
-- Managers encapsulate file I/O and data transformation logic
+### Data Storage Patterns
+- **Nested dictionaries** for hierarchical data (pole specifications, cable properties)
+- **Dictionary keys**: String identifiers matching domain terminology
+- **Tuple values**: (diameter, weight) pairs for pole specifications
+- **JSON files**: Configuration persistence and calculation results
+- **CSV exports**: Tabular calculation outputs
 
-### State Management
-- Centralized `AppState` singleton pattern
-- State contains references to managers and calculation objects
-- Controllers access state for data operations
-- Dash stores (`dcc.Store`) for client-side state persistence
-
-### Callback Registration
-- Each controller module has `register_callbacks(app)` function
-- Callbacks registered in main `app.py` during initialization
-- Use `prevent_initial_call=True` to avoid unnecessary initial executions
-- Use `dash.exceptions.PreventUpdate` to skip updates when conditions not met
-
-## Common Implementation Patterns
-
-### Data Validation
-```python
-# Validate required parameters with clear error messages
-if self.peso_estructura == 0:
-    raise ValueError("El parámetro 'peso_estructura' es requerido y debe ser mayor a 0")
-
-# Check for None values before operations
-if self.peso_cadena is None:
-    raise ValueError("El parámetro 'peso_cadena' es requerido para el cálculo de theta_max")
-```
-
-### Dictionary-based Configuration
-```python
-# Use dictionaries for lookup tables and configuration
-TABLA_TENSION_MAXIMA = {
-    13.2: 13.8, 33: 36, 66: 72.5, 132: 145, 220: 245, 500: 550
-}
-
-# Access with .get() for safe defaults
-self.tension_maxima = self.TABLA_TENSION_MAXIMA.get(
-    self.tension_nominal, self.tension_nominal * 1.1
-)
-```
-
-### Calculation Result Storage
-```python
-# Store results in dictionaries with descriptive keys
-self.resultados_reacciones[nombre_hipotesis] = {
-    'Reaccion_Fx_daN': round(Fx, 1),
-    'Reaccion_Fy_daN': round(Fy, 1),
-    'Tiro_resultante_daN': round(Tiro_resultante, 1),
-    'Angulo_grados': round(angulo_grados, 1)
-}
-
-# Convert to DataFrame for tabular display
-self.df_reacciones = pd.DataFrame.from_dict(self.resultados_reacciones, orient='index')
-```
-
-### Progress Reporting
-```python
-# Use emoji and Spanish for user-friendly console output
-print(f"✅ DIMENSIONAMIENTO COMPLETADO")
-print(f"📐 DIMENSIONANDO ESTRUCTURA UNIFILAR...")
-print(f"❌ Error en hipótesis {codigo_hip}: {e}")
-print(f"⚠️ Advertencia: {mensaje}")
-```
-
-### File Operations
-```python
-# Use pathlib.Path for cross-platform compatibility
-from pathlib import Path
-ruta_archivo = DATA_DIR / f"{nombre}.json"
-
-# Ensure directories exist before writing
-ruta_archivo.parent.mkdir(parents=True, exist_ok=True)
-
-# Use context managers for file operations
-with open(ruta_archivo, 'w', encoding='utf-8') as f:
-    json.dump(data, f, indent=2, ensure_ascii=False)
-```
-
-### Matplotlib Figure Management
-```python
-# Create figures with explicit size
-plt.figure(figsize=(12, 10))
-
-# Always close figures after saving to prevent memory leaks
-plt.savefig(ruta_imagen, dpi=150, bbox_inches='tight', facecolor='white')
-plt.close(fig)
-
-# Use matplotlib.use('Agg') for non-interactive backend in production
-import matplotlib
-matplotlib.use('Agg')
-```
-
-### DataFrame Operations
-```python
-# Create DataFrames with explicit column names
-df = pd.DataFrame([parametros])
-
-# Use .iloc[0] to access first row safely
-valor = self.parametros_cabezal['theta_max'].iloc[0]
-
-# Filter DataFrames with boolean indexing
-filtro = (df['Elemento'] == 'Conductor') & (df['Estado'] == 'Vmax')
-resultado = df[filtro]['Magnitud'].iloc[0]
-```
+### Configuration Management
+- Global configuration variables at module/notebook top
+- Grouped by logical sections with comment headers (e.g., `# ===== CONFIGURACIÓN DISEÑO DE CABEZAL =====`)
+- Boolean flags for feature toggles (e.g., `MOSTRAR_C2`, `HG_CENTRADO`)
+- Numeric constants with units in comments (e.g., `L_vano = 400.0 # m`)
 
 ### Error Handling
-```python
-# Use try-except with specific error messages
-try:
-    resultado = calcular_valor()
-except Exception as e:
-    print(f"❌ Error calculando theta_max: {e}")
-    return valor_default
+- Validation at controller level before calculations
+- Graceful degradation with default values
+- User-friendly error messages in Spanish
 
-# Return structured results from functions
-return {
-    'exito': True,
-    'mensaje': 'Cálculo completado exitosamente',
-    'datos': resultados
+## Semantic Patterns
+
+### Data Structure Patterns
+
+#### Hierarchical Dictionary Pattern
+Used extensively for organizing related data by categories:
+```python
+datos = {
+    'category_name': {
+        'rango': (min_value, max_value),
+        'longitudes': [list_of_values],
+        'datos': {}  # Nested data
+    }
 }
 ```
+Frequency: Very high (pole data, cable data, calculation results)
 
-### Dash Callback Patterns
+#### Property Dictionary Pattern
+Objects defined as dictionaries with standardized keys:
 ```python
-@app.callback(
-    Output("component-id", "property"),
-    Input("trigger-id", "n_clicks"),
-    State("data-store", "data"),
-    prevent_initial_call=True
-)
-def callback_function(n_clicks, stored_data):
-    if not n_clicks:
-        raise dash.exceptions.PreventUpdate
-    
-    # Process data
-    result = process(stored_data)
-    
-    return result
+cable_properties = {
+    "material": "Al/Ac",
+    "seccion_nominal": "435/55",
+    "diametro_total_mm": 28.8,
+    "peso_unitario_dan_m": 1.653,
+    "carga_rotura_minima_dan": 13645.0
+}
 ```
+Frequency: High (cable definitions, structure configurations)
 
-### Hash-based Caching
+#### Tuple Unpacking Pattern
+Compact data storage with positional meaning:
 ```python
-# Generate hash from structure parameters for cache keys
-import hashlib
-import json
-
-estructura_str = json.dumps(estructura_dict, sort_keys=True)
-hash_estructura = hashlib.md5(estructura_str.encode()).hexdigest()
-
-# Use hash in filenames for cache invalidation
-nombre_archivo = f"{titulo}.{hash_estructura}.png"
+# (diameter, weight) tuples
+{7.0: (170, 504), 7.5: (170, 555)}
 ```
+Frequency: Very high in pole specifications
 
-## Testing Patterns
+### Calculation Patterns
 
-### Console Output Validation
-- Use print statements with clear formatting for debugging
-- Include section headers with emoji for visual separation
-- Display calculated values with appropriate precision (e.g., `:.2f` for meters)
-
-### Data Validation
-- Verify DataFrame shapes before operations
-- Check for empty DataFrames with `.empty` property
-- Validate dictionary keys exist before access with `.get()`
-
-## Performance Considerations
-
-### Lazy Evaluation
-- Calculate expensive values only when needed
-- Cache calculation results to avoid redundant computations
-- Use `hasattr()` to check if calculations already performed
-
-### Memory Management
-- Close matplotlib figures after use
-- Clear large DataFrames when no longer needed
-- Use generators for large data processing when possible
-
-## Common Idioms
-
-### Coordinate Handling
+#### State-Based Calculation Pattern
+Calculations organized by climatic states:
 ```python
-# Unpack coordinates from tuples
-x, y, z = coordenadas
-x_nodo, y_nodo, z_nodo = self.nodes_key[nodo]
-
-# Filter nodes by plane (XZ plane only)
-if abs(y) > 0.001:
-    continue
+estados_climaticos = {
+    "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0},
+    "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0}
+}
 ```
+Frequency: High in mechanical calculations
 
-### Rounding for Display
+#### Restriction Dictionary Pattern
+Constraints defined per state and component:
 ```python
-# Round to 2 decimals for display
-valor_display = round(valor, 2)
-
-# Format strings with precision
-texto = f"Altura: {altura:.2f} m"
+restricciones = {
+    "conductor": {"tension_max_porcentaje": {"I": 0.25, "II": 0.40}},
+    "guardia": {"tension_max_porcentaje": {"I": 0.7, "II": 0.70}}
+}
 ```
+Frequency: Medium (design constraints)
 
-### List Comprehensions
+### Object-Oriented Patterns
+
+#### Factory Pattern
+Library classes create and manage object instances:
 ```python
-# Filter and transform in single expression
-nodos_conductor = [n for n in self.nodes_key.keys() if n.startswith(('C1_', 'C2_', 'C3_'))]
-
-# Extract values from dictionaries
-alturas = [coord[2] for coord in nodes_key.values()]
+lib_cables = LibCables()
+cable = Cable_AEA(id_cable=nombre, nombre=nombre, propiedades=props)
+lib_cables.agregar_cable(cable)
 ```
+Frequency: High for cable and structure management
 
-### Dictionary Comprehensions
+#### Separation of Concerns Pattern
+Classes split by responsibility:
+- `EstructuraAEA_Geometria`: Geometric definitions
+- `EstructuraAEA_Mecanica`: Mechanical calculations
+- `EstructuraAEA_Graficos`: Visualization
+Frequency: High in core modules
+
+### File Naming Patterns
+
+#### Calculation Result Files
+Format: `{project_name}.{calculation_type}.json`
+Examples:
+- `proyecto.calculoCMC.json` - Cable mechanical calculations
+- `proyecto.calculoDGE.json` - Geometric design
+- `proyecto.calculoDME.json` - Mechanical design
+- `proyecto.calculoSPH.json` - Pole selection
+Frequency: Very high (all calculation outputs)
+
+#### Load Tree Diagrams
+Format: `{project_name}.arbolcarga.{hash}.HIP_{hypothesis_name}.png`
+Example: `proyecto.arbolcarga.5f1946585285b45b359d01968e8bd008.HIP_Suspension_Recta_A0_EDS_(TMA).png`
+Frequency: High (one per hypothesis)
+
+### Common Code Idioms
+
+#### Dictionary Comprehension for Data Loading
 ```python
-# Initialize dictionaries with default values
-cargas_hipotesis = {nombre: [0.00, 0.00, 0.00] for nombre in self.nodes_key.keys()}
-
-# Filter dictionaries
-nodos_cat = {k: v for k, v in nodes_key.items() if k.startswith(prefijo)}
+for rotura, datos_rotura in {
+    300: {7.0: (170, 504), 7.5: (170, 555)},
+    350: {7.0: (170, 506), 7.5: (170, 558)}
+}.items():
+    target_dict[rotura] = datos_rotura
 ```
+Frequency: Very high in data initialization
+
+#### String Formatting for File Paths
+```python
+tipoestructura_nombre_archivo = f"{TIPO_ESTRUCTURA.replace(' ', '_').replace('ó','o').replace('/','_').lower()}"
+folder = f"{TITULO}/{tipoestructura_nombre_archivo}"
+```
+Frequency: High for file operations
+
+#### Conditional Defaults Pattern
+```python
+TITULO_REEMPLAZO = TITULO if REEMPLAZAR_TITULO_GRAFICO else TIPO_ESTRUCTURA
+```
+Frequency: Medium for configuration
+
+## Best Practices
+
+### Engineering Calculations
+- Always include units in variable names or comments
+- Use descriptive variable names matching engineering terminology
+- Separate configuration from calculation logic
+- Cache expensive calculations to avoid redundancy
+
+### Data Persistence
+- Use JSON for structured configuration and results
+- Include metadata (version, creation date, modification date)
+- Maintain backward compatibility with existing file formats
+- Use hash-based naming for uniqueness when needed
+
+### User Interface
+- Spanish language for all user-facing text
+- Descriptive labels matching engineering standards
+- Validation feedback in real-time
+- Progress indicators for long calculations
+
+### Code Reusability
+- Core calculation modules independent of UI framework
+- Utility functions in dedicated modules
+- Manager classes for common operations (cables, structures, files)
+- Configuration-driven behavior over hardcoded values
+
+### Testing and Validation
+- Validate inputs at controller level
+- Compare results against known benchmarks
+- Export calculation reports for verification
+- Visual validation through plots and diagrams
+
+## Domain-Specific Patterns
+
+### AEA Standards Compliance
+- Load hypothesis naming follows AEA conventions (A0-A5, B1-B2, C1-C2)
+- Climatic states defined per AEA specifications
+- Safety factors applied per component type
+- Altitude adjustments using AEA formulas
+
+### Electrical Engineering Conventions
+- Voltage levels in kV (e.g., 220kV)
+- Structure types: Suspensión, Retención, Angular, Terminal
+- Cable types: Conductor (Al/Ac), Guard wire (OPGW, Ac)
+- Disposition types: triangular, horizontal, vertical
+
+### Structural Engineering Conventions
+- Forces in daN (decanewtons)
+- Lengths in meters
+- Areas in m²
+- Angles in degrees
+- Pole resistance ratings in daN
+
+## Migration Notes
+
+### From Jupyter to Web Application
+- Original notebook cells preserved in `notebooks_backup/`
+- Core calculation logic extracted to standalone modules
+- UI rebuilt using Dash framework
+- State management centralized in AppState model
+- File-based persistence maintained for compatibility

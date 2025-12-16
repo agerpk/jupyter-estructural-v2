@@ -125,8 +125,13 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
         
         if calculo_dme.get('df_reacciones'):
             df_reacciones = pd.DataFrame.from_dict(calculo_dme['df_reacciones'], orient='index').round(2)
+            df_reacciones.index = [idx.split('_')[-2] if len(idx.split('_')) >= 2 else idx for idx in df_reacciones.index]
+            df_reacciones.index.name = 'Hipótesis'
+            df_reacciones = df_reacciones.reset_index()
+            df_reacciones = df_reacciones[['Hipótesis', 'Reaccion_Fx_daN', 'Reaccion_Fy_daN', 'Reaccion_Fz_daN', 'Reaccion_Mx_daN_m', 'Reaccion_My_daN_m', 'Reaccion_Mz_daN_m', 'Tiro_X_daN', 'Tiro_Y_daN', 'Tiro_resultante_daN', 'Angulo_grados']]
+            df_reacciones.columns = ['Hipótesis', 'Fx [daN]', 'Fy [daN]', 'Fz [daN]', 'Mx [daN·m]', 'My [daN·m]', 'Mz [daN·m]', 'Tiro_X [daN]', 'Tiro_Y [daN]', 'Tiro_Res [daN]', 'Ángulo [°]']
             resultados.append(html.H5("Reacciones en BASE", className="mt-3"))
-            resultados.append(dbc.Table.from_dataframe(df_reacciones.head(10), striped=True, bordered=True, hover=True, size="sm"))
+            resultados.append(html.Div(dbc.Table.from_dataframe(df_reacciones.head(10), striped=True, bordered=True, hover=True, size="sm"), style={'fontSize': '0.75rem', 'overflowX': 'auto'}, className="table-responsive"))
         
         # Imágenes DME
         hash_dme = calculo_dme.get('hash_parametros')
@@ -141,6 +146,45 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
     calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
     if calculo_arboles:
         resultados.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
+        
+        # DataFrame de cargas
+        if calculo_arboles.get('df_cargas_completo'):
+            df_dict = calculo_arboles['df_cargas_completo']
+            # Reconstruir MultiIndex desde levels y codes
+            arrays = []
+            for level_idx in range(len(df_dict['columns'])):
+                level_values = df_dict['columns'][level_idx]
+                codes = df_dict['column_codes'][level_idx]
+                arrays.append([level_values[code] for code in codes])
+            
+            multi_idx = pd.MultiIndex.from_arrays(arrays)
+            df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)
+            
+            # Filtrar filas con al menos un valor != 0
+            mask = (df_cargas.iloc[:, 2:].abs() > 0.001).any(axis=1)
+            df_cargas = df_cargas[mask]
+            
+            # Formatear a 2 decimales
+            df_cargas_fmt = df_cargas.round(2)
+            
+            # Crear HTML con estilos embebidos
+            html_table = f'''<html><head><style>
+                body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
+                table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
+                th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
+                th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
+                tr:nth-child(even) {{ background-color: #f8f9fa; }}
+                tr:hover {{ background-color: #e9ecef; }}
+            </style></head><body>{df_cargas_fmt.to_html(border=0, index=False)}</body></html>'''
+            
+            resultados.extend([
+                html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
+                html.Iframe(
+                    srcDoc=html_table,
+                    style={'width': '100%', 'height': '400px', 'border': '1px solid #dee2e6', 'borderRadius': '4px'}
+                )
+            ])
+        
         resultados.append(html.P(f"Total de hipótesis generadas: {len(calculo_arboles.get('imagenes', []))}", className="mb-3"))
         
         imagenes_arboles = []
@@ -361,9 +405,14 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
             
             df_reacciones = resultado_dme["df_reacciones"]
             if df_reacciones is not None and not df_reacciones.empty:
-                df_reacciones_display = df_reacciones.head(10).round(2)
+                df_reacciones_display = df_reacciones.copy().round(2)
+                df_reacciones_display.index = [idx.split('_')[-2] if len(idx.split('_')) >= 2 else idx for idx in df_reacciones_display.index]
+                df_reacciones_display.index.name = 'Hipótesis'
+                df_reacciones_display = df_reacciones_display.reset_index()
+                df_reacciones_display = df_reacciones_display[['Hipótesis', 'Reaccion_Fx_daN', 'Reaccion_Fy_daN', 'Reaccion_Fz_daN', 'Reaccion_Mx_daN_m', 'Reaccion_My_daN_m', 'Reaccion_Mz_daN_m', 'Tiro_X_daN', 'Tiro_Y_daN', 'Tiro_resultante_daN', 'Angulo_grados']]
+                df_reacciones_display.columns = ['Hipótesis', 'Fx [daN]', 'Fy [daN]', 'Fz [daN]', 'Mx [daN·m]', 'My [daN·m]', 'Mz [daN·m]', 'Tiro_X [daN]', 'Tiro_Y [daN]', 'Tiro_Res [daN]', 'Ángulo [°]']
                 resultados.append(html.H5("Reacciones en BASE", className="mt-3"))
-                resultados.append(dbc.Table.from_dataframe(df_reacciones_display, striped=True, bordered=True, hover=True, size="sm"))
+                resultados.append(html.Div(dbc.Table.from_dataframe(df_reacciones_display.head(10), striped=True, bordered=True, hover=True, size="sm"), style={'fontSize': '0.75rem', 'overflowX': 'auto'}, className="table-responsive"))
             
             calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
             if calculo_dme:
@@ -379,6 +428,33 @@ NODOS ESTRUCTURALES ({len(nodes_key)} nodos)"""
             resultados.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
             resultado_arboles = ejecutar_calculo_arboles(estructura_actual, state)
             if resultado_arboles['exito']:
+                # DataFrame de cargas
+                if state.calculo_objetos.estructura_mecanica and state.calculo_objetos.estructura_mecanica.df_cargas_completo is not None:
+                    df_cargas = state.calculo_objetos.estructura_mecanica.df_cargas_completo.copy()
+                    mask = (df_cargas.iloc[:, 2:].abs() > 0.001).any(axis=1)
+                    df_cargas = df_cargas[mask]
+                    
+                    # Formatear a 2 decimales
+                    df_cargas_fmt = df_cargas.round(2)
+                    
+                    # Crear HTML con estilos embebidos
+                    html_table = f'''<html><head><style>
+                        body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
+                        table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
+                        th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
+                        th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
+                        tr:nth-child(even) {{ background-color: #f8f9fa; }}
+                        tr:hover {{ background-color: #e9ecef; }}
+                    </style></head><body>{df_cargas_fmt.to_html(border=0, index=False)}</body></html>'''
+                    
+                    resultados.extend([
+                        html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
+                        html.Iframe(
+                            srcDoc=html_table,
+                            style={'width': '100%', 'height': '400px', 'border': '1px solid #dee2e6', 'borderRadius': '4px'}
+                        )
+                    ])
+                
                 resultados.append(html.P(f"Total de hipótesis generadas: {len(resultado_arboles['imagenes'])}", className="mb-3"))
                 imagenes_arboles = []
                 for img_info in resultado_arboles['imagenes'][:6]:

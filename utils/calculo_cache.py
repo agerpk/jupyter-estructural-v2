@@ -167,9 +167,22 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
-    def guardar_calculo_arboles(nombre_estructura, estructura_data, imagenes_generadas):
+    def guardar_calculo_arboles(nombre_estructura, estructura_data, imagenes_generadas, df_cargas_completo=None):
         """Guarda resultados de Árboles de Carga"""
         hash_params = CalculoCache.calcular_hash(estructura_data)
+        
+        # Convertir DataFrame con MultiIndex a formato serializable
+        df_dict = None
+        if df_cargas_completo is not None:
+            print(f"📊 Guardando DataFrame de cargas: {df_cargas_completo.shape}")
+            # Guardar MultiIndex como listas
+            df_dict = {
+                'data': df_cargas_completo.values.tolist(),
+                'columns': [[str(c) for c in level] for level in df_cargas_completo.columns.levels],
+                'column_codes': [level.tolist() for level in df_cargas_completo.columns.codes]
+            }
+        else:
+            print("⚠️ DataFrame de cargas es None, no se guardará")
         
         calculo_data = {
             "hash_parametros": hash_params,
@@ -177,11 +190,13 @@ class CalculoCache:
             "imagenes": [{
                 "hipotesis": img['hipotesis'],
                 "nombre": img['nombre']
-            } for img in imagenes_generadas]
+            } for img in imagenes_generadas],
+            "df_cargas_completo": df_dict
         }
         
         archivo = DATA_DIR / f"{nombre_estructura}.calculoARBOLES.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"✅ Cache árboles guardado: {archivo.name}")
         return hash_params
     
     @staticmethod

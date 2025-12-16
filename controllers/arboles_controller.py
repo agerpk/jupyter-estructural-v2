@@ -16,6 +16,103 @@ def register_callbacks(app):
     state = AppState()
     
     @app.callback(
+        Output("resultados-arboles-carga", "children", allow_duplicate=True),
+        Input("url", "pathname"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def cargar_arboles_desde_cache(pathname, estructura_actual):
+        """Carga árboles desde cache al entrar a la vista"""
+        if pathname != "/arboles-carga":
+            raise dash.exceptions.PreventUpdate
+        
+        if not estructura_actual:
+            raise dash.exceptions.PreventUpdate
+        
+        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+        calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
+        
+        if not calculo_arboles:
+            return html.Div([
+                dbc.Alert("No hay árboles de carga calculados. Haga clic en 'Generar Árboles' para calcular.", color="info")
+            ])
+        
+        print(f"🔄 Cargando árboles desde cache para {nombre_estructura}")
+        
+        imagenes_html = [
+            dbc.Alert("✓ Árboles cargados desde cache", color="info", className="mb-3")
+        ]
+        
+        # Cargar DataFrame de cargas
+        if calculo_arboles.get('df_cargas_completo'):
+            import pandas as pd
+            df_dict = calculo_arboles['df_cargas_completo']
+            print(f"✅ DataFrame encontrado en cache")
+            
+            # Reconstruir MultiIndex
+            arrays = []
+            for level_idx in range(len(df_dict['columns'])):
+                level_values = df_dict['columns'][level_idx]
+                codes = df_dict['column_codes'][level_idx]
+                arrays.append([level_values[code] for code in codes])
+            multi_idx = pd.MultiIndex.from_arrays(arrays)
+            df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)
+            
+            # Filtrar y formatear
+            mask = (df_cargas.iloc[:, 2:].abs() > 0.001).any(axis=1)
+            df_cargas = df_cargas[mask]
+            df_cargas_fmt = df_cargas.round(2)
+            
+            # Crear HTML con estilos
+            html_table = f'''<html><head><style>
+                body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
+                table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
+                th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
+                th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
+                tr:nth-child(even) {{ background-color: #f8f9fa; }}
+                tr:hover {{ background-color: #e9ecef; }}
+            </style></head><body>{df_cargas_fmt.to_html(border=0, index=False)}</body></html>'''
+            
+            altura_tabla = min(max(len(df_cargas) * 25 + 80, 150), 600)
+            
+            imagenes_html.extend([
+                html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
+                html.Iframe(
+                    srcDoc=html_table,
+                    style={'width': '100%', 'height': f'{altura_tabla}px', 'border': '1px solid #dee2e6', 'borderRadius': '4px'}
+                )
+            ])
+        
+        # Cargar imágenes
+        imagenes_cards = []
+        for img_info in calculo_arboles.get('imagenes', []):
+            img_path = DATA_DIR / img_info['nombre']
+            if img_path.exists():
+                with open(img_path, 'rb') as f:
+                    img_str = base64.b64encode(f.read()).decode()
+                
+                imagenes_cards.append(
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
+                            dbc.CardBody([
+                                html.Img(src=f'data:image/png;base64,{img_str}', 
+                                        style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
+                                        className="img-fluid")
+                            ], style={'padding': '0.5rem'})
+                        ], className="mb-3")
+                    ], lg=5, md=6)
+                )
+        
+        if imagenes_cards:
+            imagenes_html.extend([
+                html.H5("Árboles de Carga por Hipótesis", className="mt-4 mb-3"),
+                dbc.Row(imagenes_cards, justify="center")
+            ])
+        
+        return html.Div(imagenes_html)
+    
+    @app.callback(
         Output("resultados-arboles-carga", "children"),
         Output("toast-notificacion", "is_open", allow_duplicate=True),
         Output("toast-notificacion", "header", allow_duplicate=True),
@@ -201,9 +298,14 @@ def register_callbacks(app):
                     nodo_cima=nodo_cima
                 )
                 
+                # Crear DataFrame de cargas completo
+                estructura_mecanica.generar_dataframe_cargas()
+                
                 state.calculo_objetos.estructura_mecanica = estructura_mecanica
             
             estructura_poo = state.calculo_objetos.estructura_mecanica
+            
+
             
             # Generar árboles
             resultado = generar_arboles_carga(
@@ -227,12 +329,47 @@ def register_callbacks(app):
                 )
             
             # PERSISTENCIA: Guardar en cache
-            CalculoCache.guardar_calculo_arboles(nombre_estructura, estructura_actual, resultado['imagenes'])
+            print(f"💾 Guardando en cache. DataFrame: {estructura_poo.df_cargas_completo is not None}")
+            if estructura_poo.df_cargas_completo is not None:
+                print(f"   Shape: {estructura_poo.df_cargas_completo.shape}")
+            CalculoCache.guardar_calculo_arboles(nombre_estructura, estructura_actual, resultado['imagenes'], estructura_poo.df_cargas_completo)
             
             # Crear HTML con las imágenes generadas en dos columnas
             imagenes_html = [
                 dbc.Alert(f"✓ {resultado['mensaje']}", color="success", className="mb-3")
             ]
+            
+            # Agregar DataFrame de cargas por nodo
+            if estructura_poo.df_cargas_completo is not None:
+                import pandas as pd
+                df_cargas = estructura_poo.df_cargas_completo.copy()
+                
+                # Filtrar filas que tienen al menos un valor != 0 (excepto primeras 2 columnas)
+                mask = (df_cargas.iloc[:, 2:].abs() > 0.001).any(axis=1)
+                df_cargas = df_cargas[mask]
+                
+                # Formatear floats a 2 decimales
+                df_cargas_fmt = df_cargas.round(2)
+                
+                # Crear HTML con estilos embebidos
+                html_table = f'''<html><head><style>
+                    body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
+                    table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
+                    th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
+                    th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
+                    tr:nth-child(even) {{ background-color: #f8f9fa; }}
+                    tr:hover {{ background-color: #e9ecef; }}
+                </style></head><body>{df_cargas_fmt.to_html(border=0, index=False)}</body></html>'''
+                
+                altura_tabla = min(max(len(df_cargas) * 25 + 80, 150), 600)
+                
+                imagenes_html.extend([
+                    html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
+                    html.Iframe(
+                        srcDoc=html_table,
+                        style={'width': '100%', 'height': f'{altura_tabla}px', 'border': '1px solid #dee2e6', 'borderRadius': '4px'}
+                    )
+                ])
             
             imagenes_cards = []
             for img_info in resultado['imagenes']:
@@ -253,7 +390,10 @@ def register_callbacks(app):
                     ], lg=5, md=6)
                 )
             
-            imagenes_html.append(dbc.Row(imagenes_cards, justify="center"))
+            imagenes_html.extend([
+                html.H5("Árboles de Carga por Hipótesis", className="mt-4 mb-3"),
+                dbc.Row(imagenes_cards, justify="center")
+            ])
             
             return (
                 html.Div(imagenes_html),

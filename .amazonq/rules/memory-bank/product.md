@@ -1,66 +1,52 @@
 # Product Overview
 
-## Project Name
-AGP - Análisis General de Postaciones (General Analysis of Power Line Structures)
-
-## Purpose
-Engineering application for structural analysis and design of electrical transmission line towers and poles. Performs comprehensive mechanical, geometric, and load calculations for high-voltage power line structures (220kV) according to electrical engineering standards.
+## Project Purpose
+AGP (Análisis General de Postaciones) is a specialized engineering application for designing and analyzing electrical transmission line structures. The system performs comprehensive structural calculations for high-voltage power line towers, including mechanical analysis, cable tensioning, wind loads, and pole selection.
 
 ## Value Proposition
-- Automates complex structural calculations for transmission line towers
-- Ensures compliance with electrical engineering standards (AEA)
-- Reduces design time through integrated calculation workflows
-- Provides visual feedback through interactive diagrams and load trees
-- Manages multiple structure configurations and hypothesis scenarios
+- Automates complex structural engineering calculations for electrical transmission lines
+- Provides visual analysis through interactive dashboards and 3D structure visualization
+- Ensures compliance with AEA (Asociación Electrotécnica Argentina) standards
+- Reduces design time through automated pole selection and load tree generation
+- Supports multiple structure types: suspension, retention, angular, and terminal configurations
 
 ## Key Features
 
-### Structure Design & Configuration
-- Support for multiple structure types (suspension, retention, angular)
-- Configurable tower geometries (triangular, horizontal dispositions)
-- Single and double circuit configurations
-- Multiple ground wire configurations (1 or 2 wires)
-- Customizable pole and crossarm dimensions
+### Structural Design
+- Geometric design of tower heads with configurable dispositions (triangular, horizontal, vertical)
+- Support for single and double circuit configurations (220kV)
+- Automatic pole selection from concrete pole library
+- Multi-pole structure support (mono, bi, tri-pole configurations)
 
-### Mechanical Calculations
-- Cable mechanical calculations (CMC) for conductors and ground wires
-- Wind load analysis (transverse, longitudinal, oblique)
-- Ice load scenarios
-- Seismic load calculations
-- Unilateral load cases
-- Safety factor verification
+### Mechanical Analysis
+- Cable mechanical calculations (CMC) with temperature and tension states
+- Wind load calculations with ice accumulation scenarios
+- Load hypothesis generation following AEA standards
+- Structural reaction analysis under multiple load conditions
+- 3D visualization of structures and load distributions
 
-### Geometric Design
-- Automatic geometric dimensioning (DGE)
-- Clearance verification
-- Sag and tension optimization
-- Shielding angle calculations
-- Altitude adjustments (MSNM)
+### Cable Management
+- Comprehensive cable library (conductor and guard wires)
+- Cable sag and tension calculations across climatic states
+- Support for OPGW (Optical Ground Wire) configurations
+- Automatic cable parameter optimization
 
-### Load Analysis
-- Load tree generation for multiple hypotheses
-- Combined load scenarios
-- Reaction force calculations
-- Structural element verification
-- Polar and bar diagrams
-
-### Data Management
-- Structure template system
-- Cable database management
-- Project persistence (JSON format)
-- Calculation result caching
-- Export capabilities
+### Interactive Dashboard
+- Web-based interface using Dash/Plotly
+- Real-time parameter adjustment and recalculation
+- Visual load tree generation for each hypothesis
+- Export capabilities for calculation reports and diagrams
 
 ## Target Users
-- Electrical transmission line engineers
-- Structural design engineers
-- Power utility companies
-- Engineering consultants specializing in transmission infrastructure
+- Electrical transmission line design engineers
+- Structural engineers specializing in power infrastructure
+- Project managers overseeing transmission line construction
+- Technical reviewers validating structural designs
 
 ## Use Cases
-1. Design new transmission line structures
-2. Verify existing structure capacity
-3. Analyze structure behavior under different load scenarios
-4. Generate technical documentation and calculation reports
-5. Compare alternative structure configurations
-6. Optimize cable tensions and clearances
+- Design new transmission line structures (220kV single/double circuit)
+- Validate existing structure capacity under different load scenarios
+- Generate technical documentation and calculation reports
+- Optimize pole selection based on mechanical requirements
+- Analyze structure behavior under extreme weather conditions (wind, ice)
+- Compare different structural configurations and dispositions

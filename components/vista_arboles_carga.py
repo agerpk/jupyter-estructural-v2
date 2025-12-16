@@ -103,6 +103,7 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
         import base64
+        import pandas as pd
         from config.app_config import DATA_DIR
         
         imagenes = calculo_guardado.get('imagenes', [])
@@ -114,6 +115,44 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual):
             dbc.Alert(f"✓ Resultados cargados desde cálculo anterior ({len(imagenes)} imágenes)", 
                      color="info", className="mb-3")
         ]
+        
+        # Cargar DataFrame de cargas
+        if calculo_guardado.get('df_cargas_completo'):
+            df_dict = calculo_guardado['df_cargas_completo']
+            
+            # Reconstruir MultiIndex
+            arrays = []
+            for level_idx in range(len(df_dict['columns'])):
+                level_values = df_dict['columns'][level_idx]
+                codes = df_dict['column_codes'][level_idx]
+                arrays.append([level_values[code] for code in codes])
+            multi_idx = pd.MultiIndex.from_arrays(arrays)
+            df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)
+            
+            # Filtrar y formatear
+            mask = (df_cargas.iloc[:, 2:].abs() > 0.001).any(axis=1)
+            df_cargas = df_cargas[mask]
+            df_cargas_fmt = df_cargas.round(2)
+            
+            # Crear HTML con estilos
+            html_table = f'''<html><head><style>
+                body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
+                table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
+                th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
+                th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
+                tr:nth-child(even) {{ background-color: #f8f9fa; }}
+                tr:hover {{ background-color: #e9ecef; }}
+            </style></head><body>{df_cargas_fmt.to_html(border=0, index=False)}</body></html>'''
+            
+            altura_tabla = min(max(len(df_cargas) * 25 + 80, 150), 600)
+            
+            imagenes_html.extend([
+                html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
+                html.Iframe(
+                    srcDoc=html_table,
+                    style={'width': '100%', 'height': f'{altura_tabla}px', 'border': '1px solid #dee2e6', 'borderRadius': '4px'}
+                )
+            ])
         
         # Organizar imágenes en dos columnas
         imagenes_cards = []
@@ -141,7 +180,11 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual):
             )
         
         # Crear filas de 2 columnas centradas
-        imagenes_html.append(dbc.Row(imagenes_cards, justify="center"))
+        if imagenes_cards:
+            imagenes_html.extend([
+                html.H5("Árboles de Carga por Hipótesis", className="mt-4 mb-3"),
+                dbc.Row(imagenes_cards, justify="center")
+            ])
         
         return html.Div(imagenes_html)
         
