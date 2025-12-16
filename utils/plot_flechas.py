@@ -6,15 +6,15 @@ import plotly.graph_objects as go
 import numpy as np
 
 
-def crear_grafico_flechas(resultados_conductor, resultados_guardia1, L_vano, resultados_guardia2=None):
+def crear_grafico_flechas(cable_conductor, cable_guardia1, L_vano, cable_guardia2=None):
     """
-    Crear gráficos de flechas para diferentes estados climáticos
+    Crear gráficos de flechas usando datos de catenarias cacheadas
     
     Args:
-        resultados_conductor: Diccionario con resultados del conductor por estado
-        resultados_guardia1: Diccionario con resultados del guardia 1 por estado
+        cable_conductor: Objeto Cable_AEA del conductor con catenarias_cache
+        cable_guardia1: Objeto Cable_AEA del guardia 1 con catenarias_cache
         L_vano: Longitud del vano en metros
-        resultados_guardia2: Diccionario con resultados del guardia 2 por estado (opcional)
+        cable_guardia2: Objeto Cable_AEA del guardia 2 con catenarias_cache (opcional)
     
     Returns:
         Tupla con figuras de Plotly (combinado, conductor, guardia1, guardia2 si existe)
@@ -54,96 +54,70 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia1, L_vano, res
         "V": "#98D8C8"     # Verde - TMA
     }
     
-    # Generar puntos para la catenaria
-    x = np.linspace(0, L_vano, 100)
-    
     # Crear figuras
     fig_combinado = go.Figure()
     fig_conductor = go.Figure()
     fig_guardia1 = go.Figure()
-    fig_guardia2 = go.Figure() if resultados_guardia2 else None
+    fig_guardia2 = go.Figure() if cable_guardia2 else None
     
-    # Plotear conductor en ambos gráficos (combinado y solo conductor)
-    for estado_id, resultado in resultados_conductor.items():
-        flecha = resultado["flecha_vertical_m"]
-        descripcion = resultado.get("descripcion", estado_id)
-        
-        y = 4 * flecha * x * (L_vano - x) / (L_vano ** 2)
-        
-        # Gráfico combinado
-        fig_combinado.add_trace(go.Scatter(
-            x=x,
-            y=y,  # Positivo para que vaya hacia abajo
-            mode='lines',
-            name=f'Conductor - Estado {estado_id} ({descripcion})',
-            line=dict(color=colores_conductor.get(estado_id, "#DC143C"), width=2),
+    # Función auxiliar para plotear catenaria
+    def plotear_catenaria(fig, estado_id, cat_data, nombre, color, dash=None):
+        x = cat_data['x']
+        y = cat_data['y']
+        fig.add_trace(go.Scatter(
+            x=x, y=y, mode='lines', name=nombre,
+            line=dict(color=color, width=2, dash=dash) if dash else dict(color=color, width=2),
             hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
         ))
-        
-        # Gráfico solo conductor
-        fig_conductor.add_trace(go.Scatter(
-            x=x,
-            y=y,
-            mode='lines',
-            name=f'Estado {estado_id} ({descripcion})',
-            line=dict(color=colores.get(estado_id, "#000000"), width=2),
-            hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
-        ))
+    
+    # Plotear conductor
+    for estado_id, cat_estados in cable_conductor.catenarias_cache.items():
+        cat_data = cat_estados['catenaria_posterior']
+        plotear_catenaria(fig_combinado, estado_id, cat_data, 
+                         f'Conductor - Estado {estado_id}', colores_conductor.get(estado_id, "#DC143C"))
+        plotear_catenaria(fig_conductor, estado_id, cat_data,
+                         f'Estado {estado_id}', colores.get(estado_id, "#000000"))
+        # Marcar punto de máxima flecha
+        idx_max = np.argmax(cat_data['y'])
+        fig_combinado.add_trace(go.Scatter(x=[cat_data['x'][idx_max]], y=[cat_data['y'][idx_max]], 
+                                          mode='text', text=['🟽'], textfont=dict(size=20),
+                                          showlegend=False, hoverinfo='skip'))
+        fig_conductor.add_trace(go.Scatter(x=[cat_data['x'][idx_max]], y=[cat_data['y'][idx_max]], 
+                                          mode='text', text=['🟽'], textfont=dict(size=20),
+                                          showlegend=False, hoverinfo='skip'))
     
     # Plotear guardia1
-    for estado_id, resultado in resultados_guardia1.items():
-        flecha = resultado["flecha_vertical_m"]
-        descripcion = resultado.get("descripcion", estado_id)
-        
-        y = 4 * flecha * x * (L_vano - x) / (L_vano ** 2)
-        
-        # Gráfico combinado
-        fig_combinado.add_trace(go.Scatter(
-            x=x,
-            y=y,
-            mode='lines',
-            name=f'Guardia 1 - Estado {estado_id} ({descripcion})',
-            line=dict(color=colores_guardia1.get(estado_id, "#191970"), width=2, dash='dash'),
-            hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
-        ))
-        
-        # Gráfico solo guardia1
-        fig_guardia1.add_trace(go.Scatter(
-            x=x,
-            y=y,
-            mode='lines',
-            name=f'Estado {estado_id} ({descripcion})',
-            line=dict(color=colores.get(estado_id, "#000000"), width=2),
-            hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
-        ))
+    for estado_id, cat_estados in cable_guardia1.catenarias_cache.items():
+        cat_data = cat_estados['catenaria_posterior']
+        plotear_catenaria(fig_combinado, estado_id, cat_data,
+                         f'Guardia 1 - Estado {estado_id}', colores_guardia1.get(estado_id, "#191970"), 'dash')
+        plotear_catenaria(fig_guardia1, estado_id, cat_data,
+                         f'Estado {estado_id}', colores.get(estado_id, "#000000"))
+        # Marcar punto de máxima flecha
+        idx_max = np.argmax(cat_data['y'])
+        fig_combinado.add_trace(go.Scatter(x=[cat_data['x'][idx_max]], y=[cat_data['y'][idx_max]], 
+                                          mode='text', text=['🟽'], textfont=dict(size=20),
+                                          showlegend=False, hoverinfo='skip'))
+        fig_guardia1.add_trace(go.Scatter(x=[cat_data['x'][idx_max]], y=[cat_data['y'][idx_max]], 
+                                          mode='text', text=['🟽'], textfont=dict(size=20),
+                                          showlegend=False, hoverinfo='skip'))
     
     # Plotear guardia2 si existe
-    if resultados_guardia2:
-        for estado_id, resultado in resultados_guardia2.items():
-            flecha = resultado["flecha_vertical_m"]
-            descripcion = resultado.get("descripcion", estado_id)
-            
-            y = 4 * flecha * x * (L_vano - x) / (L_vano ** 2)
-            
-            # Gráfico combinado
-            fig_combinado.add_trace(go.Scatter(
-                x=x,
-                y=y,
-                mode='lines',
-                name=f'Guardia 2 - Estado {estado_id} ({descripcion})',
-                line=dict(color=colores_guardia2.get(estado_id, "#006400"), width=2, dash='dot'),
-                hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
-            ))
-            
-            # Gráfico solo guardia2
-            fig_guardia2.add_trace(go.Scatter(
-                x=x,
-                y=y,
-                mode='lines',
-                name=f'Estado {estado_id} ({descripcion})',
-                line=dict(color=colores.get(estado_id, "#000000"), width=2),
-                hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
-            ))
+    if cable_guardia2:
+        for estado_id, cat_estados in cable_guardia2.catenarias_cache.items():
+            cat_data = cat_estados['catenaria_posterior']
+            plotear_catenaria(fig_combinado, estado_id, cat_data,
+                             f'Guardia 2 - Estado {estado_id}', colores_guardia2.get(estado_id, "#006400"), 'dot')
+            plotear_catenaria(fig_guardia2, estado_id, cat_data,
+                             f'Estado {estado_id}', colores.get(estado_id, "#000000"))
+            # Marcar punto de máxima flecha
+            idx_max = np.argmax(cat_data['y'])
+            fig_combinado.add_trace(go.Scatter(x=[cat_data['x'][idx_max]], y=[cat_data['y'][idx_max]], 
+                                              mode='text', text=['🟽'], textfont=dict(size=20),
+                                              showlegend=False, hoverinfo='skip'))
+            fig_guardia2.add_trace(go.Scatter(x=[cat_data['x'][idx_max]], y=[cat_data['y'][idx_max]], 
+                                              mode='text', text=['🟽'], textfont=dict(size=20),
+                                              showlegend=False, hoverinfo='skip'))
     
     # Agregar línea de apoyos a todas las figuras
     figs = [fig_combinado, fig_conductor, fig_guardia1]
@@ -198,7 +172,7 @@ def crear_grafico_flechas(resultados_conductor, resultados_guardia1, L_vano, res
         zeroline=True,
         zerolinewidth=2,
         zerolinecolor='black',
-        autorange='reversed'  # Invertir eje Y para que vaya hacia abajo
+        autorange='reversed'
     )
     
     # Aplicar configuración a cada figura

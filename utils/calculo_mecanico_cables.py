@@ -41,6 +41,25 @@ class CalculoMecanicoCables:
             RELFLECHA_MAX_GUARDIA = params["RELFLECHA_MAX_GUARDIA"]
             RELFLECHA_SIN_VIENTO = params["RELFLECHA_SIN_VIENTO"]
             
+            # Parámetros de desnivel
+            VANO_DESNIVELADO = params.get("VANO_DESNIVELADO", False)
+            H_PIQANTERIOR = params.get("H_PIQANTERIOR", 0.0)
+            H_PIQPOSTERIOR = params.get("H_PIQPOSTERIOR", 0.0)
+            
+            # Actualizar parámetros de desnivel en los cables
+            self.calculo_objetos.cable_conductor.VANO_DESNIVELADO = VANO_DESNIVELADO
+            self.calculo_objetos.cable_conductor.H_PIQANTERIOR = H_PIQANTERIOR
+            self.calculo_objetos.cable_conductor.H_PIQPOSTERIOR = H_PIQPOSTERIOR
+            
+            self.calculo_objetos.cable_guardia.VANO_DESNIVELADO = VANO_DESNIVELADO
+            self.calculo_objetos.cable_guardia.H_PIQANTERIOR = H_PIQANTERIOR
+            self.calculo_objetos.cable_guardia.H_PIQPOSTERIOR = H_PIQPOSTERIOR
+            
+            if self.calculo_objetos.cable_guardia2:
+                self.calculo_objetos.cable_guardia2.VANO_DESNIVELADO = VANO_DESNIVELADO
+                self.calculo_objetos.cable_guardia2.H_PIQANTERIOR = H_PIQANTERIOR
+                self.calculo_objetos.cable_guardia2.H_PIQPOSTERIOR = H_PIQPOSTERIOR
+            
             # Restricciones (usar las proporcionadas o valores por defecto)
             if restricciones is None:
                 restricciones = {

@@ -43,8 +43,6 @@ def register_callbacks(app):
         Input({"type": "btn-volver", "index": ALL}, "n_clicks"),
         Input("menu-ajustar-parametros", "n_clicks"),
         Input("menu-eliminar-estructura", "n_clicks"),
-        Input("menu-nueva-estructura", "n_clicks"),
-        Input("menu-guardar-estructura", "n_clicks"),
         Input("menu-calculo-mecanico", "n_clicks"),
         Input("menu-agregar-cable", "n_clicks"),
         Input("menu-modificar-cable", "n_clicks"),
@@ -57,7 +55,7 @@ def register_callbacks(app):
         State("estructura-actual", "data"),
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
-                       n_clicks_eliminar, n_clicks_nueva, n_clicks_guardar, n_clicks_cmc,
+                       n_clicks_eliminar, n_clicks_cmc,
                        n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
                        n_clicks_diseno_geom, n_clicks_diseno_mec, n_clicks_arboles, n_clicks_sph, 
                        n_clicks_calcular_todo, estructura_actual):
@@ -65,22 +63,16 @@ def register_callbacks(app):
         
         if not ctx.triggered:
             ultima_vista = cargar_navegacion_state()
-            if ultima_vista == "home":
-                return crear_vista_home()
-            elif ultima_vista == "ajustar-parametros":
-                cables_disponibles = state.cable_manager.obtener_cables()
-                return crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
-            elif ultima_vista == "calculo-mecanico":
+            if ultima_vista == "calculo-mecanico":
                 from utils.calculo_cache import CalculoCache
                 calculo_guardado = None
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_cmc(nombre_estructura)
-                    if calculo_guardado:
-                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                        if not vigente:
-                            calculo_guardado = None
                 return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado)
+            elif ultima_vista == "ajustar-parametros":
+                cables_disponibles = state.cable_manager.obtener_cables()
+                return crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
             elif ultima_vista == "diseno-geometrico":
                 from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
                 from utils.calculo_cache import CalculoCache
@@ -88,24 +80,18 @@ def register_callbacks(app):
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
-                    if calculo_guardado:
-                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                        if not vigente:
-                            calculo_guardado = None
                 return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
             elif ultima_vista == "diseno-mecanico":
                 from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
                 from utils.calculo_cache import CalculoCache
                 from utils.hipotesis_manager import HipotesisManager
                 from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_base
+                from config.app_config import DATA_DIR
                 
                 if not estructura_actual:
                     estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
                 
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                
-                # Cargar hipótesis
-                from config.app_config import DATA_DIR
                 estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
                 hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
                     nombre_estructura,
@@ -113,14 +99,7 @@ def register_callbacks(app):
                     hipotesis_base
                 )
                 
-                # Cargar cálculo guardado
-                calculo_guardado = None
                 calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
-                if calculo_guardado:
-                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                    if not vigente:
-                        calculo_guardado = None
-                
                 return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro)
             elif ultima_vista == "seleccion-poste":
                 from components.vista_seleccion_poste import crear_vista_seleccion_poste
@@ -129,10 +108,6 @@ def register_callbacks(app):
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_sph(nombre_estructura)
-                    if calculo_guardado:
-                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                        if not vigente:
-                            calculo_guardado = None
                 return crear_vista_seleccion_poste(estructura_actual, calculo_guardado)
             elif ultima_vista == "arboles-carga":
                 from components.vista_arboles_carga import crear_vista_arboles_carga
@@ -141,10 +116,6 @@ def register_callbacks(app):
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_arboles(nombre_estructura)
-                    if calculo_guardado:
-                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                        if not vigente:
-                            calculo_guardado = None
                 return crear_vista_arboles_carga(estructura_actual, calculo_guardado)
             elif ultima_vista == "calcular-todo":
                 from components.vista_calcular_todo import crear_vista_calcular_todo
@@ -153,10 +124,6 @@ def register_callbacks(app):
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_todo(nombre_estructura)
-                    if calculo_guardado:
-                        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                        if not vigente:
-                            calculo_guardado = None
                 return crear_vista_calcular_todo(estructura_actual, calculo_guardado)
             return crear_vista_home()
         
@@ -181,10 +148,6 @@ def register_callbacks(app):
             if estructura_actual:
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                 calculo_guardado = CalculoCache.cargar_calculo_cmc(nombre_estructura)
-                if calculo_guardado:
-                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                    if not vigente:
-                        calculo_guardado = None
             return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado)
         
         elif trigger_id == "menu-agregar-cable":
@@ -287,11 +250,6 @@ def register_callbacks(app):
                         calculo_guardado = None
             return crear_vista_calcular_todo(estructura_actual, calculo_guardado)
         
-        elif trigger_id == "menu-calcular-todo":
-            guardar_navegacion_state("calcular-todo")
-            from components.vista_calcular_todo import crear_vista_calcular_todo
-            return crear_vista_calcular_todo(estructura_actual)
-        
         elif "btn-volver" in trigger_id:
             try:
                 trigger_json = json.loads(trigger_id.replace("'", '"'))
@@ -300,8 +258,5 @@ def register_callbacks(app):
                     return crear_vista_home()
             except:
                 pass
-        
-        elif trigger_id in ["menu-nueva-estructura", "menu-guardar-estructura"]:
-            return dash.no_update
     
-        return crear_vista_home()
+        return dash.no_update

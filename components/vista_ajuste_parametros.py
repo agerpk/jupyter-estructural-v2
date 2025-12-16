@@ -9,6 +9,15 @@ from datetime import datetime
 
 def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
     """Crear un campo de parámetro"""
+    # Convertir valores vacíos o None a valores por defecto según el tipo
+    if valor == "" or valor is None:
+        if tipo in [int, float]:
+            valor = 0
+        elif tipo == bool:
+            valor = False
+        else:
+            valor = ""
+    
     # Sliders para parámetros específicos
     if nombre == "alpha":
         input_comp = dcc.Slider(
@@ -148,6 +157,20 @@ def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
             id={"type": "param-input", "index": nombre},
             min=0, max=1, step=0.05, value=valor,
             marks={i*0.2: str(round(i*0.2, 1)) for i in range(6)},
+            tooltip={"placement": "bottom", "always_visible": True}
+        )
+    elif nombre in ["H_PIQANTERIOR", "H_PIQPOSTERIOR"]:
+        input_comp = dcc.Slider(
+            id={"type": "param-input", "index": nombre},
+            min=-5, max=5, step=0.05, value=valor,
+            marks={i*0.5: str(round(i*0.5, 1)) for i in range(-10, 11)},
+            tooltip={"placement": "bottom", "always_visible": True}
+        )
+    elif nombre in ["H_PIQANTERIOR_CMC", "H_PIQPOSTERIOR_CMC"]:
+        input_comp = dcc.Slider(
+            id={"type": "param-input", "index": nombre},
+            min=-5, max=5, step=0.05, value=valor,
+            marks={i*0.5: str(round(i*0.5, 1)) for i in range(-10, 11)},
             tooltip={"placement": "bottom", "always_visible": True}
         )
     elif opciones:
@@ -348,11 +371,14 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
     bloques.append(crear_bloque(
         "CONFIGURACIÓN DE FLECHADO / CÁLCULO MECÁNICO",
         [
+            ("VANO_DESNIVELADO", bool, "Si es True, se calcula el vano peso según desnivel de catenarias", None),
+            ("H_PIQANTERIOR", float, "Altura piquete anterior (m)", None),
+            ("H_PIQPOSTERIOR", float, "Altura piquete posterior (m) - Visto en gráfico", None),
             ("SALTO_PORCENTUAL", float, None, None),
             ("PASO_AFINADO", float, None, None),
-            ("OBJ_CONDUCTOR", str, None, "OBJ_CONDUCTOR"),
         ],
         [
+            ("OBJ_CONDUCTOR", str, None, "OBJ_CONDUCTOR"),
             ("OBJ_GUARDIA", str, None, "OBJ_GUARDIA"),
             ("RELFLECHA_MAX_GUARDIA", float, None, None),
             ("RELFLECHA_SIN_VIENTO", bool, None, None),

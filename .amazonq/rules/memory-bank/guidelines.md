@@ -173,6 +173,14 @@ Frequency: Medium for configuration
 - Separate configuration from calculation logic
 - Cache expensive calculations to avoid redundancy
 
+### Dash Callback Management
+- **CRITICAL**: Avoid adding menu actions (like `menu-guardar-estructura`, `menu-nueva-estructura`) as Inputs to navigation callbacks
+- Navigation callbacks should ONLY respond to explicit navigation actions (menu items that change views)
+- Use `State` instead of `Input` for data stores (`estructura-actual`) to prevent unwanted callback triggers
+- Use `prevent_initial_call=True` on callbacks that update UI elements to avoid initialization cascades
+- Return `dash.no_update` instead of empty components to preserve existing content on error
+- Use `allow_duplicate=True` when multiple callbacks update the same Output
+
 ### Data Persistence
 - Use JSON for structured configuration and results
 - Include metadata (version, creation date, modification date)

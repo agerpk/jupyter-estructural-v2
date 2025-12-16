@@ -4,6 +4,7 @@ import dash
 from dash import Input, Output
 from models.app_state import AppState
 from config.app_config import ARCHIVOS_PROTEGIDOS
+import dash
 
 
 def register_callbacks(app):
@@ -13,7 +14,8 @@ def register_callbacks(app):
     
     @app.callback(
         Output("badge-estructura-actual", "children"),
-        Input("estructura-actual", "data")
+        Input("estructura-actual", "data"),
+        prevent_initial_call=True
     )
     def actualizar_badge_estructura(estructura_actual):
         if estructura_actual:
@@ -24,24 +26,6 @@ def register_callbacks(app):
             tension = estructura_actual.get("TENSION", "N/A")
             return f"{titulo} | {tipo_estructura} | {terna} | {disposicion} | {tension}kV"
         return "Sin estructura"
-    
-    @app.callback(
-        Output("estructuras-disponibles", "data"),
-        Input("estructura-actual", "data"),
-        prevent_initial_call=True
-    )
-    def actualizar_estructuras_disponibles(estructura_actual):
-        return state.estructura_manager.listar_estructuras()
-    
-    @app.callback(
-        Output("select-estructura-eliminar", "options"),
-        Input("contenido-principal", "children"),
-        prevent_initial_call=True
-    )
-    def actualizar_lista_eliminar(contenido):
-        estructuras = state.estructura_manager.listar_estructuras()
-        estructuras_filtradas = [e for e in estructuras if e not in ARCHIVOS_PROTEGIDOS]
-        return [{"label": e, "value": e} for e in estructuras_filtradas]
     
     @app.callback(
         Output("modal-acerca-de", "is_open"),
@@ -64,55 +48,34 @@ def register_callbacks(app):
         return False
     
     @app.callback(
-        Output("contenido-principal", "children", allow_duplicate=True),
-        Input("estructuras-disponibles", "data"),
-        Input("estructura-actual", "data"),
+        Output("badge-vista-actual", "children"),
+        Input("btn-inicio", "n_clicks"),
+        Input("menu-ajustar-parametros", "n_clicks"),
+        Input("menu-calculo-mecanico", "n_clicks"),
+        Input("menu-diseno-geometrico", "n_clicks"),
+        Input("menu-diseno-mecanico", "n_clicks"),
+        Input("menu-arboles-carga", "n_clicks"),
+        Input("menu-seleccion-poste", "n_clicks"),
+        Input("menu-calcular-todo", "n_clicks"),
         prevent_initial_call=True
     )
-    def actualizar_vista_home_estructuras(estructuras_data, estructura_actual):
+    def actualizar_badge_vista(*args):
         ctx = dash.callback_context
         if not ctx.triggered:
-            raise dash.exceptions.PreventUpdate
+            return "Inicio"
         
-        # Solo actualizar si estamos en home
-        from config.app_config import NAVEGACION_STATE_FILE
-        try:
-            if NAVEGACION_STATE_FILE.exists():
-                import json
-                with open(NAVEGACION_STATE_FILE, 'r') as f:
-                    vista = json.load(f).get("ultima_vista", "home")
-                    if vista == "home":
-                        from components.vista_home import crear_vista_home
-                        return crear_vista_home()
-        except:
-            pass
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         
-        raise dash.exceptions.PreventUpdate
+        nombres_vistas = {
+            "btn-inicio": "Inicio",
+            "menu-ajustar-parametros": "Ajustar Parámetros",
+            "menu-calculo-mecanico": "CMC",
+            "menu-diseno-geometrico": "DGE",
+            "menu-diseno-mecanico": "DME",
+            "menu-arboles-carga": "Árboles de Carga",
+            "menu-seleccion-poste": "SPH",
+            "menu-calcular-todo": "Calcular Todo"
+        }
+        return nombres_vistas.get(trigger_id, "Vista")
     
-    @app.callback(
-        Output("badge-vista-actual", "children"),
-        Input("contenido-principal", "children")
-    )
-    def actualizar_badge_vista(contenido):
-        from config.app_config import NAVEGACION_STATE_FILE
-        try:
-            if NAVEGACION_STATE_FILE.exists():
-                import json
-                with open(NAVEGACION_STATE_FILE, 'r') as f:
-                    data = json.load(f)
-                    vista = data.get("ultima_vista", "home")
-                    
-                    nombres_vistas = {
-                        "home": "Inicio",
-                        "ajustar-parametros": "Ajustar Parámetros",
-                        "calculo-mecanico": "CMC",
-                        "diseno-geometrico": "DGE",
-                        "diseno-mecanico": "DME",
-                        "arboles-carga": "Árboles de Carga",
-                        "seleccion-poste": "SPH",
-                        "calcular-todo": "Calcular Todo"
-                    }
-                    return nombres_vistas.get(vista, "Vista")
-        except:
-            pass
-        return "Inicio"
+

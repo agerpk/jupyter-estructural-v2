@@ -57,6 +57,37 @@ class Cable_AEA:
         
         # Calcular cache de vientos
         self._calcular_cache_vientos(viento_base_params)
+        
+        # Calcular vano peso si hay desnivel
+        self._calcular_vano_peso(viento_base_params)
+    
+    def _calcular_vano_peso(self, params):
+        """
+        Calcula el vano peso considerando desnivel de catenarias
+        
+        Args:
+            params (dict): Parámetros que incluyen:
+                - L_vano (float): Longitud de vano
+                - VANO_DESNIVELADO (bool): Si se considera desnivel
+                - H_PIQANTERIOR (float): Altura piquete anterior
+                - H_PIQPOSTERIOR (float): Altura piquete posterior
+        """
+        L_vano = params.get('L_vano')
+        vano_desnivelado = params.get('VANO_DESNIVELADO', False)
+        h_anterior = params.get('H_PIQANTERIOR', 0.0)
+        h_posterior = params.get('H_PIQPOSTERIOR', 0.0)
+        
+        # Guardar parámetros de desnivel
+        self.VANO_DESNIVELADO = vano_desnivelado
+        self.H_PIQANTERIOR = h_anterior
+        self.H_PIQPOSTERIOR = h_posterior
+        
+        if vano_desnivelado and L_vano is not None:
+            # TODO: Implementar cálculo de vano peso según desnivel de catenarias
+            # Por ahora, placeholder: L_vanopeso = L_vano
+            self.L_vanopeso = L_vano
+        else:
+            self.L_vanopeso = L_vano if L_vano is not None else 0.0
     
     def _calcular_cache_vientos(self, params):
         """
@@ -988,8 +1019,95 @@ class Cable_AEA:
         print(f"  ✅ Cálculo completado: t_final={t_final:.6f} daN/mm²")
         if estado_limitante and estado_limitante not in ["Límite mínimo físico", "Límite máximo físico"]:
             print(f"  🟡 Estado limitante: {estado_limitante}")
+        
+        # Calcular y cachear catenarias (puntos cada 0.5m)
+        self._calcular_y_cachear_catenarias(resultados_final, vano, definicion_catenaria=0.5)
 
         return df_resultados[columnas_base], resultados_final, estado_limitante
+    
+    def _calcular_y_cachear_catenarias(self, resultados_finales, L_vano, definicion_catenaria=0.5):
+        """
+        Calcula y cachea catenarias para todos los estados climáticos
+        """
+        print(f"  📊 Cacheando catenarias: H_PIQANTERIOR={self.H_PIQANTERIOR}, H_PIQPOSTERIOR={self.H_PIQPOSTERIOR}")
+        self.catenarias_cache = {}
+        
+        for estado_id, resultados_estado in resultados_finales.items():
+            self.catenarias_cache[estado_id] = {
+                'catenaria_anterior': self._calcular_catenaria(
+                    resultados_estado, L_vano, self.H_PIQANTERIOR, 'anterior', definicion_catenaria
+                ),
+                'catenaria_posterior': self._calcular_catenaria(
+                    resultados_estado, L_vano, self.H_PIQPOSTERIOR, 'posterior', definicion_catenaria
+                )
+            }
+    
+    def _calcular_catenaria(self, resultados_estado, L_vano, H_desnivel, direccion, definicion=0.5):
+        """Calcula catenaria con puntos cada 'definicion' metros"""
+        import numpy as np
+        from scipy.optimize import fsolve
+        
+        T_H = resultados_estado['tiro_daN']
+        w = resultados_estado['peso_total_daN_m']
+        a = T_H / w
+        
+        # Generar puntos cada 'definicion' metros
+        num_puntos = int(L_vano / definicion) + 1
+        
+        if direccion == 'anterior':
+            # Desde PIQANTERIOR (x=-L_vano, y=H_desnivel) hasta PIQACTUAL (x=0, y=0)
+            x_local = np.linspace(-L_vano, 0, num_puntos)
+            H = -H_desnivel  # Invertir signo para cálculo
+        else:
+            # Desde PIQACTUAL (x=0, y=0) hasta PIQPOSTERIOR (x=L_vano, y=H_desnivel)
+            x_local = np.linspace(0, L_vano, num_puntos)
+            H = H_desnivel
+        
+        if abs(H) < 1e-6:  # Vano nivelado
+            x_centro = L_vano / 2 if direccion == 'posterior' else -L_vano / 2
+            y = a * (np.cosh((x_local - x_centro) / a) - 1)
+            x_min = x_centro
+        else:  # Vano desnivelado - usar fórmula directa
+            # Para catenaria que va de (0, 0) a (L_vano, H)
+            # Resolver: H = a * (cosh((L_vano - x0)/a) - cosh(-x0/a))
+            # Semilla inicial: desplazar x0 según el signo de H
+            semilla = L_vano / 2 + H * 10  # Desplazar según desnivel
+            
+            def ecuacion(x0):
+                return a * (np.cosh((L_vano - x0) / a) - np.cosh(-x0 / a)) - H
+            
+            x0 = fsolve(ecuacion, semilla)[0]
+            
+            if direccion == 'anterior':
+                y = a * (np.cosh((x_local + L_vano - x0) / a) - np.cosh((L_vano - x0) / a))
+                x_min = -L_vano + x0
+            else:
+                y = a * (np.cosh((x_local - x0) / a) - np.cosh(-x0 / a))
+                x_min = x0
+        
+        # Para graficar: invertir verticalmente (panza hacia abajo)
+        # y ajustar para que inicie en y=0 y termine en y=H_desnivel
+        y_invertido = -y
+        
+        # Calcular valores en los extremos
+        y_inicio = y_invertido[0]   # Valor en x=0
+        y_fin = y_invertido[-1]      # Valor en x=L_vano
+        
+        # Trasladar para que inicie en y=0
+        y_trasladado = y_invertido - y_inicio
+        
+        # Verificar que termine en H_desnivel (con tolerancia)
+        y_fin_trasladado = y_trasladado[-1]
+        print(f"    Catenaria {direccion}: y_inicio={y_inicio:.3f}, y_fin={y_fin:.3f}, y_fin_trasladado={y_fin_trasladado:.3f}, H_desnivel={H_desnivel:.3f}")
+        
+        return {
+            'x': x_local,
+            'y': y_trasladado,
+            'x_min': x_min,
+            'y_min': np.min(y_trasladado),
+            'H_desnivel': H_desnivel,
+            'direccion': direccion
+        }
 
 
 

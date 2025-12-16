@@ -12,7 +12,7 @@ import os
 
 APP_TITLE = "AGP - Análisis General de Postaciones"
 APP_PORT = int(os.environ.get("PORT", 8050))
-DEBUG_MODE = os.environ.get("DEBUG", "False").lower() == "true"
+DEBUG_MODE = True
 
 # Tema visual
 THEME = {

@@ -36,6 +36,8 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                         dbc.Label("L_vano (m)"),
                         dbc.Input(id="param-L_vano", type="number", value=estructura_actual.get("L_vano", 400))
                     ], md=3),
+                ], className="mb-3"),
+                dbc.Row([
                     dbc.Col([
                         dbc.Label("alpha (°) - Ángulo de quiebre"),
                         dcc.Slider(id="param-alpha", min=0, max=180, step=1, value=estructura_actual.get("alpha", 0),
@@ -72,6 +74,34 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
         dbc.Card([
             dbc.CardHeader(html.H5("Configuración de Flechado / Cálculo Mecánico")),
             dbc.CardBody([
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("VANO_DESNIVELADO"),
+                        html.Small("Si es True, se calcula el vano peso según desnivel de catenarias", className="text-muted d-block mb-2"),
+                        dbc.Checklist(id="param-VANO_DESNIVELADO",
+                                     options=[{"label": "Activado", "value": True}],
+                                     value=[True] if estructura_actual.get("VANO_DESNIVELADO", False) else [],
+                                     switch=True)
+                    ], md=12),
+                ], className="mb-3"),
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("H_PIQANTERIOR (m)"),
+                        html.Small("Altura piquete anterior", className="text-muted d-block mb-2"),
+                        dcc.Slider(id="param-H_PIQANTERIOR", min=-5, max=5, step=0.05,
+                                  value=estructura_actual.get("H_PIQANTERIOR", 0.0),
+                                  marks={i*0.5: str(round(i*0.5, 1)) for i in range(-10, 11)},
+                                  tooltip={"placement": "bottom", "always_visible": True})
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Label("H_PIQPOSTERIOR (m)"),
+                        html.Small("Altura piquete posterior - Visto en gráfico", className="text-muted d-block mb-2"),
+                        dcc.Slider(id="param-H_PIQPOSTERIOR", min=-5, max=5, step=0.05,
+                                  value=estructura_actual.get("H_PIQPOSTERIOR", 0.0),
+                                  marks={i*0.5: str(round(i*0.5, 1)) for i in range(-10, 11)},
+                                  tooltip={"placement": "bottom", "always_visible": True})
+                    ], md=6),
+                ], className="mb-3"),
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("SALTO_PORCENTUAL - Para búsqueda de soluciones en cálculo mecánico"),
@@ -129,7 +159,7 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
         dbc.Card([
             dbc.CardHeader(html.H5("Estados Climáticos")),
             dbc.CardBody([
-                html.Div(id="tabla-estados-climaticos")
+                html.Div(crear_tabla_estados_climaticos(estructura_actual))
             ])
         ], className="mb-3"),
         
@@ -151,9 +181,15 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual):
     try:
         import pandas as pd
         from utils.format_helpers import formatear_resultados_cmc, formatear_dataframe_cmc
+        from utils.calculo_cache import CalculoCache
+        
+        # Verificar vigencia
+        vigente, mensaje = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+        color_alerta = "success" if vigente else "warning"
+        texto_alerta = "✅ Resultados cargados desde cache (parámetros sin cambios)" if vigente else "⚠️ Resultados cargados desde cache - ATENCIÓN: Los parámetros han cambiado, recalcular para actualizar"
         
         resultados_html = [
-            dbc.Alert("Resultados cargados desde cálculo anterior", color="info", className="mb-3"),
+            dbc.Alert(texto_alerta, color=color_alerta, className="mb-3"),
             html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"),
         ]
         

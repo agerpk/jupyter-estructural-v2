@@ -98,14 +98,7 @@ def register_callbacks(app):
         else:
             return True, "Error", resultado["mensaje"], "danger", "danger"
     
-    @app.callback(
-        Output("tabla-estados-climaticos", "children"),
-        Input("contenido-principal", "children"),
-        State("estructura-actual", "data"),
-        prevent_initial_call=True
-    )
-    def actualizar_tabla_estados(contenido, estructura_actual):
-        return crear_tabla_estados_climaticos(estructura_actual)
+
     
     @app.callback(
         Output("estructura-actual", "data", allow_duplicate=True),
@@ -121,6 +114,9 @@ def register_callbacks(app):
         State("param-Vmax", "value"),
         State("param-Vmed", "value"),
         State("param-t_hielo", "value"),
+        State("param-VANO_DESNIVELADO", "value"),
+        State("param-H_PIQANTERIOR", "value"),
+        State("param-H_PIQPOSTERIOR", "value"),
         State("param-SALTO_PORCENTUAL", "value"),
         State("param-PASO_AFINADO", "value"),
         State("param-OBJ_CONDUCTOR", "value"),
@@ -131,8 +127,10 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def guardar_params_cmc(n_clicks, L_vano, alpha, theta, Vmax, Vmed, t_hielo,
+                           VANO_DESNIVELADO, H_PIQANTERIOR, H_PIQPOSTERIOR,
                            SALTO_PORCENTUAL, PASO_AFINADO, OBJ_CONDUCTOR, OBJ_GUARDIA,
-                           RELFLECHA_MAX_GUARDIA, RELFLECHA_SIN_VIENTO, estructura_actual):
+                           RELFLECHA_MAX_GUARDIA, RELFLECHA_SIN_VIENTO,
+                           estructura_actual):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
@@ -145,6 +143,9 @@ def register_callbacks(app):
                 "Vmax": float(Vmax),
                 "Vmed": float(Vmed),
                 "t_hielo": float(t_hielo),
+                "VANO_DESNIVELADO": bool(VANO_DESNIVELADO),
+                "H_PIQANTERIOR": float(H_PIQANTERIOR) if H_PIQANTERIOR else 0.0,
+                "H_PIQPOSTERIOR": float(H_PIQPOSTERIOR) if H_PIQPOSTERIOR else 0.0,
                 "SALTO_PORCENTUAL": float(SALTO_PORCENTUAL),
                 "PASO_AFINADO": float(PASO_AFINADO),
                 "OBJ_CONDUCTOR": OBJ_CONDUCTOR,
@@ -153,14 +154,22 @@ def register_callbacks(app):
                 "RELFLECHA_SIN_VIENTO": bool(RELFLECHA_SIN_VIENTO)
             })
             
+            # Guardar en actual.estructura.json
             state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
+            
+            # Guardar en archivo específico si existe
+            titulo = estructura_actualizada.get('TITULO', '')
+            if titulo:
+                from pathlib import Path
+                archivo_especifico = Path(f"data/{titulo}.estructura.json")
+                state.estructura_manager.guardar_estructura(estructura_actualizada, archivo_especifico)
             
             return estructura_actualizada, True, "Éxito", "Parámetros guardados", "success", "success"
         except Exception as e:
             return dash.no_update, True, "Error", f"Error: {str(e)}", "danger", "danger"
     
     @app.callback(
-        Output("resultados-cmc", "children"),
+        Output("resultados-cmc", "children", allow_duplicate=True),
         Output("toast-notificacion", "is_open", allow_duplicate=True),
         Output("toast-notificacion", "header", allow_duplicate=True),
         Output("toast-notificacion", "children", allow_duplicate=True),
@@ -173,6 +182,9 @@ def register_callbacks(app):
         State("param-Vmax", "value"),
         State("param-Vmed", "value"),
         State("param-t_hielo", "value"),
+        State("param-VANO_DESNIVELADO", "value"),
+        State("param-H_PIQANTERIOR", "value"),
+        State("param-H_PIQPOSTERIOR", "value"),
         State("param-SALTO_PORCENTUAL", "value"),
         State("param-PASO_AFINADO", "value"),
         State("param-OBJ_CONDUCTOR", "value"),
@@ -188,6 +200,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def calcular_cmc(n_clicks, L_vano, alpha, theta, Vmax, Vmed, t_hielo,
+                    VANO_DESNIVELADO, H_PIQANTERIOR, H_PIQPOSTERIOR,
                     SALTO_PORCENTUAL, PASO_AFINADO, OBJ_CONDUCTOR, OBJ_GUARDIA,
                     RELFLECHA_MAX_GUARDIA, RELFLECHA_SIN_VIENTO,
                     temps, vientos, hielos, restricciones_cond, restricciones_guard, estructura_actual):
@@ -195,9 +208,40 @@ def register_callbacks(app):
             raise dash.exceptions.PreventUpdate
         
         try:
+            # Guardar parámetros antes de calcular
+            estructura_actualizada = estructura_actual.copy()
+            estructura_actualizada.update({
+                "L_vano": float(L_vano),
+                "alpha": float(alpha),
+                "theta": float(theta),
+                "Vmax": float(Vmax),
+                "Vmed": float(Vmed),
+                "t_hielo": float(t_hielo),
+                "VANO_DESNIVELADO": bool(VANO_DESNIVELADO),
+                "H_PIQANTERIOR": float(H_PIQANTERIOR) if H_PIQANTERIOR else 0.0,
+                "H_PIQPOSTERIOR": float(H_PIQPOSTERIOR) if H_PIQPOSTERIOR else 0.0,
+                "SALTO_PORCENTUAL": float(SALTO_PORCENTUAL),
+                "PASO_AFINADO": float(PASO_AFINADO),
+                "OBJ_CONDUCTOR": OBJ_CONDUCTOR,
+                "OBJ_GUARDIA": OBJ_GUARDIA,
+                "RELFLECHA_MAX_GUARDIA": float(RELFLECHA_MAX_GUARDIA),
+                "RELFLECHA_SIN_VIENTO": bool(RELFLECHA_SIN_VIENTO)
+            })
+            
+            # Guardar en actual.estructura.json
+            state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
+            
+            # Guardar en archivo específico si existe
+            titulo = estructura_actualizada.get('TITULO', '')
+            if titulo:
+                from pathlib import Path
+                archivo_especifico = Path(f"data/{titulo}.estructura.json")
+                state.estructura_manager.guardar_estructura(estructura_actualizada, archivo_especifico)
+            
+            estructura_actual = estructura_actualizada
             resultado_objetos = state.calculo_objetos.crear_todos_objetos(estructura_actual)
             if not resultado_objetos["exito"]:
-                return html.Div(), True, "Error", resultado_objetos["mensaje"], "danger", "danger"
+                return dash.no_update, True, "Error", resultado_objetos["mensaje"], "danger", "danger"
             
             estados_ids = ["I", "II", "III", "IV", "V"]
             descripciones = ["Tmáx", "Tmín", "Vmáx", "Vmed", "TMA"]
@@ -241,7 +285,10 @@ def register_callbacks(app):
                 "OBJ_CONDUCTOR": OBJ_CONDUCTOR,
                 "OBJ_GUARDIA": OBJ_GUARDIA,
                 "RELFLECHA_MAX_GUARDIA": float(RELFLECHA_MAX_GUARDIA),
-                "RELFLECHA_SIN_VIENTO": bool(RELFLECHA_SIN_VIENTO)
+                "RELFLECHA_SIN_VIENTO": bool(RELFLECHA_SIN_VIENTO),
+                "VANO_DESNIVELADO": bool(VANO_DESNIVELADO),
+                "H_PIQANTERIOR": float(H_PIQANTERIOR) if H_PIQANTERIOR else 0.0,
+                "H_PIQPOSTERIOR": float(H_PIQPOSTERIOR) if H_PIQPOSTERIOR else 0.0
             }
             
             # Capturar console output
@@ -286,13 +333,13 @@ def register_callbacks(app):
                         html.Pre(console_output, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.75rem', 'maxHeight': '300px', 'overflowY': 'auto'})
                     ])
                 
-                if state.calculo_mecanico.resultados_conductor and state.calculo_mecanico.resultados_guardia1:
+                if state.calculo_objetos.cable_conductor and state.calculo_objetos.cable_guardia:
                     try:
                         figs = crear_grafico_flechas(
-                            state.calculo_mecanico.resultados_conductor,
-                            state.calculo_mecanico.resultados_guardia1,
+                            state.calculo_objetos.cable_conductor,
+                            state.calculo_objetos.cable_guardia,
                             float(L_vano),
-                            state.calculo_mecanico.resultados_guardia2
+                            state.calculo_objetos.cable_guardia2
                         )
                         fig_combinado = figs[0]
                         fig_conductor = figs[1]
@@ -341,7 +388,9 @@ def register_callbacks(app):
                 
                 return resultados_html, True, "Éxito", "Cálculo completado y guardado", "success", "success"
             else:
-                return html.Div(), True, "Error", resultado["mensaje"], "danger", "danger"
+                return dash.no_update, True, "Error", resultado["mensaje"], "danger", "danger"
                 
         except Exception as e:
-            return html.Div(), True, "Error", f"Error en cálculo: {str(e)}", "danger", "danger"
+            import traceback
+            traceback.print_exc()
+            return dash.no_update, True, "Error", f"Error en cálculo: {str(e)}", "danger", "danger"
