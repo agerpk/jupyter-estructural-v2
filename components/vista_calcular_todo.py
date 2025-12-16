@@ -1,6 +1,6 @@
 """Vista para Calcular Todo - Carga modular de cachés"""
 
-from dash import html
+from dash import html, dcc
 import dash_bootstrap_components as dbc
 from utils.calculo_cache import CalculoCache
 
@@ -163,6 +163,7 @@ def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
     """Vista para ejecutar todos los cálculos en secuencia"""
     
     return html.Div([
+        dcc.Download(id="download-html-todo"),
         dbc.Card([
             dbc.CardHeader(html.H4("Calcular Todo - Ejecución Completa", className="mb-0")),
             dbc.CardBody([
@@ -188,7 +189,7 @@ def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
                             size="lg",
                             className="w-100"
                         )
-                    ], md=6),
+                    ], md=4),
                     dbc.Col([
                         dbc.Button(
                             "Cargar desde Cache",
@@ -197,7 +198,16 @@ def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
                             size="lg",
                             className="w-100"
                         )
-                    ], md=6)
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Button(
+                            "Descargar como HTML",
+                            id="btn-descargar-html-todo",
+                            color="primary",
+                            size="lg",
+                            className="w-100"
+                        )
+                    ], md=4)
                 ], className="mb-4"),
                 
                 html.Hr(),
