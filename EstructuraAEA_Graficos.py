@@ -42,7 +42,28 @@ class EstructuraAEA_Graficos:
         # 1. TERRA
         plt.axhline(y=0, color=self.COLORES['terreno'], linewidth=3, alpha=0.7, label='Nivel del terreno')
         
-        # 2. RECOLECTAR NODOS PARA DIBUJO
+        # 2. RECOLECTAR NODOS PARA DIBUJO Y ANOTAR DISTANCIAS
+        # Recolectar nodos centrales para mediciones
+        nodos_centrales = ["BASE", "CROSS_H1", "CROSS_H2", "CROSS_H3"]
+        if "HG1" in self.geometria.nodes_key and self.geometria.terna == "Doble" and self.geometria.cant_hg == 1:
+            nodos_centrales.append("HG1")
+        elif "TOP" in self.geometria.nodes_key:
+            nodos_centrales.append("TOP")
+        
+        coordenadas_centrales = sorted([(n, self.geometria.nodes_key[n]) for n in nodos_centrales if n in self.geometria.nodes_key], 
+                                      key=lambda x: x[1][2])
+        
+        # Anotar distancias entre nodos centrales
+        for i in range(len(coordenadas_centrales)-1):
+            dist = coordenadas_centrales[i+1][1][2] - coordenadas_centrales[i][1][2]
+            if dist > 0:
+                z_medio = (coordenadas_centrales[i][1][2] + coordenadas_centrales[i+1][1][2]) / 2
+                plt.plot([0, 0.3], [z_medio, z_medio], color='gray', linestyle=':', alpha=0.7, linewidth=1)
+                plt.annotate(f'{dist:.2f} m', xy=(0.3, z_medio), xytext=(5, 0), textcoords='offset points', 
+                            fontsize=9, fontweight='bold', 
+                            bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.8), 
+                            verticalalignment='center')
+        
         # Recolectar nodos de estructura (centrados en x=0)
         nodos_estructura = []
         # Recolectar nodos de conductor por altura
@@ -123,6 +144,16 @@ class EstructuraAEA_Graficos:
                     z2, nombre2, coord2 = nodos_estructura[i+1]
                     plt.plot([0, 0], [z1, z2], color=self.COLORES['poste'], linewidth=4, 
                             label='Estructura' if i == 0 else "")
+            
+            # CASO ESPECIAL: Guardia centrado en doble terna vertical
+            # Conectar último CROSS con HG1 centrado
+            if (self.geometria.disposicion == 'vertical' and self.geometria.terna == 'Doble' and 
+                self.geometria.cant_hg == 1 and self.geometria.hg_centrado):
+                if 'CROSS_H3' in self.geometria.nodes_key and 'HG1' in self.geometria.nodes_key:
+                    x_cross, y_cross, z_cross = self.geometria.nodes_key['CROSS_H3']
+                    x_hg, y_hg, z_hg = self.geometria.nodes_key['HG1']
+                    if abs(x_hg) < 0.001:  # Verificar que HG1 está centrado
+                        plt.plot([0, 0], [z_cross, z_hg], color=self.COLORES['poste'], linewidth=4)
         
         # 4. DIBUJAR MENSULAS/CRUCETAS DE CONDUCTORES
         for altura, conductores in conductores_por_altura.items():
@@ -508,6 +539,16 @@ class EstructuraAEA_Graficos:
                 z_min = min([n[0] for n in nodos_estructura])
                 z_max = max([n[0] for n in nodos_estructura])
                 plt.plot([0, 0], [z_min, z_max], color=self.COLORES['poste'], linewidth=4)
+            
+            # CASO ESPECIAL: Guardia centrado en doble terna vertical
+            # Conectar último CROSS con HG1 centrado
+            if (self.geometria.disposicion == 'vertical' and self.geometria.terna == 'Doble' and 
+                self.geometria.cant_hg == 1 and self.geometria.hg_centrado):
+                if 'CROSS_H3' in self.geometria.nodes_key and 'HG1' in self.geometria.nodes_key:
+                    x_cross, y_cross, z_cross = self.geometria.nodes_key['CROSS_H3']
+                    x_hg, y_hg, z_hg = self.geometria.nodes_key['HG1']
+                    if abs(x_hg) < 0.001:  # Verificar que HG1 está centrado
+                        plt.plot([0, 0], [z_cross, z_hg], color=self.COLORES['poste'], linewidth=4)
         
         # 2.2 DIBUJAR MENSULAS/CRUCETAS DE CONDUCTORES
         for altura, conductores in conductores_por_altura.items():
@@ -576,7 +617,7 @@ class EstructuraAEA_Graficos:
                                     color=self.COLORES['poste'], linewidth=3, alpha=0.8)
         
         # 3. APANTALLAMIENTO
-        if nodos_guardia:
+        if nodos_guardia and hasattr(self.geometria, 'ang_apantallamiento'):
             h_guardia = self.geometria.dimensiones.get('hhg', 0)
             h1a = self.geometria.dimensiones.get('h1a', 0)
             h_terminacion = h1a - self.geometria.lk
@@ -584,13 +625,17 @@ class EstructuraAEA_Graficos:
             
             if len(nodos_guardia) == 1:
                 x_hg = nodos_guardia[0][0]
+                x_ext_izq = x_hg - (h_guardia - h_terminacion) * math.tan(math.radians(angulo_apant))
+                x_ext_der = x_hg + (h_guardia - h_terminacion) * math.tan(math.radians(angulo_apant))
                 
-                if abs(x_hg) > 0.001:
-                    x_ext = x_hg - (h_guardia - h_terminacion) * math.tan(math.radians(angulo_apant))
-                    
-                    plt.plot([x_hg, x_ext], [h_guardia, h_terminacion], 
-                            color=self.COLORES['apantallamiento'],
-                            linestyle='--', alpha=0.7, linewidth=1.5)
+                plt.plot([x_hg, x_ext_izq], [h_guardia, h_terminacion], 
+                        color=self.COLORES['apantallamiento'], linestyle='--', alpha=0.7, linewidth=1.5)
+                plt.plot([x_hg, x_ext_der], [h_guardia, h_terminacion], 
+                        color=self.COLORES['apantallamiento'], linestyle='--', alpha=0.7, linewidth=1.5)
+                
+                x_fill = [x_ext_izq, x_hg, x_ext_der]
+                z_fill = [h_terminacion, h_guardia, h_terminacion]
+                plt.fill(x_fill, z_fill, color=self.COLORES['apantallamiento'], alpha=0.1)
             else:
                 guardias_x = [g[0] for g in nodos_guardia]
                 x_hg_izq = min(guardias_x)

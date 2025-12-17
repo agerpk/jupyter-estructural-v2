@@ -298,7 +298,7 @@ def crear_vista_home():
         
         html.Div([
             html.Div(crear_tarjeta_estructura(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
-            html.Div(crear_tarjeta_calcular_catenaria(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
+            # html.Div(crear_tarjeta_calcular_catenaria(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
             html.Div(crear_tarjeta_estructura_actual(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
             html.Div(crear_tarjeta_estructuras_disponibles(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
             html.Div(crear_tarjeta_cables_disponibles(), style={"breakInside": "avoid", "marginBottom": "1rem"}),

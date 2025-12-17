@@ -44,7 +44,6 @@ def register_callbacks(app):
         Output("contenido-principal", "children"),
         Input("btn-inicio", "n_clicks"),
         Input({"type": "btn-volver", "index": ALL}, "n_clicks"),
-        Input("store-catenaria-actual", "data"),
         Input("menu-ajustar-parametros", "n_clicks"),
         Input("menu-eliminar-estructura", "n_clicks"),
         Input("menu-calculo-mecanico", "n_clicks"),
@@ -58,7 +57,7 @@ def register_callbacks(app):
         Input("menu-calcular-todo", "n_clicks"),
         State("estructura-actual", "data"),
     )
-    def navegar_vistas(n_clicks_inicio, btn_volver_clicks, catenaria_data, n_clicks_ajustar, 
+    def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
                        n_clicks_eliminar, n_clicks_cmc,
                        n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
                        n_clicks_diseno_geom, n_clicks_diseno_mec, n_clicks_arboles, n_clicks_sph, 
@@ -67,7 +66,7 @@ def register_callbacks(app):
         
         # Detectar carga inicial (app restart o hot reload)
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
-        es_carga_inicial = not ctx.triggered or (trigger_id == "store-catenaria-actual" and not catenaria_data)
+        es_carga_inicial = not ctx.triggered
         
         if es_carga_inicial:
             ultima_vista = cargar_navegacion_state()
@@ -140,21 +139,11 @@ def register_callbacks(app):
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_todo(nombre_estructura)
                 return crear_vista_calcular_todo(estructura_actual, calculo_guardado)
-            elif ultima_vista == "ajustar-catenaria":
-                from components.vista_ajustar_catenaria import crear_vista_ajustar_catenaria
-                return crear_vista_ajustar_catenaria({})
             return crear_vista_home()
         
         print(f"DEBUG: Trigger detectado: {trigger_id}")
         
-        if trigger_id == "store-catenaria-actual":
-            if catenaria_data:
-                guardar_navegacion_state("ajustar-catenaria")
-                from components.vista_ajustar_catenaria import crear_vista_ajustar_catenaria
-                return crear_vista_ajustar_catenaria(catenaria_data)
-            return dash.no_update
-        
-        elif trigger_id == "btn-inicio":
+        if trigger_id == "btn-inicio":
             guardar_navegacion_state("home")
             return crear_vista_home()
         

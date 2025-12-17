@@ -207,6 +207,7 @@ class EstructuraAEA_Geometria:
         # Resultados de dimensionamiento
         self.dimensiones = {}
         self.nodes_key = {}  # Para compatibilidad
+        self.conexiones = []  # Lista de conexiones: [(nodo_inicial, nodo_final, tipo_tramo), ...]
         
         # Variables auxiliares para el nuevo proceso
         self.h_base_electrica = 0.0
@@ -369,9 +370,12 @@ class EstructuraAEA_Geometria:
         D_fases = k * math.sqrt(termino_flecha) + Ka * self.tension_nominal / 150
         
         # 5. Distancia mínima fase-estructura (s) - AJUSTADO POR ALTURA
-        s_base = 0.280 + 0.005 * (self.tension_maxima - 50)
-        s_base = s_base * Ka
-        s_estructura = max(s_base, Ka * self.tension_nominal / 150)
+        if self.tension_nominal <= 33:
+            s_estructura = Ka * self.tension_nominal / 150
+        else:
+            s_base = 0.280 + 0.005 * (self.tension_maxima - 50)
+            s_base = s_base * Ka
+            s_estructura = max(s_base, Ka * self.tension_nominal / 150)
         
         # 6. Distancia mínima guardia-conductor (Dhg) - AJUSTADO POR ALTURA
         Dhg = k * math.sqrt(termino_flecha) + Ka * (self.tension_nominal / math.sqrt(3)) / 150
@@ -425,7 +429,7 @@ class EstructuraAEA_Geometria:
         # 3. Calcular h3a si: (disposición=vertical)
         if self.disposicion == "vertical":
             termino1 = self.hadd_entre_amarres + s_estructura + self.lk
-            termino2 = self.hadd_entre_amarres - self.lk + self.hadd_entre_amarres
+            termino2 = self.hadd_entre_amarres - self.lk + D_fases
             h3a = h2a + max(termino1, termino2)
         
         return h1a, h2a, h3a
@@ -885,6 +889,92 @@ class EstructuraAEA_Geometria:
         self.nodes_key = {}
         for nombre, nodo in self.nodos.items():
             self.nodes_key[nombre] = list(nodo.coordenadas)
+        
+        # Actualizar conexiones después de actualizar nodes_key
+        self._generar_conexiones()
+    
+    def _generar_conexiones(self):
+        """Genera lista de conexiones entre nodos con tipo de tramo"""
+        self.conexiones = []
+        
+        # 1. COLUMNAS: Conexiones verticales en x=0
+        nodos_centrales = []
+        for nombre, coords in self.nodes_key.items():
+            x, y, z = coords
+            if abs(x) < 0.001 and abs(y) < 0.001:
+                if not nombre.startswith(('C1', 'C2', 'C3', 'HG')):
+                    nodos_centrales.append((z, nombre))
+        
+        nodos_centrales.sort(key=lambda x: x[0])
+        for i in range(len(nodos_centrales)-1):
+            self.conexiones.append((nodos_centrales[i][1], nodos_centrales[i+1][1], 'columna'))
+        
+        # CASO ESPECIAL: Guardia centrado en doble terna vertical
+        if (self.disposicion == 'vertical' and self.terna == 'Doble' and 
+            self.cant_hg == 1 and self.hg_centrado):
+            if 'CROSS_H3' in self.nodes_key and 'HG1' in self.nodes_key:
+                x_hg = self.nodes_key['HG1'][0]
+                if abs(x_hg) < 0.001:
+                    self.conexiones.append(('CROSS_H3', 'HG1', 'columna'))
+        
+        # 2. MENSULAS/CRUCETAS: Conexiones CROSS -> Conductores
+        for nombre, coords in self.nodes_key.items():
+            if nombre.startswith(('C1', 'C2', 'C3')):
+                x_c, y_c, z_c = coords
+                if abs(y_c) < 0.001:
+                    # Buscar CROSS más cercano
+                    cross_cercano = None
+                    min_diff = float('inf')
+                    for n, c in self.nodes_key.items():
+                        if 'CROSS' in n:
+                            diff = abs(c[2] - z_c)
+                            if diff < min_diff:
+                                min_diff = diff
+                                cross_cercano = n
+                    
+                    if cross_cercano:
+                        if abs(x_c) < 0.001:
+                            tipo = 'columna'
+                        else:
+                            tipo = 'mensula'
+                        self.conexiones.append((cross_cercano, nombre, tipo))
+        
+        # 3. MENSULAS GUARDIA: Conexiones TOP -> HG (si no está centrado)
+        if 'TOP' in self.nodes_key:
+            for nombre, coords in self.nodes_key.items():
+                if nombre.startswith('HG'):
+                    x_hg = coords[0]
+                    if abs(x_hg) > 0.001:  # No centrado
+                        self.conexiones.append(('TOP', nombre, 'mensula'))
+        
+        # 4. CRUCETAS: Detectar crucetas horizontales
+        conductores_por_altura = {}
+        for nombre, coords in self.nodes_key.items():
+            if nombre.startswith(('C1', 'C2', 'C3')):
+                z = coords[2]
+                if z not in conductores_por_altura:
+                    conductores_por_altura[z] = []
+                conductores_por_altura[z].append(nombre)
+        
+        for altura, conductores in conductores_por_altura.items():
+            if len(conductores) >= 2:
+                # Verificar si hay conductores a ambos lados
+                x_coords = [self.nodes_key[c][0] for c in conductores]
+                hay_izq = any(x < -0.01 for x in x_coords)
+                hay_der = any(x > 0.01 for x in x_coords)
+                
+                if hay_izq and hay_der:
+                    # Es cruceta: conectar conductores entre sí
+                    conductores_sorted = sorted(conductores, key=lambda c: self.nodes_key[c][0])
+                    for i in range(len(conductores_sorted)-1):
+                        self.conexiones.append((conductores_sorted[i], conductores_sorted[i+1], 'cruceta'))
+        
+        # 5. CADENAS: Conexiones editadas por usuario
+        for nombre, nodo in self.nodos.items():
+            if hasattr(nodo, 'conectado_a') and nodo.conectado_a:
+                for nodo_destino in nodo.conectado_a:
+                    if nodo_destino in self.nodes_key:
+                        self.conexiones.append((nombre, nodo_destino, 'cadena'))
     
     # ================= MÉTODOS DE GESTIÓN DE NODOS =================
     

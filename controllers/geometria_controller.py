@@ -132,7 +132,9 @@ def ejecutar_calculo_dge(estructura_actual, state):
             estructura_geometria.nodes_key,
             fig_estructura,
             fig_cabezal,
-            memoria_dge
+            fig_nodos,
+            memoria_dge,
+            estructura_geometria.conexiones
         )
         
         return {
@@ -1039,7 +1041,8 @@ def register_callbacks(app):
                 fig_estructura,
                 fig_cabezal,
                 fig_nodos,
-                memoria_calculo
+                memoria_calculo,
+                estructura_geometria.conexiones
             )
             print(f"✅ Cache DGE guardado: {nombre_estructura}")
             
