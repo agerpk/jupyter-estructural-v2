@@ -27,6 +27,7 @@ def crear_layout():
         # Almacenamiento de estado
         dcc.Store(id="estructura-actual", data=state.cargar_estructura_actual()),
         dcc.Store(id="estructuras-disponibles", data=state.estructura_manager.listar_estructuras()),
+        dcc.Store(id="store-catenaria-actual", data=None),
         
         # Barra de navegación superior
         dbc.Navbar(
@@ -88,6 +89,13 @@ def crear_layout():
             crear_modal_nueva_estructura(),
             crear_modal_acerca_de(),
     
+            # Stores para cálculos
+            dcc.Store(id="store-calculo-cmc", data=None),
+            dcc.Store(id="store-calculo-dge", data=None),
+            dcc.Store(id="store-calculo-dme", data=None),
+            dcc.Store(id="store-calculo-sph", data=None),
+            dcc.Store(id="store-calculo-arboles", data=None),
+            
             # Área de contenido principal
             html.Div(id="contenido-principal", children=crear_vista_home()),
         ], fluid=True),

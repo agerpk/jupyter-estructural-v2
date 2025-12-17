@@ -7,6 +7,66 @@ import dash_bootstrap_components as dbc
 from models.app_state import AppState
 from config.app_config import ARCHIVOS_PROTEGIDOS, DATA_DIR
 
+def crear_tarjeta_estructura():
+    """Crear tarjeta con acciones de estructura"""
+    return dbc.Card([
+        dbc.CardHeader(html.H5("Estructura", className="mb-0")),
+        dbc.CardBody([
+            dbc.Button(
+                [html.I(className="fas fa-plus me-2"), "Crear Nueva Estructura"],
+                id="btn-nueva-estructura-home",
+                color="primary",
+                className="w-100 mb-3"
+            ),
+            dbc.Button(
+                [html.I(className="fas fa-database me-2"), "Cargar Estructura desde DB"],
+                id="btn-cargar-db-home",
+                color="info",
+                className="w-100 mb-3"
+            ),
+            dbc.Button(
+                [html.I(className="fas fa-folder-open me-2"), "Cargar desde Computadora"],
+                id="btn-cargar-pc-home",
+                color="secondary",
+                className="w-100"
+            )
+        ])
+    ])
+
+def crear_tarjeta_calcular_catenaria():
+    """Crear tarjeta para calcular catenaria"""
+    state = AppState()
+    cables = state.cable_manager.cables_data
+    
+    opciones_cables = [{"label": cable_id, "value": cable_id} for cable_id in cables.keys()]
+    
+    return dbc.Card([
+        dbc.CardHeader(html.H5("Calcular Catenaria", className="mb-0")),
+        dbc.CardBody([
+            html.P("Tiros y Flechas", className="text-muted mb-3"),
+            dbc.Label("Cable:"),
+            dbc.Select(
+                id="select-cable-catenaria",
+                options=opciones_cables,
+                placeholder="Seleccione un cable...",
+                className="mb-3"
+            ),
+            dbc.Label("Vano (m):"),
+            dbc.Input(
+                id="input-vano-catenaria",
+                type="number",
+                value=400.0,
+                className="mb-3"
+            ),
+            dbc.Button(
+                "Calcular",
+                id="btn-calcular-catenaria",
+                color="success",
+                className="w-100"
+            )
+        ])
+    ])
+
 def crear_tarjeta_cables_disponibles():
     """Crear tarjeta con lista de cables disponibles"""
     state = AppState()
@@ -237,6 +297,8 @@ def crear_vista_home():
         ], id="modal-duplicar-estructura", is_open=False),
         
         html.Div([
+            html.Div(crear_tarjeta_estructura(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
+            html.Div(crear_tarjeta_calcular_catenaria(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
             html.Div(crear_tarjeta_estructura_actual(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
             html.Div(crear_tarjeta_estructuras_disponibles(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
             html.Div(crear_tarjeta_cables_disponibles(), style={"breakInside": "avoid", "marginBottom": "1rem"}),
