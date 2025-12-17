@@ -139,7 +139,9 @@ def register_callbacks(app):
             from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
             from EstructuraAEA_Geometria import EstructuraAEA_Geometria
             from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
-            from HipotesisMaestro import hipotesis_maestro
+            from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_maestro_base
+            from utils.hipotesis_manager import HipotesisManager
+            from config.app_config import DATA_DIR
             
             # ENCADENAMIENTO AUTOMÁTICO: CMC -> DGE -> DME
             # 1. Verificar/ejecutar CMC
@@ -271,6 +273,14 @@ def register_callbacks(app):
             
             # 3. Verificar/ejecutar DME
             if not state.calculo_objetos.estructura_mecanica:
+                # Cargar hipótesis personalizadas
+                estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
+                hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
+                    nombre_estructura,
+                    estructura_json_path,
+                    hipotesis_maestro_base
+                )
+                
                 estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
                 if state.calculo_objetos.cable_guardia2:
                     state.calculo_objetos.estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
@@ -298,14 +308,31 @@ def register_callbacks(app):
                     nodo_cima=nodo_cima
                 )
                 
-                # Crear DataFrame de cargas completo
-                estructura_mecanica.generar_dataframe_cargas()
+                # Crear DataFrame de cargas completo SOLO si hay cargas asignadas
+                if estructura_mecanica.geometria.nodos:
+                    tiene_cargas = any(len(nodo.cargas) > 0 for nodo in estructura_mecanica.geometria.nodos.values())
+                    if tiene_cargas:
+                        estructura_mecanica.generar_dataframe_cargas()
+                        print(f"✅ DataFrame de cargas generado: {estructura_mecanica.df_cargas_completo is not None}")
+                    else:
+                        print(f"⚠️  No hay cargas asignadas a los nodos, DataFrame no generado")
                 
                 state.calculo_objetos.estructura_mecanica = estructura_mecanica
             
             estructura_poo = state.calculo_objetos.estructura_mecanica
             
-
+            # Generar DataFrame de cargas si no existe
+            if estructura_poo.df_cargas_completo is None:
+                if estructura_poo.geometria.nodos:
+                    tiene_cargas = any(len(nodo.cargas) > 0 for nodo in estructura_poo.geometria.nodos.values())
+                    if tiene_cargas:
+                        print(f"📊 Generando DataFrame de cargas...")
+                        estructura_poo.generar_dataframe_cargas()
+                        print(f"✅ DataFrame generado: {estructura_poo.df_cargas_completo is not None}")
+                        if estructura_poo.df_cargas_completo is not None:
+                            print(f"   Shape: {estructura_poo.df_cargas_completo.shape}")
+                    else:
+                        print(f"⚠️ No hay cargas asignadas a los nodos")
             
             # Generar árboles
             resultado = generar_arboles_carga(

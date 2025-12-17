@@ -1028,6 +1028,12 @@ class EstructuraAEA_Graficos:
             angulos_barras.append(datos['Angulo_grados'])
             colores_barras.append(colores_hipotesis.get(codigo, 'black'))
         
+        # Validar que hay datos
+        if not tiros_barras:
+            print("⚠️  No hay datos de tiros para graficar")
+            plt.text(0.5, 0.5, 'No hay hipótesis procesadas', ha='center', va='center', fontsize=14)
+            return
+        
         # Crear gráfico de barras sin borde
         barras = plt.bar(hipotesis_barras, tiros_barras, color=colores_barras, alpha=0.7, edgecolor='none')
         

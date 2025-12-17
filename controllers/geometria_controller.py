@@ -349,9 +349,30 @@ def register_callbacks(app):
             nodos_editados_guardados = estructura_actual.get("nodos_editados", [])
             nombres_existentes = set(nodos_dict.keys())
             
+            # Aplicar datos de nodos editados a nodos existentes
+            nodos_editados_dict = {n["nombre"]: n for n in nodos_editados_guardados}
+            for i, nodo_data in enumerate(nodos_data):
+                nombre = nodo_data["nombre"]
+                if nombre in nodos_editados_dict:
+                    nodo_editado = nodos_editados_dict[nombre]
+                    # Solo actualizar si realmente fue editado
+                    if nodo_editado.get("es_editado", False):
+                        nodos_data[i].update({
+                            "tipo": nodo_editado.get("tipo", nodo_data["tipo"]),
+                            "x": nodo_editado["coordenadas"][0],
+                            "y": nodo_editado["coordenadas"][1],
+                            "z": nodo_editado["coordenadas"][2],
+                            "cable_id": nodo_editado.get("cable_id", nodo_data["cable_id"]),
+                            "rotacion_eje_z": nodo_editado.get("rotacion_eje_z", nodo_data["rotacion_eje_z"]),
+                            "angulo_quiebre": nodo_editado.get("angulo_quiebre", nodo_data["angulo_quiebre"]),
+                            "tipo_fijacion": nodo_editado.get("tipo_fijacion", nodo_data["tipo_fijacion"]),
+                            "conectado_a": ", ".join(nodo_editado.get("conectado_a", [])) if isinstance(nodo_editado.get("conectado_a", []), list) else nodo_editado.get("conectado_a", "")
+                        })
+            
+            # Agregar nodos completamente nuevos
             for nodo_editado in nodos_editados_guardados:
                 nombre = nodo_editado["nombre"]
-                if nombre not in nombres_existentes:
+                if nombre not in nombres_existentes and nodo_editado.get("es_editado", False):
                     coords = nodo_editado["coordenadas"]
                     conectado_a_list = nodo_editado.get("conectado_a", [])
                     conectado_a_str = ", ".join(conectado_a_list) if isinstance(conectado_a_list, list) else conectado_a_list
@@ -421,6 +442,35 @@ def register_callbacks(app):
         tabla = generar_tabla_editor_nodos(nodos_dict, cables_disponibles, None)
         
         return nodos_data, tabla
+    
+    # Callback para detectar cambios en la tabla de nodos
+    @app.callback(
+        Output("store-nodos-editor", "data", allow_duplicate=True),
+        Input("datatable-nodos", "data"),
+        State("store-nodos-editor", "data"),
+        prevent_initial_call=True
+    )
+    def actualizar_nodos_desde_tabla(tabla_data, store_data):
+        if not tabla_data or not store_data:
+            return dash.no_update
+        
+        # Actualizar store con datos de la tabla
+        for i, row in enumerate(tabla_data):
+            if i < len(store_data):
+                store_data[i].update({
+                    "nombre": row.get("nombre", store_data[i]["nombre"]),
+                    "tipo": row.get("tipo", store_data[i]["tipo"]),
+                    "x": row.get("x", store_data[i]["x"]),
+                    "y": row.get("y", store_data[i]["y"]),
+                    "z": row.get("z", store_data[i]["z"]),
+                    "cable_id": row.get("cable_id", store_data[i]["cable_id"]),
+                    "rotacion_eje_z": row.get("rotacion_eje_z", store_data[i]["rotacion_eje_z"]),
+                    "angulo_quiebre": row.get("angulo_quiebre", store_data[i]["angulo_quiebre"]),
+                    "tipo_fijacion": row.get("tipo_fijacion", store_data[i]["tipo_fijacion"]),
+                    "conectado_a": row.get("conectado_a", store_data[i]["conectado_a"])
+                })
+        
+        return store_data
     
     # Callback para submodal de conexiones
     @app.callback(
@@ -550,23 +600,58 @@ def register_callbacks(app):
                         if conn not in nombres_vistos:
                             return dash.no_update, True, "Error", f"Fila {i+1}: Nodo conectado '{conn}' no existe", "danger", "danger"
             
-            # Crear lista de nodos editados
+            # Crear lista de nodos editados - solo incluir nodos que realmente cambiaron
             nodos_editados = []
+            nodos_originales = {}
+            
+            # Cargar nodos originales desde geometría o cache
+            if state.calculo_objetos.estructura_geometria:
+                nodos_originales = state.calculo_objetos.estructura_geometria.nodes_key
+            else:
+                from utils.calculo_cache import CalculoCache
+                calculo_dge = CalculoCache.cargar_calculo_dge(estructura_actual.get("TITULO", "actual"))
+                nodos_originales = calculo_dge.get("nodes_key", {}) if calculo_dge else {}
+            
+            # Comparar cada nodo con su versión original
             for nodo in nodos_data:
+                nombre = nodo["nombre"].strip()
                 conectado_str = nodo.get("conectado_a", "").strip()
                 conectados = [n.strip() for n in conectado_str.split(",") if n.strip()] if conectado_str else []
                 
-                nodos_editados.append({
-                    "nombre": nodo["nombre"].strip(),
-                    "tipo": nodo["tipo"],
-                    "coordenadas": [float(nodo["x"]), float(nodo["y"]), float(nodo["z"])],
-                    "cable_id": nodo.get("cable_id", ""),
-                    "rotacion_eje_z": float(nodo.get("rotacion_eje_z", 0.0)),
-                    "angulo_quiebre": float(nodo.get("angulo_quiebre", 0.0)),
-                    "tipo_fijacion": nodo.get("tipo_fijacion", "suspensión"),
-                    "conectado_a": conectados,
-                    "es_editado": True
-                })
+                # Verificar si el nodo cambió respecto al original
+                es_editado = False
+                if nombre not in nodos_originales:
+                    # Nodo nuevo
+                    es_editado = True
+                else:
+                    # Comparar coordenadas
+                    coords_orig = nodos_originales[nombre]
+                    coords_actual = [float(nodo["x"]), float(nodo["y"]), float(nodo["z"])]
+                    if abs(coords_actual[0] - coords_orig[0]) > 0.001 or abs(coords_actual[1] - coords_orig[1]) > 0.001 or abs(coords_actual[2] - coords_orig[2]) > 0.001:
+                        es_editado = True
+                    
+                    # Verificar otros campos si hay objetos nodo
+                    if state.calculo_objetos.estructura_geometria and nombre in state.calculo_objetos.estructura_geometria.nodos:
+                        nodo_obj = state.calculo_objetos.estructura_geometria.nodos[nombre]
+                        if (nodo.get("tipo", "general") != getattr(nodo_obj, 'tipo', 'general') or
+                            float(nodo.get("rotacion_eje_z", 0.0)) != getattr(nodo_obj, 'rotacion_eje_z', 0.0) or
+                            float(nodo.get("angulo_quiebre", 0.0)) != getattr(nodo_obj, 'angulo_quiebre', 0.0) or
+                            nodo.get("tipo_fijacion", "suspensión") != (getattr(nodo_obj, 'tipo_fijacion', 'suspensión') or 'suspensión')):
+                            es_editado = True
+                
+                # Solo agregar si fue editado
+                if es_editado:
+                    nodos_editados.append({
+                        "nombre": nombre,
+                        "tipo": nodo["tipo"],
+                        "coordenadas": [float(nodo["x"]), float(nodo["y"]), float(nodo["z"])],
+                        "cable_id": nodo.get("cable_id", ""),
+                        "rotacion_eje_z": float(nodo.get("rotacion_eje_z", 0.0)),
+                        "angulo_quiebre": float(nodo.get("angulo_quiebre", 0.0)),
+                        "tipo_fijacion": nodo.get("tipo_fijacion", "suspensión"),
+                        "conectado_a": conectados,
+                        "es_editado": True
+                    })
             
             # Guardar en archivos JSON PRIMERO
             state.estructura_manager.guardar_nodos_editados(nodos_editados)
@@ -578,7 +663,10 @@ def register_callbacks(app):
             
             print(f"💾 DEBUG: Nodos guardados en archivo. Total nodos_editados: {len(estructura_actualizada.get('nodos_editados', []))}")
             
-            return estructura_actualizada, True, "Éxito", "Nodos guardados. Recalcule DGE para aplicar cambios.", "success", "success"
+            if len(nodos_editados) == 0:
+                return dash.no_update, True, "Info", "No se detectaron cambios en los nodos.", "info", "info"
+            
+            return estructura_actualizada, True, "Éxito", f"{len(nodos_editados)} nodos editados guardados. Recalcule DGE para aplicar cambios.", "success", "success"
             
         except Exception as e:
             return dash.no_update, True, "Error", f"Error al guardar nodos: {str(e)}", "danger", "danger"

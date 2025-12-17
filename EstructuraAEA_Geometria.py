@@ -1119,6 +1119,7 @@ class EstructuraAEA_Geometria:
             nodos_list (list): Lista de diccionarios con nodos editados
             lib_cables (LibCables, optional): Biblioteca de cables para resolver cable_id
         """
+        # PASO 1: Crear/Actualizar todos los nodos SIN conexiones
         for nodo_dict in nodos_list:
             nombre = nodo_dict["nombre"]
             
@@ -1127,18 +1128,45 @@ class EstructuraAEA_Geometria:
             if nodo_dict.get("cable_id") and lib_cables:
                 cable = lib_cables.obtener_cable(nodo_dict["cable_id"])
             
-            # Si nodo NO existe, agregarlo
-            if nombre not in self.nodos:
-                self.agregar_nodo_manual(
-                    nombre,
-                    nodo_dict["tipo"],
-                    nodo_dict["coordenadas"],
-                    cable,
-                    nodo_dict.get("rotacion_eje_z", 0.0),
+            if nombre in self.nodos:
+                # ACTUALIZAR nodo existente - SOLO actualizar coordenadas y propiedades, NO el tipo
+                nodo = self.nodos[nombre]
+                nodo.coordenadas = tuple(nodo_dict["coordenadas"])
+                # NO sobrescribir tipo_nodo si ya existe (preservar conductor, guardia, etc.)
+                # Solo actualizar si el tipo cambió explícitamente
+                if nodo_dict["tipo"] != "general" or nodo.tipo_nodo == "general":
+                    nodo.tipo_nodo = nodo_dict["tipo"]
+                # Solo actualizar cable si se especificó uno
+                if cable:
+                    nodo.cable_asociado = cable
+                nodo.rotacion_eje_z = nodo_dict.get("rotacion_eje_z", 0.0)
+                nodo.angulo_quiebre = nodo_dict.get("angulo_quiebre", 0.0)
+                nodo.tipo_fijacion = nodo_dict.get("tipo_fijacion")
+                nodo.es_editado = True
+            else:
+                # CREAR nuevo nodo
+                nodo = NodoEstructural(
+                    nombre, tuple(nodo_dict["coordenadas"]), nodo_dict["tipo"], cable,
                     nodo_dict.get("angulo_quiebre", 0.0),
                     nodo_dict.get("tipo_fijacion"),
-                    nodo_dict.get("conectado_a")
+                    nodo_dict.get("rotacion_eje_z", 0.0),
+                    True,
+                    None
                 )
+                self.nodos[nombre] = nodo
+        
+        # PASO 2: Actualizar conexiones ahora que todos los nodos existen
+        for nodo_dict in nodos_list:
+            nombre = nodo_dict["nombre"]
+            conectado_a = nodo_dict.get("conectado_a")
+            
+            if conectado_a and nombre in self.nodos:
+                lista_conectados = conectado_a if isinstance(conectado_a, list) else [conectado_a]
+                conexiones_validas = [n for n in lista_conectados if n in self.nodos]
+                self.nodos[nombre].conectado_a = conexiones_validas
+        
+        # PASO 3: Actualizar nodes_key
+        self._actualizar_nodes_key()
         
         print(f"✅ {len(nodos_list)} nodos importados")
     

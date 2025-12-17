@@ -553,6 +553,12 @@ class EstructuraAEA_Mecanica:
                         cargas_hipotesis[nodo] = [round(carga_x, 2), round(carga_y, 2), round(carga_z, 2)]
                     
                     self.cargas_key[nombre_completo] = cargas_hipotesis
+                    
+                    # GUARDAR CARGAS EN LOS NODOS
+                    for nodo_nombre, carga in cargas_hipotesis.items():
+                        if nodo_nombre in self.geometria.nodos:
+                            self.geometria.nodos[nodo_nombre].agregar_carga(nombre_completo, carga[0], carga[1], carga[2])
+                    
                     print(f"✅ Cargas asignadas: {codigo_hip} - {config['desc']}")
                     
                 except Exception as e:
@@ -569,6 +575,14 @@ class EstructuraAEA_Mecanica:
         
         if not self.cargas_key:
             print("❌ No hay cargas asignadas. Ejecutar asignar_cargas_hipotesis primero.")
+            return None
+        
+        # Verificar que las cargas estén en los nodos
+        nodos_con_cargas = sum(1 for nodo in self.geometria.nodos.values() if nodo.cargas)
+        print(f"   🔍 Nodos con cargas: {nodos_con_cargas}/{len(self.geometria.nodos)}")
+        
+        if nodos_con_cargas == 0:
+            print("⚠️  No hay cargas asignadas a los nodos")
             return None
         
         todos_nodos = list(self.geometria.nodes_key.keys())
