@@ -17,19 +17,22 @@ def guardar_navegacion_state(vista_id):
     """Guarda el estado de navegación"""
     try:
         NAVEGACION_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(NAVEGACION_STATE_FILE, 'w') as f:
+        with open(NAVEGACION_STATE_FILE, 'w', encoding='utf-8') as f:
             json.dump({"ultima_vista": vista_id}, f)
-    except:
-        pass
+        print(f"DEBUG: Navegación guardada: {vista_id}")
+    except Exception as e:
+        print(f"ERROR guardando navegación: {e}")
 
 def cargar_navegacion_state():
     """Carga el estado de navegación"""
     try:
         if NAVEGACION_STATE_FILE.exists():
-            with open(NAVEGACION_STATE_FILE, 'r') as f:
-                return json.load(f).get("ultima_vista", "home")
-    except:
-        pass
+            with open(NAVEGACION_STATE_FILE, 'r', encoding='utf-8') as f:
+                vista = json.load(f).get("ultima_vista", "home")
+                print(f"DEBUG: Navegación cargada: {vista}")
+                return vista
+    except Exception as e:
+        print(f"ERROR cargando navegación: {e}")
     return "home"
 
 def register_callbacks(app):
@@ -62,8 +65,13 @@ def register_callbacks(app):
                        n_clicks_calcular_todo, estructura_actual):
         ctx = callback_context
         
-        if not ctx.triggered:
+        # Detectar carga inicial (app restart o hot reload)
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
+        es_carga_inicial = not ctx.triggered or (trigger_id == "store-catenaria-actual" and not catenaria_data)
+        
+        if es_carga_inicial:
             ultima_vista = cargar_navegacion_state()
+            print(f"DEBUG: Carga inicial detectada, restaurando vista: {ultima_vista}")
             if ultima_vista == "calculo-mecanico":
                 from utils.calculo_cache import CalculoCache
                 calculo_guardado = None
@@ -81,6 +89,12 @@ def register_callbacks(app):
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
+                else:
+                    estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
+                    if estructura_actual:
+                        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                        calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
+                print(f"DEBUG: Restaurando vista DGE con estructura: {estructura_actual.get('TITULO') if estructura_actual else 'None'}")
                 return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
             elif ultima_vista == "diseno-mecanico":
                 from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
@@ -131,7 +145,7 @@ def register_callbacks(app):
                 return crear_vista_ajustar_catenaria({})
             return crear_vista_home()
         
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        print(f"DEBUG: Trigger detectado: {trigger_id}")
         
         if trigger_id == "store-catenaria-actual":
             if catenaria_data:
@@ -182,10 +196,6 @@ def register_callbacks(app):
             if estructura_actual:
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                 calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
-                if calculo_guardado:
-                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                    if not vigente:
-                        calculo_guardado = None
             return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
         
         elif trigger_id == "menu-diseno-mecanico":

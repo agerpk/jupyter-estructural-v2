@@ -29,6 +29,24 @@ class EstructuraAEA_Mecanica:
     
     # ================= MÉTODOS DE CÁLCULO DE CARGAS =================
     
+    def _rotar_carga_eje_z(self, fx, fy, fz, angulo_grados):
+        """
+        Rota un vector de carga en el eje Z (plano XY)
+        
+        Args:
+            fx (float): Componente X de la carga
+            fy (float): Componente Y de la carga
+            fz (float): Componente Z de la carga (no se modifica)
+            angulo_grados (float): Ángulo de rotación en grados (antihorario positivo)
+        
+        Returns:
+            tuple: (fx_rot, fy_rot, fz)
+        """
+        ang_rad = math.radians(angulo_grados)
+        fx_rot = fx * math.cos(ang_rad) - fy * math.sin(ang_rad)
+        fy_rot = fx * math.sin(ang_rad) + fy * math.cos(ang_rad)
+        return fx_rot, fy_rot, fz
+    
     def _calcular_componentes_tiro(self, tiro, angulo_grados, reduccion=0.0, es_guardia=False):
         """Calcula componentes transversal y longitudinal del tiro"""
         ang_rad = math.radians(angulo_grados / 2)
@@ -398,6 +416,13 @@ class EstructuraAEA_Mecanica:
                         if config["sobrecarga"] and nodo == "C1_L":
                             carga_z -= config["sobrecarga"]
                         
+                        # APLICAR ROTACIÓN EN EJE Z SI EL NODO LO REQUIERE
+                        nodo_obj = self.geometria.nodos.get(nodo)
+                        if nodo_obj and hasattr(nodo_obj, 'rotacion_eje_z') and nodo_obj.rotacion_eje_z != 0:
+                            carga_x, carga_y, carga_z = self._rotar_carga_eje_z(
+                                carga_x, carga_y, carga_z, nodo_obj.rotacion_eje_z
+                            )
+                        
                         cargas_hipotesis[nodo] = [round(carga_x, 2), round(carga_y, 2), round(carga_z, 2)]
                     
                     # CARGAS EN GUARDIA
@@ -517,6 +542,13 @@ class EstructuraAEA_Mecanica:
                                     
                                     carga_x += viento_guardia_x * factor_viento * factor_viento_nodo
                                     carga_y += viento_guardia_y * factor_viento * factor_viento_nodo
+                        
+                        # APLICAR ROTACIÓN EN EJE Z SI EL NODO LO REQUIERE
+                        nodo_obj = self.geometria.nodos.get(nodo)
+                        if nodo_obj and hasattr(nodo_obj, 'rotacion_eje_z') and nodo_obj.rotacion_eje_z != 0:
+                            carga_x, carga_y, carga_z = self._rotar_carga_eje_z(
+                                carga_x, carga_y, carga_z, nodo_obj.rotacion_eje_z
+                            )
                         
                         cargas_hipotesis[nodo] = [round(carga_x, 2), round(carga_y, 2), round(carga_z, 2)]
                     

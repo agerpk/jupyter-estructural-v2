@@ -17,12 +17,14 @@ class CalculoCache:
         # Excluir campos que no afectan cálculos
         params_relevantes = {k: v for k, v in estructura_data.items() 
                             if k not in ['fecha_creacion', 'fecha_modificacion', 'version']}
+        # Incluir nodos_editados en hash para invalidar cache si cambian
         data_str = json.dumps(params_relevantes, sort_keys=True)
         return hashlib.md5(data_str.encode()).hexdigest()
     
     @staticmethod
     def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None, fig_guardia2=None, resultados_guardia2=None, console_output=None, df_conductor_html=None, df_guardia1_html=None, df_guardia2_html=None):
         """Guarda resultados de Cálculo Mecánico de Cables"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
         # Guardar imágenes (figuras Plotly) - PNG + JSON
@@ -84,6 +86,7 @@ class CalculoCache:
     @staticmethod
     def cargar_calculo_cmc(nombre_estructura):
         """Carga resultados de Cálculo Mecánico de Cables"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoCMC.json"
         if not archivo.exists():
             return None
@@ -93,6 +96,7 @@ class CalculoCache:
     @staticmethod
     def guardar_calculo_dge(nombre_estructura, estructura_data, dimensiones, nodes_key, fig_estructura, fig_cabezal, fig_nodos=None, memoria_calculo=None):
         """Guarda resultados de Diseño Geométrico de Estructura"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
         # Guardar imágenes (figuras matplotlib)
@@ -111,11 +115,15 @@ class CalculoCache:
         except Exception as e:
             print(f"Advertencia: No se pudieron guardar imágenes DGE: {e}")
         
+        # Incluir nodos_editados en cache DGE
+        nodos_editados = estructura_data.get("nodos_editados", [])
+        
         calculo_data = {
             "hash_parametros": hash_params,
             "fecha_calculo": datetime.now().isoformat(),
             "dimensiones": dimensiones,
             "nodes_key": nodes_key,
+            "nodos_editados": nodos_editados,
             "imagen_estructura": f"Estructura.{hash_params}.png",
             "imagen_cabezal": f"Cabezal.{hash_params}.png",
             "imagen_nodos": f"Nodos.{hash_params}.png" if fig_nodos else None,
@@ -129,6 +137,7 @@ class CalculoCache:
     @staticmethod
     def cargar_calculo_dge(nombre_estructura):
         """Carga resultados de Diseño Geométrico de Estructura"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoDGE.json"
         if not archivo.exists():
             return None
@@ -138,6 +147,7 @@ class CalculoCache:
     @staticmethod
     def guardar_calculo_dme(nombre_estructura, estructura_data, df_reacciones, fig_polar, fig_barras):
         """Guarda resultados de Diseño Mecánico de Estructura"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
         # Guardar imágenes (figuras matplotlib)
@@ -167,6 +177,7 @@ class CalculoCache:
     @staticmethod
     def cargar_calculo_dme(nombre_estructura):
         """Carga resultados de Diseño Mecánico de Estructura"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoDME.json"
         if not archivo.exists():
             return None
@@ -176,6 +187,7 @@ class CalculoCache:
     @staticmethod
     def guardar_calculo_sph(nombre_estructura, estructura_data, resultados, desarrollo_texto):
         """Guarda resultados de Selección de Postes de Hormigón"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
         calculo_data = {
@@ -192,6 +204,7 @@ class CalculoCache:
     @staticmethod
     def cargar_calculo_sph(nombre_estructura):
         """Carga resultados de Selección de Postes de Hormigón"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoSPH.json"
         if not archivo.exists():
             return None
@@ -200,6 +213,7 @@ class CalculoCache:
     @staticmethod
     def guardar_calculo_arboles(nombre_estructura, estructura_data, imagenes_generadas, df_cargas_completo=None):
         """Guarda resultados de Árboles de Carga"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
         # Convertir DataFrame con MultiIndex a formato serializable
@@ -233,6 +247,7 @@ class CalculoCache:
     @staticmethod
     def cargar_calculo_arboles(nombre_estructura):
         """Carga resultados de Árboles de Carga"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoARBOLES.json"
         if not archivo.exists():
             return None
@@ -255,6 +270,7 @@ class CalculoCache:
     @staticmethod
     def guardar_calculo_todo(nombre_estructura, estructura_data, resultados_completos):
         """Guarda resultados de Calcular Todo"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
         calculo_data = {
@@ -270,6 +286,7 @@ class CalculoCache:
     @staticmethod
     def cargar_calculo_todo(nombre_estructura):
         """Carga resultados de Calcular Todo"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoTODO.json"
         if not archivo.exists():
             return None

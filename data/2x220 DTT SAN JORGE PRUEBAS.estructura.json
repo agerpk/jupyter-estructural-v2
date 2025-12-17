@@ -64,5 +64,234 @@
   "Vn": 220,
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-16T11:31:17.254855"
+  "fecha_modificacion": "2025-12-17T12:16:01.369977",
+  "nodos_editados": [
+    {
+      "nombre": "BASE",
+      "tipo": "general",
+      "coordenadas": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "Y1",
+      "tipo": "general",
+      "coordenadas": [
+        0.0,
+        0.0,
+        20.4268008367592
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "Y2",
+      "tipo": "general",
+      "coordenadas": [
+        4.088982394140448,
+        0.0,
+        23.4268008367592
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "Y3",
+      "tipo": "general",
+      "coordenadas": [
+        -4.088982394140448,
+        0.0,
+        23.4268008367592
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "Y4",
+      "tipo": "general",
+      "coordenadas": [
+        4.088982394140448,
+        0.0,
+        26.4268008367592
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "Y5",
+      "tipo": "general",
+      "coordenadas": [
+        -4.088982394140448,
+        0.0,
+        26.4268008367592
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "C1",
+      "tipo": "general",
+      "coordenadas": [
+        8.327964788280896,
+        0.0,
+        26.4268008367592
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "C2",
+      "tipo": "general",
+      "coordenadas": [
+        0.0,
+        0.0,
+        26.4268008367592
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "C3",
+      "tipo": "general",
+      "coordenadas": [
+        -8.327964788280896,
+        0.0,
+        26.4268008367592
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "TOP",
+      "tipo": "general",
+      "coordenadas": [
+        0.0,
+        0.0,
+        28.340919731634617
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "HG1",
+      "tipo": "general",
+      "coordenadas": [
+        5.490796921494747,
+        0.0,
+        28.340919731634617
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "HG2",
+      "tipo": "general",
+      "coordenadas": [
+        -5.490796921494747,
+        0.0,
+        28.340919731634617
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "V",
+      "tipo": "general",
+      "coordenadas": [
+        0.0,
+        0.0,
+        18.89394648775641
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "MEDIO",
+      "tipo": "general",
+      "coordenadas": [
+        0.0,
+        0.0,
+        27.383860284196906
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
+      "es_editado": true
+    },
+    {
+      "nombre": "NUEVO_15",
+      "tipo": "general",
+      "coordenadas": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "cable_id": "",
+      "rotacion_eje_z": 0.0,
+      "angulo_quiebre": 0.0,
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [
+        "MEDIO"
+      ],
+      "es_editado": true
+    }
+  ]
 }

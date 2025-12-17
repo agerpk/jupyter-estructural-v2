@@ -4,7 +4,7 @@ AGP - Gestor de estructuras para carga y guardado de archivos JSON
 
 import json
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import copy
 import datetime
 
@@ -105,3 +105,27 @@ class EstructuraManager:
         
         self.guardar_estructura(estructura, ruta_titulo)
         self.guardar_estructura(estructura, ruta_actual)
+    
+    def guardar_nodos_editados(self, nodos_list: List[Dict[str, Any]]):
+        """Guardar nodos editados en estructura actual y archivo con título"""
+        ruta_actual = self.data_dir / "actual.estructura.json"
+        estructura = self.cargar_estructura(ruta_actual)
+        
+        # Actualizar nodos_editados
+        estructura["nodos_editados"] = nodos_list
+        
+        # Guardar en ambos archivos
+        titulo = estructura.get("TITULO", "estructura")
+        nombre_archivo = f"{titulo}.estructura.json"
+        ruta_titulo = self.data_dir / nombre_archivo
+        
+        self.guardar_estructura(estructura, ruta_titulo)
+        self.guardar_estructura(estructura, ruta_actual)
+        
+        print(f"✅ {len(nodos_list)} nodos editados guardados")
+    
+    def cargar_nodos_editados(self) -> List[Dict[str, Any]]:
+        """Cargar nodos editados desde estructura actual"""
+        ruta_actual = self.data_dir / "actual.estructura.json"
+        estructura = self.cargar_estructura(ruta_actual)
+        return estructura.get("nodos_editados", [])

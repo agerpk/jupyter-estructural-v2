@@ -6,6 +6,19 @@ import dash_bootstrap_components as dbc
 from models.app_state import AppState
 
 
+def aplicar_nodos_editados(estructura_geometria, nodos_editados_list, lib_cables=None):
+    """Aplica nodos editados después del dimensionamiento automático"""
+    if not nodos_editados_list:
+        return
+    
+    print(f"\n🔧 APLICANDO {len(nodos_editados_list)} NODOS EDITADOS...")
+    
+    # Importar nodos editados
+    estructura_geometria.importar_nodos_editados(nodos_editados_list, lib_cables)
+    
+    print(f"✅ Nodos editados aplicados: {len(nodos_editados_list)} nodos")
+
+
 def ejecutar_calculo_dge(estructura_actual, state):
     """Ejecuta cálculo DGE y retorna resultados para mostrar"""
     try:
@@ -63,6 +76,19 @@ def ejecutar_calculo_dge(estructura_actual, state):
             dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
             autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
         )
+        
+        # Aplicar nodos editados si existen
+        nodos_editados = estructura_actual.get("nodos_editados", [])
+        if nodos_editados:
+            # Crear lib_cables temporal para resolver referencias
+            from CalculoCables import LibCables
+            lib_cables = LibCables()
+            lib_cables.agregar_cable(state.calculo_objetos.cable_conductor)
+            lib_cables.agregar_cable(state.calculo_objetos.cable_guardia)
+            if state.calculo_objetos.cable_guardia2:
+                lib_cables.agregar_cable(state.calculo_objetos.cable_guardia2)
+            
+            aplicar_nodos_editados(estructura_geometria, nodos_editados, lib_cables)
         
         state.calculo_objetos.estructura_geometria = estructura_geometria
         
@@ -237,6 +263,326 @@ def register_callbacks(app):
     
     state = AppState()
     
+    # Callback para abrir/cerrar modal de editor de nodos
+    @app.callback(
+        Output("modal-editor-nodos", "is_open"),
+        Output("store-nodos-editor", "data"),
+        Output("tabla-nodos-editor", "children"),
+        Input("btn-editar-nodos-dge", "n_clicks"),
+        Input("btn-cancelar-editor-nodos", "n_clicks"),
+        Input("btn-guardar-editor-nodos", "n_clicks"),
+        State("modal-editor-nodos", "is_open"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def toggle_modal_editor_nodos(n_abrir, n_cancelar, n_guardar, is_open, estructura_actual):
+        from dash import callback_context
+        ctx = callback_context
+        if not ctx.triggered:
+            return dash.no_update, dash.no_update, dash.no_update
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id in ["btn-cancelar-editor-nodos", "btn-guardar-editor-nodos"]:
+            return False, dash.no_update, dash.no_update
+        
+        if trigger_id == "btn-editar-nodos-dge":
+            from utils.calculo_cache import CalculoCache
+            
+            # Cargar nodos desde geometría si existe
+            nodos_dict = {}
+            nodos_objetos = None
+            
+            if state.calculo_objetos.estructura_geometria:
+                nodos_dict = state.calculo_objetos.estructura_geometria.nodes_key
+                nodos_objetos = state.calculo_objetos.estructura_geometria.nodos
+            else:
+                calculo_dge = CalculoCache.cargar_calculo_dge(estructura_actual.get("TITULO", "actual"))
+                nodos_dict = calculo_dge.get("nodes_key", {}) if calculo_dge else {}
+            
+            if not nodos_dict:
+                return dash.no_update, dash.no_update, html.Div([
+                    dbc.Alert("No hay nodos disponibles. Ejecute primero el cálculo DGE.", color="warning")
+                ])
+            
+            calculo_cmc = CalculoCache.cargar_calculo_cmc(estructura_actual.get("TITULO", "actual"))
+            cables_disponibles = []
+            if calculo_cmc:
+                resultados = calculo_cmc.get("resultados", {})
+                cables_disponibles = [c for c in [
+                    resultados.get("nombre_conductor", ""),
+                    resultados.get("nombre_guardia1", ""),
+                    resultados.get("nombre_guardia2", "")
+                ] if c]
+            
+            from components.vista_diseno_geometrico import generar_tabla_editor_nodos
+            
+            # Convertir nodos_dict a lista para store
+            nodos_data = []
+            for nombre, coords in nodos_dict.items():
+                nodo_data = {
+                    "nombre": nombre,
+                    "tipo": "general",
+                    "x": coords[0],
+                    "y": coords[1],
+                    "z": coords[2],
+                    "cable_id": "",
+                    "rotacion_eje_z": 0.0,
+                    "angulo_quiebre": 0.0,
+                    "tipo_fijacion": "suspensión",
+                    "conectado_a": ""
+                }
+                if nodos_objetos and nombre in nodos_objetos:
+                    nodo_obj = nodos_objetos[nombre]
+                    nodo_data["tipo"] = getattr(nodo_obj, 'tipo', 'general')
+                    if hasattr(nodo_obj, 'cable') and nodo_obj.cable:
+                        nodo_data["cable_id"] = nodo_obj.cable.nombre if hasattr(nodo_obj.cable, 'nombre') else ""
+                    nodo_data["rotacion_eje_z"] = getattr(nodo_obj, 'rotacion_eje_z', 0.0)
+                    nodo_data["angulo_quiebre"] = getattr(nodo_obj, 'angulo_quiebre', 0.0)
+                    nodo_data["tipo_fijacion"] = getattr(nodo_obj, 'tipo_fijacion', 'suspensión') or 'suspensión'
+                    conectado_a_list = getattr(nodo_obj, 'conectado_a', [])
+                    if conectado_a_list:
+                        nodo_data["conectado_a"] = ", ".join(conectado_a_list)
+                nodos_data.append(nodo_data)
+            
+            # AGREGAR nodos editados guardados que NO estén en nodos_dict
+            nodos_editados_guardados = estructura_actual.get("nodos_editados", [])
+            nombres_existentes = set(nodos_dict.keys())
+            
+            for nodo_editado in nodos_editados_guardados:
+                nombre = nodo_editado["nombre"]
+                if nombre not in nombres_existentes:
+                    coords = nodo_editado["coordenadas"]
+                    conectado_a_list = nodo_editado.get("conectado_a", [])
+                    conectado_a_str = ", ".join(conectado_a_list) if isinstance(conectado_a_list, list) else conectado_a_list
+                    
+                    nodos_data.append({
+                        "nombre": nombre,
+                        "tipo": nodo_editado.get("tipo", "general"),
+                        "x": coords[0],
+                        "y": coords[1],
+                        "z": coords[2],
+                        "cable_id": nodo_editado.get("cable_id", ""),
+                        "rotacion_eje_z": nodo_editado.get("rotacion_eje_z", 0.0),
+                        "angulo_quiebre": nodo_editado.get("angulo_quiebre", 0.0),
+                        "tipo_fijacion": nodo_editado.get("tipo_fijacion", "suspensión"),
+                        "conectado_a": conectado_a_str,
+                        "editar_conexiones": "✏️ Editar"
+                    })
+            
+            tabla = generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos)
+            
+            return True, nodos_data, tabla
+        
+        return dash.no_update, dash.no_update, dash.no_update
+    
+    # Callback para agregar nodo
+    @app.callback(
+        Output("store-nodos-editor", "data", allow_duplicate=True),
+        Output("tabla-nodos-editor", "children", allow_duplicate=True),
+        Input("btn-agregar-nodo-tabla", "n_clicks"),
+        State("store-nodos-editor", "data"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def agregar_nodo_tabla(n_clicks, nodos_data, estructura_actual):
+        if not n_clicks:
+            return dash.no_update, dash.no_update
+        
+        nuevo_nodo = {
+            "nombre": f"NUEVO_{len(nodos_data)+1}",
+            "tipo": "general",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 10.0,
+            "cable_id": "",
+            "rotacion_eje_z": 0.0,
+            "angulo_quiebre": 0.0,
+            "tipo_fijacion": "suspensión",
+            "conectado_a": "",
+            "editar_conexiones": "✏️ Editar"
+        }
+        nodos_data.append(nuevo_nodo)
+        
+        # Regenerar tabla
+        from utils.calculo_cache import CalculoCache
+        calculo_cmc = CalculoCache.cargar_calculo_cmc(estructura_actual.get("TITULO", "actual"))
+        cables_disponibles = []
+        if calculo_cmc:
+            resultados = calculo_cmc.get("resultados", {})
+            cables_disponibles = [c for c in [
+                resultados.get("nombre_conductor", ""),
+                resultados.get("nombre_guardia1", ""),
+                resultados.get("nombre_guardia2", "")
+            ] if c]
+        
+        from components.vista_diseno_geometrico import generar_tabla_editor_nodos
+        nodos_dict = {n["nombre"]: [n["x"], n["y"], n["z"]] for n in nodos_data}
+        tabla = generar_tabla_editor_nodos(nodos_dict, cables_disponibles, None)
+        
+        return nodos_data, tabla
+    
+    # Callback para submodal de conexiones
+    @app.callback(
+        Output("submodal-conexiones", "is_open"),
+        Output("checkboxes-conexiones-nodos", "children"),
+        Output("store-nodos-editor", "data", allow_duplicate=True),
+        Input("datatable-nodos", "active_cell"),
+        Input("btn-cancelar-submodal-conexiones", "n_clicks"),
+        Input("btn-aceptar-submodal-conexiones", "n_clicks"),
+        State("store-nodos-editor", "data"),
+        State({"type": "checkbox-conexion", "index": dash.dependencies.ALL}, "value"),
+        prevent_initial_call=True
+    )
+    def toggle_submodal_conexiones(active_cell, n_cancelar, n_aceptar, nodos_data, checkbox_values):
+        from dash import callback_context
+        ctx = callback_context
+        if not ctx.triggered:
+            return dash.no_update, dash.no_update, dash.no_update
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "btn-cancelar-submodal-conexiones":
+            return False, dash.no_update, dash.no_update
+        
+        if trigger_id == "btn-aceptar-submodal-conexiones":
+            if checkbox_values and len(checkbox_values) > 0:
+                selected = checkbox_values[0] if checkbox_values[0] else []
+                # Buscar el nodo que se está editando (el último que abrió el submodal)
+                for i, nodo in enumerate(nodos_data):
+                    if "_editing" in nodo:
+                        nodos_data[i]["conectado_a"] = ", ".join(selected)
+                        del nodos_data[i]["_editing"]
+                        break
+                return False, dash.no_update, nodos_data
+            return False, dash.no_update, dash.no_update
+        
+        if trigger_id == "datatable-nodos" and active_cell:
+            if active_cell["column_id"] == "editar_conexiones":
+                row_index = active_cell["row"]
+                nodo_actual = nodos_data[row_index]["nombre"]
+                conexiones_actuales = nodos_data[row_index].get("conectado_a", "")
+                conexiones_list = [c.strip() for c in conexiones_actuales.split(",") if c.strip()]
+                
+                # Marcar nodo como editando
+                nodos_data[row_index]["_editing"] = True
+                
+                opciones = []
+                for nodo in nodos_data:
+                    if nodo["nombre"] != nodo_actual:
+                        opciones.append({"label": nodo["nombre"], "value": nodo["nombre"]})
+                
+                checkboxes = dbc.Checklist(
+                    id={"type": "checkbox-conexion", "index": row_index},
+                    options=opciones,
+                    value=conexiones_list,
+                    inline=False
+                )
+                return True, checkboxes, nodos_data
+        
+        return dash.no_update, dash.no_update, dash.no_update
+    
+    # Callback para guardar cambios de nodos
+    @app.callback(
+        Output("estructura-actual", "data", allow_duplicate=True),
+        Output("toast-notificacion", "is_open", allow_duplicate=True),
+        Output("toast-notificacion", "header", allow_duplicate=True),
+        Output("toast-notificacion", "children", allow_duplicate=True),
+        Output("toast-notificacion", "icon", allow_duplicate=True),
+        Output("toast-notificacion", "color", allow_duplicate=True),
+        Input("btn-guardar-editor-nodos", "n_clicks"),
+        State("store-nodos-editor", "data"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def guardar_cambios_nodos(n_clicks, nodos_data, estructura_actual):
+        if not n_clicks:
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        
+        if not nodos_data:
+            return dash.no_update, True, "Error", "No hay datos de nodos", "danger", "danger"
+        
+        try:
+            from utils.estructura_manager import EstructuraManager
+            
+            # Validaciones
+            nombres_vistos = set()
+            tipos_validos = ["conductor", "guardia", "base", "cruce", "general", "viento"]
+            
+            for i, nodo in enumerate(nodos_data):
+                # Validar nombre único
+                nombre = nodo.get("nombre", "").strip()
+                if not nombre:
+                    return dash.no_update, True, "Error", f"Fila {i+1}: Nombre vacío", "danger", "danger"
+                if nombre in nombres_vistos:
+                    return dash.no_update, True, "Error", f"Nombre duplicado: {nombre}", "danger", "danger"
+                nombres_vistos.add(nombre)
+                
+                # Validar tipo
+                tipo = nodo.get("tipo", "").strip()
+                if not tipo:
+                    return dash.no_update, True, "Error", f"Fila {i+1}: Tipo vacío", "danger", "danger"
+                if tipo not in tipos_validos:
+                    return dash.no_update, True, "Error", f"Fila {i+1}: Tipo inválido '{tipo}'", "danger", "danger"
+                
+                # Validar coordenadas
+                try:
+                    x, y, z = float(nodo["x"]), float(nodo["y"]), float(nodo["z"])
+                    if z < 0:
+                        return dash.no_update, True, "Error", f"Fila {i+1}: Coordenada Z negativa", "danger", "danger"
+                except (ValueError, TypeError, KeyError):
+                    return dash.no_update, True, "Error", f"Fila {i+1}: Coordenadas inválidas", "danger", "danger"
+                
+                # Validar rotación
+                try:
+                    rot = float(nodo.get("rotacion_eje_z", 0.0))
+                    if not (0 <= rot <= 360):
+                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación debe estar entre 0-360°", "danger", "danger"
+                except (ValueError, TypeError):
+                    return dash.no_update, True, "Error", f"Fila {i+1}: Rotación inválida", "danger", "danger"
+            
+            # Validar nodos conectados existen
+            for i, nodo in enumerate(nodos_data):
+                conectado_str = nodo.get("conectado_a", "").strip()
+                if conectado_str:
+                    conectados = [n.strip() for n in conectado_str.split(",") if n.strip()]
+                    for conn in conectados:
+                        if conn not in nombres_vistos:
+                            return dash.no_update, True, "Error", f"Fila {i+1}: Nodo conectado '{conn}' no existe", "danger", "danger"
+            
+            # Crear lista de nodos editados
+            nodos_editados = []
+            for nodo in nodos_data:
+                conectado_str = nodo.get("conectado_a", "").strip()
+                conectados = [n.strip() for n in conectado_str.split(",") if n.strip()] if conectado_str else []
+                
+                nodos_editados.append({
+                    "nombre": nodo["nombre"].strip(),
+                    "tipo": nodo["tipo"],
+                    "coordenadas": [float(nodo["x"]), float(nodo["y"]), float(nodo["z"])],
+                    "cable_id": nodo.get("cable_id", ""),
+                    "rotacion_eje_z": float(nodo.get("rotacion_eje_z", 0.0)),
+                    "angulo_quiebre": float(nodo.get("angulo_quiebre", 0.0)),
+                    "tipo_fijacion": nodo.get("tipo_fijacion", "suspensión"),
+                    "conectado_a": conectados,
+                    "es_editado": True
+                })
+            
+            # Guardar en archivos JSON PRIMERO
+            state.estructura_manager.guardar_nodos_editados(nodos_editados)
+            
+            # Recargar estructura desde archivo para asegurar persistencia
+            from config.app_config import DATA_DIR
+            ruta_actual = DATA_DIR / "actual.estructura.json"
+            estructura_actualizada = state.estructura_manager.cargar_estructura(ruta_actual)
+            
+            print(f"💾 DEBUG: Nodos guardados en archivo. Total nodos_editados: {len(estructura_actualizada.get('nodos_editados', []))}")
+            
+            return estructura_actualizada, True, "Éxito", "Nodos guardados. Recalcule DGE para aplicar cambios.", "success", "success"
+            
+        except Exception as e:
+            return dash.no_update, True, "Error", f"Error al guardar nodos: {str(e)}", "danger", "danger"
+    
     @app.callback(
         Output("toast-notificacion", "is_open", allow_duplicate=True),
         Output("toast-notificacion", "header", allow_duplicate=True),
@@ -300,12 +646,53 @@ def register_callbacks(app):
     @app.callback(
         Output("output-diseno-geometrico", "children"),
         Input("btn-calcular-geom", "n_clicks"),
+        Input("btn-cargar-cache-dge", "n_clicks"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def calcular_diseno_geometrico(n_clicks, estructura_actual):
-        if not n_clicks:
+    def calcular_diseno_geometrico(n_calcular, n_cargar, estructura_actual):
+        from dash import callback_context
+        ctx = callback_context
+        if not ctx.triggered:
             raise dash.exceptions.PreventUpdate
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        # Si es cargar cache, solo cargar y mostrar
+        if trigger_id == "btn-cargar-cache-dge":
+            from utils.calculo_cache import CalculoCache
+            from components.vista_diseno_geometrico import generar_resultados_dge
+            from config.app_config import DATA_DIR
+            
+            # Recargar estructura para obtener TITULO actualizado
+            ruta_actual = DATA_DIR / "actual.estructura.json"
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
+            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            print(f"🔍 DEBUG: Buscando cache con nombre: '{nombre_estructura}'")
+            calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
+            
+            if calculo_guardado:
+                print(f"✅ Cache encontrado")
+                return generar_resultados_dge(calculo_guardado, estructura_actual)
+            else:
+                print(f"❌ Cache NO encontrado")
+                return dbc.Alert("No hay cache disponible. Ejecute primero el cálculo.", color="warning")
+        
+        # Guardar navegación
+        from controllers.navigation_controller import guardar_navegacion_state
+        guardar_navegacion_state("diseno-geometrico")
+        
+        # FORZAR recarga de estructura desde archivo para obtener nodos_editados
+        from config.app_config import DATA_DIR
+        ruta_actual = DATA_DIR / "actual.estructura.json"
+        estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
+        
+        print(f"\n🔵 DEBUG INICIO CÁLCULO DGE")
+        print(f"   estructura_actual tiene nodos_editados: {'nodos_editados' in estructura_actual if estructura_actual else False}")
+        if estructura_actual and 'nodos_editados' in estructura_actual:
+            print(f"   Total nodos_editados: {len(estructura_actual['nodos_editados'])}")
+            for nodo in estructura_actual['nodos_editados']:
+                print(f"     - {nodo.get('nombre', 'SIN_NOMBRE')}")
         
         try:
             from EstructuraAEA_Geometria import EstructuraAEA_Geometria
@@ -407,11 +794,24 @@ def register_callbacks(app):
                 autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
             )
             
+            # Aplicar nodos editados si existen
+            nodos_editados = estructura_actual.get("nodos_editados", [])
+            print(f"DEBUG: Nodos editados en estructura_actual: {len(nodos_editados)}")
+            if nodos_editados:
+                print(f"DEBUG: Aplicando {len(nodos_editados)} nodos editados...")
+                from CalculoCables import LibCables
+                lib_cables = LibCables()
+                lib_cables.agregar_cable(state.calculo_objetos.cable_conductor)
+                lib_cables.agregar_cable(state.calculo_objetos.cable_guardia)
+                if state.calculo_objetos.cable_guardia2:
+                    lib_cables.agregar_cable(state.calculo_objetos.cable_guardia2)
+                
+                aplicar_nodos_editados(estructura_geometria, nodos_editados, lib_cables)
+            else:
+                print("DEBUG: No hay nodos editados para aplicar")
+            
             # Guardar en estado
             state.calculo_objetos.estructura_geometria = estructura_geometria
-            
-            # Listar nodos (imprime info detallada)
-            estructura_geometria.listar_nodos()
             
             # Crear mecánica y gráficos
             from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
@@ -435,6 +835,12 @@ def register_callbacks(app):
             )
             
             estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
+            
+            # Actualizar nodes_key INMEDIATAMENTE después de aplicar nodos editados
+            estructura_geometria._actualizar_nodes_key()
+            
+            # Listar nodos DESPUÉS de actualizar nodes_key
+            estructura_geometria.listar_nodos()
             
             # Generar gráficos y capturar figuras
             import matplotlib.pyplot as plt
@@ -463,11 +869,12 @@ def register_callbacks(app):
             state.calculo_objetos.estructura_mecanica = estructura_mecanica
             state.calculo_objetos.estructura_graficos = estructura_graficos
             
-            # Generar output completo como en notebook
-            nodes_key = estructura_geometria.obtener_nodes_key()
-            
-            # Obtener dimensiones del diccionario dimensiones
+            # Obtener dimensiones y nodes_key ACTUALIZADOS
             dims = estructura_geometria.dimensiones
+            nodes_key = estructura_geometria.obtener_nodes_key()
+            print(f"\n📊 DEBUG: nodes_key tiene {len(nodes_key)} nodos para guardar en cache")
+            for nombre in sorted(nodes_key.keys()):
+                print(f"   - {nombre}: {nodes_key[nombre]}")
             altura_total = dims.get('altura_total', 0)
             h1a = dims.get('h1a', 0)
             h2a = dims.get('h2a', 0)
@@ -477,7 +884,7 @@ def register_callbacks(app):
             
             # Obtener parámetros de cálculo del diccionario dimensiones
             theta_max = dims.get('theta_max', 0)
-            k = dims.get('k', 0)
+            coeficiente_k = dims.get('k', 0)
             Ka = dims.get('Ka', 1)
             D_fases = dims.get('D_fases', 0)
             Dhg = dims.get('Dhg', 0)
@@ -519,39 +926,79 @@ def register_callbacks(app):
                 f"Cable guardia: hhg={hhg:.2f}m"
             )
             
-            # Nodos por categoría
-            nodos_base = {k: v for k, v in nodes_key.items() if k == 'BASE'}
-            nodos_cross = {k: v for k, v in nodes_key.items() if k.startswith('CROSS')}
-            nodos_cond = {k: v for k, v in nodes_key.items() if k.startswith('C') and not k.startswith('CROSS')}
-            nodos_guard = {k: v for k, v in nodes_key.items() if k.startswith('HG')}
-            nodos_gen = {k: v for k, v in nodes_key.items() if k in ['MEDIO', 'TOP', 'V'] or k.startswith('Y')}
+            # Nodos por tipo (usando objetos nodo para obtener el tipo real)
+            print(f"\n📊 DEBUG: Generando texto de nodos con {len(nodes_key)} nodos")
+            nodos_base = {}
+            nodos_cross = {}
+            nodos_cond = {}
+            nodos_guard = {}
+            nodos_gen = {}
+            nodos_viento = {}
             
-            nodos_txt = "BASE:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_base.items()])
+            for nombre_nodo, coords in nodes_key.items():
+                # Obtener tipo del objeto nodo
+                nodo_obj = estructura_geometria.nodos.get(nombre_nodo)
+                if nodo_obj:
+                    tipo = nodo_obj.tipo_nodo
+                else:
+                    # Fallback: inferir por nombre
+                    if nombre_nodo == 'BASE':
+                        tipo = 'base'
+                    elif nombre_nodo.startswith('CROSS'):
+                        tipo = 'cruce'
+                    elif nombre_nodo.startswith('C') and not nombre_nodo.startswith('CROSS'):
+                        tipo = 'conductor'
+                    elif nombre_nodo.startswith('HG'):
+                        tipo = 'guardia'
+                    elif nombre_nodo == 'V':
+                        tipo = 'viento'
+                    else:
+                        tipo = 'general'
+                
+                # Clasificar por tipo
+                if tipo == 'base':
+                    nodos_base[nombre_nodo] = coords
+                elif tipo == 'cruce':
+                    nodos_cross[nombre_nodo] = coords
+                elif tipo == 'conductor':
+                    nodos_cond[nombre_nodo] = coords
+                elif tipo == 'guardia':
+                    nodos_guard[nombre_nodo] = coords
+                elif tipo == 'viento':
+                    nodos_viento[nombre_nodo] = coords
+                else:
+                    nodos_gen[nombre_nodo] = coords
+            
+            print(f"   - Base: {len(nodos_base)}, Cruce: {len(nodos_cross)}, Conductor: {len(nodos_cond)}, Guardia: {len(nodos_guard)}, General: {len(nodos_gen)}, Viento: {len(nodos_viento)}")
+            
+            nodos_txt = "BASE:\n" + "\n".join([f"  {k}: ({float(v[0]):.3f}, {float(v[1]):.3f}, {float(v[2]):.3f})" for k, v in nodos_base.items()])
             if nodos_cross:
-                nodos_txt += "\n\nCRUCE:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_cross.items()])
+                nodos_txt += "\n\nCRUCE:\n" + "\n".join([f"  {k}: ({float(v[0]):.3f}, {float(v[1]):.3f}, {float(v[2]):.3f})" for k, v in nodos_cross.items()])
             if nodos_cond:
-                nodos_txt += "\n\nCONDUCTOR:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_cond.items()])
+                nodos_txt += "\n\nCONDUCTOR:\n" + "\n".join([f"  {k}: ({float(v[0]):.3f}, {float(v[1]):.3f}, {float(v[2]):.3f})" for k, v in nodos_cond.items()])
             if nodos_guard:
-                nodos_txt += "\n\nGUARDIA:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_guard.items()])
+                nodos_txt += "\n\nGUARDIA:\n" + "\n".join([f"  {k}: ({float(v[0]):.3f}, {float(v[1]):.3f}, {float(v[2]):.3f})" for k, v in nodos_guard.items()])
             if nodos_gen:
-                nodos_txt += "\n\nGENERAL:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_gen.items()])
+                nodos_txt += "\n\nGENERAL:\n" + "\n".join([f"  {k}: ({float(v[0]):.3f}, {float(v[1]):.3f}, {float(v[2]):.3f})" for k, v in nodos_gen.items()])
+            if nodos_viento:
+                nodos_txt += "\n\nVIENTO:\n" + "\n".join([f"  {k}: ({float(v[0]):.3f}, {float(v[1]):.3f}, {float(v[2]):.3f})" for k, v in nodos_viento.items()])
             
             # Parámetros dimensionantes
             param_dim_txt = (
-                f"theta_max: {theta_max:.2f}°\n" +
+                f"theta_max: {float(theta_max):.2f}°\n" +
                 f"Lk: {estructura_actual.get('Lk', 0):.2f} m\n" +
-                f"Coeficiente k: {k:.3f}\n" +
-                f"Coeficiente Ka (altura): {Ka:.3f}"
+                f"Coeficiente k: {float(coeficiente_k):.3f}\n" +
+                f"Coeficiente Ka (altura): {float(Ka):.3f}"
             )
             
             # Distancias
             dist_txt = (
-                f"D_fases: {D_fases:.3f} m\n" +
-                f"Dhg: {Dhg:.3f} m\n" +
-                f"s_estructura: {s_estructura:.3f} m\n" +
-                f"a: {a:.3f} m\n" +
-                f"b: {b:.3f} m\n" +
-                f"Altura base eléctrica: {altura_base_electrica:.3f} m"
+                f"D_fases: {float(D_fases):.3f} m\n" +
+                f"Dhg: {float(Dhg):.3f} m\n" +
+                f"s_estructura: {float(s_estructura):.3f} m\n" +
+                f"a: {float(a):.3f} m\n" +
+                f"b: {float(b):.3f} m\n" +
+                f"Altura base eléctrica: {float(altura_base_electrica):.3f} m"
             )
             
             output = [
@@ -581,12 +1028,17 @@ def register_callbacks(app):
             from utils.memoria_calculo_dge import gen_memoria_calculo_DGE
             memoria_calculo = gen_memoria_calculo_DGE(estructura_geometria)
             
-            # Guardar cálculo en cache
+            # Guardar cálculo en cache CON EL NOMBRE CORRECTO
             from utils.calculo_cache import CalculoCache
-            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            # Recargar estructura para obtener TITULO actualizado
+            from config.app_config import DATA_DIR
+            ruta_actual = DATA_DIR / "actual.estructura.json"
+            estructura_actual_actualizada = state.estructura_manager.cargar_estructura(ruta_actual)
+            nombre_estructura = estructura_actual_actualizada.get('TITULO', 'estructura')
+            print(f"💾 DEBUG: Guardando cache con nombre: '{nombre_estructura}'")
             CalculoCache.guardar_calculo_dge(
                 nombre_estructura,
-                estructura_actual,
+                estructura_actual_actualizada,
                 dims,
                 nodes_key,
                 fig_estructura,
@@ -594,6 +1046,7 @@ def register_callbacks(app):
                 fig_nodos,
                 memoria_calculo
             )
+            print(f"✅ Cache DGE guardado: {nombre_estructura}")
             
             # Agregar gráficos usando base64 directo
             from io import BytesIO

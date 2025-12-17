@@ -8,7 +8,8 @@ class NodoEstructural:
     """
     
     def __init__(self, nombre, coordenadas, tipo_nodo, cable_asociado=None, 
-                angulo_quiebre=0, tipo_fijacion=None):
+                angulo_quiebre=0, tipo_fijacion=None, rotacion_eje_z=0.0, 
+                es_editado=False, conectado_a=None):
         """
         Inicializa un nodo estructural
         
@@ -19,12 +20,24 @@ class NodoEstructural:
             cable_asociado (CABLE_AEA, optional): Objeto cable asociado
             angulo_quiebre (float): Ángulo de quiebre en grados
             tipo_fijacion (str): "suspensión" o "retención" (se determina automáticamente)
+            rotacion_eje_z (float): Rotación del cable en eje Z (grados, antihorario positivo)
+            es_editado (bool): Flag para distinguir nodos editados manualmente
+            conectado_a (list/str): Lista de nombres de nodos a los que se conecta
         """
         self.nombre = nombre
         self.coordenadas = coordenadas  # (x, y, z)
         self.tipo_nodo = tipo_nodo
         self.cable_asociado = cable_asociado
         self.angulo_quiebre = angulo_quiebre
+        self.rotacion_eje_z = rotacion_eje_z
+        self.es_editado = es_editado
+        # Convertir conectado_a a lista si es string o None
+        if conectado_a is None:
+            self.conectado_a = []
+        elif isinstance(conectado_a, str):
+            self.conectado_a = [conectado_a] if conectado_a else []
+        else:
+            self.conectado_a = list(conectado_a)
         
         # Determinar tipo de fijación basado en el tipo de estructura
         if tipo_fijacion is None:
@@ -64,6 +77,9 @@ class NodoEstructural:
             "Cable asociado": self.cable_asociado.nombre if self.cable_asociado else "Ninguno",
             "Ángulo quiebre": f"{self.angulo_quiebre}°",
             "Tipo fijación": self.tipo_fijacion,
+            "Rotación eje Z": f"{self.rotacion_eje_z}°",
+            "Es editado": "Sí" if self.es_editado else "No",
+            "Conectado a": ", ".join(self.conectado_a) if self.conectado_a else "Ninguno",
             "Hipótesis cargadas": len(self.cargas)
         }
         return info
@@ -870,7 +886,173 @@ class EstructuraAEA_Geometria:
         for nombre, nodo in self.nodos.items():
             self.nodes_key[nombre] = list(nodo.coordenadas)
     
-    # ================= MÉTODOS DE ACCESO =================
+    # ================= MÉTODOS DE GESTIÓN DE NODOS =================
+    
+    def agregar_nodo_manual(self, nombre, tipo, coordenadas, cable=None, rotacion_z=0.0, 
+                           angulo_quiebre=0.0, tipo_fijacion=None, conectado_a=None):
+        """
+        Agrega un nodo manualmente después del dimensionamiento
+        
+        Args:
+            nombre (str): Nombre único del nodo
+            tipo (str): Tipo de nodo (conductor, guardia, general, cruce, base, viento)
+            coordenadas (tuple/list): (x, y, z) en metros
+            cable (Cable_AEA, optional): Objeto cable asociado
+            rotacion_z (float): Rotación en eje Z (grados)
+            angulo_quiebre (float): Ángulo de quiebre (grados)
+            tipo_fijacion (str): suspensión, retención, o None
+            conectado_a (list/str): Lista de nombres de nodos a los que se conecta
+        
+        Returns:
+            NodoEstructural: Nodo creado
+        """
+        # Validar que nombre no exista
+        if nombre in self.nodos:
+            raise ValueError(f"Nodo '{nombre}' ya existe")
+        
+        # Validar que nodos conectados existen si se especifican
+        if conectado_a:
+            lista_conectados = conectado_a if isinstance(conectado_a, list) else [conectado_a]
+            for nodo_conectado in lista_conectados:
+                if nodo_conectado and nodo_conectado not in self.nodos:
+                    raise ValueError(f"Nodo conectado '{nodo_conectado}' no existe")
+        
+        # Crear nodo
+        nodo = NodoEstructural(
+            nombre, tuple(coordenadas), tipo, cable, 
+            angulo_quiebre, tipo_fijacion, rotacion_z, True, conectado_a
+        )
+        
+        # Agregar a colección
+        self.nodos[nombre] = nodo
+        self._actualizar_nodes_key()
+        
+        print(f"✅ Nodo '{nombre}' agregado manualmente")
+        return nodo
+    
+    def editar_nodo(self, nombre, **kwargs):
+        """
+        Edita un nodo existente
+        
+        Args:
+            nombre (str): Nombre del nodo a editar
+            **kwargs: Atributos a actualizar (coordenadas, tipo_nodo, cable_asociado, 
+                     rotacion_eje_z, angulo_quiebre, tipo_fijacion, conectado_a)
+        """
+        # Validar que nodo existe
+        if nombre not in self.nodos:
+            raise ValueError(f"Nodo '{nombre}' no existe")
+        
+        nodo = self.nodos[nombre]
+        
+        # Actualizar atributos
+        if 'coordenadas' in kwargs:
+            nodo.coordenadas = tuple(kwargs['coordenadas'])
+        if 'tipo_nodo' in kwargs:
+            nodo.tipo_nodo = kwargs['tipo_nodo']
+        if 'cable_asociado' in kwargs:
+            nodo.cable_asociado = kwargs['cable_asociado']
+        if 'rotacion_eje_z' in kwargs:
+            nodo.rotacion_eje_z = kwargs['rotacion_eje_z']
+        if 'angulo_quiebre' in kwargs:
+            nodo.angulo_quiebre = kwargs['angulo_quiebre']
+        if 'tipo_fijacion' in kwargs:
+            nodo.tipo_fijacion = kwargs['tipo_fijacion']
+        if 'conectado_a' in kwargs:
+            # Validar que nodos conectados existen
+            lista_conectados = kwargs['conectado_a'] if isinstance(kwargs['conectado_a'], list) else [kwargs['conectado_a']]
+            for nodo_conectado in lista_conectados:
+                if nodo_conectado and nodo_conectado not in self.nodos:
+                    raise ValueError(f"Nodo conectado '{nodo_conectado}' no existe")
+            # Convertir a lista
+            if kwargs['conectado_a'] is None:
+                nodo.conectado_a = []
+            elif isinstance(kwargs['conectado_a'], str):
+                nodo.conectado_a = [kwargs['conectado_a']] if kwargs['conectado_a'] else []
+            else:
+                nodo.conectado_a = list(kwargs['conectado_a'])
+        
+        # Actualizar nodes_key
+        self._actualizar_nodes_key()
+        
+        print(f"✅ Nodo '{nombre}' editado")
+    
+    def eliminar_nodo(self, nombre):
+        """
+        Elimina un nodo
+        
+        Args:
+            nombre (str): Nombre del nodo a eliminar
+        """
+        # Validar que nodo existe
+        if nombre not in self.nodos:
+            raise ValueError(f"Nodo '{nombre}' no existe")
+        
+        # Validar que no es nodo BASE
+        if nombre == "BASE":
+            raise ValueError("No se puede eliminar el nodo BASE")
+        
+        # Eliminar
+        del self.nodos[nombre]
+        self._actualizar_nodes_key()
+        
+        print(f"✅ Nodo '{nombre}' eliminado")
+    
+    def exportar_nodos_editados(self):
+        """
+        Exporta lista de nodos editados en formato dict
+        
+        Returns:
+            list: Lista de diccionarios con nodos editados
+        """
+        nodos_editados = []
+        for nombre, nodo in self.nodos.items():
+            if nodo.es_editado:
+                nodos_editados.append({
+                    "nombre": nodo.nombre,
+                    "tipo": nodo.tipo_nodo,
+                    "coordenadas": list(nodo.coordenadas),
+                    "cable_id": nodo.cable_asociado.nombre if nodo.cable_asociado else None,
+                    "rotacion_eje_z": nodo.rotacion_eje_z,
+                    "angulo_quiebre": nodo.angulo_quiebre,
+                    "tipo_fijacion": nodo.tipo_fijacion,
+                    "es_editado": True,
+                    "conectado_a": nodo.conectado_a  # Ya es lista
+                })
+        return nodos_editados
+    
+    def importar_nodos_editados(self, nodos_list, lib_cables=None):
+        """
+        Importa nodos editados desde lista de dicts
+        
+        Args:
+            nodos_list (list): Lista de diccionarios con nodos editados
+            lib_cables (LibCables, optional): Biblioteca de cables para resolver cable_id
+        """
+        for nodo_dict in nodos_list:
+            nombre = nodo_dict["nombre"]
+            
+            # Resolver cable si se especifica
+            cable = None
+            if nodo_dict.get("cable_id") and lib_cables:
+                cable = lib_cables.obtener_cable(nodo_dict["cable_id"])
+            
+            # Si nodo NO existe, agregarlo
+            if nombre not in self.nodos:
+                self.agregar_nodo_manual(
+                    nombre,
+                    nodo_dict["tipo"],
+                    nodo_dict["coordenadas"],
+                    cable,
+                    nodo_dict.get("rotacion_eje_z", 0.0),
+                    nodo_dict.get("angulo_quiebre", 0.0),
+                    nodo_dict.get("tipo_fijacion"),
+                    nodo_dict.get("conectado_a")
+                )
+        
+        print(f"✅ {len(nodos_list)} nodos importados")
+    
+    # ================= MÉTODOS DE ACCESO Y UTILIDADES =================
     
     def obtener_parametros_cabezal(self):
         """Devuelve el DataFrame con todos los parámetros del cabezal"""
@@ -882,6 +1064,9 @@ class EstructuraAEA_Geometria:
     
     def listar_nodos(self):
         """Lista todos los nodos de la estructura con nombres corregidos"""
+        # Actualizar nodes_key antes de listar
+        self._actualizar_nodes_key()
+        
         print(f"\n📋 NODOS DE LA ESTRUCTURA ({len(self.nodos)} nodos):")
         print("=" * 80)
         

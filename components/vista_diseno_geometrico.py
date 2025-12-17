@@ -1,10 +1,100 @@
 """Vista para diseño geométrico de estructura"""
 
-from dash import html, dcc
+from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 from config.app_config import DATA_DIR
 from utils.view_helpers import ViewHelpers
 from utils.calculo_cache import CalculoCache
+
+
+def generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos=None):
+    """Genera tabla editable de nodos para el modal"""
+    # Convertir nodos a lista de diccionarios
+    nodos_data = []
+    for nombre, coords in nodos_dict.items():
+        # Obtener datos del objeto nodo si existe
+        tipo_nodo = "general"
+        cable_id = ""
+        rotacion = 0.0
+        angulo_quiebre = 0.0
+        tipo_fijacion = "suspensión"
+        conectado_a = ""
+        
+        if nodos_objetos and nombre in nodos_objetos:
+            nodo_obj = nodos_objetos[nombre]
+            tipo_nodo = getattr(nodo_obj, 'tipo', 'general')
+            if hasattr(nodo_obj, 'cable') and nodo_obj.cable:
+                cable_id = nodo_obj.cable.nombre if hasattr(nodo_obj.cable, 'nombre') else ""
+            rotacion = getattr(nodo_obj, 'rotacion_eje_z', 0.0)
+            angulo_quiebre = getattr(nodo_obj, 'angulo_quiebre', 0.0)
+            tipo_fijacion = getattr(nodo_obj, 'tipo_fijacion', 'suspensión') or 'suspensión'
+            conectado_a_list = getattr(nodo_obj, 'conectado_a', [])
+            if conectado_a_list:
+                conectado_a = ", ".join(conectado_a_list)
+        
+        nodos_data.append({
+            "nombre": nombre,
+            "tipo": tipo_nodo,
+            "x": coords[0],
+            "y": coords[1],
+            "z": coords[2],
+            "cable_id": cable_id,
+            "rotacion_eje_z": rotacion,
+            "angulo_quiebre": angulo_quiebre,
+            "tipo_fijacion": tipo_fijacion,
+            "conectado_a": conectado_a,
+            "editar_conexiones": "✏️ Editar"
+        })
+    
+    # Opciones para dropdowns
+    tipos_nodo = ["conductor", "guardia", "base", "cruce", "general", "viento"]
+    tipos_fijacion = ["suspensión", "retención", "none"]
+    
+    return html.Div([
+        dash_table.DataTable(
+            id="datatable-nodos",
+            data=nodos_data,
+            columns=[
+                {"name": "Nombre", "id": "nombre", "editable": True},
+                {"name": "Tipo", "id": "tipo", "editable": True, "presentation": "dropdown"},
+                {"name": "X (m)", "id": "x", "type": "numeric", "editable": True, "format": {"specifier": ".3f"}},
+                {"name": "Y (m)", "id": "y", "type": "numeric", "editable": True, "format": {"specifier": ".3f"}},
+                {"name": "Z (m)", "id": "z", "type": "numeric", "editable": True, "format": {"specifier": ".3f"}},
+                {"name": "Cable", "id": "cable_id", "editable": True, "presentation": "dropdown"},
+                {"name": "Rot. Z (°)", "id": "rotacion_eje_z", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
+                {"name": "Áng. Quiebre (°)", "id": "angulo_quiebre", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
+                {"name": "Fijación", "id": "tipo_fijacion", "editable": True, "presentation": "dropdown"},
+                {"name": "Conectado A", "id": "conectado_a", "editable": False},
+                {"name": "Editar", "id": "editar_conexiones", "editable": False},
+            ],
+            dropdown={
+                "tipo": {"options": [{"label": t, "value": t} for t in tipos_nodo]},
+                "cable_id": {"options": [{"label": c, "value": c} for c in cables_disponibles]},
+                "tipo_fijacion": {"options": [{"label": t, "value": t} for t in tipos_fijacion]},
+            },
+            editable=True,
+            row_deletable=True,
+            style_table={"overflowX": "auto"},
+            style_cell={
+                "textAlign": "left",
+                "padding": "8px",
+                "fontSize": "0.9rem",
+                "backgroundColor": "#ffffff",
+                "color": "#212529"
+            },
+            style_header={
+                "backgroundColor": "#0d6efd",
+                "color": "white",
+                "fontWeight": "bold",
+                "textAlign": "center"
+            },
+            style_data_conditional=[
+                {"if": {"row_index": "odd"}, "backgroundColor": "#f8f9fa"},
+                {"if": {"state": "selected"}, "backgroundColor": "#cfe2ff", "border": "1px solid #0d6efd"},
+                {"if": {"column_id": "editar_conexiones"}, "cursor": "pointer", "color": "#0d6efd", "fontWeight": "bold"}
+            ],
+        )
+    ])
 
 
 def generar_resultados_dge(calculo_guardado, estructura_actual):
@@ -51,12 +141,48 @@ def generar_resultados_dge(calculo_guardado, estructura_actual):
             f"Cable guardia: hhg={hhg:.2f}m"
         )
         
-        # Nodos
-        nodos_base = {k: v for k, v in nodes_key.items() if k == 'BASE'}
-        nodos_cross = {k: v for k, v in nodes_key.items() if k.startswith('CROSS')}
-        nodos_cond = {k: v for k, v in nodes_key.items() if k.startswith('C')}
-        nodos_guard = {k: v for k, v in nodes_key.items() if k.startswith('HG')}
-        nodos_gen = {k: v for k, v in nodes_key.items() if k in ['MEDIO', 'TOP', 'V']}
+        # Nodos por tipo (usando nodos_editados para obtener el tipo)
+        nodos_editados_dict = {n['nombre']: n for n in calculo_guardado.get('nodos_editados', [])}
+        
+        nodos_base = {}
+        nodos_cross = {}
+        nodos_cond = {}
+        nodos_guard = {}
+        nodos_gen = {}
+        nodos_viento = {}
+        
+        for nombre_nodo, coords in nodes_key.items():
+            # Obtener tipo del nodo editado si existe
+            if nombre_nodo in nodos_editados_dict:
+                tipo = nodos_editados_dict[nombre_nodo].get('tipo', 'general')
+            else:
+                # Inferir tipo por nombre
+                if nombre_nodo == 'BASE':
+                    tipo = 'base'
+                elif nombre_nodo.startswith('CROSS'):
+                    tipo = 'cruce'
+                elif nombre_nodo.startswith('C') and not nombre_nodo.startswith('CROSS'):
+                    tipo = 'conductor'
+                elif nombre_nodo.startswith('HG'):
+                    tipo = 'guardia'
+                elif nombre_nodo == 'V':
+                    tipo = 'viento'
+                else:
+                    tipo = 'general'
+            
+            # Clasificar por tipo
+            if tipo == 'base':
+                nodos_base[nombre_nodo] = coords
+            elif tipo == 'cruce':
+                nodos_cross[nombre_nodo] = coords
+            elif tipo == 'conductor':
+                nodos_cond[nombre_nodo] = coords
+            elif tipo == 'guardia':
+                nodos_guard[nombre_nodo] = coords
+            elif tipo == 'viento':
+                nodos_viento[nombre_nodo] = coords
+            else:
+                nodos_gen[nombre_nodo] = coords
         
         nodos_txt = "BASE:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_base.items()])
         if nodos_cross:
@@ -67,6 +193,8 @@ def generar_resultados_dge(calculo_guardado, estructura_actual):
             nodos_txt += "\n\nGUARDIA:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_guard.items()])
         if nodos_gen:
             nodos_txt += "\n\nGENERAL:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_gen.items()])
+        if nodos_viento:
+            nodos_txt += "\n\nVIENTO:\n" + "\n".join([f"  {k}: ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})" for k, v in nodos_viento.items()])
         
         # Parámetros dimensionantes
         param_dim_txt = (
@@ -142,9 +270,11 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
     """Vista para diseño geométrico con parámetros y cálculo"""
     
     # Generar resultados si hay cálculo guardado
-    resultados_previos = None
+    resultados_previos = []
     if calculo_guardado:
         resultados_previos = generar_resultados_dge(calculo_guardado, estructura_actual)
+    else:
+        resultados_previos = []
     
     return html.Div([
         dbc.Card([
@@ -278,16 +408,51 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Button("Guardar Parámetros", id="btn-guardar-params-geom", color="primary", size="lg", className="w-100"),
-                    ], md=6),
+                    ], md=3),
                     dbc.Col([
                         dbc.Button("Calcular Diseño Geométrico", id="btn-calcular-geom", color="success", size="lg", className="w-100"),
-                    ], md=6),
+                    ], md=3),
+                    dbc.Col([
+                        dbc.Button("Cargar desde Cache", id="btn-cargar-cache-dge", color="warning", size="lg", className="w-100"),
+                    ], md=3),
+                    dbc.Col([
+                        dbc.Button("Editar Nodos", id="btn-editar-nodos-dge", color="info", size="lg", className="w-100"),
+                    ], md=3),
                 ], className="mb-4"),
+                
+                # Store para datos de nodos
+                dcc.Store(id="store-nodos-editor", data=[]),
+                
+                # Modal de edición de nodos
+                dbc.Modal([
+                    dbc.ModalHeader(dbc.ModalTitle("Editor de Nodos Estructurales"), close_button=True),
+                    dbc.ModalBody([
+                        dbc.Alert("Edite los nodos existentes o agregue nuevos. Los cambios se aplicarán al recalcular DGE.", color="info", className="mb-3"),
+                        dbc.Button("+ Agregar Nodo", id="btn-agregar-nodo-tabla", color="success", size="sm", className="mb-2"),
+                        html.Div(id="tabla-nodos-editor"),
+                    ], style={"maxHeight": "70vh", "overflowY": "auto"}),
+                    dbc.ModalFooter([
+                        dbc.Button("Cancelar", id="btn-cancelar-editor-nodos", color="secondary", className="me-2"),
+                        dbc.Button("Guardar Cambios", id="btn-guardar-editor-nodos", color="primary"),
+                    ]),
+                ], id="modal-editor-nodos", size="xl", is_open=False, backdrop="static"),
+                
+                # Submodal para conexiones
+                dbc.Modal([
+                    dbc.ModalHeader(dbc.ModalTitle("Editar Conexiones")),
+                    dbc.ModalBody([
+                        html.Div(id="checkboxes-conexiones-nodos"),
+                    ]),
+                    dbc.ModalFooter([
+                        dbc.Button("Cancelar", id="btn-cancelar-submodal-conexiones", color="secondary", className="me-2"),
+                        dbc.Button("Aceptar", id="btn-aceptar-submodal-conexiones", color="primary"),
+                    ]),
+                ], id="submodal-conexiones", size="md", is_open=False),
                 
                 html.Hr(),
                 
                 # Área de resultados
-                html.Div(id="output-diseno-geometrico", children=resultados_previos)
+                html.Div(id="output-diseno-geometrico", children=resultados_previos if resultados_previos else [])
             ])
         ])
     ])

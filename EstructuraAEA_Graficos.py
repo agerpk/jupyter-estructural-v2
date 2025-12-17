@@ -213,48 +213,97 @@ class EstructuraAEA_Graficos:
                         if abs(x_hg) < 0.001:
                             print(f"   ℹ️  Guardia centrado en (0, {coord_hg[2]:.2f}) - sin línea horizontal")
         
-        # 6. DIBUJAR PUNTOS DE NODOS
+        # 6. DIBUJAR PUNTOS DE NODOS Y CONEXIONES
+        # Dibujar conexiones entre nodos editados primero (debajo de los nodos)
+        for nombre, nodo_obj in self.geometria.nodos.items():
+            if hasattr(nodo_obj, 'es_editado') and nodo_obj.es_editado and hasattr(nodo_obj, 'conectado_a'):
+                if nodo_obj.conectado_a:
+                    x1, y1, z1 = nodo_obj.coordenadas
+                    if abs(y1) < 0.001:  # Solo plano XZ
+                        for nodo_conectado in nodo_obj.conectado_a:
+                            if nodo_conectado in self.geometria.nodes_key:
+                                x2, y2, z2 = self.geometria.nodes_key[nodo_conectado]
+                                if abs(y2) < 0.001:
+                                    plt.plot([x1, x2], [z1, z2], color='orange', linestyle=':', 
+                                            linewidth=2, alpha=0.6, zorder=3)
+        
+        # Dibujar nodos
         for nombre, coordenadas in self.geometria.nodes_key.items():
             x, y, z = coordenadas
             
             if abs(y) > 0.001:  # Solo plano XZ
                 continue
-                
+            
+            # Verificar rotación
+            rotacion = 0
+            if nombre in self.geometria.nodos:
+                nodo_obj = self.geometria.nodos[nombre]
+                rotacion = getattr(nodo_obj, 'rotacion_eje_z', 0)
+            
             # Nodos de conductor
             if nombre.startswith(('C1', 'C2', 'C3')):
-                plt.scatter(x, z, color=self.COLORES['conductor'], s=120, marker='o', 
+                color = self.COLORES['conductor']
+                marker = 'o'
+                plt.scatter(x, z, color=color, s=120, marker=marker, 
                         edgecolors='white', linewidth=1.5, zorder=5,
                         label='Amarre de Conductores' if nombre in ['C1_L', 'C1'] else "")
+                
+                # Flecha de rotación si tiene rotación
+                if rotacion != 0:
+                    ang_rad = np.radians(rotacion)
+                    dx = 0.5 * np.cos(ang_rad)
+                    dy = 0.5 * np.sin(ang_rad)
+                    plt.arrow(x, z, dx, dy, head_width=0.15, head_length=0.1, 
+                            fc='red', ec='red', linewidth=2, zorder=6, alpha=0.8)
             
             # Nodos de guardia
             elif nombre.startswith('HG'):
-                # Diferenciar HG1 y HG2 visualmente
                 if nombre == 'HG1':
-                    plt.scatter(x, z, color=self.COLORES['guardia'], s=120, marker='o', 
-                            edgecolors='white', linewidth=1.5, zorder=5, label='Cable guardia 1')
+                    color = self.COLORES['guardia']
+                    marker = 'o'
+                    plt.scatter(x, z, color=color, s=120, marker=marker, 
+                            edgecolors='white', linewidth=1.5, zorder=5, 
+                            label='Cable guardia 1')
                 elif nombre == 'HG2':
-                    plt.scatter(x, z, color='#228B22', s=120, marker='o', 
-                            edgecolors='white', linewidth=1.5, zorder=5, label='Cable guardia 2')
+                    color = '#228B22'
+                    marker = 'o'
+                    plt.scatter(x, z, color=color, s=120, marker=marker, 
+                            edgecolors='white', linewidth=1.5, zorder=5, 
+                            label='Cable guardia 2')
                 else:
-                    plt.scatter(x, z, color=self.COLORES['guardia'], s=120, marker='o', 
+                    color = self.COLORES['guardia']
+                    marker = 'o'
+                    plt.scatter(x, z, color=color, s=120, marker=marker, 
                             edgecolors='white', linewidth=1.5, zorder=5)
+                
+                # Flecha de rotación
+                if rotacion != 0:
+                    ang_rad = np.radians(rotacion)
+                    dx = 0.5 * np.cos(ang_rad)
+                    dy = 0.5 * np.sin(ang_rad)
+                    plt.arrow(x, z, dx, dy, head_width=0.15, head_length=0.1, 
+                            fc='red', ec='red', linewidth=2, zorder=6, alpha=0.8)
             
             # Nodo base
             elif "BASE" in nombre:
-                plt.scatter(x, z, color=self.COLORES['poste'], s=150, marker='s', zorder=5, label='Base')
+                color = self.COLORES['poste']
+                plt.scatter(x, z, color=color, s=150, marker='s', zorder=5, label='Base')
             
             # Nodo top
             elif "TOP" in nombre:
-                plt.scatter(x, z, color=self.COLORES['poste'], s=120, marker='^', zorder=5, label='Top estructura')
+                color = self.COLORES['poste']
+                plt.scatter(x, z, color=color, s=120, marker='^', zorder=5, label='Top estructura')
             
             # Nodos de cruce
             elif "CROSS" in nombre:
-                plt.scatter(x, z, color=self.COLORES['poste'], s=80, marker='o', zorder=5,
+                color = self.COLORES['poste']
+                plt.scatter(x, z, color=color, s=80, marker='o', zorder=5,
                         label='Cruce poste-ménsula' if nombre == 'CROSS_H1' else "")
             
             # Nodos generales
             elif nombre in ["V", "MEDIO"]:
-                plt.scatter(x, z, color='gray', s=60, marker='.', zorder=4, alpha=0.5)
+                color = 'gray'
+                plt.scatter(x, z, color=color, s=60, marker='.', zorder=4, alpha=0.5)
         
         # 7. CONFIGURAR EJES
         x_coords = [x for x, y, z in self.geometria.nodes_key.values()]
@@ -279,13 +328,15 @@ class EstructuraAEA_Graficos:
                 fontsize=12, fontweight='bold', pad=15)
         
         # 9. LEYENDA
-        from matplotlib.patches import Patch
+        from matplotlib.patches import Patch, FancyArrow
         legend_elements = [
             Patch(facecolor=self.COLORES['conductor'], edgecolor='white', linewidth=1.5, label='Amarre de Conductores'),
             Patch(facecolor=self.COLORES['guardia'], edgecolor='white', linewidth=1.5, label='Cable guardia'),
             Patch(facecolor=self.COLORES['poste'], label='Estructura'),
             plt.Line2D([0], [0], color=self.COLORES['poste'], linewidth=3, alpha=0.8, label='Ménsula/Cruceta'),
-            plt.Line2D([0], [0], color=self.COLORES['poste'], linewidth=3, alpha=0.8, linestyle=':', label='Conexión vertical')
+            plt.Line2D([0], [0], color=self.COLORES['poste'], linewidth=3, alpha=0.8, linestyle=':', label='Conexión vertical'),
+            plt.Line2D([0], [0], color='orange', linestyle=':', linewidth=2, alpha=0.6, label='Conexión editada'),
+            plt.Line2D([0], [0], color='red', marker='>', markersize=8, linestyle='None', label='Rotación de carga')
         ]
         
         # Filtrar elementos duplicados en la leyenda
@@ -673,30 +724,72 @@ class EstructuraAEA_Graficos:
                                                         color=self.COLORES['dhg_circulo'], fill=False, 
                                                         linestyle='--', linewidth=1.5, alpha=0.7))
         
-        # 5. DIBUJAR NODOS - CON CÍRCULOS AZULES EN CONDUCTORES
+        # 5. DIBUJAR CONEXIONES Y NODOS
+        # Dibujar conexiones entre nodos editados primero
+        for nombre, nodo_obj in self.geometria.nodos.items():
+            if hasattr(nodo_obj, 'es_editado') and nodo_obj.es_editado and hasattr(nodo_obj, 'conectado_a'):
+                if nodo_obj.conectado_a:
+                    x1, y1, z1 = nodo_obj.coordenadas
+                    if abs(y1) < 0.001:
+                        for nodo_conectado in nodo_obj.conectado_a:
+                            if nodo_conectado in self.geometria.nodes_key:
+                                x2, y2, z2 = self.geometria.nodes_key[nodo_conectado]
+                                if abs(y2) < 0.001:
+                                    plt.plot([x1, x2], [z1, z2], color='orange', linestyle=':', 
+                                            linewidth=2, alpha=0.6, zorder=3)
+        
+        # Dibujar nodos
         for nombre, coordenadas in self.geometria.nodes_key.items():
             x, y, z = coordenadas
             
             if abs(y) > 0.001:
                 continue
-                
-            # Nodos de cruce - SIN ETIQUETA
-            if "CROSS" in nombre or nombre.startswith('Y'):
-                plt.scatter(x, z, color=self.COLORES['poste'], s=80, marker='o', zorder=5)
             
-            # Nodos de conductor - CON CÍRCULO AZUL
+            # Verificar si es nodo editado
+            es_editado = False
+            rotacion = 0
+            if nombre in self.geometria.nodos:
+                nodo_obj = self.geometria.nodos[nombre]
+                es_editado = getattr(nodo_obj, 'es_editado', False)
+                rotacion = getattr(nodo_obj, 'rotacion_eje_z', 0)
+                
+            # Nodos de cruce
+            if "CROSS" in nombre or nombre.startswith('Y'):
+                color = self.COLORES['poste']
+                plt.scatter(x, z, color=color, s=80, marker='o', zorder=5)
+            
+            # Nodos de conductor
             elif nombre.startswith(('C1', 'C2', 'C3')):
-                plt.scatter(x, z, color=self.COLORES['conductor'], s=100, marker='o', 
+                color = self.COLORES['conductor']
+                marker = 'o'
+                plt.scatter(x, z, color=color, s=100, marker=marker, 
                         edgecolors='white', linewidth=1.5, zorder=5)
+                
+                # Flecha de rotación
+                if rotacion != 0:
+                    ang_rad = np.radians(rotacion)
+                    dx = 0.3 * np.cos(ang_rad)
+                    dy = 0.3 * np.sin(ang_rad)
+                    plt.arrow(x, z, dx, dy, head_width=0.1, head_length=0.08, 
+                            fc='red', ec='red', linewidth=1.5, zorder=6, alpha=0.8)
             
             # Nodos de guardia
             elif nombre.startswith('HG'):
-                # Diferenciar HG1 y HG2 visualmente
                 color_hg = '#228B22' if nombre == 'HG2' else self.COLORES['guardia']
-                plt.scatter(x, z, color=color_hg, s=100, marker='o', 
+                color = color_hg
+                marker = 'o'
+                plt.scatter(x, z, color=color, s=100, marker=marker, 
                         edgecolors='white', linewidth=1.5, zorder=5)
                 
-                # Dibujar círculo Dhg en HG1 para horizontal simple con etiqueta abajo
+                # Flecha de rotación
+                if rotacion != 0:
+                    ang_rad = np.radians(rotacion)
+                    dx = 0.3 * np.cos(ang_rad)
+                    dy = 0.3 * np.sin(ang_rad)
+                    plt.arrow(x, z, dx, dy, head_width=0.1, head_length=0.08, 
+                            fc='red', ec='red', linewidth=1.5, zorder=6, alpha=0.8)
+                
+                # Dibujar círculo Dhg en HG1 para horizontal simple
                 if es_horizontal_simple and nombre == 'HG1':
                     plt.gca().add_patch(plt.Circle((x, z), Dhg, 
                                                 color=self.COLORES['dhg_circulo'], fill=False, 
@@ -712,10 +805,11 @@ class EstructuraAEA_Graficos:
                                 bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
                                 horizontalalignment='center', verticalalignment='top')
             
-            # Nodo top - SIN ETIQUETA (no dibujar para horizontal simple)
+            # Nodo top
             elif "TOP" in nombre:
                 if not es_horizontal_simple:
-                    plt.scatter(x, z, color=self.COLORES['poste'], s=120, marker='^', zorder=5)
+                    color = self.COLORES['poste']
+                    plt.scatter(x, z, color=color, s=120, marker='^', zorder=5)
         
         # 6. CONFIGURACIÓN DE EJES
         h1a = self.geometria.dimensiones.get('h1a', 0)
@@ -761,6 +855,8 @@ class EstructuraAEA_Graficos:
             plt.Line2D([0], [0], color=self.COLORES['circulo'], linestyle='--', linewidth=1.5, label='D (entre fases)'),
             plt.Line2D([0], [0], color=self.COLORES['circulo'], linestyle='--', linewidth=1.5, label='s (fase-estructura)'),
             plt.Line2D([0], [0], color=self.COLORES['dhg_circulo'], linestyle='--', linewidth=1.5, label='Dhg (guardia-conductor)'),
+            plt.Line2D([0], [0], color='orange', linestyle=':', linewidth=2, alpha=0.6, label='Conexión editada'),
+            plt.Line2D([0], [0], color='red', marker='>', markersize=8, linestyle='None', label='Rotación de carga')
         ]
         
         if nodos_guardia and (len(nodos_guardia) > 1 or (len(nodos_guardia) == 1 and abs(nodos_guardia[0][0]) > 0.001)):
@@ -930,8 +1026,27 @@ class EstructuraAEA_Graficos:
             if abs(y) < 0.001:  # Solo plano XZ
                 nodos_xz.append((nombre, x, z))
         
+        # Dibujar conexiones entre nodos editados primero
+        for nombre, nodo_obj in self.geometria.nodos.items():
+            if hasattr(nodo_obj, 'es_editado') and nodo_obj.es_editado and hasattr(nodo_obj, 'conectado_a'):
+                if nodo_obj.conectado_a:
+                    x1, y1, z1 = nodo_obj.coordenadas
+                    if abs(y1) < 0.001:
+                        for nodo_conectado in nodo_obj.conectado_a:
+                            if nodo_conectado in self.geometria.nodes_key:
+                                x2, y2, z2 = self.geometria.nodes_key[nodo_conectado]
+                                if abs(y2) < 0.001:
+                                    ax.plot([x1, x2], [z1, z2], color='orange', linestyle=':', 
+                                            linewidth=2, alpha=0.6, zorder=3)
+        
         # Dibujar nodos
         for nombre, x, z in nodos_xz:
+            # Verificar rotación
+            rotacion = 0
+            if nombre in self.geometria.nodos:
+                nodo_obj = self.geometria.nodos[nombre]
+                rotacion = getattr(nodo_obj, 'rotacion_eje_z', 0)
+            
             if nombre.startswith(('C1', 'C2', 'C3')):
                 color = self.COLORES['conductor']
             elif nombre.startswith('HG'):
@@ -943,8 +1058,20 @@ class EstructuraAEA_Graficos:
             else:
                 color = 'gray'
             
-            ax.scatter(x, z, color=color, s=150, marker='o', edgecolors='white', linewidth=2, zorder=5)
-            ax.text(x + 0.2, z + 0.2, nombre, fontsize=8, ha='left', va='bottom')
+            marker = 'o'
+            ax.scatter(x, z, color=color, s=150, marker=marker, edgecolors='white', linewidth=2, zorder=5)
+            
+            # Etiqueta
+            label_text = nombre
+            ax.text(x + 0.2, z + 0.2, label_text, fontsize=8, ha='left', va='bottom')
+            
+            # Flecha de rotación
+            if rotacion != 0:
+                ang_rad = np.radians(rotacion)
+                dx = 0.4 * np.cos(ang_rad)
+                dy = 0.4 * np.sin(ang_rad)
+                ax.arrow(x, z, dx, dy, head_width=0.12, head_length=0.1, 
+                        fc='red', ec='red', linewidth=1.5, zorder=6, alpha=0.8)
         
         # Línea de terreno
         ax.axhline(y=0, color=self.COLORES['terreno'], linewidth=3, alpha=0.7, label='Nivel del terreno')
@@ -981,7 +1108,7 @@ class EstructuraAEA_Graficos:
         nodos_xz_sorted = sorted(nodos_xz, key=lambda n: n[0])  # Ordenar por nombre
         tabla_texto = "COORDENADAS (X, Z):\n" + "="*30 + "\n"
         for nombre, x, z in nodos_xz_sorted:
-            tabla_texto += f"{nombre:12s} ({x:6.2f}, {z:6.2f})\n"
+            tabla_texto += f"{nombre:12s}  ({x:6.2f}, {z:6.2f})\n"
         
         ax.text(0.02, 0.02, tabla_texto, transform=ax.transAxes, fontsize=7,
                 bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
