@@ -66,39 +66,14 @@
   "REEMPLAZAR_TITULO_GRAFICO": false,
   "Vn": 33,
   "estados_climaticos": {
-    "I": {
-      "temperatura": 40,
-      "descripcion": "Tmáx",
-      "viento_velocidad": 0,
-      "espesor_hielo": 0
-    },
-    "II": {
-      "temperatura": -20,
-      "descripcion": "Tmín",
-      "viento_velocidad": 0,
-      "espesor_hielo": 0
-    },
-    "III": {
-      "temperatura": 10,
-      "descripcion": "Vmáx",
-      "viento_velocidad": 38.9,
-      "espesor_hielo": 0
-    },
-    "IV": {
-      "temperatura": -5,
-      "descripcion": "Vmed",
-      "viento_velocidad": 15.56,
-      "espesor_hielo": 0.01
-    },
-    "V": {
-      "temperatura": 8,
-      "descripcion": "TMA",
-      "viento_velocidad": 0,
-      "espesor_hielo": 0
-    }
+    "I": {"temperatura": 40, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
+    "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
+    "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "espesor_hielo": 0},
+    "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01},
+    "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
   },
   "fecha_creacion": "2024-01-01",
-  "version": "1.0",
-  "fecha_modificacion": "2025-12-17T15:08:02.264181",
+  "version": "3.0",
+  "fecha_modificacion": "2024-01-01",
   "nodos_editados": []
 }

@@ -31,10 +31,14 @@ def register_callbacks(app):
             estructura = state.estructura_manager.cargar_estructura(ruta_estructura)
             
             if estructura:
+                # Limpiar nodos_editados si no tiene el campo o está vacío
+                if "nodos_editados" not in estructura or not estructura["nodos_editados"]:
+                    estructura["nodos_editados"] = []
+                
                 state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
                 return estructura, True, "Éxito", f"Estructura '{nombre_estructura}' cargada correctamente", "success", "success"
         except Exception as e:
-            print(f"Error cargando estructura: {e}")
+            print(f"❌ Error cargando estructura: {e}")
         
         return dash.no_update, True, "Error", "No se pudo cargar la estructura", "danger", "danger"
     

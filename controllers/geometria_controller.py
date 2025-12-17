@@ -156,16 +156,14 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
         if not resultado_objetos["exito"]:
             return {"exito": False, "mensaje": resultado_objetos["mensaje"]}
         
-        # Estados climáticos por defecto
-        estados_ids = ["I", "II", "III", "IV", "V"]
-        descripciones = ["Tmáx", "Tmín", "Vmáx", "Vmed", "TMA"]
-        estados_climaticos = {
+        # Estados climáticos desde estructura o defaults
+        estados_climaticos = estructura_actual.get("estados_climaticos", {
             "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
             "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
             "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": estructura_actual.get("Vmax", 38.9), "espesor_hielo": 0},
             "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": estructura_actual.get("Vmed", 15.56), "espesor_hielo": estructura_actual.get("t_hielo", 0.01)},
             "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
-        }
+        })
         
         # Restricciones por defecto
         restricciones_dict = {
@@ -664,11 +662,11 @@ def register_callbacks(app):
             from components.vista_diseno_geometrico import generar_resultados_dge
             from config.app_config import DATA_DIR
             
-            # Recargar estructura para obtener TITULO actualizado
+            # SIEMPRE recargar estructura desde archivo para obtener TITULO correcto
             ruta_actual = DATA_DIR / "actual.estructura.json"
             estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-            print(f"🔍 DEBUG: Buscando cache con nombre: '{nombre_estructura}'")
+            print(f"🔍 DEBUG: Cargando cache DGE para: '{nombre_estructura}'")
             calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
             
             if calculo_guardado:
@@ -678,14 +676,14 @@ def register_callbacks(app):
                 print(f"❌ Cache NO encontrado")
                 return dbc.Alert("No hay cache disponible. Ejecute primero el cálculo.", color="warning")
         
-        # Guardar navegación
-        from controllers.navigation_controller import guardar_navegacion_state
-        guardar_navegacion_state("diseno-geometrico")
-        
-        # FORZAR recarga de estructura desde archivo para obtener nodos_editados
+        # SIEMPRE recargar estructura desde archivo
         from config.app_config import DATA_DIR
         ruta_actual = DATA_DIR / "actual.estructura.json"
         estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
+        
+        # Guardar navegación
+        from controllers.navigation_controller import guardar_navegacion_state
+        guardar_navegacion_state("diseno-geometrico")
         
         print(f"\n🔵 DEBUG INICIO CÁLCULO DGE")
         print(f"   estructura_actual tiene nodos_editados: {'nodos_editados' in estructura_actual if estructura_actual else False}")
@@ -1030,15 +1028,12 @@ def register_callbacks(app):
             
             # Guardar cálculo en cache CON EL NOMBRE CORRECTO
             from utils.calculo_cache import CalculoCache
-            # Recargar estructura para obtener TITULO actualizado
-            from config.app_config import DATA_DIR
-            ruta_actual = DATA_DIR / "actual.estructura.json"
-            estructura_actual_actualizada = state.estructura_manager.cargar_estructura(ruta_actual)
-            nombre_estructura = estructura_actual_actualizada.get('TITULO', 'estructura')
+            # Usar estructura_actual que ya fue recargada al inicio del callback
+            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
             print(f"💾 DEBUG: Guardando cache con nombre: '{nombre_estructura}'")
             CalculoCache.guardar_calculo_dge(
                 nombre_estructura,
-                estructura_actual_actualizada,
+                estructura_actual,
                 dims,
                 nodes_key,
                 fig_estructura,

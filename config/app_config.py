@@ -6,7 +6,7 @@ from pathlib import Path
 DATA_DIR = Path("data")
 CACHE_DIR = DATA_DIR / "cache"
 CABLES_PATH = DATA_DIR / "cables.json"
-ARCHIVO_ACTUAL = Path("actual.estructura.json")
+ARCHIVO_ACTUAL = DATA_DIR / "actual.estructura.json"
 
 # Crear directorio de cache si no existe
 CACHE_DIR.mkdir(parents=True, exist_ok=True)

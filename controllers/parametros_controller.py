@@ -89,6 +89,9 @@ def register_callbacks(app):
             raise dash.exceptions.PreventUpdate
         
         try:
+            # SIEMPRE recargar desde archivo para obtener datos actualizados
+            from config.app_config import DATA_DIR
+            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
             estructura_actualizada = estructura_actual.copy()
             
             for param_id, param_value in zip(param_ids, param_values):
