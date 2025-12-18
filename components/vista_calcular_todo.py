@@ -53,11 +53,13 @@ def generar_resultados_cmc_lista(calculo_guardado, estructura_actual, mostrar_al
         
         if calculo_guardado.get('df_cargas_totales'):
             df_cargas = pd.DataFrame(calculo_guardado['df_cargas_totales'])
-            resultados_html.extend(ViewHelpers.crear_tabla_desde_dataframe(df_cargas, "Lista Total de Cargas", responsive=True))
+            for comp in ViewHelpers.crear_tabla_desde_dataframe(df_cargas, "Lista Total de Cargas", responsive=True):
+                resultados_html.append(comp)
         
         if calculo_guardado.get('console_output'):
             resultados_html.append(html.Hr(className="mt-4"))
-            resultados_html.extend(ViewHelpers.crear_pre_output(calculo_guardado['console_output'], titulo="Output de Cálculo", font_size='0.75rem'))
+            for comp in ViewHelpers.crear_pre_output(calculo_guardado['console_output'], titulo="Output de Cálculo", font_size='0.75rem'):
+                resultados_html.append(comp)
         
         hash_params = calculo_guardado.get('hash_parametros')
         if hash_params:
@@ -111,9 +113,16 @@ def cargar_resultados_modulares(estructura_actual):
     if calculo_dge:
         from components.vista_diseno_geometrico import generar_resultados_dge
         componentes.append(html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"))
-        resultado_dge = generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=True)
-        # generar_resultados_dge ya retorna un html.Div, agregarlo directamente
-        componentes.append(resultado_dge)
+        try:
+            resultado_dge = generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=True)
+            if isinstance(resultado_dge, list):
+                componentes.extend(resultado_dge)
+            else:
+                componentes.append(resultado_dge)
+        except Exception as e:
+            import traceback
+            print(f"Error cargando DGE: {traceback.format_exc()}")
+            componentes.append(dbc.Alert(f"Error cargando DGE: {str(e)}", color="danger"))
     else:
         componentes.append(crear_placeholder("2. DGE"))
     
@@ -122,8 +131,13 @@ def cargar_resultados_modulares(estructura_actual):
     if calculo_dme:
         from components.vista_diseno_mecanico import generar_resultados_dme
         componentes.append(html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"))
-        resultado_dme = generar_resultados_dme(calculo_dme, estructura_actual, mostrar_alerta_cache=True)
-        componentes.append(resultado_dme)
+        try:
+            resultado_dme = generar_resultados_dme(calculo_dme, estructura_actual, mostrar_alerta_cache=True)
+            componentes.append(resultado_dme)
+        except Exception as e:
+            import traceback
+            print(f"Error cargando DME: {traceback.format_exc()}")
+            componentes.append(dbc.Alert(f"Error cargando DME: {str(e)}", color="danger"))
     else:
         componentes.append(crear_placeholder("3. DME"))
     
@@ -133,7 +147,6 @@ def cargar_resultados_modulares(estructura_actual):
         from components.vista_arboles_carga import generar_resultados_arboles
         componentes.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
         resultado_arboles = generar_resultados_arboles(calculo_arboles, estructura_actual, mostrar_alerta_cache=True)
-        # generar_resultados_arboles retorna lista, extenderla
         if isinstance(resultado_arboles, list):
             componentes.extend(resultado_arboles)
         else:
@@ -146,8 +159,13 @@ def cargar_resultados_modulares(estructura_actual):
     if calculo_sph:
         from components.vista_seleccion_poste import _crear_area_resultados
         componentes.append(html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"))
-        resultado_sph = _crear_area_resultados(calculo_sph, estructura_actual)
-        componentes.append(resultado_sph)
+        try:
+            resultado_sph = _crear_area_resultados(calculo_sph, estructura_actual)
+            componentes.append(resultado_sph)
+        except Exception as e:
+            import traceback
+            print(f"Error cargando SPH: {traceback.format_exc()}")
+            componentes.append(dbc.Alert(f"Error cargando SPH: {str(e)}", color="danger"))
     else:
         componentes.append(crear_placeholder("5. SPH"))
     

@@ -95,7 +95,7 @@ def generar_tabla_editor_nodos(nodos_data, cables_disponibles):
 
 
 def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_cache=False):
-    """Generar HTML de resultados desde cálculo guardado"""
+    """Generar HTML de resultados desde cálculo guardado - retorna html.Div"""
     try:
         dims = calculo_guardado.get('dimensiones', {})
         nodes_key = calculo_guardado.get('nodes_key', {})
@@ -216,41 +216,53 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
         
         output = []
         if mostrar_alerta_cache:
-            output.append(ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente))
+            alerta = ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente)
+            if alerta:
+                output.append(alerta)
         
         output.append(dbc.Alert("GEOMETRIA COMPLETADA: {} nodos creados".format(len(nodes_key)), color="success", className="mb-3"))
         
-        output.extend(ViewHelpers.crear_pre_output(params_txt, "PARAMETROS DE DISEÑO"))
-        output.extend(ViewHelpers.crear_pre_output(dims_txt, "DIMENSIONES DE ESTRUCTURA"))
-        output.extend(ViewHelpers.crear_pre_output(nodos_txt, f"NODOS ESTRUCTURALES ({len(nodes_key)} nodos)", max_height='400px'))
-        output.extend(ViewHelpers.crear_pre_output(param_dim_txt, "PARAMETROS DIMENSIONANTES"))
-        output.extend(ViewHelpers.crear_pre_output(dist_txt, "DISTANCIAS"))
+        output.append(html.H5("PARAMETROS DE DISEÑO", className="mb-2"))
+        output.append(html.Pre(params_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '300px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
+        
+        output.append(html.H5("DIMENSIONES DE ESTRUCTURA", className="mb-2"))
+        output.append(html.Pre(dims_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '300px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
+        
+        output.append(html.H5(f"NODOS ESTRUCTURALES ({len(nodes_key)} nodos)", className="mb-2"))
+        output.append(html.Pre(nodos_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '400px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
+        
+        output.append(html.H5("PARAMETROS DIMENSIONANTES", className="mb-2"))
+        output.append(html.Pre(param_dim_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '300px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
+        
+        output.append(html.H5("DISTANCIAS", className="mb-2"))
+        output.append(html.Pre(dist_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '300px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
         
         # Cargar imágenes
         if hash_params:
             img_str_estructura = ViewHelpers.cargar_imagen_base64(f"Estructura.{hash_params}.png")
             if img_str_estructura:
-                output.extend([
-                    html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str_estructura}', style={'width': '100%', 'maxWidth': '800px'})
-                ])
+                output.append(html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"))
+                output.append(html.Img(src=f'data:image/png;base64,{img_str_estructura}', style={'width': '100%', 'maxWidth': '800px'}))
             
             img_str_cabezal = ViewHelpers.cargar_imagen_base64(f"Cabezal.{hash_params}.png")
             if img_str_cabezal:
-                output.extend([
-                    html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str_cabezal}', style={'width': '100%', 'maxWidth': '800px'})
-                ])
+                output.append(html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"))
+                output.append(html.Img(src=f'data:image/png;base64,{img_str_cabezal}', style={'width': '100%', 'maxWidth': '800px'}))
             
             # Cargar gráfico 3D de nodos (Plotly JSON)
-            fig_nodos_json = ViewHelpers.cargar_figura_plotly_json(f"Nodos.{hash_params}.json")
-            if fig_nodos_json:
-                output.append(html.H5("GRAFICO 3D DE NODOS Y COORDENADAS", className="mb-2 mt-4"))
-                output.append(dcc.Graph(
-                    figure=fig_nodos_json,
-                    config={'displayModeBar': True},
-                    style={'height': '800px', 'width': '100%'}
-                ))
+            try:
+                fig_nodos_json = ViewHelpers.cargar_figura_plotly_json(f"Nodos.{hash_params}.json")
+                if fig_nodos_json and isinstance(fig_nodos_json, dict):
+                    output.append(html.H5("GRAFICO 3D DE NODOS Y COORDENADAS", className="mb-2 mt-4"))
+                    grafico_nodos = dcc.Graph(
+                        figure=fig_nodos_json,
+                        config={'displayModeBar': True},
+                        style={'height': '800px', 'width': '100%'}
+                    )
+                    output.append(grafico_nodos)
+            except Exception as e:
+                import traceback
+                print(f"Error cargando gráfico 3D nodos: {traceback.format_exc()}")
         
         # Agregar memoria de cálculo
         memoria_calculo = calculo_guardado.get('memoria_calculo')
@@ -258,11 +270,26 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
             output.append(html.Hr(className="mt-5"))
             output.append(dbc.Card([
                 dbc.CardHeader(html.H5("Memoria de Cálculo: Diseño Geométrico de Estructura", className="mb-0")),
-                dbc.CardBody(ViewHelpers.crear_pre_output(memoria_calculo, max_height='600px', font_size='0.85rem'))
+                dbc.CardBody(html.Pre(
+                    memoria_calculo,
+                    style={
+                        'backgroundColor': '#1e1e1e',
+                        'color': '#d4d4d4',
+                        'padding': '10px',
+                        'borderRadius': '5px',
+                        'fontSize': '0.85rem',
+                        'maxHeight': '600px',
+                        'overflowY': 'auto',
+                        'whiteSpace': 'pre-wrap',
+                        'fontFamily': 'monospace'
+                    }
+                ))
             ], className="mt-3"))
         
-        print(f"DEBUG: Retornando Div con {len(output)} elementos")
-        return html.Div(output)
+        # Filtrar elementos None o inválidos y retornar lista directamente
+        output_limpio = [elem for elem in output if elem is not None]
+        print(f"DEBUG: Retornando lista con {len(output_limpio)} elementos válidos")
+        return output_limpio
     except Exception as e:
         return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")
 
@@ -271,11 +298,9 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
     """Vista para diseño geométrico con parámetros y cálculo"""
     
     # Generar resultados si hay cálculo guardado
-    resultados_previos = []
+    resultados_previos = None
     if calculo_guardado:
         resultados_previos = generar_resultados_dge(calculo_guardado, estructura_actual)
-    else:
-        resultados_previos = []
     
     return html.Div([
         dbc.Card([
@@ -287,7 +312,7 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("TENSION (kV)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-tension-geom", **{**obtener_config_control("TENSION"), "value": estructura_actual.get("TENSION", 220)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-tension-geom", **{k: v for k, v in obtener_config_control("TENSION").items() if k != "tipo"}, value=estructura_actual.get("TENSION", 220), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Zona Estructura", style={"fontSize": "1.125rem"}),
@@ -299,11 +324,11 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Lk (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-lk-geom", **{**obtener_config_control("Lk"), "value": estructura_actual.get("Lk", 2.5)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-lk-geom", **{k: v for k, v in obtener_config_control("Lk").items() if k != "tipo"}, value=estructura_actual.get("Lk", 2.5), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Ángulo Apantallamiento (°)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-ang-apantallamiento", **{**obtener_config_control("ANG_APANTALLAMIENTO"), "value": estructura_actual.get("ANG_APANTALLAMIENTO", 30.0)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-ang-apantallamiento", **{k: v for k, v in obtener_config_control("ANG_APANTALLAMIENTO").items() if k != "tipo"}, value=estructura_actual.get("ANG_APANTALLAMIENTO", 30.0), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
@@ -320,55 +345,55 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                     ], md=4),
                     dbc.Col([
                         dbc.Label("CANT_HG", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-cant-hg-geom", **{**obtener_config_control("CANT_HG"), "value": estructura_actual.get("CANT_HG", 2)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-cant-hg-geom", **{k: v for k, v in obtener_config_control("CANT_HG").items() if k != "tipo"}, value=estructura_actual.get("CANT_HG", 2), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=4),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Altura Mínima Cable (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-altura-min-cable", **{**obtener_config_control("ALTURA_MINIMA_CABLE"), "value": estructura_actual.get("ALTURA_MINIMA_CABLE", 6.5)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-altura-min-cable", **{k: v for k, v in obtener_config_control("ALTURA_MINIMA_CABLE").items() if k != "tipo"}, value=estructura_actual.get("ALTURA_MINIMA_CABLE", 6.5), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Long. Ménsula Mín. Conductor (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-lmen-min-cond", **{**obtener_config_control("LONGITUD_MENSULA_MINIMA_CONDUCTOR"), "value": estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR", 1.3)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-lmen-min-cond", **{k: v for k, v in obtener_config_control("LONGITUD_MENSULA_MINIMA_CONDUCTOR").items() if k != "tipo"}, value=estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR", 1.3), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Long. Ménsula Mín. Guardia (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-lmen-min-guard", **{**obtener_config_control("LONGITUD_MENSULA_MINIMA_GUARDIA"), "value": estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA", 0.2)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-lmen-min-guard", **{k: v for k, v in obtener_config_control("LONGITUD_MENSULA_MINIMA_GUARDIA").items() if k != "tipo"}, value=estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA", 0.2), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("HADD (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-hadd-geom", **{**obtener_config_control("HADD"), "value": estructura_actual.get("HADD", 0.4)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-hadd-geom", **{k: v for k, v in obtener_config_control("HADD").items() if k != "tipo"}, value=estructura_actual.get("HADD", 0.4), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("HADD Entre Amarres (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-hadd-entre-amarres", **{**obtener_config_control("HADD_ENTRE_AMARRES"), "value": estructura_actual.get("HADD_ENTRE_AMARRES", 0.2)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-hadd-entre-amarres", **{k: v for k, v in obtener_config_control("HADD_ENTRE_AMARRES").items() if k != "tipo"}, value=estructura_actual.get("HADD_ENTRE_AMARRES", 0.2), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=4),
                     dbc.Col([
                         dbc.Label("HADD_HG (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-hadd-hg-geom", **{**obtener_config_control("HADD_HG"), "value": estructura_actual.get("HADD_HG", 1.5)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-hadd-hg-geom", **{k: v for k, v in obtener_config_control("HADD_HG").items() if k != "tipo"}, value=estructura_actual.get("HADD_HG", 1.5), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=4),
                     dbc.Col([
                         dbc.Label("HADD_LMEN (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-hadd-lmen-geom", **{**obtener_config_control("HADD_LMEN"), "value": estructura_actual.get("HADD_LMEN", 0.5)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-hadd-lmen-geom", **{k: v for k, v in obtener_config_control("HADD_LMEN").items() if k != "tipo"}, value=estructura_actual.get("HADD_LMEN", 0.5), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=4),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Ancho Cruceta (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-ancho-cruceta-geom", **{**obtener_config_control("ANCHO_CRUCETA"), "value": estructura_actual.get("ANCHO_CRUCETA", 0.3)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-ancho-cruceta-geom", **{k: v for k, v in obtener_config_control("ANCHO_CRUCETA").items() if k != "tipo"}, value=estructura_actual.get("ANCHO_CRUCETA", 0.3), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Dist. Reposicionar HG (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-dist-repos-hg", **{**obtener_config_control("DIST_REPOSICIONAR_HG"), "value": estructura_actual.get("DIST_REPOSICIONAR_HG", 0.1)}, tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-dist-repos-hg", **{k: v for k, v in obtener_config_control("DIST_REPOSICIONAR_HG").items() if k != "tipo"}, value=estructura_actual.get("DIST_REPOSICIONAR_HG", 0.1), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
@@ -442,7 +467,7 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 html.Hr(),
                 
                 # Área de resultados
-                html.Div(id="output-diseno-geometrico", children=resultados_previos if resultados_previos else [])
+                html.Div(id="output-diseno-geometrico", children=resultados_previos if resultados_previos else None)
             ])
         ])
     ])

@@ -646,3 +646,72 @@ Vista Consola → Botón Actualizar → Muestra buffer
 - `components/vista_consola.py` - Vista sin Interval, solo actualización manual
 - `controllers/consola_controller.py` - Callback con manejo de excepciones
 - `docs/vista_consola.md` - Documentación de la feature
+
+---
+
+### Gráfico 3D de Nodos No Aparece en Calcular Todo
+
+**Context**: Implementando vista "Calcular Todo" que orquesta todos los cálculos y muestra resultados.
+
+**Issue 1**: Gráfico 3D de nodos no aparecía en "Calcular Todo" aunque sí aparecía en vista DGE individual.
+
+**Root Cause 1**: En `vista_calcular_todo.py`, se usaba `.extend([html.H3(...), resultado_dge])` que causaba que el `html.Div` retornado por `generar_resultados_dge()` se descompusiera incorrectamente, perdiendo el componente `dcc.Graph` del gráfico 3D.
+
+**Resolution 1**:
+```python
+# Incorrecto - descompone el Div
+componentes.extend([
+    html.H3("2. DGE"),
+    generar_resultados_dge(calculo_dge, estructura_actual)
+])
+
+# Correcto - mantiene estructura
+componentes.append(html.H3("2. DGE"))
+resultado_dge = generar_resultados_dge(calculo_dge, estructura_actual)
+componentes.append(resultado_dge)
+```
+
+**Issue 2**: Error al guardar gráfico 3D: `'Figure' object has no attribute 'write_json'`
+
+**Root Cause 2**: En `geometria_controller.py` línea 119, después de llamar a `graficar_nodos_coordenadas()` que retorna una figura **Plotly**, se intentaba capturar con `plt.gcf()` que obtiene la figura actual de **Matplotlib**. Esto devolvía una figura Matplotlib vacía que no tiene el método `write_json()`.
+
+**Resolution 2**:
+```python
+# Incorrecto - captura figura Matplotlib vacía
+estructura_graficos.graficar_nodos_coordenadas(...)
+fig_nodos = plt.gcf()  # ❌ Obtiene figura Matplotlib, no Plotly
+
+# Correcto - captura el retorno directo
+fig_nodos = estructura_graficos.graficar_nodos_coordenadas(...)  # ✅ Figura Plotly
+```
+
+**Issue 3**: Tabla HTML de parámetros con texto gris claro sobre fondo blanco (ilegible) en descarga HTML.
+
+**Root Cause 3**: En `descargar_html.py`, los valores JSON se mostraban con `<pre style="background:#f8f9fa">` (gris muy claro) sin especificar color de texto, heredando el gris claro del navegador.
+
+**Resolution 3**:
+```python
+# Incorrecto - texto ilegible
+html.append(f'<pre style="background:#f8f9fa; padding:5px;">{valor_str}</pre>')
+
+# Correcto - contraste adecuado
+html.append(f'<pre style="background:#1e1e1e; color:#d4d4d4; padding:8px;">{valor_str}</pre>')
+```
+
+**Key Takeaways**:
+1. **Capturar retornos de funciones**: Cuando una función retorna un objeto (como figura Plotly), capturarlo directamente en lugar de usar métodos globales como `plt.gcf()`
+2. **Verificar tipo de figura**: Plotly y Matplotlib son incompatibles - Plotly usa `write_json()`, Matplotlib usa `savefig()`
+3. **Usar `.append()` individual**: Para componentes Dash complejos (que contienen `dcc.Graph`), usar `.append()` individual en lugar de `.extend()` con listas
+4. **Estilos HTML con contraste**: Siempre especificar tanto `background` como `color` para asegurar legibilidad
+5. **Dual format para Plotly**: Guardar PNG (exportar) + JSON (interactividad) para gráficos Plotly en cache
+
+**Archivos Modificados**:
+- `components/vista_calcular_todo.py` - Uso de `.append()` individual
+- `components/vista_diseno_geometrico.py` - Uso de `.append()` para gráfico 3D
+- `controllers/geometria_controller.py` - Captura correcta de figura Plotly
+- `utils/descargar_html.py` - Estilos con contraste adecuado
+
+**Verificación**:
+1. Ejecutar "Calcular Todo" → Verificar que aparece gráfico 3D interactivo en sección DGE
+2. Verificar que el gráfico permite zoom, pan, rotación (interactividad Plotly)
+3. Descargar HTML → Verificar que tabla de parámetros es legible

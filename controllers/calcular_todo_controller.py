@@ -76,7 +76,11 @@ def register_callbacks(app):
             if resultado_dge.get('exito'):
                 calculo_dge = CalculoCache.cargar_calculo_dge(estructura_actual.get('TITULO', 'estructura'))
                 if calculo_dge:
-                    resultados.append(generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=False))
+                    lista_dge = generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=False)
+                    if isinstance(lista_dge, list):
+                        resultados.extend(lista_dge)
+                    else:
+                        resultados.append(lista_dge)
             else:
                 resultados.append(dbc.Alert(f"Error DGE: {resultado_dge.get('mensaje')}", color="danger"))
             
