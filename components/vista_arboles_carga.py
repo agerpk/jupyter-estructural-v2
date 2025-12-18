@@ -37,13 +37,13 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Zoom"),
-                        dcc.Slider(id="param-zoom-arboles", min=0.25, max=2.0, step=0.25, value=0.5,
+                        dcc.Slider(id="slider-zoom-arboles", min=0.25, max=2.0, step=0.25, value=0.5,
                                   marks={i/4: f'{int(i*25)}%' for i in range(1, 9)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Escala de Flechas"),
-                        dcc.Slider(id="param-escala-flechas", min=0.5, max=3.0, step=0.5, value=1.8,
+                        dcc.Slider(id="slider-escala-flechas", min=0.5, max=3.0, step=0.5, value=1.8,
                                   marks={i/2: f'{int(i*50)}%' for i in range(1, 7)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=6),
@@ -51,19 +51,19 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Grosor de Líneas"),
-                        dcc.Slider(id="param-grosor-lineas", min=1, max=5, step=1, value=3.5,
+                        dcc.Slider(id="slider-grosor-lineas", min=1, max=5, step=1, value=3.5,
                                   marks={i: str(i) for i in range(1, 6)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=4),
                     dbc.Col([
                         dbc.Label("Tamaño letra nodos"),
-                        dcc.Slider(id="param-fontsize-nodos", min=4, max=16, step=2, value=8,
+                        dcc.Slider(id="slider-fontsize-nodos", min=4, max=16, step=2, value=8,
                                   marks={i: str(i) for i in range(4, 17, 2)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=4),
                     dbc.Col([
                         dbc.Label("Tamaño letra flechas"),
-                        dcc.Slider(id="param-fontsize-flechas", min=4, max=16, step=2, value=10,
+                        dcc.Slider(id="slider-fontsize-flechas", min=4, max=16, step=2, value=10,
                                   marks={i: str(i) for i in range(4, 17, 2)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=4),

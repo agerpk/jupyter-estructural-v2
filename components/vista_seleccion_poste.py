@@ -42,7 +42,7 @@ def crear_vista_seleccion_poste(estructura_actual, calculo_guardado=None):
                             min=0, max=3, step=1,
                             value=params_sph['FORZAR_N_POSTES'],
                             marks={0: 'Auto', 1: '1', 2: '2', 3: '3'},
-                            tooltip={"placement": "bottom", "always_visible": False}
+                            tooltip={"placement": "bottom", "always_visible": True}
                         )
                     ], md=6),
                     dbc.Col([

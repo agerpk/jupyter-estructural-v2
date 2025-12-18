@@ -3,58 +3,48 @@
 from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 from config.app_config import DATA_DIR
+from config.parametros_controles import obtener_config_control
 from utils.view_helpers import ViewHelpers
 from utils.calculo_cache import CalculoCache
 
 
-def generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos=None):
-    """Genera tabla editable de nodos para el modal"""
-    # Convertir nodos a lista de diccionarios
-    nodos_data = []
-    for nombre, coords in nodos_dict.items():
-        # Obtener datos del objeto nodo si existe
-        tipo_nodo = "general"
-        cable_id = ""
-        rotacion = 0.0
-        angulo_quiebre = 0.0
-        tipo_fijacion = "suspensión"
-        conectado_a = ""
-        
-        if nodos_objetos and nombre in nodos_objetos:
-            nodo_obj = nodos_objetos[nombre]
-            tipo_nodo = getattr(nodo_obj, 'tipo', 'general')
-            if hasattr(nodo_obj, 'cable') and nodo_obj.cable:
-                cable_id = nodo_obj.cable.nombre if hasattr(nodo_obj.cable, 'nombre') else ""
-            rotacion = getattr(nodo_obj, 'rotacion_eje_z', 0.0)
-            angulo_quiebre = getattr(nodo_obj, 'angulo_quiebre', 0.0)
-            tipo_fijacion = getattr(nodo_obj, 'tipo_fijacion', 'suspensión') or 'suspensión'
-            conectado_a_list = getattr(nodo_obj, 'conectado_a', [])
-            if conectado_a_list:
-                conectado_a = ", ".join(conectado_a_list)
-        
-        # Obtener rotaciones X e Y si existen
-        rotacion_x = getattr(nodo_obj, 'rotacion_eje_x', 0.0) if nodos_objetos and nombre in nodos_objetos else 0.0
-        rotacion_y = getattr(nodo_obj, 'rotacion_eje_y', 0.0) if nodos_objetos and nombre in nodos_objetos else 0.0
-        
-        nodos_data.append({
-            "nombre": nombre,
-            "tipo": tipo_nodo,
-            "x": coords[0],
-            "y": coords[1],
-            "z": coords[2],
-            "cable_id": cable_id,
-            "rotacion_eje_x": rotacion_x,
-            "rotacion_eje_y": rotacion_y,
-            "rotacion_eje_z": rotacion,
-            "angulo_quiebre": angulo_quiebre,
-            "tipo_fijacion": tipo_fijacion,
-            "conectado_a": conectado_a,
-            "editar_conexiones": "✏️ Editar"
-        })
+def generar_tabla_editor_nodos(nodos_data, cables_disponibles):
+    """Genera tabla editable de nodos para el modal
+    
+    Args:
+        nodos_data: Lista de diccionarios con datos completos de nodos
+        cables_disponibles: Lista de IDs de cables disponibles
+    """
+    print(f"🔧 DEBUG generar_tabla_editor_nodos: cables_disponibles = {cables_disponibles}")
+    print(f"🔧 DEBUG generar_tabla_editor_nodos: nodos_data count = {len(nodos_data)}")
+    
+    # Verificar que nodos_data tenga cable_id
+    for nodo in nodos_data[:3]:  # Solo primeros 3 para debug
+        print(f"   Nodo {nodo.get('nombre')}: cable_id = '{nodo.get('cable_id', 'NO_EXISTE')}'")
+    
+    # Asegurar que todos los nodos tengan el campo cable_id
+    # Si está vacío, asignar cable según el nombre del nodo
+    cable_conductor = cables_disponibles[0] if len(cables_disponibles) > 0 else ""
+    cable_guardia = cables_disponibles[1] if len(cables_disponibles) > 1 else cables_disponibles[0] if len(cables_disponibles) > 0 else ""
+    
+    for nodo in nodos_data:
+        if 'cable_id' not in nodo or not nodo['cable_id']:
+            nombre = nodo.get('nombre', '')
+            # Asignar cable según el nombre del nodo
+            if nombre.startswith('HG'):
+                nodo['cable_id'] = cable_guardia
+            elif nombre.startswith('C') and not nombre.startswith('CROSS'):
+                nodo['cable_id'] = cable_conductor
+            else:
+                nodo['cable_id'] = ""
     
     # Opciones para dropdowns
     tipos_nodo = ["conductor", "guardia", "base", "cruce", "general", "viento"]
     tipos_fijacion = ["suspensión", "retención", "none"]
+    
+    # Debug: verificar opciones de dropdown
+    opciones_cable = [{"label": "(Sin cable)", "value": ""}] + [{"label": c, "value": c} for c in cables_disponibles if c]
+    print(f"🔽 DEBUG: Opciones dropdown cable_id: {opciones_cable}")
     
     return html.Div([
         dash_table.DataTable(
@@ -66,7 +56,7 @@ def generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos=Non
                 {"name": "X (m)", "id": "x", "type": "numeric", "editable": True, "format": {"specifier": ".3f"}},
                 {"name": "Y (m)", "id": "y", "type": "numeric", "editable": True, "format": {"specifier": ".3f"}},
                 {"name": "Z (m)", "id": "z", "type": "numeric", "editable": True, "format": {"specifier": ".3f"}},
-                {"name": "Cable", "id": "cable_id", "editable": True, "presentation": "dropdown"},
+                {"name": "Cable", "id": "cable_id", "editable": True},
                 {"name": "Rot. X (°)", "id": "rotacion_eje_x", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
                 {"name": "Rot. Y (°)", "id": "rotacion_eje_y", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
                 {"name": "Rot. Z (°)", "id": "rotacion_eje_z", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
@@ -77,7 +67,6 @@ def generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos=Non
             ],
             dropdown={
                 "tipo": {"options": [{"label": t, "value": t} for t in tipos_nodo]},
-                "cable_id": {"options": [{"label": c, "value": c} for c in cables_disponibles]},
                 "tipo_fijacion": {"options": [{"label": t, "value": t} for t in tipos_fijacion]},
             },
             editable=True,
@@ -296,31 +285,23 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("TENSION (kV)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-tension-geom", min=0, max=1000, step=1, value=estructura_actual.get("TENSION", 220),
-                                   marks={0: "0", 13.2: "13.2", 33: "33", 66: "66", 132: "132", 220: "220", 330: "330", 500: "500", 600: "600", 700: "700", 800: "800", 900: "900", 1000: "1000"},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-tension-geom", **{**obtener_config_control("TENSION"), "value": estructura_actual.get("TENSION", 220)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Zona Estructura", style={"fontSize": "1.125rem"}),
                         dbc.Select(id="select-zona-estructura", value=estructura_actual.get("Zona_estructura", "Rural"),
-                                   options=[{"label": "Peatonal", "value": "Peatonal"}, {"label": "Rural", "value": "Rural"},
-                                           {"label": "Urbana", "value": "Urbana"}, {"label": "Autopista", "value": "Autopista"},
-                                           {"label": "Ferrocarril", "value": "Ferrocarril"}, {"label": "Línea Eléctrica", "value": "Línea Eléctrica"}]),
+                                   options=[{"label": opt, "value": opt} for opt in obtener_config_control("Zona_estructura")["opciones"]]),
                     ], md=6),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Lk (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-lk-geom", min=0, max=8, step=0.5, value=estructura_actual.get("Lk", 2.5),
-                                   marks={i: str(i) for i in range(0, 9)},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-lk-geom", **{**obtener_config_control("Lk"), "value": estructura_actual.get("Lk", 2.5)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Ángulo Apantallamiento (°)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-ang-apantallamiento", min=0, max=45, step=1, value=estructura_actual.get("ANG_APANTALLAMIENTO", 30.0),
-                                   marks={i: str(i) for i in range(0, 46, 15)},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-ang-apantallamiento", **{**obtener_config_control("ANG_APANTALLAMIENTO"), "value": estructura_actual.get("ANG_APANTALLAMIENTO", 30.0)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
@@ -328,79 +309,64 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                     dbc.Col([
                         dbc.Label("TERNA", style={"fontSize": "1.125rem"}),
                         dbc.Select(id="select-terna-geom", value=estructura_actual.get("TERNA", "Simple"),
-                                   options=[{"label": "Simple", "value": "Simple"}, {"label": "Doble", "value": "Doble"}]),
+                                   options=[{"label": opt, "value": opt} for opt in obtener_config_control("TERNA")["opciones"]]),
                     ], md=4),
                     dbc.Col([
                         dbc.Label("DISPOSICION", style={"fontSize": "1.125rem"}),
                         dbc.Select(id="select-disposicion-geom", value=estructura_actual.get("DISPOSICION", "triangular"),
-                                   options=[{"label": "Triangular", "value": "triangular"}, {"label": "Horizontal", "value": "horizontal"},
-                                           {"label": "Vertical", "value": "vertical"}]),
+                                   options=[{"label": opt, "value": opt} for opt in obtener_config_control("DISPOSICION")["opciones"]]),
                     ], md=4),
                     dbc.Col([
                         dbc.Label("CANT_HG", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-cant-hg-geom", min=0, max=2, step=1, value=estructura_actual.get("CANT_HG", 2),
-                                   marks={0: "0", 1: "1", 2: "2"},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-cant-hg-geom", **{**obtener_config_control("CANT_HG"), "value": estructura_actual.get("CANT_HG", 2)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=4),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Altura Mínima Cable (m)", style={"fontSize": "1.125rem"}),
-                        dbc.Input(id="input-altura-min-cable", type="number", step=0.1, value=estructura_actual.get("ALTURA_MINIMA_CABLE", 6.5)),
+                        dcc.Slider(id="slider-altura-min-cable", **{**obtener_config_control("ALTURA_MINIMA_CABLE"), "value": estructura_actual.get("ALTURA_MINIMA_CABLE", 6.5)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Long. Ménsula Mín. Conductor (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-lmen-min-cond", min=0, max=5, step=0.5, value=estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR", 1.3),
-                                   marks={i: str(i) for i in range(0, 6)},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-lmen-min-cond", **{**obtener_config_control("LONGITUD_MENSULA_MINIMA_CONDUCTOR"), "value": estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR", 1.3)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Long. Ménsula Mín. Guardia (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-lmen-min-guard", min=0, max=5, step=0.5, value=estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA", 0.2),
-                                   marks={i: str(i) for i in range(0, 6)},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-lmen-min-guard", **{**obtener_config_control("LONGITUD_MENSULA_MINIMA_GUARDIA"), "value": estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA", 0.2)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("HADD (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-hadd-geom", min=0, max=4, step=1, value=estructura_actual.get("HADD", 0.4),
-                                   marks={i: str(i) for i in range(0, 5)},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-hadd-geom", **{**obtener_config_control("HADD"), "value": estructura_actual.get("HADD", 0.4)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("HADD Entre Amarres (m)", style={"fontSize": "1.125rem"}),
-                        dbc.Input(id="input-hadd-entre-amarres", type="number", step=0.1, value=estructura_actual.get("HADD_ENTRE_AMARRES", 0.2)),
+                        dcc.Slider(id="slider-hadd-entre-amarres", **{**obtener_config_control("HADD_ENTRE_AMARRES"), "value": estructura_actual.get("HADD_ENTRE_AMARRES", 0.2)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=4),
                     dbc.Col([
                         dbc.Label("HADD_HG (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-hadd-hg-geom", min=0, max=2, step=0.5, value=estructura_actual.get("HADD_HG", 1.5),
-                                   marks={i: str(i) for i in [0, 0.5, 1.0, 1.5, 2.0]},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-hadd-hg-geom", **{**obtener_config_control("HADD_HG"), "value": estructura_actual.get("HADD_HG", 1.5)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=4),
                     dbc.Col([
                         dbc.Label("HADD_LMEN (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-hadd-lmen-geom", min=0, max=2, step=0.2, value=estructura_actual.get("HADD_LMEN", 0.5),
-                                   marks={i: str(round(i, 1)) for i in [0, 0.5, 1.0, 1.5, 2.0]},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-hadd-lmen-geom", **{**obtener_config_control("HADD_LMEN"), "value": estructura_actual.get("HADD_LMEN", 0.5)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=4),
                 ], className="mb-3"),
                 
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Ancho Cruceta (m)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-ancho-cruceta-geom", min=0, max=0.5, step=0.1, value=estructura_actual.get("ANCHO_CRUCETA", 0.3),
-                                   marks={i/10: str(i/10) for i in range(0, 6)},
-                                   tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(id="slider-ancho-cruceta-geom", **{**obtener_config_control("ANCHO_CRUCETA"), "value": estructura_actual.get("ANCHO_CRUCETA", 0.3)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Dist. Reposicionar HG (m)", style={"fontSize": "1.125rem"}),
-                        dbc.Input(id="input-dist-repos-hg", type="number", step=0.05, value=estructura_actual.get("DIST_REPOSICIONAR_HG", 0.1)),
+                        dcc.Slider(id="slider-dist-repos-hg", **{**obtener_config_control("DIST_REPOSICIONAR_HG"), "value": estructura_actual.get("DIST_REPOSICIONAR_HG", 0.1)}, tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
                 ], className="mb-3"),
                 
@@ -437,8 +403,20 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 dbc.Modal([
                     dbc.ModalHeader(dbc.ModalTitle("Editor de Nodos Estructurales"), close_button=True),
                     dbc.ModalBody([
-                        dbc.Alert("Edite los nodos existentes o agregue nuevos. Los cambios se aplicarán al recalcular DGE.", color="info", className="mb-3"),
-                        dbc.Button("+ Agregar Nodo", id="btn-agregar-nodo-tabla", color="success", size="sm", className="mb-2"),
+                        dbc.Row([
+                            dbc.Col([
+                                dbc.Button("+ Agregar Nodo", id="btn-agregar-nodo-tabla", color="success", size="sm", className="w-100"),
+                            ], md=3),
+                            dbc.Col([
+                                dbc.Button("Al/Ac 70/12", id="btn-asignar-conductor", color="primary", size="sm", className="w-100", title="Asignar cable conductor"),
+                            ], md=3),
+                            dbc.Col([
+                                dbc.Button("OPGW FiberHome", id="btn-asignar-guardia", color="info", size="sm", className="w-100", title="Asignar cable guardia"),
+                            ], md=3),
+                            dbc.Col([
+                                dbc.Button("Sin Cable", id="btn-quitar-cable", color="secondary", size="sm", className="w-100", title="Quitar cable"),
+                            ], md=3),
+                        ], className="mb-2"),
                         html.Div(id="tabla-nodos-editor"),
                     ], style={"maxHeight": "70vh", "overflowY": "auto"}),
                     dbc.ModalFooter([

@@ -48,7 +48,7 @@
   "ALTURA_MINIMA_CABLE": 6.5,
   "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
   "LONGITUD_MENSULA_MINIMA_GUARDIA": 0,
-  "HADD": 0.3,
+  "HADD": 2.5,
   "HADD_ENTRE_AMARRES": 0.2,
   "HADD_HG": 0,
   "HADD_LMEN": 0.5,
@@ -99,127 +99,8 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-18T13:39:23.117601",
+  "fecha_modificacion": "2025-12-18T16:16:08.097778",
   "nodos_editados": [
-    {
-      "nombre": "C1_R",
-      "tipo": "general",
-      "coordenadas": [
-        1.3,
-        0.0,
-        9.178122990393694
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C2_R",
-      "tipo": "general",
-      "coordenadas": [
-        1.3,
-        0.0,
-        10.677604470222278
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C3_R",
-      "tipo": "general",
-      "coordenadas": [
-        1.3,
-        0.0,
-        12.177085950050861
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C1_L",
-      "tipo": "general",
-      "coordenadas": [
-        -1.3,
-        0.0,
-        9.178122990393694
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C2_L",
-      "tipo": "general",
-      "coordenadas": [
-        -1.3,
-        0.0,
-        10.677604470222278
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C3_L",
-      "tipo": "general",
-      "coordenadas": [
-        -1.3,
-        0.0,
-        12.177085950050861
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "HG1",
-      "tipo": "general",
-      "coordenadas": [
-        0.0,
-        0.0,
-        14.428751999890402
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [],
-      "es_editado": true
-    },
     {
       "nombre": "C1A",
       "tipo": "general",
@@ -228,15 +109,13 @@
         1.3,
         7.01
       ],
-      "cable_id": "",
+      "cable_id": "Al/Ac 70/12",
       "rotacion_eje_x": 0.0,
       "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 90.0,
+      "rotacion_eje_z": 0.0,
       "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [
-        "C2A"
-      ],
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
       "es_editado": true
     },
     {
@@ -247,18 +126,13 @@
         0.0,
         7.01
       ],
-      "cable_id": "",
+      "cable_id": "Al/Ac 70/12",
       "rotacion_eje_x": 0.0,
       "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 90.0,
+      "rotacion_eje_z": 0.0,
       "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [
-        "C1A",
-        "C3A",
-        "V",
-        "BASE"
-      ],
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
       "es_editado": true
     },
     {
@@ -269,15 +143,13 @@
         -1.3,
         7.01
       ],
-      "cable_id": "",
+      "cable_id": "Al/Ac 70/12",
       "rotacion_eje_x": 0.0,
       "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 90.0,
+      "rotacion_eje_z": 0.0,
       "angulo_quiebre": 0.0,
-      "tipo_fijacion": "retención",
-      "conectado_a": [
-        "C2A"
-      ],
+      "tipo_fijacion": "suspensión",
+      "conectado_a": [],
       "es_editado": true
     }
   ]

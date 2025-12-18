@@ -6,9 +6,10 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 import json
 from datetime import datetime
+from config.parametros_controles import obtener_config_control
 
 def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
-    """Crear un campo de parámetro"""
+    """Crear un campo de parámetro usando configuración centralizada"""
     # Convertir valores vacíos o None a valores por defecto según el tipo
     if valor == "" or valor is None:
         if tipo in [int, float]:
@@ -18,160 +19,63 @@ def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
         else:
             valor = ""
     
-    # Sliders para parámetros específicos
-    if nombre == "alpha":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=180, step=1, value=valor,
-            marks={0: '0°', 45: '45°', 90: '90°', 135: '135°', 180: '180°'},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "theta":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=180, step=1, value=valor,
-            marks={0: '0°', 45: '45°', 90: '90°', 135: '135°', 180: '180°'},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "t_hielo":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=0.03, step=0.001, value=valor,
-            marks={0: '0', 0.01: '0.01', 0.02: '0.02', 0.03: '0.03'},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "SALTO_PORCENTUAL":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=0.1, step=0.01, value=valor,
-            marks={0: '0%', 0.05: '5%', 0.1: '10%'},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "PASO_AFINADO":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=0.02, step=0.001, value=valor,
-            marks={0: '0%', 0.01: '1%', 0.02: '2%'},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "RELFLECHA_MAX_GUARDIA":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0.5, max=1.1, step=0.01, value=valor,
-            marks={0.5: '50%', 0.75: '75%', 1.0: '100%', 1.1: '110%'},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "TENSION":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=1000, step=1, value=valor,
-            marks={13.2: '13.2', 33: '33', 66: '66', 132: '132', 220: '220', 330: '330', 500: '500', 600: '600', 700: '700', 800: '800', 900: '900', 1000: '1000'},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "Lk":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=8, step=0.1, value=valor,
-            marks={i*0.5: str(i*0.5) for i in range(17)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "LONGITUD_MENSULA_MINIMA_CONDUCTOR":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=5, step=0.05, value=valor,
-            marks={i*0.5: str(i*0.5) for i in range(11)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "LONGITUD_MENSULA_MINIMA_GUARDIA":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=5, step=0.05, value=valor,
-            marks={i*0.5: str(i*0.5) for i in range(11)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "HADD":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=4, step=0.05, value=valor,
-            marks={i: str(i) for i in range(5)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "HADD_HG":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=2, step=0.05, value=valor,
-            marks={i*0.5: str(i*0.5) for i in range(5)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "HADD_LMEN":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=2, step=0.05, value=valor,
-            marks={i*0.2: str(round(i*0.2, 1)) for i in range(11)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "Altura_MSNM":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=6000, step=50, value=valor,
-            marks={i*500: str(i*500) for i in range(13)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "ANCHO_CRUCETA":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=0.5, step=0.01, value=valor,
-            marks={i*0.1: str(round(i*0.1, 1)) for i in range(6)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "HADD_ENTRE_AMARRES":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=2, step=0.05, value=valor,
-            marks={i*0.2: str(round(i*0.2, 1)) for i in range(11)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "CANT_HG":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=2, step=1, value=valor,
-            marks={0: '0', 1: '1', 2: '2'},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "ANG_APANTALLAMIENTO":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=45, step=1, value=valor,
-            marks={i: str(i) for i in range(0, 46, 15)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "ALTURA_MINIMA_CABLE":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=10, step=0.1, value=valor,
-            marks={i: str(i) for i in range(0, 11, 2)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre == "DIST_REPOSICIONAR_HG":
-        input_comp = dcc.Slider(
-            id={"type": "param-input", "index": nombre},
-            min=0, max=1, step=0.05, value=valor,
-            marks={i*0.2: str(round(i*0.2, 1)) for i in range(6)},
-            tooltip={"placement": "bottom", "always_visible": True}
-        )
-    elif nombre in ["H_PIQANTERIOR", "H_PIQPOSTERIOR", "H_PIQANTERIOR_CMC", "H_PIQPOSTERIOR_CMC"]:
-        input_comp = dbc.Row([
-            dbc.Col(dcc.Slider(
-                id={"type": "param-slider", "index": nombre},
-                min=-15, max=15, step=0.05, value=valor,
-                marks={i*5: str(i*5) for i in range(-3, 4)},
-                tooltip={"placement": "bottom", "always_visible": True}
-            ), width=8),
-            dbc.Col(dbc.Input(
+    # Intentar obtener configuración centralizada
+    config = obtener_config_control(nombre)
+    
+    if config:
+        if config["tipo"] == "slider":
+            input_comp = dcc.Slider(
                 id={"type": "param-input", "index": nombre},
-                type="number", value=valor, step=0.05, size="sm"
-            ), width=4)
-        ])
+                min=config["min"],
+                max=config["max"],
+                step=config["step"],
+                value=valor,
+                marks=config["marks"],
+                tooltip={"placement": "bottom", "always_visible": True}
+            )
+        elif config["tipo"] == "slider_input":
+            input_comp = dbc.Row([
+                dbc.Col(dcc.Slider(
+                    id={"type": "param-slider", "index": nombre},
+                    min=config["min"],
+                    max=config["max"],
+                    step=config["step"],
+                    value=valor,
+                    marks=config["marks"],
+                    tooltip={"placement": "bottom", "always_visible": True}
+                ), width=8),
+                dbc.Col(dbc.Input(
+                    id={"type": "param-input", "index": nombre},
+                    type="number", value=valor, step=config["step"], size="sm"
+                ), width=4)
+            ])
+        elif config["tipo"] == "select":
+            input_comp = dbc.Select(
+                id={"type": "param-input", "index": nombre},
+                options=[{"label": opt, "value": opt} for opt in config["opciones"]],
+                value=valor,
+                size="sm"
+            )
+        elif config["tipo"] == "switch":
+            input_comp = dbc.Switch(
+                id={"type": "param-input", "index": nombre},
+                value=valor
+            )
+        elif config["tipo"] == "input":
+            input_comp = dbc.Input(
+                id={"type": "param-input", "index": nombre},
+                type=config["input_type"],
+                value=valor,
+                size="sm"
+            )
+        else:
+            # Fallback a input genérico
+            input_comp = dbc.Input(
+                id={"type": "param-input", "index": nombre},
+                type="number" if tipo in [int, float] else "text",
+                value=valor,
+                size="sm"
+            )
     elif opciones:
         input_comp = dbc.Select(
             id={"type": "param-input", "index": nombre},

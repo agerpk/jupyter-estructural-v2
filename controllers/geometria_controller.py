@@ -338,15 +338,16 @@ def register_callbacks(app):
             
             print(f"✅ DEBUG: {len(nodos_dict)} nodos encontrados, generando tabla...")
             
-            calculo_cmc = CalculoCache.cargar_calculo_cmc(estructura_actual.get("TITULO", "actual"))
+            # Obtener cables disponibles desde estructura_actual
             cables_disponibles = []
-            if calculo_cmc:
-                resultados = calculo_cmc.get("resultados", {})
-                cables_disponibles = [c for c in [
-                    resultados.get("nombre_conductor", ""),
-                    resultados.get("nombre_guardia1", ""),
-                    resultados.get("nombre_guardia2", "")
-                ] if c]
+            if estructura_actual.get("cable_conductor_id"):
+                cables_disponibles.append(estructura_actual["cable_conductor_id"])
+            if estructura_actual.get("cable_guardia_id"):
+                cables_disponibles.append(estructura_actual["cable_guardia_id"])
+            if estructura_actual.get("cable_guardia2_id"):
+                cables_disponibles.append(estructura_actual["cable_guardia2_id"])
+            
+            print(f"🔌 DEBUG: Cables disponibles: {cables_disponibles}")
             
             from components.vista_diseno_geometrico import generar_tabla_editor_nodos
             
@@ -395,12 +396,14 @@ def register_callbacks(app):
                     nodo_editado = nodos_editados_dict[nombre]
                     # Solo actualizar si realmente fue editado
                     if nodo_editado.get("es_editado", False):
+                        cable_id_editado = nodo_editado.get("cable_id", nodo_data["cable_id"])
+                        print(f"   📝 Nodo {nombre}: cable_id = '{cable_id_editado}'")
                         nodos_data[i].update({
                             "tipo": nodo_editado.get("tipo", nodo_data["tipo"]),
                             "x": nodo_editado["coordenadas"][0],
                             "y": nodo_editado["coordenadas"][1],
                             "z": nodo_editado["coordenadas"][2],
-                            "cable_id": nodo_editado.get("cable_id", nodo_data["cable_id"]),
+                            "cable_id": cable_id_editado,
                             "rotacion_eje_x": nodo_editado.get("rotacion_eje_x", nodo_data.get("rotacion_eje_x", 0.0)),
                             "rotacion_eje_y": nodo_editado.get("rotacion_eje_y", nodo_data.get("rotacion_eje_y", 0.0)),
                             "rotacion_eje_z": nodo_editado.get("rotacion_eje_z", nodo_data["rotacion_eje_z"]),
@@ -433,7 +436,7 @@ def register_callbacks(app):
                         "editar_conexiones": "✏️ Editar"
                     })
             
-            tabla = generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos)
+            tabla = generar_tabla_editor_nodos(nodos_data, cables_disponibles)
             print(f"✅ DEBUG: Tabla generada, abriendo modal con {len(nodos_data)} nodos")
             
             return True, nodos_data, tabla, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
@@ -471,22 +474,52 @@ def register_callbacks(app):
         nodos_data.append(nuevo_nodo)
         
         # Regenerar tabla
-        from utils.calculo_cache import CalculoCache
-        calculo_cmc = CalculoCache.cargar_calculo_cmc(estructura_actual.get("TITULO", "actual"))
         cables_disponibles = []
-        if calculo_cmc:
-            resultados = calculo_cmc.get("resultados", {})
-            cables_disponibles = [c for c in [
-                resultados.get("nombre_conductor", ""),
-                resultados.get("nombre_guardia1", ""),
-                resultados.get("nombre_guardia2", "")
-            ] if c]
+        if estructura_actual.get("cable_conductor_id"):
+            cables_disponibles.append(estructura_actual["cable_conductor_id"])
+        if estructura_actual.get("cable_guardia_id"):
+            cables_disponibles.append(estructura_actual["cable_guardia_id"])
+        if estructura_actual.get("cable_guardia2_id"):
+            cables_disponibles.append(estructura_actual["cable_guardia2_id"])
         
         from components.vista_diseno_geometrico import generar_tabla_editor_nodos
-        nodos_dict = {n["nombre"]: [n["x"], n["y"], n["z"]] for n in nodos_data}
-        tabla = generar_tabla_editor_nodos(nodos_dict, cables_disponibles, None)
+        tabla = generar_tabla_editor_nodos(nodos_data, cables_disponibles)
         
         return nodos_data, tabla
+    
+    # Callbacks para asignar cables rápidamente
+    @app.callback(
+        Output("datatable-nodos", "data", allow_duplicate=True),
+        Input("btn-asignar-conductor", "n_clicks"),
+        Input("btn-asignar-guardia", "n_clicks"),
+        Input("btn-quitar-cable", "n_clicks"),
+        State("datatable-nodos", "data"),
+        State("datatable-nodos", "active_cell"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def asignar_cable_rapido(n_conductor, n_guardia, n_quitar, tabla_data, active_cell, estructura_actual):
+        from dash import callback_context
+        ctx = callback_context
+        if not ctx.triggered or not active_cell:
+            return dash.no_update
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        # Verificar que la celda activa sea de la columna cable_id
+        if active_cell["column_id"] != "cable_id":
+            return dash.no_update
+        
+        row_index = active_cell["row"]
+        
+        if trigger_id == "btn-asignar-conductor":
+            tabla_data[row_index]["cable_id"] = estructura_actual.get("cable_conductor_id", "")
+        elif trigger_id == "btn-asignar-guardia":
+            tabla_data[row_index]["cable_id"] = estructura_actual.get("cable_guardia_id", "")
+        elif trigger_id == "btn-quitar-cable":
+            tabla_data[row_index]["cable_id"] = ""
+        
+        return tabla_data
     
     # Callback para detectar cambios en la tabla de nodos
     @app.callback(
@@ -683,6 +716,17 @@ def register_callbacks(app):
                     if abs(coords_actual[0] - coords_orig[0]) > 0.001 or abs(coords_actual[1] - coords_orig[1]) > 0.001 or abs(coords_actual[2] - coords_orig[2]) > 0.001:
                         es_editado = True
                     
+                    # Verificar cable_id
+                    cable_id_actual = nodo.get("cable_id", "").strip()
+                    cable_id_original = ""
+                    if state.calculo_objetos.estructura_geometria and nombre in state.calculo_objetos.estructura_geometria.nodos:
+                        nodo_obj = state.calculo_objetos.estructura_geometria.nodos[nombre]
+                        if hasattr(nodo_obj, 'cable_asociado') and nodo_obj.cable_asociado:
+                            cable_id_original = nodo_obj.cable_asociado.nombre if hasattr(nodo_obj.cable_asociado, 'nombre') else ""
+                    
+                    if cable_id_actual != cable_id_original:
+                        es_editado = True
+                    
                     # Verificar otros campos si hay objetos nodo
                     if state.calculo_objetos.estructura_geometria and nombre in state.calculo_objetos.estructura_geometria.nodos:
                         nodo_obj = state.calculo_objetos.estructura_geometria.nodos[nombre]
@@ -742,15 +786,15 @@ def register_callbacks(app):
         State("select-disposicion-geom", "value"),
         State("select-terna-geom", "value"),
         State("slider-cant-hg-geom", "value"),
-        State("input-altura-min-cable", "value"),
+        State("slider-altura-min-cable", "value"),
         State("slider-lmen-min-cond", "value"),
         State("slider-lmen-min-guard", "value"),
         State("slider-hadd-geom", "value"),
-        State("input-hadd-entre-amarres", "value"),
+        State("slider-hadd-entre-amarres", "value"),
         State("slider-hadd-hg-geom", "value"),
         State("slider-hadd-lmen-geom", "value"),
         State("slider-ancho-cruceta-geom", "value"),
-        State("input-dist-repos-hg", "value"),
+        State("slider-dist-repos-hg", "value"),
         State("switch-hg-centrado", "value"),
         State("switch-autoajustar-lmenhg", "value"),
         prevent_initial_call=True

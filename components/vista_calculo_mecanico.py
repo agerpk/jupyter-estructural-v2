@@ -8,6 +8,7 @@ import pandas as pd
 from config.app_config import DATA_DIR
 from utils.view_helpers import ViewHelpers
 from utils.calculo_cache import CalculoCache
+from config.parametros_controles import obtener_config_control
 
 
 def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
@@ -40,15 +41,11 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("alpha (°) - Ángulo de quiebre"),
-                        dcc.Slider(id="param-alpha", min=0, max=180, step=1, value=estructura_actual.get("alpha", 0),
-                                  marks={0: '0°', 45: '45°', 90: '90°', 135: '135°', 180: '180°'},
-                                  tooltip={"placement": "bottom", "always_visible": True})
+                        dcc.Slider(**{**obtener_config_control("alpha"), "id": "slider-alpha", "value": estructura_actual.get("alpha", 0)})
                     ], md=3),
                     dbc.Col([
                         dbc.Label("theta (°) - Ángulo viento oblicuo"),
-                        dcc.Slider(id="param-theta", min=0, max=180, step=1, value=estructura_actual.get("theta", 45),
-                                  marks={0: '0°', 45: '45°', 90: '90°', 135: '135°', 180: '180°'},
-                                  tooltip={"placement": "bottom", "always_visible": True})
+                        dcc.Slider(**{**obtener_config_control("theta"), "id": "slider-theta", "value": estructura_actual.get("theta", 45)})
                     ], md=3),
                     dbc.Col([
                         dbc.Label("Vmax (m/s)"),
@@ -62,9 +59,7 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                     ], md=4),
                     dbc.Col([
                         dbc.Label("t_hielo (m) - Espesor manguito de hielo"),
-                        dcc.Slider(id="param-t_hielo", min=0, max=0.03, step=0.001, value=estructura_actual.get("t_hielo", 0.01),
-                                  marks={0: '0', 0.01: '0.01', 0.02: '0.02', 0.03: '0.03'},
-                                  tooltip={"placement": "bottom", "always_visible": True})
+                        dcc.Slider(**{**obtener_config_control("t_hielo"), "id": "slider-t_hielo", "value": estructura_actual.get("t_hielo", 0.01)})
                     ], md=8),
                 ])
             ])
@@ -113,17 +108,11 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("SALTO_PORCENTUAL - Para búsqueda de soluciones en cálculo mecánico"),
-                        dcc.Slider(id="param-SALTO_PORCENTUAL", min=0, max=0.1, step=0.01, 
-                                  value=estructura_actual.get("SALTO_PORCENTUAL", 0.05),
-                                  marks={0: '0%', 0.05: '5%', 0.1: '10%'},
-                                  tooltip={"placement": "bottom", "always_visible": True})
+                        dcc.Slider(**{**obtener_config_control("SALTO_PORCENTUAL"), "id": "slider-SALTO_PORCENTUAL", "value": estructura_actual.get("SALTO_PORCENTUAL", 0.05)})
                     ], md=6),
                     dbc.Col([
                         dbc.Label("PASO_AFINADO - Refinamiento de búsqueda"),
-                        dcc.Slider(id="param-PASO_AFINADO", min=0, max=0.02, step=0.001,
-                                  value=estructura_actual.get("PASO_AFINADO", 0.005),
-                                  marks={0: '0%', 0.01: '1%', 0.02: '2%'},
-                                  tooltip={"placement": "bottom", "always_visible": True})
+                        dcc.Slider(**{**obtener_config_control("PASO_AFINADO"), "id": "slider-PASO_AFINADO", "value": estructura_actual.get("PASO_AFINADO", 0.005)})
                     ], md=6),
                 ], className="mb-3"),
                 dbc.Row([
@@ -154,10 +143,7 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("RELFLECHA_MAX_GUARDIA - Relación de flecha máxima para cable de guardia"),
-                        dcc.Slider(id="param-RELFLECHA_MAX_GUARDIA", min=0.5, max=1.1, step=0.01,
-                                  value=estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95),
-                                  marks={0.5: '50%', 0.75: '75%', 1.0: '100%', 1.1: '110%'},
-                                  tooltip={"placement": "bottom", "always_visible": True})
+                        dcc.Slider(**{**obtener_config_control("RELFLECHA_MAX_GUARDIA"), "id": "slider-RELFLECHA_MAX_GUARDIA", "value": estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95)})
                     ], md=12),
                 ])
             ])
