@@ -110,10 +110,10 @@ def cargar_resultados_modulares(estructura_actual):
     calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
     if calculo_dge:
         from components.vista_diseno_geometrico import generar_resultados_dge
-        componentes.extend([
-            html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"),
-            generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=True)
-        ])
+        componentes.append(html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"))
+        resultado_dge = generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=True)
+        # generar_resultados_dge ya retorna un html.Div, agregarlo directamente
+        componentes.append(resultado_dge)
     else:
         componentes.append(crear_placeholder("2. DGE"))
     
@@ -121,10 +121,9 @@ def cargar_resultados_modulares(estructura_actual):
     calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
     if calculo_dme:
         from components.vista_diseno_mecanico import generar_resultados_dme
-        componentes.extend([
-            html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"),
-            generar_resultados_dme(calculo_dme, estructura_actual, mostrar_alerta_cache=True)
-        ])
+        componentes.append(html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"))
+        resultado_dme = generar_resultados_dme(calculo_dme, estructura_actual, mostrar_alerta_cache=True)
+        componentes.append(resultado_dme)
     else:
         componentes.append(crear_placeholder("3. DME"))
     
@@ -132,10 +131,13 @@ def cargar_resultados_modulares(estructura_actual):
     calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
     if calculo_arboles:
         from components.vista_arboles_carga import generar_resultados_arboles
-        componentes.extend([
-            html.H3("4. ÁRBOLES DE CARGA", className="mt-4"),
-            html.Div(generar_resultados_arboles(calculo_arboles, estructura_actual, mostrar_alerta_cache=True))
-        ])
+        componentes.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
+        resultado_arboles = generar_resultados_arboles(calculo_arboles, estructura_actual, mostrar_alerta_cache=True)
+        # generar_resultados_arboles retorna lista, extenderla
+        if isinstance(resultado_arboles, list):
+            componentes.extend(resultado_arboles)
+        else:
+            componentes.append(resultado_arboles)
     else:
         componentes.append(crear_placeholder("4. Árboles de Carga"))
     
@@ -143,10 +145,9 @@ def cargar_resultados_modulares(estructura_actual):
     calculo_sph = CalculoCache.cargar_calculo_sph(nombre_estructura)
     if calculo_sph:
         from components.vista_seleccion_poste import _crear_area_resultados
-        componentes.extend([
-            html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"),
-            html.Div(_crear_area_resultados(calculo_sph, estructura_actual))
-        ])
+        componentes.append(html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"))
+        resultado_sph = _crear_area_resultados(calculo_sph, estructura_actual)
+        componentes.append(resultado_sph)
     else:
         componentes.append(crear_placeholder("5. SPH"))
     

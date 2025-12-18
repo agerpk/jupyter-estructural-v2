@@ -117,9 +117,9 @@ def generar_seccion_parametros(estructura_actual):
         # Formatear valores complejos (dict, list) como JSON
         if isinstance(valor, (dict, list)):
             valor_str = json.dumps(valor, indent=2, ensure_ascii=False)
-            html.append(f'<tr><td>{campo}</td><td><pre style="margin:0; background:#f8f9fa; padding:5px;">{valor_str}</pre></td></tr>')
+            html.append(f'<tr><td>{campo}</td><td><pre style="margin:0; background:#1e1e1e; color:#d4d4d4; padding:8px; border-radius:4px; font-size:0.85em;">{valor_str}</pre></td></tr>')
         else:
-            html.append(f'<tr><td>{campo}</td><td>{valor}</td></tr>')
+            html.append(f'<tr><td>{campo}</td><td style="color:#212529;">{valor}</td></tr>')
     
     html.append('</table>')
     

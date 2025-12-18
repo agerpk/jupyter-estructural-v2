@@ -120,11 +120,10 @@ def ejecutar_calculo_dge(estructura_actual, state):
         )
         fig_cabezal = plt.gcf()
         
-        # Generar gráfico de nodos
-        estructura_graficos.graficar_nodos_coordenadas(
+        # Generar gráfico de nodos (retorna figura Plotly)
+        fig_nodos = estructura_graficos.graficar_nodos_coordenadas(
             titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
         )
-        fig_nodos = plt.gcf()
         
         # Generar memoria
         memoria_dge = gen_memoria_calculo_DGE(estructura_geometria)

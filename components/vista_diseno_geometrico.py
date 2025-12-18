@@ -245,10 +245,12 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
             # Cargar gráfico 3D de nodos (Plotly JSON)
             fig_nodos_json = ViewHelpers.cargar_figura_plotly_json(f"Nodos.{hash_params}.json")
             if fig_nodos_json:
-                output.extend([
-                    html.H5("GRAFICO 3D DE NODOS Y COORDENADAS", className="mb-2 mt-4"),
-                    dcc.Graph(figure=fig_nodos_json, config={'displayModeBar': True}, style={'height': '800px'})
-                ])
+                output.append(html.H5("GRAFICO 3D DE NODOS Y COORDENADAS", className="mb-2 mt-4"))
+                output.append(dcc.Graph(
+                    figure=fig_nodos_json,
+                    config={'displayModeBar': True},
+                    style={'height': '800px', 'width': '100%'}
+                ))
         
         # Agregar memoria de cálculo
         memoria_calculo = calculo_guardado.get('memoria_calculo')
