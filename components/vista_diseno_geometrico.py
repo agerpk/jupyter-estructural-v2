@@ -253,11 +253,12 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
                     html.Img(src=f'data:image/png;base64,{img_str_cabezal}', style={'width': '100%', 'maxWidth': '800px'})
                 ])
             
-            img_str_nodos = ViewHelpers.cargar_imagen_base64(f"Nodos.{hash_params}.png")
-            if img_str_nodos:
+            # Cargar gráfico 3D de nodos (Plotly JSON)
+            fig_nodos_json = ViewHelpers.cargar_figura_plotly_json(f"Nodos.{hash_params}.json")
+            if fig_nodos_json:
                 output.extend([
-                    html.H5("GRAFICO DE NODOS Y COORDENADAS", className="mb-2 mt-4"),
-                    html.Img(src=f'data:image/png;base64,{img_str_nodos}', style={'width': '100%', 'maxWidth': '800px'})
+                    html.H5("GRAFICO 3D DE NODOS Y COORDENADAS", className="mb-2 mt-4"),
+                    dcc.Graph(figure=fig_nodos_json, config={'displayModeBar': True}, style={'height': '800px'})
                 ])
         
         # Agregar memoria de cálculo

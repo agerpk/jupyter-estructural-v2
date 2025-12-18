@@ -1063,109 +1063,172 @@ class EstructuraAEA_Graficos:
         print(f"✅ Diagrama de barras generado")
     
     def graficar_nodos_coordenadas(self, titulo_reemplazo=None):
-        """Grafica solo los nodos con lista de coordenadas"""
-        print(f"\n🎨 GENERANDO GRÁFICO DE NODOS Y COORDENADAS...")
+        """Grafica nodos en 3D isométrico usando Plotly"""
+        import plotly.graph_objects as go
         
-        fig, ax = plt.subplots(figsize=(10, 12))
+        print(f"\n🎨 GENERANDO GRÁFICO 3D DE NODOS Y COORDENADAS...")
         
         tipo_estructura_titulo = titulo_reemplazo if titulo_reemplazo else self.geometria.tipo_estructura
         
-        # Recolectar nodos del plano XZ (y ≈ 0)
-        nodos_xz = []
+        # Recolectar todos los nodos (ahora incluimos Y)
+        nodos_todos = []
         for nombre, coordenadas in self.geometria.nodes_key.items():
             x, y, z = coordenadas
-            if abs(y) < 0.001:  # Solo plano XZ
-                nodos_xz.append((nombre, x, z))
+            nodos_todos.append((nombre, x, y, z))
+        
+        # Crear figura 3D
+        fig = go.Figure()
         
         # Dibujar conexiones entre nodos editados primero
         for nombre, nodo_obj in self.geometria.nodos.items():
             if hasattr(nodo_obj, 'es_editado') and nodo_obj.es_editado and hasattr(nodo_obj, 'conectado_a'):
                 if nodo_obj.conectado_a:
                     x1, y1, z1 = nodo_obj.coordenadas
-                    if abs(y1) < 0.001:
-                        for nodo_conectado in nodo_obj.conectado_a:
-                            if nodo_conectado in self.geometria.nodes_key:
-                                x2, y2, z2 = self.geometria.nodes_key[nodo_conectado]
-                                if abs(y2) < 0.001:
-                                    ax.plot([x1, x2], [z1, z2], color='orange', linestyle=':', 
-                                            linewidth=2, alpha=0.6, zorder=3)
+                    for nodo_conectado in nodo_obj.conectado_a:
+                        if nodo_conectado in self.geometria.nodes_key:
+                            x2, y2, z2 = self.geometria.nodes_key[nodo_conectado]
+                            fig.add_trace(go.Scatter3d(
+                                x=[x1, x2], y=[y1, y2], z=[z1, z2],
+                                mode='lines',
+                                line=dict(color='orange', width=4, dash='dot'),
+                                opacity=0.6,
+                                showlegend=False,
+                                hoverinfo='skip'
+                            ))
         
-        # Dibujar nodos
-        for nombre, x, z in nodos_xz:
-            # Verificar rotación
-            rotacion = 0
-            if nombre in self.geometria.nodos:
-                nodo_obj = self.geometria.nodos[nombre]
-                rotacion = getattr(nodo_obj, 'rotacion_eje_z', 0)
-            
+        # Agrupar nodos por tipo para leyenda
+        nodos_conductor = []
+        nodos_guardia = []
+        nodos_estructura = []
+        nodos_otros = []
+        
+        for nombre, x, y, z in nodos_todos:
             if nombre.startswith(('C1', 'C2', 'C3')):
-                color = self.COLORES['conductor']
+                nodos_conductor.append((x, y, z, nombre))
             elif nombre.startswith('HG'):
-                color = self.COLORES['guardia']
-            elif 'BASE' in nombre:
-                color = self.COLORES['poste']
-            elif 'TOP' in nombre:
-                color = self.COLORES['poste']
+                nodos_guardia.append((x, y, z, nombre))
+            elif 'BASE' in nombre or 'TOP' in nombre or 'CROSS' in nombre or nombre.startswith('Y'):
+                nodos_estructura.append((x, y, z, nombre))
             else:
-                color = 'gray'
+                nodos_otros.append((x, y, z, nombre))
+        
+        # Dibujar nodos por tipo
+        if nodos_conductor:
+            x_vals, y_vals, z_vals, nombres = zip(*nodos_conductor)
+            fig.add_trace(go.Scatter3d(
+                x=list(x_vals), y=list(y_vals), z=list(z_vals),
+                mode='markers+text',
+                marker=dict(size=8, color=self.COLORES['conductor'], line=dict(color='white', width=2)),
+                text=list(nombres),
+                textposition='top center',
+                textfont=dict(size=9),
+                name='Conductores',
+                hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+            ))
+        
+        if nodos_guardia:
+            x_vals, y_vals, z_vals, nombres = zip(*nodos_guardia)
+            fig.add_trace(go.Scatter3d(
+                x=list(x_vals), y=list(y_vals), z=list(z_vals),
+                mode='markers+text',
+                marker=dict(size=8, color=self.COLORES['guardia'], line=dict(color='white', width=2)),
+                text=list(nombres),
+                textposition='top center',
+                textfont=dict(size=9),
+                name='Guardias',
+                hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+            ))
+        
+        if nodos_estructura:
+            x_vals, y_vals, z_vals, nombres = zip(*nodos_estructura)
+            fig.add_trace(go.Scatter3d(
+                x=list(x_vals), y=list(y_vals), z=list(z_vals),
+                mode='markers+text',
+                marker=dict(size=8, color=self.COLORES['poste'], line=dict(color='white', width=2)),
+                text=list(nombres),
+                textposition='top center',
+                textfont=dict(size=9),
+                name='Estructura',
+                hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+            ))
+        
+        if nodos_otros:
+            x_vals, y_vals, z_vals, nombres = zip(*nodos_otros)
+            fig.add_trace(go.Scatter3d(
+                x=list(x_vals), y=list(y_vals), z=list(z_vals),
+                mode='markers+text',
+                marker=dict(size=6, color='gray', line=dict(color='white', width=1)),
+                text=list(nombres),
+                textposition='top center',
+                textfont=dict(size=8),
+                name='Otros',
+                hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+            ))
+        
+        # Línea de terreno (plano Z=0)
+        x_coords = [x for _, x, _, _ in nodos_todos]
+        y_coords = [y for _, _, y, _ in nodos_todos]
+        if x_coords and y_coords:
+            x_range = [min(x_coords) - 1, max(x_coords) + 1]
+            y_range = [min(y_coords) - 1, max(y_coords) + 1]
             
-            marker = 'o'
-            ax.scatter(x, z, color=color, s=150, marker=marker, edgecolors='white', linewidth=2, zorder=5)
-            
-            # Etiqueta
-            label_text = nombre
-            ax.text(x + 0.2, z + 0.2, label_text, fontsize=8, ha='left', va='bottom')
-            
-            # Flecha de rotación
-            if rotacion != 0:
-                ang_rad = np.radians(rotacion)
-                dx = 0.4 * np.cos(ang_rad)
-                dy = 0.4 * np.sin(ang_rad)
-                ax.arrow(x, z, dx, dy, head_width=0.12, head_length=0.1, 
-                        fc='red', ec='red', linewidth=1.5, zorder=6, alpha=0.8)
+            fig.add_trace(go.Mesh3d(
+                x=[x_range[0], x_range[1], x_range[1], x_range[0]],
+                y=[y_range[0], y_range[0], y_range[1], y_range[1]],
+                z=[0, 0, 0, 0],
+                color=self.COLORES['terreno'],
+                opacity=0.3,
+                name='Terreno',
+                showlegend=True,
+                hoverinfo='skip'
+            ))
         
-        # Línea de terreno
-        ax.axhline(y=0, color=self.COLORES['terreno'], linewidth=3, alpha=0.7, label='Nivel del terreno')
+        # Configurar layout con vista isométrica
+        fig.update_layout(
+            title=dict(
+                text=f'NODOS DE ESTRUCTURA 3D - {tipo_estructura_titulo.upper()}',
+                font=dict(size=16, family='Arial Black')
+            ),
+            scene=dict(
+                xaxis=dict(
+                    title='X [m]',
+                    gridcolor='lightgray',
+                    showbackground=True,
+                    backgroundcolor='white',
+                    type='linear',
+                    dtick=1
+                ),
+                yaxis=dict(
+                    title='Y [m]',
+                    gridcolor='lightgray',
+                    showbackground=True,
+                    backgroundcolor='white',
+                    type='linear',
+                    dtick=1
+                ),
+                zaxis=dict(
+                    title='Z [m]',
+                    gridcolor='lightgray',
+                    showbackground=True,
+                    backgroundcolor='white',
+                    type='linear',
+                    dtick=1
+                ),
+                aspectmode='data',
+                camera=dict(
+                    eye=dict(x=1.5, y=-1.5, z=1.2),
+                    center=dict(x=0, y=0, z=0),
+                    up=dict(x=0, y=0, z=1)
+                )
+            ),
+            showlegend=True,
+            legend=dict(x=0.02, y=0.98, bgcolor='rgba(255,255,255,0.9)', bordercolor='black', borderwidth=1),
+            width=1200,
+            height=800,
+            margin=dict(l=0, r=0, t=50, b=0)
+        )
         
-        # Configurar ejes
-        x_coords = [x for _, x, _ in nodos_xz]
-        z_coords = [z for _, _, z in nodos_xz]
+        plt.close('all')  # Cerrar cualquier figura matplotlib abierta
         
-        if x_coords and z_coords:
-            x_range = max(x_coords) - min(x_coords) if len(x_coords) > 1 else 10
-            z_range = max(z_coords) - min(z_coords) if len(z_coords) > 1 else 15
-            max_range = max(x_range, z_range)
-            margin = max_range * 0.15
-            
-            x_center = (max(x_coords) + min(x_coords)) / 2
-            z_center = (max(z_coords) + min(z_coords)) / 2
-            
-            ax.set_xlim(x_center - max_range/2 - margin, x_center + max_range/2 + margin)
-            ax.set_ylim(-1, z_center + max_range/2 + margin)
-        
-        ax.set_xlabel('Distancia Horizontal X [m]', fontsize=11, fontweight='bold')
-        ax.set_ylabel('Altura Z [m]', fontsize=11, fontweight='bold')
-        ax.set_title(f'NODOS DE ESTRUCTURA - {tipo_estructura_titulo.upper()}', fontsize=12, fontweight='bold', pad=15)
-        ax.set_aspect('equal', adjustable='box')
-        
-        # Grilla cada 1 metro
-        xlim = ax.get_xlim()
-        ylim = ax.get_ylim()
-        ax.set_xticks(np.arange(np.floor(xlim[0]), np.ceil(xlim[1]) + 1, 1))
-        ax.set_yticks(np.arange(np.floor(ylim[0]), np.ceil(ylim[1]) + 1, 1))
-        ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
-        
-        # Tabla de coordenadas en esquina inferior izquierda
-        nodos_xz_sorted = sorted(nodos_xz, key=lambda n: n[0])  # Ordenar por nombre
-        tabla_texto = "COORDENADAS (X, Z):\n" + "="*30 + "\n"
-        for nombre, x, z in nodos_xz_sorted:
-            tabla_texto += f"{nombre:12s}  ({x:6.2f}, {z:6.2f})\n"
-        
-        ax.text(0.02, 0.02, tabla_texto, transform=ax.transAxes, fontsize=7,
-                bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
-                verticalalignment='bottom', fontfamily='monospace')
-        
-        plt.tight_layout()
-        plt.show()
-        
-        print(f"✅ Gráfico de nodos y coordenadas generado")
+        print(f"✅ Gráfico 3D de nodos y coordenadas generado")
+        return fig

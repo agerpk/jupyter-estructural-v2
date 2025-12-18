@@ -93,7 +93,7 @@ def register_callbacks(app):
             from PostesHormigon import PostesHormigon
             from EstructuraAEA_Geometria import EstructuraAEA_Geometria
             from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
-            from HipotesisMaestro import hipotesis_maestro
+            from HipotesisMaestro_Especial import hipotesis_maestro
             from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
             import pandas as pd
             

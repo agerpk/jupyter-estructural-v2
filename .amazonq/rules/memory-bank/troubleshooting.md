@@ -502,3 +502,58 @@ threading.Thread(target=guardar_async, daemon=True).start()
 - Incluir información contextual (nombres, cantidades, estados)
 - Dejar mensajes debug en producción para facilitar soporte
 - Pattern: 🔵 Acción iniciada → 📂 Datos cargados → ⚠️ Advertencia → ✅ Éxito
+
+---
+
+### Gráfico 3D de Nodos con Plotly
+
+**Context**: Implementando gráfico 3D isométrico de nodos para DGE.
+
+**Issue 1**: Nombres de nodos aparecían en eje X y coordenadas Z aparecían como etiquetas de texto.
+
+**Root Cause**: Orden incorrecto al desempaquetar tuplas. La tupla era `(nombre, x, y, z)` pero se desempaquetaba como si fuera `(x, y, z, nombre)`.
+
+**Resolution**:
+```python
+# Incorrecto - nombres en X, coordenadas en text
+for nombre, x, y, z in nodos_todos:
+    nodos_conductor.append((nombre, x, y, z))
+
+# Correcto - coordenadas en X/Y/Z, nombres en text
+for nombre, x, y, z in nodos_todos:
+    nodos_conductor.append((x, y, z, nombre))
+```
+
+**Issue 2**: JSON completo del gráfico se imprimía en consola, spameando el terminal.
+
+**Root Cause**: `fig.show()` en Plotly imprime la representación JSON completa de la figura.
+
+**Resolution**: Eliminar `fig.show()` y solo retornar la figura. Dash se encarga de renderizarla.
+```python
+# Incorrecto
+fig.show()
+return fig
+
+# Correcto
+return fig
+```
+
+**Issue 3**: Grilla cada 2 metros en lugar de cada 1 metro.
+
+**Root Cause**: Plotly usa `dtick` automático basado en rango de datos.
+
+**Resolution**: Especificar `dtick=1` explícitamente en cada eje.
+```python
+xaxis=dict(
+    title='X [m]',
+    type='linear',
+    dtick=1  # Grilla cada 1 metro
+)
+```
+
+**Key Takeaway**:
+- Orden de tuplas es crítico: siempre desempaquetar en el orden correcto (x, y, z, nombre)
+- `fig.show()` en Plotly imprime JSON completo - solo usar en notebooks, no en aplicaciones
+- Usar `dtick` para controlar espaciado de grilla en gráficos 3D
+- `type='linear'` fuerza ejes numéricos, evita que Plotly use categorías
+- Vista isométrica: `camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))` con Y negativo para Z=0 abajo

@@ -25,7 +25,7 @@ def ejecutar_calculo_dge(estructura_actual, state):
         from EstructuraAEA_Geometria import EstructuraAEA_Geometria
         from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
         from EstructuraAEA_Graficos import EstructuraAEA_Graficos
-        from HipotesisMaestro import hipotesis_maestro
+        from HipotesisMaestro_Especial import hipotesis_maestro
         from utils.calculo_cache import CalculoCache
         from utils.memoria_calculo_dge import gen_memoria_calculo_DGE
         import matplotlib.pyplot as plt
@@ -962,7 +962,7 @@ def register_callbacks(app):
             # Crear mecánica y gráficos
             from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
             from EstructuraAEA_Graficos import EstructuraAEA_Graficos
-            from HipotesisMaestro import hipotesis_maestro
+            from HipotesisMaestro_Especial import hipotesis_maestro
             
             estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
             # Asignar cable_guardia2 si existe
@@ -1005,11 +1005,10 @@ def register_callbacks(app):
             )
             fig_cabezal = plt.gcf()
             
-            # Graficar nodos
-            estructura_graficos.graficar_nodos_coordenadas(
+            # Graficar nodos (ahora retorna figura Plotly)
+            fig_nodos = estructura_graficos.graficar_nodos_coordenadas(
                 titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
             )
-            fig_nodos = plt.gcf()
             
             # Guardar en estado
             state.calculo_objetos.estructura_mecanica = estructura_mecanica
@@ -1216,14 +1215,11 @@ def register_callbacks(app):
                 img_str = base64.b64encode(buf.read()).decode()
                 output.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'}))
             
-            output.append(html.H5("GRAFICO DE NODOS Y COORDENADAS", className="mb-2 mt-4"))
+            output.append(html.H5("GRAFICO 3D DE NODOS Y COORDENADAS", className="mb-2 mt-4"))
             
             if fig_nodos:
-                buf = BytesIO()
-                fig_nodos.savefig(buf, format='png', dpi=150, bbox_inches='tight')
-                buf.seek(0)
-                img_str = base64.b64encode(buf.read()).decode()
-                output.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'}))
+                # fig_nodos es ahora una figura Plotly, no matplotlib
+                output.append(dcc.Graph(figure=fig_nodos, config={'displayModeBar': True}, style={'height': '800px'}))
             
             # Agregar memoria de cálculo
             output.extend([
@@ -1252,3 +1248,6 @@ def register_callbacks(app):
             error_detail = traceback.format_exc()
             print(f"ERROR COMPLETO:\n{error_detail}")
             return dbc.Alert(f"Error en cálculo: {str(e)}", color="danger")
+    
+    # Importar dcc para Graph
+    from dash import dcc

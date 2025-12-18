@@ -99,7 +99,7 @@ class CalculoCache:
         nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
-        # Guardar imágenes (figuras matplotlib)
+        # Guardar imágenes matplotlib (estructura y cabezal)
         try:
             if fig_estructura:
                 img_path = CACHE_DIR / f"Estructura.{hash_params}.png"
@@ -108,12 +108,17 @@ class CalculoCache:
             if fig_cabezal:
                 img_path = CACHE_DIR / f"Cabezal.{hash_params}.png"
                 fig_cabezal.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
-            
-            if fig_nodos:
-                img_path = CACHE_DIR / f"Nodos.{hash_params}.png"
-                fig_nodos.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
         except Exception as e:
-            print(f"Advertencia: No se pudieron guardar imágenes DGE: {e}")
+            print(f"Advertencia: No se pudieron guardar imágenes matplotlib DGE: {e}")
+        
+        # Guardar figura Plotly de nodos (JSON para interactividad)
+        if fig_nodos:
+            try:
+                json_path = CACHE_DIR / f"Nodos.{hash_params}.json"
+                fig_nodos.write_json(str(json_path))
+                print(f"✅ Gráfico 3D de nodos guardado: Nodos.{hash_params}.json")
+            except Exception as e:
+                print(f"Advertencia: No se pudo guardar gráfico 3D de nodos: {e}")
         
         # Incluir nodos_editados en cache DGE
         nodos_editados = estructura_data.get("nodos_editados", [])
@@ -127,7 +132,7 @@ class CalculoCache:
             "conexiones": conexiones if conexiones else [],
             "imagen_estructura": f"Estructura.{hash_params}.png",
             "imagen_cabezal": f"Cabezal.{hash_params}.png",
-            "imagen_nodos": f"Nodos.{hash_params}.png" if fig_nodos else None,
+            "imagen_nodos": f"Nodos.{hash_params}.json" if fig_nodos else None,
             "memoria_calculo": memoria_calculo
         }
         
