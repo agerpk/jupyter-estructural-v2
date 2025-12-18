@@ -26,6 +26,7 @@ def register_callbacks(app):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
+        state.cargado_desde_cache = True
         from components.vista_calcular_todo import cargar_resultados_modulares
         return cargar_resultados_modulares(estructura_actual)
     
@@ -54,12 +55,14 @@ def register_callbacks(app):
             from components.vista_calcular_todo import generar_resultados_cmc_lista
             from utils.calculo_cache import CalculoCache
             
+            state.cargado_desde_cache = False
+            
             resultados.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
             resultado_cmc = ejecutar_calculo_cmc_automatico(estructura_actual, state)
             if resultado_cmc.get('exito'):
                 calculo_cmc = CalculoCache.cargar_calculo_cmc(estructura_actual.get('TITULO', 'estructura'))
                 if calculo_cmc:
-                    lista_cmc = generar_resultados_cmc_lista(calculo_cmc, estructura_actual)
+                    lista_cmc = generar_resultados_cmc_lista(calculo_cmc, estructura_actual, mostrar_alerta_cache=False)
                     resultados.extend(lista_cmc)
             else:
                 resultados.append(dbc.Alert(f"Error CMC: {resultado_cmc.get('mensaje')}", color="danger"))
@@ -73,7 +76,7 @@ def register_callbacks(app):
             if resultado_dge.get('exito'):
                 calculo_dge = CalculoCache.cargar_calculo_dge(estructura_actual.get('TITULO', 'estructura'))
                 if calculo_dge:
-                    resultados.append(generar_resultados_dge(calculo_dge, estructura_actual))
+                    resultados.append(generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=False))
             else:
                 resultados.append(dbc.Alert(f"Error DGE: {resultado_dge.get('mensaje')}", color="danger"))
             
@@ -86,7 +89,7 @@ def register_callbacks(app):
             if resultado_dme.get('exito'):
                 calculo_dme = CalculoCache.cargar_calculo_dme(estructura_actual.get('TITULO', 'estructura'))
                 if calculo_dme:
-                    resultados.append(generar_resultados_dme(calculo_dme, estructura_actual))
+                    resultados.append(generar_resultados_dme(calculo_dme, estructura_actual, mostrar_alerta_cache=False))
             else:
                 resultados.append(dbc.Alert(f"Error DME: {resultado_dme.get('mensaje')}", color="danger"))
             
@@ -99,7 +102,7 @@ def register_callbacks(app):
             if resultado_arboles.get('exito'):
                 calculo_arboles = CalculoCache.cargar_calculo_arboles(estructura_actual.get('TITULO', 'estructura'))
                 if calculo_arboles:
-                    resultados.append(html.Div(generar_resultados_arboles(calculo_arboles, estructura_actual)))
+                    resultados.append(html.Div(generar_resultados_arboles(calculo_arboles, estructura_actual, mostrar_alerta_cache=False)))
             else:
                 resultados.append(dbc.Alert(f"Error Árboles: {resultado_arboles.get('mensaje')}", color="danger"))
             

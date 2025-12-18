@@ -102,7 +102,7 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
     ])
 
 
-def generar_resultados_arboles(calculo_guardado, estructura_actual):
+def generar_resultados_arboles(calculo_guardado, estructura_actual, mostrar_alerta_cache=False):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
         imagenes = calculo_guardado.get('imagenes', [])
@@ -113,9 +113,9 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual):
         # Verificar vigencia
         vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
         
-        imagenes_html = [
-            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente)
-        ]
+        imagenes_html = []
+        if mostrar_alerta_cache:
+            imagenes_html.append(ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente))
         
         # Cargar DataFrame de cargas
         if calculo_guardado.get('df_cargas_completo'):

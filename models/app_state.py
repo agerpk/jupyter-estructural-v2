@@ -28,6 +28,7 @@ class AppState:
         self.calculo_objetos = CalculoObjetosAEA()
         self.calculo_mecanico = CalculoMecanicoCables(self.calculo_objetos)
         self.archivo_actual = ARCHIVO_ACTUAL
+        self.cargado_desde_cache = False  # Flag para controlar mensajes de cache
         
         self._initialized = True
     

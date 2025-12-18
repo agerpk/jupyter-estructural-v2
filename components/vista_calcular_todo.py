@@ -14,11 +14,12 @@ def crear_placeholder(titulo):
     )
 
 
-def generar_resultados_cmc_lista(calculo_guardado, estructura_actual, mostrar_alerta_cache=True):
+def generar_resultados_cmc_lista(calculo_guardado, estructura_actual, mostrar_alerta_cache=False):
     """Genera resultados CMC como lista (sin envolver en html.Div)"""
     import pandas as pd
     from utils.view_helpers import ViewHelpers
     from utils.calculo_cache import CalculoCache
+    from io import StringIO
     
     try:
         vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
@@ -30,7 +31,6 @@ def generar_resultados_cmc_lista(calculo_guardado, estructura_actual, mostrar_al
         resultados_html.append(html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"))
         
         if calculo_guardado.get('df_conductor_html'):
-            from io import StringIO
             df_conductor = pd.read_json(StringIO(calculo_guardado['df_conductor_html']), orient='split').round(2)
             resultados_html.extend([
                 html.H5("Conductor"),
@@ -38,7 +38,6 @@ def generar_resultados_cmc_lista(calculo_guardado, estructura_actual, mostrar_al
             ])
         
         if calculo_guardado.get('df_guardia1_html'):
-            from io import StringIO
             df_guardia1 = pd.read_json(StringIO(calculo_guardado['df_guardia1_html']), orient='split').round(2)
             resultados_html.extend([
                 html.H5("Cable de Guardia 1", className="mt-4"),
@@ -46,7 +45,6 @@ def generar_resultados_cmc_lista(calculo_guardado, estructura_actual, mostrar_al
             ])
         
         if calculo_guardado.get('df_guardia2_html'):
-            from io import StringIO
             df_guardia2 = pd.read_json(StringIO(calculo_guardado['df_guardia2_html']), orient='split').round(2)
             resultados_html.extend([
                 html.H5("Cable de Guardia 2", className="mt-4"),
@@ -104,7 +102,7 @@ def cargar_resultados_modulares(estructura_actual):
     calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
     if calculo_cmc:
         componentes.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
-        componentes.extend(generar_resultados_cmc_lista(calculo_cmc, estructura_actual))
+        componentes.extend(generar_resultados_cmc_lista(calculo_cmc, estructura_actual, mostrar_alerta_cache=True))
     else:
         componentes.append(crear_placeholder("1. CMC"))
     
@@ -114,7 +112,7 @@ def cargar_resultados_modulares(estructura_actual):
         from components.vista_diseno_geometrico import generar_resultados_dge
         componentes.extend([
             html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"),
-            generar_resultados_dge(calculo_dge, estructura_actual)
+            generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=True)
         ])
     else:
         componentes.append(crear_placeholder("2. DGE"))
@@ -125,7 +123,7 @@ def cargar_resultados_modulares(estructura_actual):
         from components.vista_diseno_mecanico import generar_resultados_dme
         componentes.extend([
             html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"),
-            generar_resultados_dme(calculo_dme, estructura_actual)
+            generar_resultados_dme(calculo_dme, estructura_actual, mostrar_alerta_cache=True)
         ])
     else:
         componentes.append(crear_placeholder("3. DME"))
@@ -136,7 +134,7 @@ def cargar_resultados_modulares(estructura_actual):
         from components.vista_arboles_carga import generar_resultados_arboles
         componentes.extend([
             html.H3("4. ÁRBOLES DE CARGA", className="mt-4"),
-            html.Div(generar_resultados_arboles(calculo_arboles, estructura_actual))
+            html.Div(generar_resultados_arboles(calculo_arboles, estructura_actual, mostrar_alerta_cache=True))
         ])
     else:
         componentes.append(crear_placeholder("4. Árboles de Carga"))

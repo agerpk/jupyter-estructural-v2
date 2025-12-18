@@ -105,7 +105,7 @@ def generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos=Non
     ])
 
 
-def generar_resultados_dge(calculo_guardado, estructura_actual):
+def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_cache=False):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
         dims = calculo_guardado.get('dimensiones', {})
@@ -225,10 +225,11 @@ def generar_resultados_dge(calculo_guardado, estructura_actual):
         # Verificar vigencia
         vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
         
-        output = [
-            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente),
-            dbc.Alert("GEOMETRIA COMPLETADA: {} nodos creados".format(len(nodes_key)), color="success", className="mb-3")
-        ]
+        output = []
+        if mostrar_alerta_cache:
+            output.append(ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente))
+        
+        output.append(dbc.Alert("GEOMETRIA COMPLETADA: {} nodos creados".format(len(nodes_key)), color="success", className="mb-3"))
         
         output.extend(ViewHelpers.crear_pre_output(params_txt, "PARAMETROS DE DISEÑO"))
         output.extend(ViewHelpers.crear_pre_output(dims_txt, "DIMENSIONES DE ESTRUCTURA"))

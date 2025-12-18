@@ -8,7 +8,7 @@ from utils.calculo_cache import CalculoCache
 from components.editor_hipotesis import crear_modal_editor_hipotesis
 
 
-def generar_resultados_dme(calculo_guardado, estructura_actual):
+def generar_resultados_dme(calculo_guardado, estructura_actual, mostrar_alerta_cache=False):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
         df_reacciones_dict = calculo_guardado.get('df_reacciones', {})
@@ -60,9 +60,9 @@ def generar_resultados_dme(calculo_guardado, estructura_actual):
         # Verificar vigencia
         vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
         
-        resultados_html = [
-            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente)
-        ]
+        resultados_html = []
+        if mostrar_alerta_cache:
+            resultados_html.append(ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente))
         
         resultados_html.extend(ViewHelpers.crear_pre_output(resumen_txt, "RESUMEN EJECUTIVO"))
         resultados_html.extend([
