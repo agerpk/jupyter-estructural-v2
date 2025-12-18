@@ -213,6 +213,21 @@ threading.Thread(target=guardar_async, daemon=True).start()
 
 ---
 
+## Console Capture Best Practices
+
+### Implementing stdout/stderr Redirection
+1. **Complete Interface**: Implement all file-like methods (`write`, `flush`, `isatty`, `fileno`)
+2. **Delegation**: Use `__getattr__` to delegate unknown attributes to original stdout
+3. **Thread Safety**: Use locks when accessing shared buffer
+4. **Memory Management**: Limit buffer size to prevent memory issues
+5. **Avoid Recursion**: Don't call `print()` inside buffer manipulation methods
+
+### Dash Callbacks for View-Specific Components
+1. **Exception Handling**: Wrap callback logic in try-except to handle missing components
+2. **No Interval**: Avoid `dcc.Interval` for view-specific updates - use manual refresh
+3. **prevent_initial_call=False**: Load content when entering view
+4. **dash.no_update**: Return when component doesn't exist or error occurs
+
 ## Lessons Learned
 
 ### Dual Format Storage for Plotly
@@ -557,3 +572,77 @@ xaxis=dict(
 - Usar `dtick` para controlar espaciado de grilla en gráficos 3D
 - `type='linear'` fuerza ejes numéricos, evita que Plotly use categorías
 - Vista isométrica: `camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))` con Y negativo para Z=0 abajo
+
+---
+
+### Vista de Consola - Captura Global de stdout/stderr
+
+**Context**: Implementando vista de consola para monitorear output de la aplicación en tiempo real.
+
+**Issue 1**: AttributeError al iniciar app - `'list' object has no attribute 'write'`
+
+**Root Cause**: Flask/Click esperan que `sys.stdout` tenga métodos específicos como `isatty()`, `fileno()`, y otros atributos que no estaban implementados en la clase `ConsoleCapture`.
+
+**Resolution**:
+```python
+class ConsoleCapture:
+    def isatty(self):
+        return self.original_stdout.isatty()
+    
+    def fileno(self):
+        return self.original_stdout.fileno()
+    
+    def __getattr__(self, name):
+        return getattr(self.original_stdout, name)
+```
+
+**Issue 2**: Botón "Limpiar" causaba freezing de la aplicación.
+
+**Root Cause**: El método `clear()` llamaba a `print()` mientras el buffer se estaba limpiando, causando un ciclo de escritura que bloqueaba la app.
+
+**Resolution**: Eliminar botón "Limpiar" y su callback. Solo mantener botón "Actualizar" para refrescar contenido.
+
+**Issue 3**: Callbacks de consola se ejecutaban incluso cuando la vista no estaba activa, causando errores.
+
+**Root Cause**: Dash intenta ejecutar callbacks aunque los componentes no existan en la vista actual.
+
+**Resolution**: Agregar try-except en callbacks para manejar casos donde componentes no existen:
+```python
+@app.callback(
+    Output("consola-output", "children"),
+    Input("btn-actualizar-consola", "n_clicks"),
+    prevent_initial_call=False
+)
+def actualizar_consola(n_clicks):
+    try:
+        capture = get_console_capture()
+        return capture.get_text()
+    except:
+        return dash.no_update
+```
+
+**Key Takeaway**:
+- Clases que reemplazan `sys.stdout` deben implementar interfaz completa: `write()`, `flush()`, `isatty()`, `fileno()`, `__getattr__()`
+- Usar `__getattr__()` para delegar atributos no implementados al objeto original
+- Evitar operaciones que escriban a stdout mientras se manipula el buffer (causa ciclos)
+- Callbacks con componentes específicos de vista deben usar try-except para evitar errores cuando vista no está activa
+- `prevent_initial_call=False` permite cargar contenido al entrar a la vista
+- NO usar `dcc.Interval` para actualizaciones automáticas - puede causar interferencias en otras vistas
+- Actualización manual con botón es más segura y no afecta performance
+
+**Arquitectura Implementada**:
+```
+app.py (inicio) → console_capture.start()
+  ↓
+sys.stdout/stderr redirigidos a ConsoleCapture
+  ↓
+Todos los print() capturados en buffer (max 10,000 líneas)
+  ↓
+Vista Consola → Botón Actualizar → Muestra buffer
+```
+
+**Archivos Creados**:
+- `utils/console_capture.py` - Captura global con interfaz completa
+- `components/vista_consola.py` - Vista sin Interval, solo actualización manual
+- `controllers/consola_controller.py` - Callback con manejo de excepciones
+- `docs/vista_consola.md` - Documentación de la feature

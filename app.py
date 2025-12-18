@@ -9,6 +9,11 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+# Iniciar captura de consola ANTES de cualquier otra cosa
+from utils.console_capture import get_console_capture
+console_capture = get_console_capture()
+console_capture.start()
+
 from config.app_config import APP_TITLE, APP_PORT, DEBUG_MODE, APP_STYLES, DATA_DIR, CABLES_PATH
 from views.main_layout import crear_layout
 from models.app_state import AppState
@@ -29,7 +34,8 @@ from controllers import (
     calcular_todo_controller,
     home_controller,
     nuevo_controller,
-    borrar_cache_controller
+    borrar_cache_controller,
+    consola_controller
 )
 
 # Inicializar la aplicación Dash
@@ -83,7 +89,8 @@ arboles_controller.register_callbacks(app)
 calcular_todo_controller.register_callbacks(app)
 home_controller.register_callbacks(app)
 nuevo_controller.register_callbacks(app)
-# No requiere register_callbacks - usa decorador @callback directo
+consola_controller.register_callbacks(app)
+# borrar_cache_controller no requiere register_callbacks - usa decorador @callback directo
 
 
 def inicializar_datos():

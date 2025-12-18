@@ -18,6 +18,8 @@ def crear_menu_archivo():
             dbc.DropdownMenuItem("Descargar Estructura", id="menu-descargar-estructura"),
             dbc.DropdownMenuItem("Guardar Estructura Como...", id="menu-guardar-como"),
             dbc.DropdownMenuItem("Guardar como Plantilla", id="menu-guardar-plantilla"),
+            dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem("Consola", id="menu-consola"),
         ],
         nav=True,
         in_navbar=True,
