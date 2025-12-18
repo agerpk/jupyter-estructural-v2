@@ -99,86 +99,18 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-18T11:33:00.316438",
+  "fecha_modificacion": "2025-12-18T13:22:22.931487",
   "nodos_editados": [
-    {
-      "nombre": "BASE",
-      "tipo": "general",
-      "coordenadas": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C1A",
-      "tipo": "general",
-      "coordenadas": [
-        0.0,
-        1.3,
-        7.01
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C2A",
-      "tipo": "general",
-      "coordenadas": [
-        0.0,
-        0.0,
-        7.01
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C3A",
-      "tipo": "general",
-      "coordenadas": [
-        0.0,
-        -1.3,
-        7.01
-      ],
-      "cable_id": "",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
     {
       "nombre": "NUEVO_17",
       "tipo": "general",
       "coordenadas": [
         0.0,
         0.0,
-        1.0
+        3.0
       ],
       "cable_id": "",
-      "rotacion_eje_x": 0.0,
+      "rotacion_eje_x": 1.0,
       "rotacion_eje_y": 0.0,
       "rotacion_eje_z": 0.0,
       "angulo_quiebre": 0.0,

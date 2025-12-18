@@ -83,18 +83,7 @@ def register_callbacks(app):
                 return crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
             elif ultima_vista == "diseno-geometrico":
                 from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
-                from utils.calculo_cache import CalculoCache
-                calculo_guardado = None
-                if estructura_actual:
-                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                    calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
-                else:
-                    estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
-                    if estructura_actual:
-                        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                        calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
-                print(f"DEBUG: Restaurando vista DGE con estructura: {estructura_actual.get('TITULO') if estructura_actual else 'None'}")
-                return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
+                return crear_vista_diseno_geometrico(estructura_actual, None)
             elif ultima_vista == "diseno-mecanico":
                 from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
                 from utils.calculo_cache import CalculoCache
@@ -175,12 +164,7 @@ def register_callbacks(app):
         elif trigger_id == "menu-diseno-geometrico":
             guardar_navegacion_state("diseno-geometrico")
             from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
-            from utils.calculo_cache import CalculoCache
-            calculo_guardado = None
-            if estructura_actual:
-                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
-            return crear_vista_diseno_geometrico(estructura_actual, calculo_guardado)
+            return crear_vista_diseno_geometrico(estructura_actual, None)
         
         elif trigger_id == "menu-diseno-mecanico":
             guardar_navegacion_state("diseno-mecanico")

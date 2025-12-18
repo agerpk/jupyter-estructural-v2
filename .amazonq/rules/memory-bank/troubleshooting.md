@@ -380,3 +380,125 @@ threading.Thread(target=guardar_async, daemon=True).start()
 - Store configuration in JSON files for easy customization
 - Provide sensible defaults but allow overrides
 - Follow standards (AEA 95301) for default values per zone
+
+---
+
+### DGE Vista Vacía - Comportamiento Similar a Calcular Todo
+
+**Context**: Implementando fix para que vista DGE no cargue cache automáticamente al entrar.
+
+**Issue**: Vista DGE calculaba/cargaba automáticamente al entrar, sin dar control al usuario sobre cuándo cargar cache vs. calcular nuevo.
+
+**Root Cause**:
+1. Navigation controller cargaba cache automáticamente: `calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)`
+2. Callback único manejaba ambos botones (Calcular y Cargar Cache) juntos
+3. No había separación clara entre "cargar desde cache" y "calcular nuevo"
+
+**Resolution**:
+1. **Navigation Controller**: Siempre pasar `None` como `calculo_guardado`
+   ```python
+   return crear_vista_diseno_geometrico(estructura_actual, None)
+   ```
+2. **Separar callbacks**: Crear DOS callbacks independientes
+   - `cargar_cache_dge()`: Solo carga cuando se presiona "Cargar desde Cache"
+   - `calcular_diseno_geometrico()`: Solo calcula cuando se presiona "Calcular"
+3. **Recargar archivo**: Ambos callbacks recargan `actual.estructura.json` al inicio
+4. **Alerta cache**: Solo mostrar cuando se carga explícitamente (`mostrar_alerta_cache=True`)
+
+**Key Takeaway**:
+- Vista debe iniciar vacía, dar control explícito al usuario
+- Separar callbacks mejora claridad y debugging
+- Siempre recargar archivo antes de operaciones críticas
+- Patrón: Vista vacía → Usuario elige acción → Ejecutar acción específica
+
+---
+
+### Modal Nodos - Callback Ejecutándose en Carga Inicial
+
+**Context**: Implementando modal de edición de nodos en DGE.
+
+**Issue**: Al cargar la app o navegar a DGE, el callback del modal se ejecutaba automáticamente mostrando mensaje "No hay nodos disponibles" sin que el usuario presionara el botón.
+
+**Root Cause**:
+1. Callback con `prevent_initial_call=True` pero sin verificación de clicks reales
+2. Dash ejecuta callback si hay `ctx.triggered` incluso en carga inicial
+3. Botones pueden tener valores iniciales que disparan el callback
+
+**Resolution**:
+1. Agregar verificación explícita de clicks antes de procesar:
+   ```python
+   # Verificar que realmente hubo un click (no carga inicial)
+   if not n_abrir and not n_cancelar and not n_guardar:
+       return dash.no_update, dash.no_update, ...
+   ```
+2. Agregar Toast de notificación cuando no hay nodos disponibles
+3. Agregar mensajes debug para diagnosticar el problema
+
+**Key Takeaway**:
+- `prevent_initial_call=True` NO es suficiente para evitar ejecuciones no deseadas
+- Siempre verificar que los Inputs tienen valores válidos (clicks reales)
+- Usar mensajes debug para identificar cuándo y por qué se ejecutan callbacks
+- Pattern: Verificar clicks → Verificar trigger → Procesar acción
+
+---
+
+### Toast Notifications para Feedback de Usuario
+
+**Context**: Usuario presiona "Editar Nodos" sin haber ejecutado DGE primero.
+
+**Issue**: Modal no abría y no había feedback sobre por qué no funcionaba.
+
+**Root Cause**:
+1. Callback retornaba sin abrir modal ni mostrar mensaje
+2. Usuario no sabía que necesitaba ejecutar DGE primero
+3. Falta de comunicación clara de requisitos previos
+
+**Resolution**:
+1. Agregar outputs de Toast al callback del modal:
+   ```python
+   Output("toast-notificacion", "is_open", allow_duplicate=True),
+   Output("toast-notificacion", "header", allow_duplicate=True),
+   Output("toast-notificacion", "children", allow_duplicate=True),
+   Output("toast-notificacion", "icon", allow_duplicate=True),
+   Output("toast-notificacion", "color", allow_duplicate=True),
+   ```
+2. Mostrar mensaje claro cuando no hay nodos:
+   ```python
+   return False, dash.no_update, dash.no_update, True, "Advertencia", \
+          "Ejecute primero el cálculo DGE para crear nodos que luego puedan ser editados.", \
+          "warning", "warning"
+   ```
+3. Usar `allow_duplicate=True` para evitar conflictos con otros callbacks
+
+**Key Takeaway**:
+- Siempre dar feedback al usuario cuando una acción no puede completarse
+- Explicar claramente qué debe hacer el usuario (requisitos previos)
+- Toast notifications son ideales para mensajes temporales
+- Usar colores apropiados: warning (amarillo) para advertencias, danger (rojo) para errores
+
+---
+
+### Debug Messages para Troubleshooting
+
+**Context**: Diagnosticando por qué el modal de nodos no abría.
+
+**Issue**: Sin mensajes debug, era difícil saber dónde estaba fallando el callback.
+
+**Resolution**:
+1. Agregar mensajes debug en puntos clave del callback:
+   ```python
+   print("🔵 DEBUG: Botón 'Editar Nodos' presionado")
+   print(f"📂 DEBUG: Estructura recargada: {estructura_actual.get('TITULO', 'N/A')}")
+   print("⚠️  DEBUG: No hay nodos disponibles")
+   print(f"✅ DEBUG: {len(nodos_dict)} nodos encontrados, generando tabla...")
+   print(f"✅ DEBUG: Tabla generada, abriendo modal con {len(nodos_data)} nodos")
+   ```
+2. Usar emojis para identificar rápidamente el tipo de mensaje
+3. Incluir información relevante (nombres, cantidades, estados)
+
+**Key Takeaway**:
+- Mensajes debug son esenciales para troubleshooting
+- Usar emojis para identificar visualmente tipos de mensajes
+- Incluir información contextual (nombres, cantidades, estados)
+- Dejar mensajes debug en producción para facilitar soporte
+- Pattern: 🔵 Acción iniciada → 📂 Datos cargados → ⚠️ Advertencia → ✅ Éxito

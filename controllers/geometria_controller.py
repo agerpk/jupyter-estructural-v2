@@ -284,6 +284,11 @@ def register_callbacks(app):
         Output("modal-editor-nodos", "is_open"),
         Output("store-nodos-editor", "data"),
         Output("tabla-nodos-editor", "children"),
+        Output("toast-notificacion", "is_open", allow_duplicate=True),
+        Output("toast-notificacion", "header", allow_duplicate=True),
+        Output("toast-notificacion", "children", allow_duplicate=True),
+        Output("toast-notificacion", "icon", allow_duplicate=True),
+        Output("toast-notificacion", "color", allow_duplicate=True),
         Input("btn-editar-nodos-dge", "n_clicks"),
         Input("btn-cancelar-editor-nodos", "n_clicks"),
         Input("btn-guardar-editor-nodos", "n_clicks"),
@@ -295,15 +300,26 @@ def register_callbacks(app):
         from dash import callback_context
         ctx = callback_context
         if not ctx.triggered:
-            return dash.no_update, dash.no_update, dash.no_update
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         
+        # Verificar que realmente hubo un click (no carga inicial)
+        if not n_abrir and not n_cancelar and not n_guardar:
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        
         if trigger_id in ["btn-cancelar-editor-nodos", "btn-guardar-editor-nodos"]:
-            return False, dash.no_update, dash.no_update
+            return False, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         
         if trigger_id == "btn-editar-nodos-dge":
+            print("🔵 DEBUG: Botón 'Editar Nodos' presionado")
             from utils.calculo_cache import CalculoCache
+            from config.app_config import DATA_DIR
+            
+            # RECARGAR estructura desde archivo
+            ruta_actual = DATA_DIR / "actual.estructura.json"
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
+            print(f"📂 DEBUG: Estructura recargada: {estructura_actual.get('TITULO', 'N/A')}")
             
             # Cargar nodos desde geometría si existe
             nodos_dict = {}
@@ -317,9 +333,10 @@ def register_callbacks(app):
                 nodos_dict = calculo_dge.get("nodes_key", {}) if calculo_dge else {}
             
             if not nodos_dict:
-                return dash.no_update, dash.no_update, html.Div([
-                    dbc.Alert("No hay nodos disponibles. Ejecute primero el cálculo DGE.", color="warning")
-                ])
+                print("⚠️  DEBUG: No hay nodos disponibles")
+                return False, dash.no_update, dash.no_update, True, "Advertencia", "Ejecute primero el cálculo DGE para crear nodos que luego puedan ser editados.", "warning", "warning"
+            
+            print(f"✅ DEBUG: {len(nodos_dict)} nodos encontrados, generando tabla...")
             
             calculo_cmc = CalculoCache.cargar_calculo_cmc(estructura_actual.get("TITULO", "actual"))
             cables_disponibles = []
@@ -417,10 +434,11 @@ def register_callbacks(app):
                     })
             
             tabla = generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos)
+            print(f"✅ DEBUG: Tabla generada, abriendo modal con {len(nodos_data)} nodos")
             
-            return True, nodos_data, tabla
+            return True, nodos_data, tabla, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         
-        return dash.no_update, dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
     
     # Callback para agregar nodo
     @app.callback(
@@ -771,39 +789,40 @@ def register_callbacks(app):
             return True, "Error", f"Error al guardar: {str(e)}", "danger", "danger"
     
     @app.callback(
-        Output("output-diseno-geometrico", "children"),
-        Input("btn-calcular-geom", "n_clicks"),
+        Output("output-diseno-geometrico", "children", allow_duplicate=True),
         Input("btn-cargar-cache-dge", "n_clicks"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def calcular_diseno_geometrico(n_calcular, n_cargar, estructura_actual):
-        from dash import callback_context
-        ctx = callback_context
-        if not ctx.triggered:
+    def cargar_cache_dge(n_clicks, estructura_actual):
+        if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        from utils.calculo_cache import CalculoCache
+        from components.vista_diseno_geometrico import generar_resultados_dge
+        from config.app_config import DATA_DIR
         
-        # Si es cargar cache, solo cargar y mostrar
-        if trigger_id == "btn-cargar-cache-dge":
-            from utils.calculo_cache import CalculoCache
-            from components.vista_diseno_geometrico import generar_resultados_dge
-            from config.app_config import DATA_DIR
-            
-            # SIEMPRE recargar estructura desde archivo para obtener TITULO correcto
-            ruta_actual = DATA_DIR / "actual.estructura.json"
-            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
-            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-            print(f"🔍 DEBUG: Cargando cache DGE para: '{nombre_estructura}'")
-            calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
-            
-            if calculo_guardado:
-                print(f"✅ Cache encontrado")
-                return generar_resultados_dge(calculo_guardado, estructura_actual)
-            else:
-                print(f"❌ Cache NO encontrado")
-                return dbc.Alert("No hay cache disponible. Ejecute primero el cálculo.", color="warning")
+        # Recargar estructura desde archivo
+        ruta_actual = DATA_DIR / "actual.estructura.json"
+        estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
+        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+        
+        calculo_guardado = CalculoCache.cargar_calculo_dge(nombre_estructura)
+        
+        if calculo_guardado:
+            return generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_cache=True)
+        else:
+            return dbc.Alert("No hay datos en cache para esta estructura", color="warning")
+    
+    @app.callback(
+        Output("output-diseno-geometrico", "children"),
+        Input("btn-calcular-geom", "n_clicks"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def calcular_diseno_geometrico(n_clicks, estructura_actual):
+        if not n_clicks:
+            raise dash.exceptions.PreventUpdate
         
         # SIEMPRE recargar estructura desde archivo
         from config.app_config import DATA_DIR

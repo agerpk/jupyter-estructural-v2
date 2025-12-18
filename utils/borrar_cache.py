@@ -13,6 +13,8 @@ def borrar_cache():
     Returns:
         tuple: (cantidad_archivos_borrados, lista_errores)
     """
+    print("🗑️  Borrando cache...")
+    
     archivos_protegidos = {
         "cables.json",
         "navegacion_state.json"
@@ -75,5 +77,7 @@ def borrar_cache():
                     errores.append(f"{item.name}: {str(e)}")
     except Exception as e:
         errores.append(f"Error al acceder a /data/cache: {str(e)}")
+    
+    print(f"✅ {archivos_borrados} archivos borrados")
     
     return archivos_borrados, errores
