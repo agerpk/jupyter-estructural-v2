@@ -65,7 +65,11 @@ def ejecutar_calculo_arboles(estructura_actual, state):
         
         if resultado_arboles['exito']:
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-            CalculoCache.guardar_calculo_arboles(nombre_estructura, estructura_actual, resultado_arboles['imagenes'])
+            # Generar DataFrame de cargas si no existe
+            if not hasattr(estructura_mecanica, 'df_cargas_completo') or estructura_mecanica.df_cargas_completo is None:
+                estructura_mecanica.generar_dataframe_cargas()
+            df_cargas = estructura_mecanica.df_cargas_completo
+            CalculoCache.guardar_calculo_arboles(nombre_estructura, estructura_actual, resultado_arboles['imagenes'], df_cargas)
         
         return resultado_arboles
     except Exception as e:

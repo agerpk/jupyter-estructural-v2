@@ -133,12 +133,7 @@ def register_callbacks(app):
                 return crear_vista_arboles_carga(estructura_actual, calculo_guardado)
             elif ultima_vista == "calcular-todo":
                 from components.vista_calcular_todo import crear_vista_calcular_todo
-                from utils.calculo_cache import CalculoCache
-                calculo_guardado = None
-                if estructura_actual:
-                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                    calculo_guardado = CalculoCache.cargar_calculo_todo(nombre_estructura)
-                return crear_vista_calcular_todo(estructura_actual, calculo_guardado)
+                return crear_vista_calcular_todo(estructura_actual, None)
             return crear_vista_home()
         
         print(f"DEBUG: Trigger detectado: {trigger_id}")
@@ -249,16 +244,7 @@ def register_callbacks(app):
         elif trigger_id == "menu-calcular-todo":
             guardar_navegacion_state("calcular-todo")
             from components.vista_calcular_todo import crear_vista_calcular_todo
-            from utils.calculo_cache import CalculoCache
-            calculo_guardado = None
-            if estructura_actual:
-                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                calculo_guardado = CalculoCache.cargar_calculo_todo(nombre_estructura)
-                if calculo_guardado:
-                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                    if not vigente:
-                        calculo_guardado = None
-            return crear_vista_calcular_todo(estructura_actual, calculo_guardado)
+            return crear_vista_calcular_todo(estructura_actual, None)
         
         elif "btn-volver" in trigger_id:
             try:

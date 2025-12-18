@@ -119,10 +119,13 @@ def register_callbacks(app):
             else:
                 resultados.append(dbc.Alert(f"Error SPH: {resultado_sph.get('mensaje')}", color="danger"))
             
-            return (
+            print(f"✅ CÁLCULO COMPLETO FINALIZADO - Retornando {len(resultados)} componentes")
+            resultado_final = (
                 resultados,
                 True, "Éxito", "Cálculo completo finalizado", "success", "success"
             )
+            print(f"✅ RETORNANDO {len(resultados)} componentes al callback")
+            return resultado_final
             
         except Exception as e:
             import traceback
