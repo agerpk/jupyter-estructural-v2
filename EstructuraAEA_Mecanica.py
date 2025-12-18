@@ -1,6 +1,7 @@
 # EstructuraAEA_Mecanica.py
 import pandas as pd
 import math
+from NodoEstructural import Carga
 
 class EstructuraAEA_Mecanica:
     """
@@ -19,7 +20,6 @@ class EstructuraAEA_Mecanica:
         
         # Para almacenar DataFrames de cargas
         self.df_cargas_completo = None
-        self.cargas_key = {}
         
         # Para almacenar resultados de reacciones
         self.resultados_reacciones = {}
@@ -105,7 +105,8 @@ class EstructuraAEA_Mecanica:
         """
         if es_guardia:
             # Para guardias: determinar qué guardia NO se carga (el eliminado)
-            nodos_guardia = [n for n in self.geometria.nodes_key.keys() if n.startswith('HG')]
+            nodes_dict = self.geometria.obtener_nodos_dict()
+            nodos_guardia = [n for n in nodes_dict.keys() if n.startswith('HG')]
             if len(nodos_guardia) > 1:
                 # Eliminar el primer guardia (HG1), cargar los demás con tiro unilateral
                 guardia_eliminado = "HG1"
@@ -129,7 +130,8 @@ class EstructuraAEA_Mecanica:
         
         else:
             # Para conductores: determinar qué conductor NO se carga (el eliminado)
-            nodos_conductor = [n for n in self.geometria.nodes_key.keys() if n.startswith(('C1_', 'C2_', 'C3_'))]
+            nodes_dict = self.geometria.obtener_nodos_dict()
+            nodos_conductor = [n for n in nodes_dict.keys() if n.startswith(('C1_', 'C2_', 'C3_'))]
             
             if nodos_conductor:
                 # Elegir un conductor a eliminar (por ejemplo, el primero)
@@ -234,9 +236,22 @@ class EstructuraAEA_Mecanica:
                 nombre_completo = f"HIP_{self.geometria.tipo_estructura.replace(' ', '_').replace('ó','o').replace('/','_')}_{codigo_hip}_{config['desc']}"
                 
                 # Inicializar cargas para esta hipótesis
-                cargas_hipotesis = {nombre: [0.00, 0.00, 0.00] for nombre in self.geometria.nodes_key.keys()}
+                nodes_dict = self.geometria.obtener_nodos_dict()
+                cargas_hipotesis = {nombre: [0.00, 0.00, 0.00] for nombre in nodes_dict.keys()}
                 
                 try:
+                    # Inicializar cargas por tipo en cada nodo
+                    for nodo_nombre in nodes_dict.keys():
+                        if nodo_nombre in self.geometria.nodos:
+                            nodo = self.geometria.nodos[nodo_nombre]
+                            # Crear cargas por tipo si no existen
+                            if not nodo.obtener_carga("Peso"):
+                                nodo.agregar_carga(Carga(nombre="Peso"))
+                            if not nodo.obtener_carga("Viento"):
+                                nodo.agregar_carga(Carga(nombre="Viento"))
+                            if not nodo.obtener_carga("Tiro"):
+                                nodo.agregar_carga(Carga(nombre="Tiro"))
+                    
                     # Obtener estados
                     estado_viento_config = config["viento"]["estado"] if config["viento"] else None
                     estado_viento = self.geometria.ESTADOS_MAPEO.get(estado_viento_config, estado_viento_config) if estado_viento_config else None
@@ -314,15 +329,17 @@ class EstructuraAEA_Mecanica:
                             ]
                     
                     # CARGAS EN CONDUCTORES
-                    nodos_conductor = [n for n in self.geometria.nodes_key.keys() if n.startswith(('C1', 'C2', 'C3')) and not n.startswith('CROSS')]
+                    nodos_conductor = [n for n in nodes_dict.keys() if n.startswith(('C1', 'C2', 'C3')) and not n.startswith('CROSS')]
                     
-                    for nodo in nodos_conductor:
-                        carga_x, carga_y, carga_z = 0.0, 0.0, 0.0
+                    for nodo_nombre in nodos_conductor:
+                        peso_x, peso_y, peso_z = 0.0, 0.0, 0.0
+                        viento_x, viento_y, viento_z = 0.0, 0.0, 0.0
+                        tiro_x, tiro_y, tiro_z = 0.0, 0.0, 0.0
 
                         if patron_tiro == "doble-terna-a-simple":
                             # Para conductores: aplicar patrón doble-terna-a-simple
                             tiro_trans, tiro_long, factor_peso_nodo, factor_viento_nodo = self._aplicar_patron_doble_terna_a_simple(
-                                nodo, config_tiro, tiro_cond_base, es_guardia=False
+                                nodo_nombre, config_tiro, tiro_cond_base, es_guardia=False
                             )
                         elif patron_tiro == "unilateral":
                             factor_peso_nodo = 0.5
@@ -335,11 +352,11 @@ class EstructuraAEA_Mecanica:
                             if self.geometria.tipo_estructura == "Terminal":
                                 # Para Terminal: patrón inverso
                                 tiro_trans, tiro_long, factor_peso_nodo, factor_viento_nodo = self._aplicar_patron_dos_unilaterales_terminal(
-                                    nodo, config_tiro, tiro_cond_base, es_guardia=False
+                                    nodo_nombre, config_tiro, tiro_cond_base, es_guardia=False
                                 )
                             else:
                                 # Comportamiento original
-                                es_unilateral = (nodo in NODOS_DOS_UNILATERAL)
+                                es_unilateral = (nodo_nombre in NODOS_DOS_UNILATERAL)
                                 factor_peso_nodo = 0.5 if es_unilateral else 1.0
                                 factor_viento_nodo = 0.5 if es_unilateral else 1.0
                                 if es_unilateral:
@@ -360,9 +377,14 @@ class EstructuraAEA_Mecanica:
                                 tiro_cond_base, self.geometria.alpha_quiebre, reduccion_cond, False
                             )
                         
-                        carga_x += tiro_trans
-                        carga_y += tiro_long
-                        carga_z = -peso_cond * factor_peso_nodo
+                        # Separar componentes por tipo
+                        tiro_x = tiro_trans
+                        tiro_y = tiro_long
+                        tiro_z = 0.0
+                        
+                        peso_x = 0.0
+                        peso_y = 0.0
+                        peso_z = -peso_cond * factor_peso_nodo
                         
                         # VIENTO EN CABLES
                         if config["viento"]:
@@ -375,19 +397,19 @@ class EstructuraAEA_Mecanica:
                                     viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "Vc")
                                 else:
                                     viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed")
-                                carga_x += viento_cond * factor_viento * factor_viento_nodo
+                                viento_x += viento_cond * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Longitudinal":
                                 if estado_v == "Vmax":
                                     viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "VcL")
                                 else:
                                     viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "VcmedL")
-                                carga_y += viento_cond * factor_viento * factor_viento_nodo
+                                viento_y += viento_cond * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Oblicua":
-                                es_unilateral = (patron_tiro == "unilateral") or (patron_tiro == "dos-unilaterales" and nodo in NODOS_DOS_UNILATERAL)
+                                es_unilateral = (patron_tiro == "unilateral") or (patron_tiro == "dos-unilaterales" and nodo_nombre in NODOS_DOS_UNILATERAL)
                                 if es_unilateral:
-                                    lado = 1 if "L" in nodo else 2
+                                    lado = 1 if "L" in nodo_nombre else 2
                                     if estado_v == "Vmax":
                                         viento_cond_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vc_o_t_{lado}")
                                         viento_cond_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vc_o_l_{lado}")
@@ -395,8 +417,8 @@ class EstructuraAEA_Mecanica:
                                         viento_cond_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcmed_o_t_{lado}")
                                         viento_cond_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcmed_o_l_{lado}")
                                     
-                                    carga_x += viento_cond_x * factor_viento * factor_viento_nodo
-                                    carga_y += viento_cond_y * factor_viento * factor_viento_nodo
+                                    viento_x += viento_cond_x * factor_viento * factor_viento_nodo
+                                    viento_y += viento_cond_y * factor_viento * factor_viento_nodo
                                 else:
                                     if estado_v == "Vmax":
                                         viento_cond_x = (self._obtener_carga_por_codigo(df_cargas_totales, "Vc_o_t_1") + 
@@ -409,30 +431,38 @@ class EstructuraAEA_Mecanica:
                                         viento_cond_y = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed_o_l_1") + 
                                                        self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed_o_l_2"))
                                     
-                                    carga_x += viento_cond_x * factor_viento * factor_viento_nodo
-                                    carga_y += viento_cond_y * factor_viento * factor_viento_nodo
+                                    viento_x += viento_cond_x * factor_viento * factor_viento_nodo
+                                    viento_y += viento_cond_y * factor_viento * factor_viento_nodo
                         
                         # SOBRECARGA ADICIONAL
-                        if config["sobrecarga"] and nodo == "C1_L":
-                            carga_z -= config["sobrecarga"]
+                        if config["sobrecarga"] and nodo_nombre == "C1_L":
+                            peso_z -= config["sobrecarga"]
                         
-                        # APLICAR ROTACIÓN EN EJE Z SI EL NODO LO REQUIERE
-                        nodo_obj = self.geometria.nodos.get(nodo)
-                        if nodo_obj and hasattr(nodo_obj, 'rotacion_eje_z') and nodo_obj.rotacion_eje_z != 0:
-                            carga_x, carga_y, carga_z = self._rotar_carga_eje_z(
-                                carga_x, carga_y, carga_z, nodo_obj.rotacion_eje_z
-                            )
+                        # Guardar cargas separadas por tipo en el nodo
+                        nodo_obj = self.geometria.nodos[nodo_nombre]
+                        nodo_obj.obtener_carga("Peso").agregar_hipotesis(nombre_completo, peso_x, peso_y, peso_z)
+                        nodo_obj.obtener_carga("Viento").agregar_hipotesis(nombre_completo, viento_x, viento_y, viento_z)
+                        nodo_obj.obtener_carga("Tiro").agregar_hipotesis(nombre_completo, tiro_x, tiro_y, tiro_z)
                         
-                        cargas_hipotesis[nodo] = [round(carga_x, 2), round(carga_y, 2), round(carga_z, 2)]
+                        # Guardar total en cargas_dict (compatibilidad)
+                        if not hasattr(nodo_obj, 'cargas_dict'):
+                            nodo_obj.cargas_dict = {}
+                        carga_total_x = round(peso_x + viento_x + tiro_x, 2)
+                        carga_total_y = round(peso_y + viento_y + tiro_y, 2)
+                        carga_total_z = round(peso_z + viento_z + tiro_z, 2)
+                        nodo_obj.cargas_dict[nombre_completo] = [carga_total_x, carga_total_y, carga_total_z]
+                        cargas_hipotesis[nodo_nombre] = [carga_total_x, carga_total_y, carga_total_z]
                     
                     # CARGAS EN GUARDIA
-                    nodos_guardia = [n for n in self.geometria.nodes_key.keys() if n.startswith('HG')]
+                    nodos_guardia = [n for n in nodes_dict.keys() if n.startswith('HG')]
                     
-                    for nodo in nodos_guardia:
-                        carga_x, carga_y, carga_z = 0.0, 0.0, 0.0
+                    for nodo_nombre in nodos_guardia:
+                        peso_x, peso_y, peso_z = 0.0, 0.0, 0.0
+                        viento_x, viento_y, viento_z = 0.0, 0.0, 0.0
+                        tiro_x, tiro_y, tiro_z = 0.0, 0.0, 0.0
                         
                         # Determinar qué cable de guardia usar según el nodo
-                        if nodo == "HG1" or (nodo.startswith("HG") and self.geometria.nodes_key[nodo][0] > 0):
+                        if nodo_nombre == "HG1" or (nodo_nombre.startswith("HG") and nodes_dict[nodo_nombre][0] > 0):
                             # HG1 o nodos con x > 0 (derecha) usan guardia1
                             tiro_guardia_base = tiro_guardia1_base
                             peso_guardia = peso_guardia1
@@ -445,7 +475,7 @@ class EstructuraAEA_Mecanica:
 
                         if patron_tiro == "doble-terna-a-simple":
                             tiro_trans, tiro_long, factor_peso_nodo, factor_viento_nodo = self._aplicar_patron_doble_terna_a_simple(
-                                nodo, config_tiro, tiro_guardia_base, es_guardia=True
+                                nodo_nombre, config_tiro, tiro_guardia_base, es_guardia=True
                             )
                         elif patron_tiro == "unilateral":
                             factor_peso_nodo = 0.5
@@ -457,10 +487,10 @@ class EstructuraAEA_Mecanica:
                         elif patron_tiro == "dos-unilaterales":
                             if self.geometria.tipo_estructura == "Terminal":
                                 tiro_trans, tiro_long, factor_peso_nodo, factor_viento_nodo = self._aplicar_patron_dos_unilaterales_terminal(
-                                    nodo, config_tiro, tiro_guardia_base, es_guardia=True
+                                    nodo_nombre, config_tiro, tiro_guardia_base, es_guardia=True
                                 )
                             else:
-                                es_unilateral = (nodo in NODOS_DOS_UNILATERAL)
+                                es_unilateral = (nodo_nombre in NODOS_DOS_UNILATERAL)
                                 factor_peso_nodo = 0.5 if es_unilateral else 1.0
                                 factor_viento_nodo = 0.5 if es_unilateral else 1.0
                                 if es_unilateral:
@@ -481,9 +511,14 @@ class EstructuraAEA_Mecanica:
                                 tiro_guardia_base, self.geometria.alpha_quiebre, reduccion_guardia, True
                             )
                         
-                        carga_x += tiro_trans
-                        carga_y += tiro_long
-                        carga_z = -peso_guardia * factor_peso_nodo
+                        # Separar componentes por tipo
+                        tiro_x = tiro_trans
+                        tiro_y = tiro_long
+                        tiro_z = 0.0
+                        
+                        peso_x = 0.0
+                        peso_y = 0.0
+                        peso_z = -peso_guardia * factor_peso_nodo
                         
                         # VIENTO EN GUARDIA
                         if config["viento"]:
@@ -496,17 +531,17 @@ class EstructuraAEA_Mecanica:
                                     viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}")
                                 else:
                                     viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med")
-                                carga_x += viento_guardia * factor_viento * factor_viento_nodo
+                                viento_x += viento_guardia * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Longitudinal":
                                 if estado_v == "Vmax":
                                     viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}L")
                                 else:
                                     viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}medL")
-                                carga_y += viento_guardia * factor_viento * factor_viento_nodo
+                                viento_y += viento_guardia * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Oblicua":
-                                es_unilateral = (patron_tiro == "unilateral") or (patron_tiro == "dos-unilaterales" and nodo in NODOS_DOS_UNILATERAL)
+                                es_unilateral = (patron_tiro == "unilateral") or (patron_tiro == "dos-unilaterales" and nodo_nombre in NODOS_DOS_UNILATERAL)
                                 if es_unilateral:
                                     lado = 1
                                     if estado_v == "Vmax":
@@ -516,8 +551,8 @@ class EstructuraAEA_Mecanica:
                                         viento_guardia_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_t_{lado}")
                                         viento_guardia_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_l_{lado}")
                                     
-                                    carga_x += viento_guardia_x * factor_viento * factor_viento_nodo
-                                    carga_y += viento_guardia_y * factor_viento * factor_viento_nodo
+                                    viento_x += viento_guardia_x * factor_viento * factor_viento_nodo
+                                    viento_y += viento_guardia_y * factor_viento * factor_viento_nodo
                                 else:
                                     if estado_v == "Vmax":
                                         viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg1_o_t_1") + 
@@ -540,54 +575,68 @@ class EstructuraAEA_Mecanica:
                                             viento_guardia_y += (self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2med_o_l_1") + 
                                                               self._obtener_carga_por_codigo(df_cargas_totales, "Vcg2med_o_l_2"))
                                     
-                                    carga_x += viento_guardia_x * factor_viento * factor_viento_nodo
-                                    carga_y += viento_guardia_y * factor_viento * factor_viento_nodo
+                                    viento_x += viento_guardia_x * factor_viento * factor_viento_nodo
+                                    viento_y += viento_guardia_y * factor_viento * factor_viento_nodo
                         
-                        # APLICAR ROTACIÓN EN EJE Z SI EL NODO LO REQUIERE
-                        nodo_obj = self.geometria.nodos.get(nodo)
-                        if nodo_obj and hasattr(nodo_obj, 'rotacion_eje_z') and nodo_obj.rotacion_eje_z != 0:
-                            carga_x, carga_y, carga_z = self._rotar_carga_eje_z(
-                                carga_x, carga_y, carga_z, nodo_obj.rotacion_eje_z
-                            )
+                        # Guardar cargas separadas por tipo en el nodo
+                        nodo_obj = self.geometria.nodos[nodo_nombre]
+                        nodo_obj.obtener_carga("Peso").agregar_hipotesis(nombre_completo, peso_x, peso_y, peso_z)
+                        nodo_obj.obtener_carga("Viento").agregar_hipotesis(nombre_completo, viento_x, viento_y, viento_z)
+                        nodo_obj.obtener_carga("Tiro").agregar_hipotesis(nombre_completo, tiro_x, tiro_y, tiro_z)
                         
-                        cargas_hipotesis[nodo] = [round(carga_x, 2), round(carga_y, 2), round(carga_z, 2)]
-                    
-                    self.cargas_key[nombre_completo] = cargas_hipotesis
-                    
-                    # GUARDAR CARGAS EN LOS NODOS
-                    for nodo_nombre, carga in cargas_hipotesis.items():
-                        if nodo_nombre in self.geometria.nodos:
-                            self.geometria.nodos[nodo_nombre].agregar_carga(nombre_completo, carga[0], carga[1], carga[2])
+                        # Guardar total en cargas_dict (compatibilidad)
+                        if not hasattr(nodo_obj, 'cargas_dict'):
+                            nodo_obj.cargas_dict = {}
+                        carga_total_x = round(peso_x + viento_x + tiro_x, 2)
+                        carga_total_y = round(peso_y + viento_y + tiro_y, 2)
+                        carga_total_z = round(peso_z + viento_z + tiro_z, 2)
+                        nodo_obj.cargas_dict[nombre_completo] = [carga_total_x, carga_total_y, carga_total_z]
+                        cargas_hipotesis[nodo_nombre] = [carga_total_x, carga_total_y, carga_total_z]
                     
                     print(f"✅ Cargas asignadas: {codigo_hip} - {config['desc']}")
                     
                 except Exception as e:
                     print(f"❌ Error en hipótesis {codigo_hip}: {e}")
-                    self.cargas_key[nombre_completo] = {nombre: [0.00, 0.00, 0.00] for nombre in self.geometria.nodes_key.keys()}
+                    import traceback
+                    traceback.print_exc()
         else:
             print(f"❌ Tipo de estructura '{self.geometria.tipo_estructura}' no encontrado en hipotesis maestro")
         
-        print(f"✅ Asignación completada: {len(self.cargas_key)} hipótesis procesadas")
+        # Contar hipótesis desde nodos
+        hipotesis_count = len(self._obtener_lista_hipotesis())
+        print(f"✅ Asignación completada: {hipotesis_count} hipótesis procesadas")
+    
+    def _obtener_lista_hipotesis(self):
+        """Obtiene lista de todas las hipótesis desde los nodos"""
+        hipotesis_set = set()
+        for nodo in self.geometria.nodos.values():
+            hipotesis_set.update(nodo.listar_hipotesis())
+        return sorted(list(hipotesis_set))
     
     def generar_dataframe_cargas(self):
         """Genera DataFrame completo de cargas por nodo e hipótesis"""
         print(f"\n📊 GENERANDO DATAFRAME DE CARGAS...")
         
-        if not self.cargas_key:
-            print("❌ No hay cargas asignadas. Ejecutar asignar_cargas_hipotesis primero.")
-            return None
-        
         # Verificar que las cargas estén en los nodos
-        nodos_con_cargas = sum(1 for nodo in self.geometria.nodos.values() if nodo.cargas)
+        nodos_con_cargas = sum(1 for nodo in self.geometria.nodos.values() 
+                              if (hasattr(nodo, 'cargas_dict') and nodo.cargas_dict) or nodo.cargas)
         print(f"   🔍 Nodos con cargas: {nodos_con_cargas}/{len(self.geometria.nodos)}")
         
         if nodos_con_cargas == 0:
-            print("⚠️  No hay cargas asignadas a los nodos")
+            print("❌ No hay cargas asignadas. Ejecutar asignar_cargas_hipotesis primero.")
             return None
         
-        todos_nodos = list(self.geometria.nodes_key.keys())
+        nodes_dict = self.geometria.obtener_nodos_dict()
+        todos_nodos = list(nodes_dict.keys())
+        
+        # Obtener hipótesis desde nodos
+        todas_hipotesis = self._obtener_lista_hipotesis()
         clave_busqueda = f"HIP_{self.geometria.tipo_estructura.replace(' ', '_').replace('ó','o').replace('/','_')}_"
-        hipotesis_filtradas = sorted([k for k in self.cargas_key.keys() if k.startswith(clave_busqueda)])
+        hipotesis_filtradas = sorted([k for k in todas_hipotesis if k.startswith(clave_busqueda)])
+        
+        if not hipotesis_filtradas:
+            print("❌ No hay hipótesis asignadas")
+            return None
         
         # Crear multi-index
         nivel_superior = [''] * 2
@@ -603,14 +652,18 @@ class EstructuraAEA_Mecanica:
         
         multi_index = pd.MultiIndex.from_arrays([nivel_superior, nivel_inferior])
         
-        # Crear filas
+        # Crear filas desde nodos
         filas = []
-        for nodo in todos_nodos:
-            fila = [nodo, 'daN']
+        for nodo_nombre in todos_nodos:
+            fila = [nodo_nombre, 'daN']
+            nodo = self.geometria.nodos.get(nodo_nombre)
             
             for hip_larga in hipotesis_filtradas:
-                cargas_nodo = self.cargas_key[hip_larga].get(nodo, [0.00, 0.00, 0.00])
-                fila.extend(cargas_nodo)
+                if nodo:
+                    cargas = nodo.obtener_cargas_hipotesis(hip_larga)
+                    fila.extend([cargas["fx"], cargas["fy"], cargas["fz"]])
+                else:
+                    fila.extend([0.00, 0.00, 0.00])
             
             filas.append(fila)
         
@@ -636,40 +689,59 @@ class EstructuraAEA_Mecanica:
         print(f"   Apoyo: {nodo_apoyo}, Cima: {nodo_cima if nodo_cima else 'Auto-detectar'}")
         
         # 1. DETECTAR NODO CIMA SI NO SE ESPECIFICA
+        nodes_dict = self.geometria.obtener_nodos_dict()
         if nodo_cima is None:
-            if "TOP" in self.geometria.nodes_key:
+            if "TOP" in nodes_dict:
                 nodo_cima = "TOP"
-            elif "HG1" in self.geometria.nodes_key:
+            elif "HG1" in nodes_dict:
                 nodo_cima = "HG1"
             else:
                 # Buscar el nodo más alto
-                nodo_cima = max(self.geometria.nodes_key.items(), key=lambda x: x[1][2])[0]
+                nodo_cima = max(nodes_dict.items(), key=lambda x: x[1][2])[0]
         
         # 2. VERIFICAR QUE EXISTEN LOS NODOS
-        if nodo_apoyo not in self.geometria.nodes_key:
+        if nodo_apoyo not in nodes_dict:
             raise ValueError(f"Nodo de apoyo '{nodo_apoyo}' no encontrado")
-        if nodo_cima not in self.geometria.nodes_key:
+        if nodo_cima not in nodes_dict:
             raise ValueError(f"Nodo cima '{nodo_cima}' no encontrado")
         
         # 3. OBTENER COORDENADAS
-        x_apoyo, y_apoyo, z_apoyo = self.geometria.nodes_key[nodo_apoyo]
-        x_cima, y_cima, z_cima = self.geometria.nodes_key[nodo_cima]
+        x_apoyo, y_apoyo, z_apoyo = nodes_dict[nodo_apoyo]
+        x_cima, y_cima, z_cima = nodes_dict[nodo_cima]
         
         altura_efectiva = z_cima - z_apoyo
         print(f"   Altura efectiva: {altura_efectiva:.2f} m")
         
         # 4. CALCULAR REACCIONES PARA CADA HIPÓTESIS
         self.resultados_reacciones = {}
+        todas_hipotesis = self._obtener_lista_hipotesis()
         
-        for nombre_hipotesis, cargas_nodo in self.cargas_key.items():
+        for nombre_hipotesis in todas_hipotesis:
             # Inicializar reacciones
             Fx, Fy, Fz = 0.0, 0.0, 0.0
             Mx, My, Mz = 0.0, 0.0, 0.0
             
-            for nodo, carga in cargas_nodo.items():
-                if nodo != nodo_apoyo:  # No considerar el propio nodo de apoyo
-                    x, y, z = self.geometria.nodes_key[nodo]
-                    Fx_n, Fy_n, Fz_n = carga
+            # Iterar sobre todos los nodos
+            for nodo_nombre in nodes_dict.keys():
+                if nodo_nombre != nodo_apoyo:  # No considerar el propio nodo de apoyo
+                    x, y, z = nodes_dict[nodo_nombre]
+                    
+                    # Obtener nodo y sus cargas
+                    nodo_obj = self.geometria.nodos.get(nodo_nombre)
+                    if not nodo_obj:
+                        continue
+                    
+                    # Obtener cargas con rotaciones aplicadas si el nodo tiene rotación
+                    if nodo_obj.rotacion_eje_x != 0 or nodo_obj.rotacion_eje_y != 0 or nodo_obj.rotacion_eje_z != 0:
+                        cargas_rotadas = nodo_obj.obtener_cargas_hipotesis_rotadas(nombre_hipotesis, "global")
+                        Fx_n = cargas_rotadas["fx"]
+                        Fy_n = cargas_rotadas["fy"]
+                        Fz_n = cargas_rotadas["fz"]
+                    else:
+                        cargas = nodo_obj.obtener_cargas_hipotesis(nombre_hipotesis)
+                        Fx_n = cargas["fx"]
+                        Fy_n = cargas["fy"]
+                        Fz_n = cargas["fz"]
                     
                     # Sumatoria de fuerzas
                     Fx += Fx_n

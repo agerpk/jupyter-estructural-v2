@@ -1,88 +1,7 @@
 # EstructuraAEA_Geometria.py
 import pandas as pd
 import math
-
-class NodoEstructural:
-    """
-    Clase que representa un nodo estructural con sus propiedades y cargas
-    """
-    
-    def __init__(self, nombre, coordenadas, tipo_nodo, cable_asociado=None, 
-                angulo_quiebre=0, tipo_fijacion=None, rotacion_eje_z=0.0, 
-                es_editado=False, conectado_a=None):
-        """
-        Inicializa un nodo estructural
-        
-        Args:
-            nombre (str): Identificador único del nodo
-            coordenadas (tuple): (x, y, z) en metros
-            tipo_nodo (str): "conductor", "guardia", "base", "cruce", "general", "viento"
-            cable_asociado (CABLE_AEA, optional): Objeto cable asociado
-            angulo_quiebre (float): Ángulo de quiebre en grados
-            tipo_fijacion (str): "suspensión" o "retención" (se determina automáticamente)
-            rotacion_eje_z (float): Rotación del cable en eje Z (grados, antihorario positivo)
-            es_editado (bool): Flag para distinguir nodos editados manualmente
-            conectado_a (list/str): Lista de nombres de nodos a los que se conecta
-        """
-        self.nombre = nombre
-        self.coordenadas = coordenadas  # (x, y, z)
-        self.tipo_nodo = tipo_nodo
-        self.cable_asociado = cable_asociado
-        self.angulo_quiebre = angulo_quiebre
-        self.rotacion_eje_z = rotacion_eje_z
-        self.es_editado = es_editado
-        # Convertir conectado_a a lista si es string o None
-        if conectado_a is None:
-            self.conectado_a = []
-        elif isinstance(conectado_a, str):
-            self.conectado_a = [conectado_a] if conectado_a else []
-        else:
-            self.conectado_a = list(conectado_a)
-        
-        # Determinar tipo de fijación basado en el tipo de estructura
-        if tipo_fijacion is None:
-            if "suspens" in tipo_nodo.lower():
-                self.tipo_fijacion = "suspensión"
-            else:
-                self.tipo_fijacion = "retención"
-        else:
-            self.tipo_fijacion = tipo_fijacion
-            
-        self.cargas = {}  # Diccionario: {codigo_hipotesis: [Fx, Fy, Fz]}
-        
-    def __str__(self):
-        return f"Nodo({self.nombre}, {self.tipo_nodo}, {self.coordenadas})"
-    
-    def __repr__(self):
-        return f"NodoEstructural('{self.nombre}', {self.coordenadas}, '{self.tipo_nodo}')"
-    
-    def agregar_carga(self, codigo_hipotesis, fuerza_x, fuerza_y, fuerza_z):
-        """Agrega una carga al nodo para una hipótesis específica"""
-        self.cargas[codigo_hipotesis] = [round(fuerza_x, 2), round(fuerza_y, 2), round(fuerza_z, 2)]
-    
-    def obtener_carga(self, codigo_hipotesis):
-        """Obtiene la carga para una hipótesis específica"""
-        return self.cargas.get(codigo_hipotesis, [0.0, 0.0, 0.0])
-    
-    def obtener_coordenadas_dict(self):
-        """Devuelve coordenadas en formato de diccionario para compatibilidad"""
-        return {self.nombre: list(self.coordenadas)}
-    
-    def info_completa(self):
-        """Devuelve información completa del nodo"""
-        info = {
-            "Nombre": self.nombre,
-            "Coordenadas": f"({self.coordenadas[0]:.2f}, {self.coordenadas[1]:.2f}, {self.coordenadas[2]:.2f})",
-            "Tipo": self.tipo_nodo,
-            "Cable asociado": self.cable_asociado.nombre if self.cable_asociado else "Ninguno",
-            "Ángulo quiebre": f"{self.angulo_quiebre}°",
-            "Tipo fijación": self.tipo_fijacion,
-            "Rotación eje Z": f"{self.rotacion_eje_z}°",
-            "Es editado": "Sí" if self.es_editado else "No",
-            "Conectado a": ", ".join(self.conectado_a) if self.conectado_a else "Ninguno",
-            "Hipótesis cargadas": len(self.cargas)
-        }
-        return info
+from NodoEstructural import NodoEstructural
 
 
 class EstructuraAEA_Geometria:
@@ -201,12 +120,11 @@ class EstructuraAEA_Geometria:
         self.cable_guardia2 = None  # Guardia 2 (izquierda, x-) - se asigna después
         self.cable_guardia = cable_guardia  # Mantener para compatibilidad
         
-        # Colección de nodos
+        # Colección de nodos (ÚNICA fuente de verdad)
         self.nodos = {}
         
         # Resultados de dimensionamiento
         self.dimensiones = {}
-        self.nodes_key = {}  # Para compatibilidad
         self.conexiones = []  # Lista de conexiones: [(nodo_inicial, nodo_final, tipo_tramo), ...]
         
         # Variables auxiliares para el nuevo proceso
@@ -884,22 +802,27 @@ class EstructuraAEA_Geometria:
             if self.cable_guardia2:
                 print(f"      - HG1: {self.cable_guardia1.nombre}, HG2: {self.cable_guardia2.nombre}")
     
+    def obtener_nodos_dict(self):
+        """Devuelve diccionario {nombre: [x,y,z]} para compatibilidad"""
+        return {nombre: list(nodo.coordenadas) for nombre, nodo in self.nodos.items()}
+    
+    @property
+    def nodes_key(self):
+        """Propiedad deprecada - usar obtener_nodos_dict()"""
+        return self.obtener_nodos_dict()
+    
     def _actualizar_nodes_key(self):
-        """Actualiza el diccionario nodes_key para compatibilidad"""
-        self.nodes_key = {}
-        for nombre, nodo in self.nodos.items():
-            self.nodes_key[nombre] = list(nodo.coordenadas)
-        
-        # Actualizar conexiones después de actualizar nodes_key
+        """Método deprecado - mantener para compatibilidad"""
         self._generar_conexiones()
     
     def _generar_conexiones(self):
         """Genera lista de conexiones entre nodos con tipo de tramo"""
         self.conexiones = []
+        nodes_dict = self.obtener_nodos_dict()
         
         # 1. COLUMNAS: Conexiones verticales en x=0
         nodos_centrales = []
-        for nombre, coords in self.nodes_key.items():
+        for nombre, coords in nodes_dict.items():
             x, y, z = coords
             if abs(x) < 0.001 and abs(y) < 0.001:
                 if not nombre.startswith(('C1', 'C2', 'C3', 'HG')):
@@ -912,20 +835,20 @@ class EstructuraAEA_Geometria:
         # CASO ESPECIAL: Guardia centrado en doble terna vertical
         if (self.disposicion == 'vertical' and self.terna == 'Doble' and 
             self.cant_hg == 1 and self.hg_centrado):
-            if 'CROSS_H3' in self.nodes_key and 'HG1' in self.nodes_key:
-                x_hg = self.nodes_key['HG1'][0]
+            if 'CROSS_H3' in nodes_dict and 'HG1' in nodes_dict:
+                x_hg = nodes_dict['HG1'][0]
                 if abs(x_hg) < 0.001:
                     self.conexiones.append(('CROSS_H3', 'HG1', 'columna'))
         
         # 2. MENSULAS/CRUCETAS: Conexiones CROSS -> Conductores
-        for nombre, coords in self.nodes_key.items():
+        for nombre, coords in nodes_dict.items():
             if nombre.startswith(('C1', 'C2', 'C3')):
                 x_c, y_c, z_c = coords
                 if abs(y_c) < 0.001:
                     # Buscar CROSS más cercano
                     cross_cercano = None
                     min_diff = float('inf')
-                    for n, c in self.nodes_key.items():
+                    for n, c in nodes_dict.items():
                         if 'CROSS' in n:
                             diff = abs(c[2] - z_c)
                             if diff < min_diff:
@@ -940,8 +863,8 @@ class EstructuraAEA_Geometria:
                         self.conexiones.append((cross_cercano, nombre, tipo))
         
         # 3. MENSULAS GUARDIA: Conexiones TOP -> HG (si no está centrado)
-        if 'TOP' in self.nodes_key:
-            for nombre, coords in self.nodes_key.items():
+        if 'TOP' in nodes_dict:
+            for nombre, coords in nodes_dict.items():
                 if nombre.startswith('HG'):
                     x_hg = coords[0]
                     if abs(x_hg) > 0.001:  # No centrado
@@ -949,7 +872,7 @@ class EstructuraAEA_Geometria:
         
         # 4. CRUCETAS: Detectar crucetas horizontales
         conductores_por_altura = {}
-        for nombre, coords in self.nodes_key.items():
+        for nombre, coords in nodes_dict.items():
             if nombre.startswith(('C1', 'C2', 'C3')):
                 z = coords[2]
                 if z not in conductores_por_altura:
@@ -959,13 +882,13 @@ class EstructuraAEA_Geometria:
         for altura, conductores in conductores_por_altura.items():
             if len(conductores) >= 2:
                 # Verificar si hay conductores a ambos lados
-                x_coords = [self.nodes_key[c][0] for c in conductores]
+                x_coords = [nodes_dict[c][0] for c in conductores]
                 hay_izq = any(x < -0.01 for x in x_coords)
                 hay_der = any(x > 0.01 for x in x_coords)
                 
                 if hay_izq and hay_der:
                     # Es cruceta: conectar conductores entre sí
-                    conductores_sorted = sorted(conductores, key=lambda c: self.nodes_key[c][0])
+                    conductores_sorted = sorted(conductores, key=lambda c: nodes_dict[c][0])
                     for i in range(len(conductores_sorted)-1):
                         self.conexiones.append((conductores_sorted[i], conductores_sorted[i+1], 'cruceta'))
         
@@ -973,7 +896,7 @@ class EstructuraAEA_Geometria:
         for nombre, nodo in self.nodos.items():
             if hasattr(nodo, 'conectado_a') and nodo.conectado_a:
                 for nodo_destino in nodo.conectado_a:
-                    if nodo_destino in self.nodes_key:
+                    if nodo_destino in nodes_dict:
                         self.conexiones.append((nombre, nodo_destino, 'cadena'))
     
     # ================= MÉTODOS DE GESTIÓN DE NODOS =================
@@ -1178,13 +1101,10 @@ class EstructuraAEA_Geometria:
     
     def obtener_nodes_key(self):
         """Devuelve el diccionario de nodos en formato compatible"""
-        return self.nodes_key
+        return self.obtener_nodos_dict()
     
     def listar_nodos(self):
         """Lista todos los nodos de la estructura con nombres corregidos"""
-        # Actualizar nodes_key antes de listar
-        self._actualizar_nodes_key()
-        
         print(f"\n📋 NODOS DE LA ESTRUCTURA ({len(self.nodos)} nodos):")
         print("=" * 80)
         
@@ -1399,8 +1319,8 @@ class EstructuraAEA_Geometria:
         print(f"\n💾 GUARDANDO RESULTADOS GEOMÉTRICOS...")
         os.makedirs(folder, exist_ok=True)
         
-        # 1. Guardar nodes_key
-        df_nodos = pd.DataFrame(self.nodes_key)
+        # 1. Guardar nodos
+        df_nodos = pd.DataFrame(self.obtener_nodos_dict())
         ruta_nodos = f"{folder}/6_{self.tipo_estructura.replace(' ', '_').replace('ó','o').replace('/','_').lower()}_NODOS_POO.csv"
         df_nodos.to_csv(ruta_nodos, index=False, encoding='utf-8')
         print(f"✅ Nodos guardados: {ruta_nodos}")

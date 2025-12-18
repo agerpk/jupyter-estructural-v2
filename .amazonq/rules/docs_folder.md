@@ -1,0 +1,1 @@
+All .md files should go into /docs folder.

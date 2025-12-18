@@ -11,7 +11,8 @@ from components.menu import (
     crear_modal_guardar_como,
     crear_modal_guardar_plantilla,
     crear_modal_nueva_estructura,
-    crear_modal_acerca_de
+    crear_modal_acerca_de,
+    crear_modal_borrar_cache
 )
 from components.vista_home import crear_vista_home
 from models.app_state import AppState
@@ -87,6 +88,7 @@ def crear_layout():
             crear_modal_guardar_plantilla(),
             crear_modal_nueva_estructura(),
             crear_modal_acerca_de(),
+            crear_modal_borrar_cache(),
     
             # Stores para cálculos
             dcc.Store(id="store-calculo-cmc", data=None),

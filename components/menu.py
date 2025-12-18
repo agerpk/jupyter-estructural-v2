@@ -56,6 +56,8 @@ def crear_menu_editar():
             dbc.DropdownMenuItem("Agregar Cable", id="menu-agregar-cable"),
             dbc.DropdownMenuItem("Modificar Cable", id="menu-modificar-cable"),
             dbc.DropdownMenuItem("Eliminar Cable", id="menu-eliminar-cable"),
+            dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem("Borrar Cache", id="menu-borrar-cache"),
         ],
         nav=True,
         in_navbar=True,
@@ -168,3 +170,18 @@ def crear_modal_acerca_de():
             dbc.Button("Cerrar", id="btn-cerrar-acerca-de", color="primary")
         ])
     ], id="modal-acerca-de", is_open=False)
+
+def crear_modal_borrar_cache():
+    """Crear modal para confirmar borrar cache"""
+    return dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Borrar Cache")),
+        dbc.ModalBody([
+            html.P("¿Está seguro que desea borrar todos los archivos de cache?"),
+            html.P("Se eliminarán todos los cálculos guardados e imágenes generadas.", className="text-warning"),
+            html.P("Las estructuras guardadas NO se eliminarán.", className="text-muted")
+        ]),
+        dbc.ModalFooter([
+            dbc.Button("Cancelar", id="btn-cancelar-borrar-cache", color="secondary", className="me-2"),
+            dbc.Button("Borrar Cache", id="btn-confirmar-borrar-cache", color="danger")
+        ])
+    ], id="modal-borrar-cache", is_open=False)

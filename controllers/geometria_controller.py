@@ -120,6 +120,12 @@ def ejecutar_calculo_dge(estructura_actual, state):
         )
         fig_cabezal = plt.gcf()
         
+        # Generar gráfico de nodos
+        estructura_graficos.graficar_nodos_coordenadas(
+            titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+        )
+        fig_nodos = plt.gcf()
+        
         # Generar memoria
         memoria_dge = gen_memoria_calculo_DGE(estructura_geometria)
         
@@ -222,20 +228,27 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
             # Generar gráficos
             fig_combinado, fig_conductor, fig_guardia1, fig_guardia2 = None, None, None, None
             try:
-                fig_combinado, fig_conductor, fig_guardia1 = crear_grafico_flechas(
-                    state.calculo_mecanico.resultados_conductor,
-                    state.calculo_mecanico.resultados_guardia1,
-                    params["L_vano"]
-                )
-                # Generar gráfico para guardia2 si existe
                 if state.calculo_mecanico.resultados_guardia2:
-                    _, _, fig_guardia2 = crear_grafico_flechas(
-                        state.calculo_mecanico.resultados_conductor,
-                        state.calculo_mecanico.resultados_guardia2,
+                    fig_combinado, fig_conductor, fig_guardia1, fig_guardia2 = crear_grafico_flechas(
+                        state.calculo_objetos.cable_conductor,
+                        state.calculo_objetos.cable_guardia,
+                        params["L_vano"],
+                        state.calculo_objetos.cable_guardia2
+                    )
+                else:
+                    fig_combinado, fig_conductor, fig_guardia1 = crear_grafico_flechas(
+                        state.calculo_objetos.cable_conductor,
+                        state.calculo_objetos.cable_guardia,
                         params["L_vano"]
                     )
-            except:
+            except Exception as e:
+                print(f"Error generando gráficos: {e}")
                 pass
+            
+            # Serializar DataFrames
+            df_conductor_html = state.calculo_mecanico.df_conductor.to_json(orient='split') if state.calculo_mecanico.df_conductor is not None else None
+            df_guardia1_html = state.calculo_mecanico.df_guardia1.to_json(orient='split') if state.calculo_mecanico.df_guardia1 is not None else None
+            df_guardia2_html = state.calculo_mecanico.df_guardia2.to_json(orient='split') if state.calculo_mecanico.df_guardia2 is not None else None
             
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
             CalculoCache.guardar_calculo_cmc(
@@ -249,7 +262,10 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
                 fig_guardia1,
                 fig_guardia2,
                 resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
-                console_output=console_output
+                console_output=console_output,
+                df_conductor_html=df_conductor_html,
+                df_guardia1_html=df_guardia1_html,
+                df_guardia2_html=df_guardia2_html
             )
             return {"exito": True, "mensaje": "Cálculo CMC completado automáticamente"}
         else:
@@ -327,16 +343,21 @@ def register_callbacks(app):
                     "y": coords[1],
                     "z": coords[2],
                     "cable_id": "",
+                    "rotacion_eje_x": 0.0,
+                    "rotacion_eje_y": 0.0,
                     "rotacion_eje_z": 0.0,
                     "angulo_quiebre": 0.0,
                     "tipo_fijacion": "suspensión",
-                    "conectado_a": ""
+                    "conectado_a": "",
+                    "editar_conexiones": "✏️ Editar"
                 }
                 if nodos_objetos and nombre in nodos_objetos:
                     nodo_obj = nodos_objetos[nombre]
                     nodo_data["tipo"] = getattr(nodo_obj, 'tipo', 'general')
-                    if hasattr(nodo_obj, 'cable') and nodo_obj.cable:
-                        nodo_data["cable_id"] = nodo_obj.cable.nombre if hasattr(nodo_obj.cable, 'nombre') else ""
+                    if hasattr(nodo_obj, 'cable_asociado') and nodo_obj.cable_asociado:
+                        nodo_data["cable_id"] = nodo_obj.cable_asociado.nombre if hasattr(nodo_obj.cable_asociado, 'nombre') else ""
+                    nodo_data["rotacion_eje_x"] = getattr(nodo_obj, 'rotacion_eje_x', 0.0)
+                    nodo_data["rotacion_eje_y"] = getattr(nodo_obj, 'rotacion_eje_y', 0.0)
                     nodo_data["rotacion_eje_z"] = getattr(nodo_obj, 'rotacion_eje_z', 0.0)
                     nodo_data["angulo_quiebre"] = getattr(nodo_obj, 'angulo_quiebre', 0.0)
                     nodo_data["tipo_fijacion"] = getattr(nodo_obj, 'tipo_fijacion', 'suspensión') or 'suspensión'
@@ -363,6 +384,8 @@ def register_callbacks(app):
                             "y": nodo_editado["coordenadas"][1],
                             "z": nodo_editado["coordenadas"][2],
                             "cable_id": nodo_editado.get("cable_id", nodo_data["cable_id"]),
+                            "rotacion_eje_x": nodo_editado.get("rotacion_eje_x", nodo_data.get("rotacion_eje_x", 0.0)),
+                            "rotacion_eje_y": nodo_editado.get("rotacion_eje_y", nodo_data.get("rotacion_eje_y", 0.0)),
                             "rotacion_eje_z": nodo_editado.get("rotacion_eje_z", nodo_data["rotacion_eje_z"]),
                             "angulo_quiebre": nodo_editado.get("angulo_quiebre", nodo_data["angulo_quiebre"]),
                             "tipo_fijacion": nodo_editado.get("tipo_fijacion", nodo_data["tipo_fijacion"]),
@@ -384,6 +407,8 @@ def register_callbacks(app):
                         "y": coords[1],
                         "z": coords[2],
                         "cable_id": nodo_editado.get("cable_id", ""),
+                        "rotacion_eje_x": nodo_editado.get("rotacion_eje_x", 0.0),
+                        "rotacion_eje_y": nodo_editado.get("rotacion_eje_y", 0.0),
                         "rotacion_eje_z": nodo_editado.get("rotacion_eje_z", 0.0),
                         "angulo_quiebre": nodo_editado.get("angulo_quiebre", 0.0),
                         "tipo_fijacion": nodo_editado.get("tipo_fijacion", "suspensión"),
@@ -417,6 +442,8 @@ def register_callbacks(app):
             "y": 0.0,
             "z": 10.0,
             "cable_id": "",
+            "rotacion_eje_x": 0.0,
+            "rotacion_eje_y": 0.0,
             "rotacion_eje_z": 0.0,
             "angulo_quiebre": 0.0,
             "tipo_fijacion": "suspensión",
@@ -464,6 +491,8 @@ def register_callbacks(app):
                     "y": row.get("y", store_data[i]["y"]),
                     "z": row.get("z", store_data[i]["z"]),
                     "cable_id": row.get("cable_id", store_data[i]["cable_id"]),
+                    "rotacion_eje_x": row.get("rotacion_eje_x", store_data[i].get("rotacion_eje_x", 0.0)),
+                    "rotacion_eje_y": row.get("rotacion_eje_y", store_data[i].get("rotacion_eje_y", 0.0)),
                     "rotacion_eje_z": row.get("rotacion_eje_z", store_data[i]["rotacion_eje_z"]),
                     "angulo_quiebre": row.get("angulo_quiebre", store_data[i]["angulo_quiebre"]),
                     "tipo_fijacion": row.get("tipo_fijacion", store_data[i]["tipo_fijacion"]),
@@ -583,13 +612,19 @@ def register_callbacks(app):
                 except (ValueError, TypeError, KeyError):
                     return dash.no_update, True, "Error", f"Fila {i+1}: Coordenadas inválidas", "danger", "danger"
                 
-                # Validar rotación
+                # Validar rotaciones
                 try:
-                    rot = float(nodo.get("rotacion_eje_z", 0.0))
-                    if not (0 <= rot <= 360):
-                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación debe estar entre 0-360°", "danger", "danger"
+                    rot_x = float(nodo.get("rotacion_eje_x", 0.0))
+                    rot_y = float(nodo.get("rotacion_eje_y", 0.0))
+                    rot_z = float(nodo.get("rotacion_eje_z", 0.0))
+                    if not (0 <= rot_x <= 360):
+                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación X debe estar entre 0-360°", "danger", "danger"
+                    if not (0 <= rot_y <= 360):
+                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación Y debe estar entre 0-360°", "danger", "danger"
+                    if not (0 <= rot_z <= 360):
+                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación Z debe estar entre 0-360°", "danger", "danger"
                 except (ValueError, TypeError):
-                    return dash.no_update, True, "Error", f"Fila {i+1}: Rotación inválida", "danger", "danger"
+                    return dash.no_update, True, "Error", f"Fila {i+1}: Rotaciones inválidas", "danger", "danger"
             
             # Validar nodos conectados existen
             for i, nodo in enumerate(nodos_data):
@@ -634,6 +669,8 @@ def register_callbacks(app):
                     if state.calculo_objetos.estructura_geometria and nombre in state.calculo_objetos.estructura_geometria.nodos:
                         nodo_obj = state.calculo_objetos.estructura_geometria.nodos[nombre]
                         if (nodo.get("tipo", "general") != getattr(nodo_obj, 'tipo', 'general') or
+                            float(nodo.get("rotacion_eje_x", 0.0)) != getattr(nodo_obj, 'rotacion_eje_x', 0.0) or
+                            float(nodo.get("rotacion_eje_y", 0.0)) != getattr(nodo_obj, 'rotacion_eje_y', 0.0) or
                             float(nodo.get("rotacion_eje_z", 0.0)) != getattr(nodo_obj, 'rotacion_eje_z', 0.0) or
                             float(nodo.get("angulo_quiebre", 0.0)) != getattr(nodo_obj, 'angulo_quiebre', 0.0) or
                             nodo.get("tipo_fijacion", "suspensión") != (getattr(nodo_obj, 'tipo_fijacion', 'suspensión') or 'suspensión')):
@@ -646,6 +683,8 @@ def register_callbacks(app):
                         "tipo": nodo["tipo"],
                         "coordenadas": [float(nodo["x"]), float(nodo["y"]), float(nodo["z"])],
                         "cable_id": nodo.get("cable_id", ""),
+                        "rotacion_eje_x": float(nodo.get("rotacion_eje_x", 0.0)),
+                        "rotacion_eje_y": float(nodo.get("rotacion_eje_y", 0.0)),
                         "rotacion_eje_z": float(nodo.get("rotacion_eje_z", 0.0)),
                         "angulo_quiebre": float(nodo.get("angulo_quiebre", 0.0)),
                         "tipo_fijacion": nodo.get("tipo_fijacion", "suspensión"),

@@ -32,6 +32,10 @@ def generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos=Non
             if conectado_a_list:
                 conectado_a = ", ".join(conectado_a_list)
         
+        # Obtener rotaciones X e Y si existen
+        rotacion_x = getattr(nodo_obj, 'rotacion_eje_x', 0.0) if nodos_objetos and nombre in nodos_objetos else 0.0
+        rotacion_y = getattr(nodo_obj, 'rotacion_eje_y', 0.0) if nodos_objetos and nombre in nodos_objetos else 0.0
+        
         nodos_data.append({
             "nombre": nombre,
             "tipo": tipo_nodo,
@@ -39,6 +43,8 @@ def generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos=Non
             "y": coords[1],
             "z": coords[2],
             "cable_id": cable_id,
+            "rotacion_eje_x": rotacion_x,
+            "rotacion_eje_y": rotacion_y,
             "rotacion_eje_z": rotacion,
             "angulo_quiebre": angulo_quiebre,
             "tipo_fijacion": tipo_fijacion,
@@ -61,6 +67,8 @@ def generar_tabla_editor_nodos(nodos_dict, cables_disponibles, nodos_objetos=Non
                 {"name": "Y (m)", "id": "y", "type": "numeric", "editable": True, "format": {"specifier": ".3f"}},
                 {"name": "Z (m)", "id": "z", "type": "numeric", "editable": True, "format": {"specifier": ".3f"}},
                 {"name": "Cable", "id": "cable_id", "editable": True, "presentation": "dropdown"},
+                {"name": "Rot. X (°)", "id": "rotacion_eje_x", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
+                {"name": "Rot. Y (°)", "id": "rotacion_eje_y", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
                 {"name": "Rot. Z (°)", "id": "rotacion_eje_z", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
                 {"name": "Áng. Quiebre (°)", "id": "angulo_quiebre", "type": "numeric", "editable": True, "format": {"specifier": ".1f"}},
                 {"name": "Fijación", "id": "tipo_fijacion", "editable": True, "presentation": "dropdown"},

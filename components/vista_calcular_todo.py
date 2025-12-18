@@ -14,7 +14,7 @@ def crear_placeholder(titulo):
     )
 
 
-def generar_resultados_cmc_lista(calculo_guardado, estructura_actual):
+def generar_resultados_cmc_lista(calculo_guardado, estructura_actual, mostrar_alerta_cache=True):
     """Genera resultados CMC como lista (sin envolver en html.Div)"""
     import pandas as pd
     from utils.view_helpers import ViewHelpers
@@ -22,27 +22,32 @@ def generar_resultados_cmc_lista(calculo_guardado, estructura_actual):
     
     try:
         vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-        resultados_html = [
-            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente),
-            html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"),
-        ]
+        resultados_html = []
+        
+        if mostrar_alerta_cache:
+            resultados_html.append(ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente))
+        
+        resultados_html.append(html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"))
         
         if calculo_guardado.get('df_conductor_html'):
-            df_conductor = pd.read_json(calculo_guardado['df_conductor_html'], orient='split').round(2)
+            from io import StringIO
+            df_conductor = pd.read_json(StringIO(calculo_guardado['df_conductor_html']), orient='split').round(2)
             resultados_html.extend([
                 html.H5("Conductor"),
                 dbc.Table.from_dataframe(df_conductor, striped=True, bordered=True, hover=True, size="sm")
             ])
         
         if calculo_guardado.get('df_guardia1_html'):
-            df_guardia1 = pd.read_json(calculo_guardado['df_guardia1_html'], orient='split').round(2)
+            from io import StringIO
+            df_guardia1 = pd.read_json(StringIO(calculo_guardado['df_guardia1_html']), orient='split').round(2)
             resultados_html.extend([
                 html.H5("Cable de Guardia 1", className="mt-4"),
                 dbc.Table.from_dataframe(df_guardia1, striped=True, bordered=True, hover=True, size="sm")
             ])
         
         if calculo_guardado.get('df_guardia2_html'):
-            df_guardia2 = pd.read_json(calculo_guardado['df_guardia2_html'], orient='split').round(2)
+            from io import StringIO
+            df_guardia2 = pd.read_json(StringIO(calculo_guardado['df_guardia2_html']), orient='split').round(2)
             resultados_html.extend([
                 html.H5("Cable de Guardia 2", className="mt-4"),
                 dbc.Table.from_dataframe(df_guardia2, striped=True, bordered=True, hover=True, size="sm")

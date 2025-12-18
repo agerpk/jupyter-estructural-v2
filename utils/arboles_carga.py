@@ -40,7 +40,10 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
                 'mensaje': 'No hay datos de reacciones. Ejecute primero el Diseño Mecánico de Estructura.'
             }
         
-        if not hasattr(estructura_mecanica, 'cargas_key'):
+        # Verificar que haya cargas en nodos
+        nodos_con_cargas = sum(1 for nodo in estructura_mecanica.geometria.nodos.values() 
+                              if (hasattr(nodo, 'cargas_dict') and nodo.cargas_dict) or nodo.cargas)
+        if nodos_con_cargas == 0:
             return {
                 'exito': False,
                 'mensaje': 'No hay datos de cargas. Ejecute primero el Cálculo Mecánico de Cables.'
@@ -48,8 +51,10 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
         
         # Obtener datos
         nodes_key = estructura_mecanica.geometria.nodes_key
-        cargas_key = estructura_mecanica.cargas_key
         resultados_reacciones = estructura_mecanica.resultados_reacciones
+        
+        # Obtener lista de hipótesis desde nodos
+        todas_hipotesis = estructura_mecanica._obtener_lista_hipotesis()
         
         # Calcular hash
         hash_estructura = calcular_hash_estructura(estructura_actual)
@@ -61,16 +66,24 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
         imagenes_generadas = []
         
         # Generar imagen para cada hipótesis
-        for hipotesis_nombre, cargas_hipotesis in cargas_key.items():
+        for hipotesis_nombre in todas_hipotesis:
             # Filtrar hipótesis C2 si mostrar_sismo es False
             if not mostrar_sismo and '_C2_' in hipotesis_nombre:
                 continue
             
-            # Verificar si hay cargas
-            nodos_con_cargas = [nombre for nombre, carga in cargas_hipotesis.items() 
-                               if any(val != 0 for val in carga)]
+            # Construir dict de cargas para esta hipótesis desde nodos
+            cargas_hipotesis = {}
+            nodos_con_cargas_lista = []
             
-            if not nodos_con_cargas:
+            for nombre_nodo, nodo in estructura_mecanica.geometria.nodos.items():
+                cargas = nodo.obtener_cargas_hipotesis(hipotesis_nombre)
+                carga_lista = [cargas["fx"], cargas["fy"], cargas["fz"]]
+                cargas_hipotesis[nombre_nodo] = carga_lista
+                
+                if any(val != 0 for val in carga_lista):
+                    nodos_con_cargas_lista.append(nombre_nodo)
+            
+            if not nodos_con_cargas_lista:
                 continue
             
             # Obtener reacciones
@@ -93,7 +106,7 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
             
             # Etiquetas de nodos si está activado
             if mostrar_nodos:
-                dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key, fontsize_nodos)
+                dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas_lista, nodes_key, fontsize_nodos)
             
             # Configurar ejes
             ax.set_xlim(rangos['x_min'], rangos['x_max'])
