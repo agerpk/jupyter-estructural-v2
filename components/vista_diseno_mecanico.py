@@ -150,13 +150,16 @@ def crear_vista_diseno_mecanico(estructura_actual, calculo_guardado=None, hipote
                 dbc.Row([
                     dbc.Col([
                         dbc.Button("Guardar Parámetros", id="btn-guardar-params-dme", color="primary", size="lg", className="w-100"),
-                    ], md=4),
+                    ], md=3),
                     dbc.Col([
                         dbc.Button("Modificar Hipótesis", id="btn-modificar-hipotesis", color="warning", size="lg", className="w-100"),
-                    ], md=4),
+                    ], md=3),
+                    dbc.Col([
+                        dbc.Button("Cargas en Nodos", id="btn-cargas-nodos-dme", color="info", size="lg", className="w-100"),
+                    ], md=3),
                     dbc.Col([
                         dbc.Button("Calcular Diseño Mecánico", id="btn-calcular-dme", color="success", size="lg", className="w-100"),
-                    ], md=4),
+                    ], md=3),
                 ], className="mb-4"),
                 
                 html.Hr(),
@@ -168,6 +171,19 @@ def crear_vista_diseno_mecanico(estructura_actual, calculo_guardado=None, hipote
         
         # Modal de edición de hipótesis
         crear_modal_editor_hipotesis(tipo_estructura, hipotesis_maestro),
+        
+        # Modal de cargas en nodos
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle("Cargas en Nodos")),
+            dbc.ModalBody([
+                dbc.Spinner([
+                    html.Div(id="modal-cargas-nodos-contenido")
+                ], color="primary")
+            ], style={"maxHeight": "70vh", "overflowY": "auto"}),
+            dbc.ModalFooter(
+                dbc.Button("Cerrar", id="btn-cerrar-modal-cargas-nodos", color="secondary")
+            )
+        ], id="modal-cargas-nodos", size="xl", is_open=False),
         
         # Store para hipótesis actuales
         dcc.Store(id="hipotesis-actuales", data=hipotesis_maestro)

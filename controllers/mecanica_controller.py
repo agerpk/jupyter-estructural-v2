@@ -13,6 +13,98 @@ def register_callbacks(app):
     state = AppState()
     
     @app.callback(
+        Output("modal-cargas-nodos", "is_open"),
+        Output("modal-cargas-nodos-contenido", "children"),
+        Input("btn-cargas-nodos-dme", "n_clicks"),
+        Input("btn-cerrar-modal-cargas-nodos", "n_clicks"),
+        State("modal-cargas-nodos", "is_open"),
+        prevent_initial_call=True
+    )
+    def toggle_modal_cargas_nodos(n_abrir, n_cerrar, is_open):
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            return is_open, dash.no_update
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "btn-cargas-nodos-dme":
+            try:
+                if not state.calculo_objetos.estructura_geometria:
+                    return True, dbc.Alert("Ejecute primero DGE y DME para generar cargas en nodos", color="warning")
+                
+                from utils.consultar_cargas_nodos import consultar_cargas_todos_nodos
+                import pandas as pd
+                
+                estructura_geometria = state.calculo_objetos.estructura_geometria
+                todas_cargas = consultar_cargas_todos_nodos(estructura_geometria)
+                
+                # Obtener TODOS los nodos (incluyendo los que no tienen cargas)
+                todos_nodos = list(estructura_geometria.nodos.keys())
+                
+                if not todos_nodos:
+                    return True, dbc.Alert("No hay nodos en la estructura. Ejecute DGE primero.", color="warning")
+                
+                # Crear tabla por nodo
+                contenido = []
+                for nombre_nodo in todos_nodos:
+                    nodo = estructura_geometria.nodos[nombre_nodo]
+                    
+                    # Info del nodo con indicador de editado
+                    titulo_nodo = f"Nodo: {nombre_nodo}"
+                    if nodo.es_editado:
+                        titulo_nodo += " *"
+                        titulo_style = {"color": "#FF6B00"}  # Naranja para editados
+                    else:
+                        titulo_style = {}
+                    
+                    contenido.append(html.H5(titulo_nodo, className="mt-3 mb-2", style=titulo_style))
+                    
+                    info_parts = [
+                        f"Tipo: {nodo.tipo_nodo} | ",
+                        f"Coordenadas: ({nodo.x:.3f}, {nodo.y:.3f}, {nodo.z:.3f}) | ",
+                        f"Cable: {nodo.cable_asociado.nombre if nodo.cable_asociado else 'N/A'} | ",
+                        f"Rotación Z: {nodo.rotacion_eje_z}°"
+                    ]
+                    if nodo.es_editado:
+                        info_parts.append(" | 🟠 EDITADO")
+                    
+                    contenido.append(html.P(info_parts, style={"fontSize": "0.9rem", "color": "#666"}))
+                    
+                    # Tabla de cargas (si existen)
+                    if nombre_nodo in todas_cargas and todas_cargas[nombre_nodo]:
+                        cargas_hip = todas_cargas[nombre_nodo]
+                        datos = []
+                        for hip, valores in cargas_hip.items():
+                            datos.append({
+                                "Hipótesis": hip.split('_')[-2] if len(hip.split('_')) >= 2 else hip,
+                                "Fx [daN]": round(valores["fx"], 2),
+                                "Fy [daN]": round(valores["fy"], 2),
+                                "Fz [daN]": round(valores["fz"], 2),
+                                "Mx [daN·m]": round(valores["mx"], 2),
+                                "My [daN·m]": round(valores["my"], 2),
+                                "Mz [daN·m]": round(valores["mz"], 2)
+                            })
+                        
+                        df = pd.DataFrame(datos)
+                        contenido.append(dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size="sm"))
+                    else:
+                        contenido.append(dbc.Alert("Sin cargas asignadas. Ejecute DME para calcular cargas.", color="info", className="mb-2"))
+                    
+                    contenido.append(html.Hr())
+                
+                return True, html.Div(contenido)
+                
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return True, dbc.Alert(f"Error al consultar cargas: {str(e)}", color="danger")
+        
+        elif trigger_id == "btn-cerrar-modal-cargas-nodos":
+            return False, dash.no_update
+        
+        return is_open, dash.no_update
+    
+    @app.callback(
         Output("modal-editor-hipotesis", "is_open"),
         Output("modal-editor-hipotesis", "children"),
         Input("btn-modificar-hipotesis", "n_clicks"),

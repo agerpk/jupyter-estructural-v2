@@ -298,9 +298,11 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
     """Vista para diseño geométrico con parámetros y cálculo"""
     
     # Generar resultados si hay cálculo guardado
-    resultados_previos = None
+    resultados_previos = []
     if calculo_guardado:
         resultados_previos = generar_resultados_dge(calculo_guardado, estructura_actual)
+        if not isinstance(resultados_previos, list):
+            resultados_previos = [resultados_previos]
     
     return html.Div([
         dbc.Card([
@@ -467,7 +469,7 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 html.Hr(),
                 
                 # Área de resultados
-                html.Div(id="output-diseno-geometrico", children=resultados_previos if resultados_previos else None)
+                html.Div(id="output-diseno-geometrico", children=resultados_previos if resultados_previos else [])
             ])
         ])
     ])
