@@ -715,3 +715,113 @@ html.append(f'<pre style="background:#1e1e1e; color:#d4d4d4; padding:8px;">{valo
 1. Ejecutar "Calcular Todo" → Verificar que aparece gráfico 3D interactivo en sección DGE
 2. Verificar que el gráfico permite zoom, pan, rotación (interactividad Plotly)
 3. Descargar HTML → Verificar que tabla de parámetros es legible
+
+---
+
+### 3D Load Tree Performance Issues
+
+**Context**: Implementing 3D interactive load tree visualization with multiple hypotheses and arrow displays.
+
+**Issue 1**: 30-second delay when generating 3D load trees, causing UI to appear frozen.
+
+**Root Cause**: Creating individual Plotly traces for each arrow component (line + cone + text) resulted in hundreds of traces for complex structures with multiple hypotheses.
+
+**Failed Solution**: Attempted to optimize by grouping traces by component (X/Y/Z) instead of individual arrows, but this caused:
+- Deformed cone sizes (cones grouped together lost individual sizing)
+- Loss of individual hover information
+- Complex visibility management issues
+
+**Successful Solution**: Reverted to individual traces but added performance optimizations:
+- Filter out forces below 0.01 daN threshold to reduce phantom arrows
+- Use `float()` conversion to avoid numpy type issues
+- Maintain individual trace approach for proper cone sizing and hover info
+
+**Key Takeaway**: For Plotly 3D visualizations with many interactive elements, individual traces perform better than grouped traces when proper filtering is applied.
+
+---
+
+### 3D Arrow Direction Mismatch with Rotated Nodes
+
+**Context**: 3D load tree arrows showing incorrect directions for rotated nodes (nodes with rotacion_eje_z = -90°).
+
+**Issue**: Arrows displayed forces in rotated local coordinate system instead of global physical directions:
+- Console showed: `C1A: [0.376, -557.26, -21.56]` (small X, large negative Y)
+- Expected: Large force in X direction (transversal) for terminal structure
+- Displayed: Large force in Y direction (longitudinal) - incorrect
+
+**Root Cause**: Using `obtener_cargas_hipotesis_rotadas(hipotesis_nombre, "global")` which returns forces in the node's rotated coordinate system, not the global visualization coordinate system.
+
+**Resolution**: Always use `obtener_cargas_hipotesis(hipotesis_nombre)` for 3D visualization to get forces in global coordinates:
+```python
+# Wrong - gives rotated coordinates
+if nodo.rotacion_eje_x != 0 or nodo.rotacion_eje_y != 0 or nodo.rotacion_eje_z != 0:
+    cargas = nodo.obtener_cargas_hipotesis_rotadas(hipotesis_nombre, "global")
+
+# Correct - gives global coordinates for visualization
+cargas = nodo.obtener_cargas_hipotesis(hipotesis_nombre)
+```
+
+**Key Takeaway**: 
+- **Rotated coordinates**: Use for structural calculations and analysis
+- **Global coordinates**: Use for 3D visualization and user display
+- The "global" parameter in `obtener_cargas_hipotesis_rotadas()` refers to the node's global system, not the visualization global system
+
+---
+
+### DataFrame Column Mismatch in Load Trees
+
+**Context**: Attempting to use DataFrame values directly for 3D load tree arrows.
+
+**Issue**: DataFrame columns `['', 'Terminal']` didn't match hypothesis names `['HIP_Terminal_A0_EDS (TMA)', ...]`, causing empty load collections.
+
+**Root Cause**: DataFrame generation creates different column naming convention than hypothesis names used in node iteration.
+
+**Resolution**: Use node-based method as primary approach instead of DataFrame method:
+```python
+# DataFrame approach failed due to column name mismatch
+if hipotesis_nombre in df_cargas.columns.get_level_values(0):
+    # Never matched
+
+# Node approach works reliably
+for nombre_nodo, nodo in estructura_mecanica.geometria.nodos.items():
+    cargas = nodo.obtener_cargas_hipotesis(hipotesis_nombre)
+```
+
+**Key Takeaway**: Node-based load extraction is more reliable than DataFrame-based for visualization purposes due to consistent naming conventions.
+
+---
+
+### Phantom Forces in 3D Visualization
+
+**Context**: Small numerical forces (0.376 daN) appearing as arrows in 3D visualization.
+
+**Issue**: Rotational calculations introduce small numerical errors that appear as visible arrows, cluttering the visualization.
+
+**Resolution**: Add magnitude threshold filter to remove insignificant forces:
+```python
+# Filter out forces below threshold
+if any(abs(val) > 0.01 for val in carga_lista):
+    cargas_hipotesis[nombre_nodo] = carga_lista
+```
+
+**Key Takeaway**: Always apply magnitude thresholds when visualizing calculated forces to filter out numerical noise and focus on significant loads.
+
+---
+
+### 3D Load Tree Architecture Best Practices
+
+**Lessons Learned**:
+
+1. **Individual Traces**: Use individual Plotly traces for each arrow component rather than grouping for better control and performance
+2. **Global Coordinates**: Always use global coordinate system for visualization, regardless of node rotations
+3. **Magnitude Filtering**: Apply 0.01 daN threshold to filter out numerical noise
+4. **Node-Based Extraction**: Use node methods rather than DataFrame for load extraction in visualization
+5. **Performance Monitoring**: 3D visualizations with >100 traces can cause significant delays - monitor and optimize accordingly
+6. **Coordinate System Clarity**: Distinguish between:
+   - **Structural coordinates**: For calculations (may be rotated)
+   - **Visualization coordinates**: For display (always global)
+   - **Physical coordinates**: For engineering interpretation (global X=transversal, Y=longitudinal, Z=vertical)
+
+**Files Modified**:
+- `utils/arboles_carga.py` - Load tree generation and 3D visualization
+- `controllers/arboles_controller.py` - Load tree orchestration and caching

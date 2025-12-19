@@ -313,23 +313,10 @@ class NodoEstructural:
         if sistema_referencia == "local":
             return cargas
         
-        # Rotar al sistema global (aplicar rotación directa, no inversa)
-        # Las cargas están en sistema local del cable, necesitamos transformarlas al sistema global
-        fx_rot, fy_rot, fz_rot = self.rotar_vector(
-            cargas["fx"], cargas["fy"], cargas["fz"], aplicar_rotacion_inversa=False
-        )
-        mx_rot, my_rot, mz_rot = self.rotar_vector(
-            cargas["mx"], cargas["my"], cargas["mz"], aplicar_rotacion_inversa=False
-        )
-        
-        return {
-            "fx": fx_rot,
-            "fy": fy_rot,
-            "fz": fz_rot,
-            "mx": mx_rot,
-            "my": my_rot,
-            "mz": mz_rot
-        }
+        # Para sistema "global", las cargas ya están calculadas en el sistema global
+        # durante asignar_cargas_hipotesis donde se aplica la rotación del cable
+        # No necesitamos rotar nuevamente aquí
+        return cargas
     
     def obtener_coordenadas_dict(self):
         """Devuelve coordenadas en formato de diccionario para compatibilidad"""

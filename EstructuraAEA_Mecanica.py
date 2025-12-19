@@ -865,17 +865,11 @@ class EstructuraAEA_Mecanica:
                     if not nodo_obj:
                         continue
                     
-                    # Obtener cargas con rotaciones aplicadas si el nodo tiene rotación
-                    if nodo_obj.rotacion_eje_x != 0 or nodo_obj.rotacion_eje_y != 0 or nodo_obj.rotacion_eje_z != 0:
-                        cargas_rotadas = nodo_obj.obtener_cargas_hipotesis_rotadas(nombre_hipotesis, "global")
-                        Fx_n = cargas_rotadas["fx"]
-                        Fy_n = cargas_rotadas["fy"]
-                        Fz_n = cargas_rotadas["fz"]
-                    else:
-                        cargas = nodo_obj.obtener_cargas_hipotesis(nombre_hipotesis)
-                        Fx_n = cargas["fx"]
-                        Fy_n = cargas["fy"]
-                        Fz_n = cargas["fz"]
+                    # Obtener cargas (ya rotadas durante asignar_cargas_hipotesis)
+                    cargas = nodo_obj.obtener_cargas_hipotesis(nombre_hipotesis)
+                    Fx_n = cargas["fx"]
+                    Fy_n = cargas["fy"]
+                    Fz_n = cargas["fz"]
                     
                     # Sumatoria de fuerzas
                     Fx += Fx_n

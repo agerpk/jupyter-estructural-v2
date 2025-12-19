@@ -374,6 +374,10 @@ def register_callbacks(app):
                         autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
                     )
                     
+                    # Importar nodos editados si existen
+                    if "nodos_editados" in estructura_actual and estructura_actual["nodos_editados"]:
+                        estructura_geometria.importar_nodos_editados(estructura_actual["nodos_editados"])
+                    
                     state.calculo_objetos.estructura_geometria = estructura_geometria
                     state.calculo_objetos.estructura_mecanica = None
                     state.calculo_objetos.estructura_graficos = None
@@ -428,7 +432,10 @@ def register_callbacks(app):
                     state.calculo_objetos.estructura_mecanica = estructura_mecanica
                     state.calculo_objetos.estructura_graficos = estructura_graficos
                 else:
-                    # Cargar desde cache
+                    # Cargar desde cache - recargar estructura actual para obtener nodos editados
+                    from config.app_config import DATA_DIR
+                    estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+                    
                     from EstructuraAEA_Geometria import EstructuraAEA_Geometria
                     state.calculo_objetos.estructura_geometria = EstructuraAEA_Geometria(
                         tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
@@ -472,6 +479,10 @@ def register_callbacks(app):
                         dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
                         autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
                     )
+                    
+                    # Importar nodos editados si existen
+                    if "nodos_editados" in estructura_actual and estructura_actual["nodos_editados"]:
+                        state.calculo_objetos.estructura_geometria.importar_nodos_editados(estructura_actual["nodos_editados"])
             
             # Usar estructura_mecanica del state si existe y es válida, sino crear nueva
             if state.calculo_objetos.estructura_mecanica and state.calculo_objetos.estructura_mecanica.geometria:
