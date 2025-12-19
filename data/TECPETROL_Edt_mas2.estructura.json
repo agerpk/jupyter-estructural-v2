@@ -99,127 +99,8 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-18T17:02:41.271070",
+  "fecha_modificacion": "2025-12-18T23:30:15.421723",
   "nodos_editados": [
-    {
-      "nombre": "C1_R",
-      "tipo": "general",
-      "coordenadas": [
-        1.3,
-        0.0,
-        11.378122990393695
-      ],
-      "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C2_R",
-      "tipo": "general",
-      "coordenadas": [
-        1.3,
-        0.0,
-        12.877604470222279
-      ],
-      "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C3_R",
-      "tipo": "general",
-      "coordenadas": [
-        1.3,
-        0.0,
-        14.377085950050862
-      ],
-      "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C1_L",
-      "tipo": "general",
-      "coordenadas": [
-        -1.3,
-        0.0,
-        11.378122990393695
-      ],
-      "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C2_L",
-      "tipo": "general",
-      "coordenadas": [
-        -1.3,
-        0.0,
-        12.877604470222279
-      ],
-      "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "C3_L",
-      "tipo": "general",
-      "coordenadas": [
-        -1.3,
-        0.0,
-        14.377085950050862
-      ],
-      "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
-    {
-      "nombre": "HG1",
-      "tipo": "general",
-      "coordenadas": [
-        0.0,
-        0.0,
-        16.628751999890405
-      ],
-      "cable_id": "OPGW FiberHome 24FO 58mm2",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 0.0,
-      "angulo_quiebre": 0.0,
-      "tipo_fijacion": "suspensión",
-      "conectado_a": [],
-      "es_editado": true
-    },
     {
       "nombre": "C1A",
       "tipo": "general",
@@ -231,7 +112,7 @@
       "cable_id": "Al/Ac 70/12",
       "rotacion_eje_x": 0.0,
       "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 90.0,
+      "rotacion_eje_z": 270.0,
       "angulo_quiebre": 0.0,
       "tipo_fijacion": "suspensión",
       "conectado_a": [],
@@ -248,7 +129,7 @@
       "cable_id": "Al/Ac 70/12",
       "rotacion_eje_x": 0.0,
       "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 90.0,
+      "rotacion_eje_z": 270.0,
       "angulo_quiebre": 0.0,
       "tipo_fijacion": "suspensión",
       "conectado_a": [],

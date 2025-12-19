@@ -76,7 +76,11 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
             nodos_con_cargas_lista = []
             
             for nombre_nodo, nodo in estructura_mecanica.geometria.nodos.items():
-                cargas = nodo.obtener_cargas_hipotesis(hipotesis_nombre)
+                # Aplicar rotaciones si el nodo tiene rotación
+                if nodo.rotacion_eje_x != 0 or nodo.rotacion_eje_y != 0 or nodo.rotacion_eje_z != 0:
+                    cargas = nodo.obtener_cargas_hipotesis_rotadas(hipotesis_nombre, "global")
+                else:
+                    cargas = nodo.obtener_cargas_hipotesis(hipotesis_nombre)
                 carga_lista = [cargas["fx"], cargas["fy"], cargas["fz"]]
                 cargas_hipotesis[nombre_nodo] = carga_lista
                 
