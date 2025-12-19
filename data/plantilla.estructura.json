@@ -64,6 +64,7 @@
   "RELFLECHA_SIN_VIENTO": true,
   "ZOOM_CABEZAL": 0.95,
   "REEMPLAZAR_TITULO_GRAFICO": false,
+  "ADC_3D": true,
   "Vn": 220,
   "estados_climaticos": {
     "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},

@@ -291,10 +291,11 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
     
     # CONFIGURACIÓN GRÁFICOS
     bloques.append(crear_bloque(
-        "CONFIGURACIÓN GRÁFICOS",
+        "CONFIGURACIÓN DE VISUALIZACIÓN",
         [
             ("ZOOM_CABEZAL", float, None, None),
             ("REEMPLAZAR_TITULO_GRAFICO", bool, None, None),
+            ("ADC_3D", bool, "Árboles de carga en 3D", None),
         ],
         [
             ("MOSTRAR_C2", bool, None, None),

@@ -233,6 +233,9 @@ CONTROLES_PARAMETROS = {
     "MOSTRAR_C2": {
         "tipo": "switch"
     },
+    "ADC_3D": {
+        "tipo": "switch"
+    },
     
     # Inputs numéricos simples
     "L_vano": {

@@ -47,6 +47,12 @@ app = dash.Dash(
 app.title = APP_TITLE
 server = app.server  # Exponer el servidor Flask para Gunicorn
 
+# Desactivar hot reload completamente
+app.config.suppress_callback_exceptions = True
+if hasattr(app, '_dev_tools'):
+    app._dev_tools.hot_reload = False
+    app._dev_tools.ui = False
+
 # Aplicar estilos personalizados
 app.index_string = f'''
 <!DOCTYPE html>
@@ -193,4 +199,4 @@ def inicializar_datos():
 
 if __name__ == '__main__':
     inicializar_datos()
-    app.run(debug=DEBUG_MODE, port=APP_PORT)
+    app.run(debug=False, port=APP_PORT)

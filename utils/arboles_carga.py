@@ -1,4 +1,4 @@
-"""Generador de Árboles de Carga 2D"""
+"""Generador de Árboles de Carga 2D y 3D"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,6 +8,7 @@ from pathlib import Path
 import hashlib
 import json
 from config.app_config import CACHE_DIR
+import plotly.graph_objects as go
 
 
 def calcular_hash_estructura(estructura_dict):
@@ -17,7 +18,7 @@ def calcular_hash_estructura(estructura_dict):
 
 
 def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, escala_flecha=1.8, 
-                          grosor_linea=3.5, mostrar_nodos=True, fontsize_nodos=8, fontsize_flechas=9, mostrar_sismo=False):
+                          grosor_linea=3.5, mostrar_nodos=True, fontsize_nodos=8, fontsize_flechas=9, mostrar_sismo=False, usar_3d=True, estructura_geometria=None):
     """
     Genera árboles de carga 2D para todas las hipótesis
     
@@ -49,7 +50,7 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
                 'mensaje': 'No hay datos de cargas. Ejecute primero el Cálculo Mecánico de Cables.'
             }
         
-        # Obtener datos
+        # Obtener datos - usar nodes_key que incluye nodos editados
         nodes_key = estructura_mecanica.geometria.nodes_key
         resultados_reacciones = estructura_mecanica.resultados_reacciones
         
@@ -65,7 +66,91 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
         
         imagenes_generadas = []
         
-        # Generar imagen para cada hipótesis
+        # Si es 3D, generar un solo gráfico interactivo con todas las hipótesis
+        if usar_3d:
+            # Obtener dataframe de cargas desde estructura_mecanica
+            df_cargas = None
+            if hasattr(estructura_mecanica, 'df_cargas_completo') and estructura_mecanica.df_cargas_completo is not None:
+                df_cargas = estructura_mecanica.df_cargas_completo
+            
+            # Recolectar todas las cargas por hipótesis desde el dataframe
+            todas_cargas_hipotesis = {}
+            for hipotesis_nombre in todas_hipotesis:
+                if not mostrar_sismo and '_C2_' in hipotesis_nombre:
+                    continue
+                
+                cargas_hipotesis = {}
+                if df_cargas is not None:
+                    # Usar datos del dataframe directamente
+                    print(f"🔍 DEBUG: Buscando {hipotesis_nombre} en columnas: {list(df_cargas.columns.get_level_values(0).unique())}")
+                    for nodo_nombre in df_cargas.index:
+                        if hipotesis_nombre in df_cargas.columns.get_level_values(0):
+                            try:
+                                fx = df_cargas.loc[nodo_nombre, (hipotesis_nombre, 'x')]
+                                fy = df_cargas.loc[nodo_nombre, (hipotesis_nombre, 'y')]
+                                fz = df_cargas.loc[nodo_nombre, (hipotesis_nombre, 'z')]
+                                if any(abs(val) > 0.01 for val in [fx, fy, fz]):
+                                    cargas_hipotesis[nodo_nombre] = [fx, fy, fz]
+                            except (KeyError, IndexError):
+                                continue
+                        else:
+                            print(f"⚠️  DEBUG: {hipotesis_nombre} no encontrada en columnas DataFrame")
+                # Siempre usar método de nodos como fallback
+                print(f"🔄 DEBUG: Usando método de nodos para {hipotesis_nombre}")
+                for nombre_nodo, nodo in estructura_mecanica.geometria.nodos.items():
+                    if not hasattr(nodo, 'cargas_dict') or not nodo.cargas_dict:
+                        continue
+                    
+                    # Para visualización 3D, siempre usar coordenadas globales
+                    cargas = nodo.obtener_cargas_hipotesis(hipotesis_nombre)
+                    carga_lista = [cargas["fx"], cargas["fy"], cargas["fz"]]
+                    if any(abs(val) > 0.01 for val in carga_lista):
+                        cargas_hipotesis[nombre_nodo] = carga_lista
+                        print(f"✅ DEBUG: Cargas encontradas en {nombre_nodo}: {carga_lista}")
+                
+                # Agregar hipótesis si tiene cargas
+                if cargas_hipotesis:
+                    todas_cargas_hipotesis[hipotesis_nombre] = cargas_hipotesis
+                    print(f"✅ DEBUG: Hipótesis {hipotesis_nombre} agregada con {len(cargas_hipotesis)} nodos")
+                else:
+                    print(f"⚠️  DEBUG: No se encontraron cargas para {hipotesis_nombre}")
+            
+            if todas_cargas_hipotesis:
+                fig = generar_arbol_3d_interactivo(nodes_key, todas_cargas_hipotesis, 
+                                                   resultados_reacciones, estructura_actual, estructura_geometria)
+                
+                titulo_sanitizado = titulo.replace('\n', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+                nombre_archivo = f"{titulo_sanitizado}.arbolcarga.{hash_estructura}.3D_interactivo.png"
+                ruta_imagen = CACHE_DIR / nombre_archivo
+                
+                fig.write_image(str(ruta_imagen), width=1200, height=900)
+                nombre_json = nombre_archivo.replace('.png', '.json')
+                ruta_json = CACHE_DIR / nombre_json
+                fig.write_json(str(ruta_json))
+                
+                imagenes_generadas.append({
+                    'hipotesis': 'Interactivo 3D',
+                    'ruta': ruta_imagen,
+                    'nombre': nombre_archivo
+                })
+            
+            if not imagenes_generadas:
+                print(f"❌ DEBUG: No se generaron imágenes 3D")
+                print(f"   todas_cargas_hipotesis: {len(todas_cargas_hipotesis)} hipótesis")
+                print(f"   df_cargas disponible: {df_cargas is not None}")
+                if df_cargas is not None:
+                    print(f"   df_cargas shape: {df_cargas.shape}")
+                    print(f"   df_cargas columns: {list(df_cargas.columns.get_level_values(0).unique())}")
+                print(f"   todas_hipotesis: {todas_hipotesis}")
+                return {'exito': False, 'mensaje': 'No se generaron imágenes 3D'}
+            
+            return {
+                'exito': True,
+                'mensaje': f'Se generó árbol de carga 3D interactivo',
+                'imagenes': imagenes_generadas
+            }
+        
+        # Generar imagen para cada hipótesis (solo 2D)
         for hipotesis_nombre in todas_hipotesis:
             # Filtrar hipótesis C2 si mostrar_sismo es False
             if not mostrar_sismo and '_C2_' in hipotesis_nombre:
@@ -96,54 +181,66 @@ def generar_arboles_carga(estructura_mecanica, estructura_actual, zoom=0.5, esca
             
             datos_reacciones = resultados_reacciones[hipotesis_nombre]
             
-            # Crear figura
-            fig, ax = plt.subplots(figsize=(12, 10))
+            # Crear figura 2D o 3D según configuración
+            if usar_3d:
+                fig = generar_arbol_3d(nodes_key, cargas_hipotesis, datos_reacciones, 
+                                      hipotesis_nombre, estructura_actual, escala_flecha)
+            else:
+                fig, ax = plt.subplots(figsize=(12, 10))
             
-            # Dibujar estructura (todos los elementos en negro)
-            dibujar_estructura_2d(ax, nodes_key, grosor_linea)
-            
-            # Dibujar flechas de cargas
-            dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala_flecha, fontsize_flechas)
-            
-            # Panel de reacciones
-            dibujar_panel_reacciones_2d(ax, datos_reacciones, rangos)
-            
-            # Etiquetas de nodos si está activado
-            if mostrar_nodos:
-                dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas_lista, nodes_key, fontsize_nodos)
-            
-            # Configurar ejes
-            ax.set_xlim(rangos['x_min'], rangos['x_max'])
-            ax.set_ylim(rangos['z_min'], rangos['z_max'])
-            ax.set_aspect('equal')
-            ax.grid(True, alpha=0.3)
-            ax.set_xlabel('X (m)')
-            ax.set_ylabel('Z (m)')
-            
-            # Título mejorado: Hip. XX / Descripción / Tipo estructura
-            codigo_hip = hipotesis_nombre.split('_')[-2] if '_' in hipotesis_nombre else hipotesis_nombre
-            descripcion_hip = hipotesis_nombre.split('_')[-1] if '_' in hipotesis_nombre else ''
-            tipo_estructura = estructura_actual.get('TIPO_ESTRUCTURA', '')
-            
-            titulo_grafico = f"Hip. {codigo_hip}\n{descripcion_hip}\n{tipo_estructura}"
-            ax.set_title(titulo_grafico, fontsize=12, fontweight='bold')
-            
-            # Leyenda
-            from matplotlib.patches import Patch
-            legend_elements = [
-                Patch(facecolor='red', label='Fuerza X Transversal'),
-                Patch(facecolor='blue', label='Fuerza Z Vertical'),
-                Patch(facecolor='green', label='Fuerza Y Longitudinal')
-            ]
-            ax.legend(handles=legend_elements, loc='upper right')
+            if not usar_3d:
+                # Dibujar estructura (todos los elementos en negro)
+                dibujar_estructura_2d(ax, nodes_key, grosor_linea)
+                
+                # Dibujar flechas de cargas
+                dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala_flecha, fontsize_flechas)
+                
+                # Panel de reacciones
+                dibujar_panel_reacciones_2d(ax, datos_reacciones, rangos)
+                
+                # Etiquetas de nodos si está activado
+                if mostrar_nodos:
+                    dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas_lista, nodes_key, fontsize_nodos)
+                
+                # Configurar ejes
+                ax.set_xlim(rangos['x_min'], rangos['x_max'])
+                ax.set_ylim(rangos['z_min'], rangos['z_max'])
+                ax.set_aspect('equal')
+                ax.grid(True, alpha=0.3)
+                ax.set_xlabel('X (m)')
+                ax.set_ylabel('Z (m)')
+                
+                # Título mejorado: Hip. XX / Descripción / Tipo estructura
+                codigo_hip = hipotesis_nombre.split('_')[-2] if '_' in hipotesis_nombre else hipotesis_nombre
+                descripcion_hip = hipotesis_nombre.split('_')[-1] if '_' in hipotesis_nombre else ''
+                tipo_estructura = estructura_actual.get('TIPO_ESTRUCTURA', '')
+                
+                titulo_grafico = f"Hip. {codigo_hip}\n{descripcion_hip}\n{tipo_estructura}"
+                ax.set_title(titulo_grafico, fontsize=12, fontweight='bold')
+                
+                # Leyenda
+                from matplotlib.patches import Patch
+                legend_elements = [
+                    Patch(facecolor='red', label='Fuerza X Transversal'),
+                    Patch(facecolor='blue', label='Fuerza Z Vertical'),
+                    Patch(facecolor='green', label='Fuerza Y Longitudinal')
+                ]
+                ax.legend(handles=legend_elements, loc='upper right')
             
             # Guardar imagen (sanitizar nombre de archivo)
             titulo_sanitizado = titulo.replace('\n', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
             nombre_archivo = f"{titulo_sanitizado}.arbolcarga.{hash_estructura}.{hipotesis_nombre.replace(' ', '_')}.png"
             ruta_imagen = CACHE_DIR / nombre_archivo
             
-            fig.savefig(ruta_imagen, dpi=150, bbox_inches='tight', facecolor='white')
-            plt.close(fig)
+            if usar_3d:
+                fig.write_image(str(ruta_imagen), width=1200, height=900)
+                # Guardar también JSON para interactividad
+                nombre_json = nombre_archivo.replace('.png', '.json')
+                ruta_json = CACHE_DIR / nombre_json
+                fig.write_json(str(ruta_json))
+            else:
+                fig.savefig(ruta_imagen, dpi=150, bbox_inches='tight', facecolor='white')
+                plt.close(fig)
             
             imagenes_generadas.append({
                 'hipotesis': hipotesis_nombre,
@@ -436,3 +533,439 @@ def dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key, fontsize=8):
         ax.text(x - 0.3, z + 0.2, nombre_nodo, fontsize=fontsize, fontweight='bold',
                ha='center', va='center',
                bbox=dict(boxstyle="round,pad=0.2", facecolor="yellow", alpha=0.7, edgecolor='black'))
+
+
+def generar_arbol_3d_interactivo(nodes_key, todas_cargas_hipotesis, resultados_reacciones, estructura_actual, estructura_geometria=None):
+    """Genera gráfico 3D interactivo con selector de hipótesis usando datos del dataframe"""
+    fig = go.Figure()
+    
+    COLORES = {
+        'conductor': '#1f77b4', 'guardia': '#2ca02c', 'poste': '#000000',
+        'terreno': '#8B4513', 'otros': '#FF8C00'
+    }
+    
+    # Agrupar TODOS los nodos por tipo (incluyendo editados)
+    nodos_conductor = []
+    nodos_guardia = []
+    nodos_estructura = []
+    nodos_otros = []
+    
+    for nombre, coords in nodes_key.items():
+        x, y, z = coords
+        if nombre.startswith(('C1', 'C2', 'C3')):
+            nodos_conductor.append((x, y, z, nombre))
+        elif nombre.startswith('HG'):
+            nodos_guardia.append((x, y, z, nombre))
+        elif 'BASE' in nombre or 'TOP' in nombre or 'CROSS' in nombre or nombre.startswith('Y'):
+            nodos_estructura.append((x, y, z, nombre))
+        else:
+            nodos_otros.append((x, y, z, nombre))
+    
+    # Dibujar nodos
+    if nodos_conductor:
+        x_vals, y_vals, z_vals, nombres = zip(*nodos_conductor)
+        fig.add_trace(go.Scatter3d(
+            x=list(x_vals), y=list(y_vals), z=list(z_vals),
+            mode='markers+text',
+            marker=dict(size=8, color=COLORES['conductor'], line=dict(color='white', width=2)),
+            text=list(nombres), textposition='top center', textfont=dict(size=9),
+            name='Conductores',
+            hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+        ))
+    
+    if nodos_guardia:
+        x_vals, y_vals, z_vals, nombres = zip(*nodos_guardia)
+        fig.add_trace(go.Scatter3d(
+            x=list(x_vals), y=list(y_vals), z=list(z_vals),
+            mode='markers+text',
+            marker=dict(size=8, color=COLORES['guardia'], line=dict(color='white', width=2)),
+            text=list(nombres), textposition='top center', textfont=dict(size=9),
+            name='Guardias',
+            hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+        ))
+    
+    if nodos_estructura:
+        x_vals, y_vals, z_vals, nombres = zip(*nodos_estructura)
+        fig.add_trace(go.Scatter3d(
+            x=list(x_vals), y=list(y_vals), z=list(z_vals),
+            mode='markers+text',
+            marker=dict(size=8, color=COLORES['poste'], line=dict(color='white', width=2)),
+            text=list(nombres), textposition='top center', textfont=dict(size=9),
+            name='Estructura',
+            hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+        ))
+    
+    if nodos_otros:
+        x_vals, y_vals, z_vals, nombres = zip(*nodos_otros)
+        fig.add_trace(go.Scatter3d(
+            x=list(x_vals), y=list(y_vals), z=list(z_vals),
+            mode='markers+text',
+            marker=dict(size=8, color=COLORES['otros'], line=dict(color='white', width=2)),
+            text=list(nombres), textposition='top center', textfont=dict(size=9),
+            name='Otros',
+            hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+        ))
+    
+    dibujar_lineas_estructura_3d(fig, nodes_key, estructura_geometria)
+    
+    # Plano de terreno
+    x_coords = [coords[0] for coords in nodes_key.values()]
+    y_coords = [coords[1] for coords in nodes_key.values()]
+    if x_coords and y_coords:
+        x_range = [min(x_coords) - 1, max(x_coords) + 1]
+        y_range = [min(y_coords) - 1, max(y_coords) + 1]
+        fig.add_trace(go.Mesh3d(
+            x=[x_range[0], x_range[1], x_range[1], x_range[0]],
+            y=[y_range[0], y_range[0], y_range[1], y_range[1]],
+            z=[0, 0, 0, 0],
+            color=COLORES['terreno'], opacity=0.3,
+            name='Terreno', showlegend=True, hoverinfo='skip'
+        ))
+    
+    # Agregar flechas para cada hipótesis usando datos del dataframe
+    lista_hipotesis = list(todas_cargas_hipotesis.keys())
+    for idx, hipotesis_nombre in enumerate(lista_hipotesis):
+        visible = (idx == 0)  # Solo la primera hipótesis visible inicialmente
+        dibujar_flechas_desde_dataframe(fig, todas_cargas_hipotesis[hipotesis_nombre], nodes_key, hipotesis_nombre, visible)
+    
+    # Crear botones para selector de hipótesis
+    buttons = []
+    tipo_estructura = estructura_actual.get('TIPO_ESTRUCTURA', '')
+    
+    # Separar traces fijos de traces de flechas
+    traces_fijos = []
+    traces_flechas = []
+    
+    for i, trace in enumerate(fig.data):
+        if (hasattr(trace, 'name') and 
+            (trace.name in ['Conductores', 'Guardias', 'Estructura', 'Otros', 'Terreno'] or
+             (hasattr(trace, 'showlegend') and trace.showlegend == False and hasattr(trace, 'mode') and trace.mode == 'lines'))):
+            traces_fijos.append(i)
+        elif hasattr(trace, 'name') and trace.name and trace.name.startswith('flecha_'):
+            traces_flechas.append(i)
+    
+    for idx, hipotesis_nombre in enumerate(lista_hipotesis):
+        visibility = [False] * len(fig.data)  # Inicializar todo como oculto
+        
+        # Traces fijos siempre visibles
+        for trace_idx in traces_fijos:
+            visibility[trace_idx] = True
+        
+        # Solo mostrar flechas de la hipótesis seleccionada
+        for trace_idx in traces_flechas:
+            trace = fig.data[trace_idx]
+            if hasattr(trace, 'name') and f'flecha_{hipotesis_nombre}_' in trace.name:
+                visibility[trace_idx] = True
+        
+        codigo_hip = hipotesis_nombre.split('_')[-2] if '_' in hipotesis_nombre else hipotesis_nombre
+        descripcion_hip = hipotesis_nombre.split('_')[-1] if '_' in hipotesis_nombre else ''
+        
+        buttons.append(dict(
+            label=f"{codigo_hip} - {descripcion_hip}",
+            method="restyle",
+            args=[{"visible": visibility}]
+        ))
+    
+    titulo_inicial = f"ÁRBOL DE CARGA 3D - {tipo_estructura.upper()}"
+    
+    fig.update_layout(
+        title=dict(text=titulo_inicial, font=dict(size=16, family='Arial Black')),
+        updatemenus=[dict(
+            type="dropdown",
+            direction="down",
+            x=0.5, xanchor="center",
+            y=1.15, yanchor="top",
+            buttons=buttons,
+            bgcolor="white",
+            bordercolor="black",
+            borderwidth=2
+        )],
+        scene=dict(
+            xaxis=dict(title='X [m]', gridcolor='lightgray', showbackground=True,
+                      backgroundcolor='white', type='linear', dtick=1),
+            yaxis=dict(title='Y [m]', gridcolor='lightgray', showbackground=True,
+                      backgroundcolor='white', type='linear', dtick=1),
+            zaxis=dict(title='Z [m]', gridcolor='lightgray', showbackground=True,
+                      backgroundcolor='white', type='linear', dtick=1),
+            aspectmode='data',
+            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2), center=dict(x=0, y=0, z=0), up=dict(x=0, y=0, z=1))
+        ),
+        showlegend=True,
+        legend=dict(x=0.02, y=0.98, bgcolor='rgba(255,255,255,0.9)', bordercolor='black', borderwidth=1),
+        width=1200, height=900,
+        margin=dict(l=0, r=0, t=100, b=0)
+    )
+    
+    return fig
+
+
+def generar_arbol_3d(nodes_key, cargas_hipotesis, datos_reacciones, hipotesis_nombre, estructura_actual, escala_flecha=1.8):
+    """Genera gráfico 3D interactivo de árbol de carga usando Plotly (estilo DGE)"""
+    fig = go.Figure()
+    
+    # Colores (mismo esquema que EstructuraAEA_Graficos)
+    COLORES = {
+        'conductor': '#1f77b4', 'guardia': '#2ca02c', 'poste': '#000000',
+        'terreno': '#8B4513'
+    }
+    
+    # Agrupar nodos por tipo
+    nodos_conductor = []
+    nodos_guardia = []
+    nodos_estructura = []
+    
+    for nombre, coords in nodes_key.items():
+        x, y, z = coords
+        if nombre.startswith(('C1', 'C2', 'C3')):
+            nodos_conductor.append((x, y, z, nombre))
+        elif nombre.startswith('HG'):
+            nodos_guardia.append((x, y, z, nombre))
+        elif 'BASE' in nombre or 'TOP' in nombre or 'CROSS' in nombre or nombre.startswith('Y'):
+            nodos_estructura.append((x, y, z, nombre))
+    
+    # Dibujar nodos por tipo
+    if nodos_conductor:
+        x_vals, y_vals, z_vals, nombres = zip(*nodos_conductor)
+        fig.add_trace(go.Scatter3d(
+            x=list(x_vals), y=list(y_vals), z=list(z_vals),
+            mode='markers+text',
+            marker=dict(size=8, color=COLORES['conductor'], line=dict(color='white', width=2)),
+            text=list(nombres),
+            textposition='top center',
+            textfont=dict(size=9),
+            name='Conductores',
+            hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+        ))
+    
+    if nodos_guardia:
+        x_vals, y_vals, z_vals, nombres = zip(*nodos_guardia)
+        fig.add_trace(go.Scatter3d(
+            x=list(x_vals), y=list(y_vals), z=list(z_vals),
+            mode='markers+text',
+            marker=dict(size=8, color=COLORES['guardia'], line=dict(color='white', width=2)),
+            text=list(nombres),
+            textposition='top center',
+            textfont=dict(size=9),
+            name='Guardias',
+            hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+        ))
+    
+    if nodos_estructura:
+        x_vals, y_vals, z_vals, nombres = zip(*nodos_estructura)
+        fig.add_trace(go.Scatter3d(
+            x=list(x_vals), y=list(y_vals), z=list(z_vals),
+            mode='markers+text',
+            marker=dict(size=8, color=COLORES['poste'], line=dict(color='white', width=2)),
+            text=list(nombres),
+            textposition='top center',
+            textfont=dict(size=9),
+            name='Estructura',
+            hovertemplate='<b>%{text}</b><br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>'
+        ))
+    
+    # Dibujar líneas de estructura
+    dibujar_lineas_estructura_3d(fig, nodes_key)
+    
+    # Dibujar flechas de cargas
+    dibujar_flechas_3d(fig, cargas_hipotesis, nodes_key, escala_flecha)
+    
+    # Plano de terreno
+    x_coords = [coords[0] for coords in nodes_key.values()]
+    y_coords = [coords[1] for coords in nodes_key.values()]
+    if x_coords and y_coords:
+        x_range = [min(x_coords) - 1, max(x_coords) + 1]
+        y_range = [min(y_coords) - 1, max(y_coords) + 1]
+        
+        fig.add_trace(go.Mesh3d(
+            x=[x_range[0], x_range[1], x_range[1], x_range[0]],
+            y=[y_range[0], y_range[0], y_range[1], y_range[1]],
+            z=[0, 0, 0, 0],
+            color=COLORES['terreno'],
+            opacity=0.3,
+            name='Terreno',
+            showlegend=True,
+            hoverinfo='skip'
+        ))
+    
+    # Título
+    codigo_hip = hipotesis_nombre.split('_')[-2] if '_' in hipotesis_nombre else hipotesis_nombre
+    descripcion_hip = hipotesis_nombre.split('_')[-1] if '_' in hipotesis_nombre else ''
+    tipo_estructura = estructura_actual.get('TIPO_ESTRUCTURA', '')
+    titulo = f'ÁRBOL DE CARGA 3D - Hip. {codigo_hip} - {descripcion_hip} - {tipo_estructura.upper()}'
+    
+    # Configuración de layout (mismo estilo que DGE)
+    fig.update_layout(
+        title=dict(text=titulo, font=dict(size=16, family='Arial Black')),
+        scene=dict(
+            xaxis=dict(
+                title='X [m]',
+                gridcolor='lightgray',
+                showbackground=True,
+                backgroundcolor='white',
+                type='linear',
+                dtick=1
+            ),
+            yaxis=dict(
+                title='Y [m]',
+                gridcolor='lightgray',
+                showbackground=True,
+                backgroundcolor='white',
+                type='linear',
+                dtick=1
+            ),
+            zaxis=dict(
+                title='Z [m]',
+                gridcolor='lightgray',
+                showbackground=True,
+                backgroundcolor='white',
+                type='linear',
+                dtick=1
+            ),
+            aspectmode='data',
+            camera=dict(
+                eye=dict(x=1.5, y=-1.5, z=1.2),
+                center=dict(x=0, y=0, z=0),
+                up=dict(x=0, y=0, z=1)
+            )
+        ),
+        showlegend=True,
+        legend=dict(x=0.02, y=0.98, bgcolor='rgba(255,255,255,0.9)', bordercolor='black', borderwidth=1),
+        width=1200,
+        height=800,
+        margin=dict(l=0, r=0, t=50, b=0)
+    )
+    
+    return fig
+
+
+def dibujar_lineas_estructura_3d(fig, nodes_key, estructura_geometria=None):
+    """Dibuja líneas de estructura en 3D usando conectado_a de cada nodo"""
+    # Si hay estructura_geometria, usar sus conexiones
+    if estructura_geometria and hasattr(estructura_geometria, 'nodos'):
+        for nombre_nodo, nodo in estructura_geometria.nodos.items():
+            if hasattr(nodo, 'conectado_a') and nodo.conectado_a:
+                for nodo_destino in nodo.conectado_a:
+                    if nombre_nodo in nodes_key and nodo_destino in nodes_key:
+                        x1, y1, z1 = nodes_key[nombre_nodo]
+                        x2, y2, z2 = nodes_key[nodo_destino]
+                        fig.add_trace(go.Scatter3d(
+                            x=[x1, x2], y=[y1, y2], z=[z1, z2],
+                            mode='lines',
+                            line=dict(color='black', width=4),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
+        return
+    
+    # Fallback: lógica original si no hay estructura_geometria
+    tiene_y = any('Y' in nombre for nombre in nodes_key.keys())
+    conexiones = []
+    
+    if tiene_y:
+        conexiones = [
+            ('BASE', 'Y1'), ('Y1', 'Y2'), ('Y2', 'Y4'),
+            ('Y1', 'Y3'), ('Y3', 'Y5'), ('Y4', 'HG1'), ('Y5', 'HG2')
+        ]
+    else:
+        nodos_estructura = [(coords[2], nombre) for nombre, coords in nodes_key.items() 
+                           if abs(coords[0]) < 0.001 and abs(coords[1]) < 0.001 
+                           and not nombre.startswith(('C1', 'C2', 'C3', 'HG'))]
+        nodos_estructura.sort(key=lambda x: x[0])
+        conexiones = [(nodos_estructura[i][1], nodos_estructura[i+1][1]) 
+                     for i in range(len(nodos_estructura)-1)]
+    
+    for nodo1, nodo2 in conexiones:
+        if nodo1 in nodes_key and nodo2 in nodes_key:
+            x1, y1, z1 = nodes_key[nodo1]
+            x2, y2, z2 = nodes_key[nodo2]
+            fig.add_trace(go.Scatter3d(
+                x=[x1, x2], y=[y1, y2], z=[z1, z2],
+                mode='lines',
+                line=dict(color='black', width=4),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+
+
+def dibujar_flechas_desde_dataframe(fig, cargas_hipotesis, nodes_key, hipotesis_nombre, visible=True):
+    """Dibuja flechas usando exactamente los valores del dataframe"""
+    colores = {'x': 'red', 'y': 'green', 'z': 'blue'}
+    nombres = {'x': 'Fx Transversal', 'y': 'Fy Longitudinal', 'z': 'Fz Vertical'}
+    TAMANO_MAX_FLECHA_3D = 2.0
+    TAMANO_MIN_PORCENTAJE = 0.25
+    
+    # Encontrar magnitud máxima
+    max_fuerza = max(abs(val) for carga in cargas_hipotesis.values() for val in carga if val != 0) or 1
+    
+    for nombre_nodo, carga in cargas_hipotesis.items():
+        if nombre_nodo not in nodes_key or not any(abs(val) > 0.01 for val in carga):
+            continue
+        
+        x0, y0, z0 = nodes_key[nombre_nodo]
+        fx, fy, fz = float(carga[0]), float(carga[1]), float(carga[2])
+        fuerzas = {'x': fx, 'y': fy, 'z': fz}
+        
+        for comp, fuerza in fuerzas.items():
+            if abs(fuerza) < 0.01:
+                continue
+            
+            color = colores[comp]
+            ratio = abs(fuerza) / max_fuerza
+            magnitud = (TAMANO_MIN_PORCENTAJE + ratio * (1 - TAMANO_MIN_PORCENTAJE)) * TAMANO_MAX_FLECHA_3D
+            direccion = 1 if fuerza > 0 else -1
+            
+            if comp == 'x':
+                x1, y1, z1 = x0 + direccion * magnitud, y0, z0
+                u, v, w = direccion * 0.2, 0, 0
+            elif comp == 'y':
+                x1, y1, z1 = x0, y0 + direccion * magnitud, z0
+                u, v, w = 0, direccion * 0.2, 0
+            else:
+                x1, y1, z1 = x0, y0, z0 + direccion * magnitud
+                u, v, w = 0, 0, direccion * 0.2
+            
+            # Línea de flecha
+            fig.add_trace(go.Scatter3d(
+                x=[x0, x1], y=[y0, y1], z=[z0, z1],
+                mode='lines',
+                line=dict(color=color, width=6),
+                showlegend=False,
+                visible=visible,
+                name=f'flecha_{hipotesis_nombre}_{comp}_{nombre_nodo}_line',
+                hovertemplate=f'<b>{nombre_nodo}</b><br>{nombres[comp]}: {abs(fuerza):.1f} daN<extra></extra>'
+            ))
+            
+            # Cono de flecha
+            fig.add_trace(go.Cone(
+                x=[x1], y=[y1], z=[z1],
+                u=[u], v=[v], w=[w],
+                colorscale=[[0, color], [1, color]],
+                showscale=False,
+                sizemode='absolute',
+                sizeref=0.15,
+                showlegend=False,
+                visible=visible,
+                name=f'flecha_{hipotesis_nombre}_{comp}_{nombre_nodo}_cone',
+                hoverinfo='skip'
+            ))
+            
+            # Etiqueta de magnitud
+            x_text = (x0 + x1) / 2
+            y_text = (y0 + y1) / 2
+            z_text = (z0 + z1) / 2
+            fig.add_trace(go.Scatter3d(
+                x=[x_text], y=[y_text], z=[z_text],
+                mode='text',
+                text=[f'{abs(fuerza):.1f}'],
+                textfont=dict(size=10, color=color),
+                showlegend=False,
+                visible=visible,
+                name=f'flecha_{hipotesis_nombre}_{comp}_{nombre_nodo}_text',
+                hoverinfo='skip'
+            ))
+
+
+def dibujar_flechas_3d(fig, cargas_hipotesis, nodes_key, escala):
+    """Dibuja flechas de cargas en 3D con conos (versión antigua para compatibilidad)"""
+    colores = {'x': 'red', 'y': 'green', 'z': 'blue'}
+    nombres = {'x': 'Fx Transversal', 'y': 'Fy Longitudinal', 'z': 'Fz Vertical'}

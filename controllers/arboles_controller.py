@@ -16,104 +16,50 @@ def register_callbacks(app):
     state = AppState()
     
     @app.callback(
-        Output("resultados-arboles-carga", "children", allow_duplicate=True),
-        Input("url", "pathname"),
+        Output("resultados-arboles-carga", "children"),
+        Output("toast-notificacion", "is_open", allow_duplicate=True),
+        Output("toast-notificacion", "header", allow_duplicate=True),
+        Output("toast-notificacion", "children", allow_duplicate=True),
+        Output("toast-notificacion", "icon", allow_duplicate=True),
+        Output("toast-notificacion", "color", allow_duplicate=True),
+        Input("btn-cargar-cache-arboles", "n_clicks"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def cargar_arboles_desde_cache(pathname, estructura_actual):
-        """Carga árboles desde cache al entrar a la vista"""
-        if pathname != "/arboles-carga":
+    def cargar_arboles_desde_cache(n_clicks, estructura_actual):
+        """Carga árboles desde cache cuando se presiona el botón"""
+        if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
         if not estructura_actual:
-            raise dash.exceptions.PreventUpdate
+            return (dash.no_update, True, "Error", "No hay estructura cargada", "danger", "danger")
+        
+        # Recargar estructura desde archivo
+        from config.app_config import DATA_DIR
+        estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
         
         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
         calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
         
         if not calculo_arboles:
-            return html.Div([
-                dbc.Alert("No hay árboles de carga calculados. Haga clic en 'Generar Árboles' para calcular.", color="info")
-            ])
+            return (
+                html.Div([dbc.Alert("No hay árboles de carga en cache. Genere primero los árboles.", color="info")]),
+                True, "Información", "No hay cache disponible", "info", "info"
+            )
         
         print(f"🔄 Cargando árboles desde cache para {nombre_estructura}")
         
-        imagenes_html = [
-            dbc.Alert("✓ Árboles cargados desde cache", color="info", className="mb-3")
-        ]
+        from components.vista_arboles_carga import generar_resultados_arboles
+        resultados = generar_resultados_arboles(calculo_arboles, estructura_actual, mostrar_alerta_cache=True)
         
-        # Cargar DataFrame de cargas
-        if calculo_arboles.get('df_cargas_completo'):
-            import pandas as pd
-            df_dict = calculo_arboles['df_cargas_completo']
-            print(f"✅ DataFrame encontrado en cache")
-            
-            # Reconstruir MultiIndex
-            arrays = []
-            for level_idx in range(len(df_dict['columns'])):
-                level_values = df_dict['columns'][level_idx]
-                codes = df_dict['column_codes'][level_idx]
-                arrays.append([level_values[code] for code in codes])
-            multi_idx = pd.MultiIndex.from_arrays(arrays)
-            df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)
-            
-            # Filtrar y formatear
-            mask = (df_cargas.iloc[:, 2:].abs() > 0.001).any(axis=1)
-            df_cargas = df_cargas[mask]
-            df_cargas_fmt = df_cargas.round(2)
-            
-            # Crear HTML con estilos
-            html_table = f'''<html><head><style>
-                body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
-                table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
-                th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
-                th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
-                tr:nth-child(even) {{ background-color: #f8f9fa; }}
-                tr:hover {{ background-color: #e9ecef; }}
-            </style></head><body>{df_cargas_fmt.to_html(border=0, index=False)}</body></html>'''
-            
-            altura_tabla = min(max(len(df_cargas) * 25 + 80, 150), 600)
-            
-            imagenes_html.extend([
-                html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
-                html.Iframe(
-                    srcDoc=html_table,
-                    style={'width': '100%', 'height': f'{altura_tabla}px', 'border': '1px solid #dee2e6', 'borderRadius': '4px'}
-                )
-            ])
-        
-        # Cargar imágenes
-        imagenes_cards = []
-        for img_info in calculo_arboles.get('imagenes', []):
-            img_path = CACHE_DIR / img_info['nombre']
-            if img_path.exists():
-                with open(img_path, 'rb') as f:
-                    img_str = base64.b64encode(f.read()).decode()
-                
-                imagenes_cards.append(
-                    dbc.Col([
-                        dbc.Card([
-                            dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
-                            dbc.CardBody([
-                                html.Img(src=f'data:image/png;base64,{img_str}', 
-                                        style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
-                                        className="img-fluid")
-                            ], style={'padding': '0.5rem'})
-                        ], className="mb-3")
-                    ], lg=5, md=6)
-                )
-        
-        if imagenes_cards:
-            imagenes_html.extend([
-                html.H5("Árboles de Carga por Hipótesis", className="mt-4 mb-3"),
-                dbc.Row(imagenes_cards, justify="center")
-            ])
-        
-        return html.Div(imagenes_html)
+        return (
+            resultados,
+            True, "Éxito", "Árboles cargados desde cache", "success", "success"
+        )
+
     
     @app.callback(
-        Output("resultados-arboles-carga", "children"),
+        Output("resultados-arboles-carga", "children", allow_duplicate=True),
         Output("toast-notificacion", "is_open", allow_duplicate=True),
         Output("toast-notificacion", "header", allow_duplicate=True),
         Output("toast-notificacion", "children", allow_duplicate=True),
@@ -127,10 +73,11 @@ def register_callbacks(app):
         State("slider-fontsize-flechas", "value"),
         State("param-mostrar-nodos", "value"),
         State("param-mostrar-sismo", "value"),
+        State("param-adc-3d", "value"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def generar_arboles_callback(n_clicks, zoom, escala, grosor, fontsize_nodos, fontsize_flechas, mostrar_nodos, mostrar_sismo, estructura_actual):
+    def generar_arboles_callback(n_clicks, zoom, escala, grosor, fontsize_nodos, fontsize_flechas, mostrar_nodos, mostrar_sismo, adc_3d, estructura_actual):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
@@ -221,6 +168,11 @@ def register_callbacks(app):
                         autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
                     )
                     
+                    # Importar nodos editados
+                    if estructura_actual.get('nodos_editados'):
+                        estructura_geometria.importar_nodos_editados(estructura_actual['nodos_editados'])
+                        estructura_geometria._actualizar_nodes_key()
+                    
                     state.calculo_objetos.estructura_geometria = estructura_geometria
                 else:
                     # Cargar desde cache y reconstruir geometría
@@ -268,6 +220,11 @@ def register_callbacks(app):
                         dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
                         autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
                     )
+                    
+                    # Importar nodos editados
+                    if estructura_actual.get('nodos_editados'):
+                        estructura_geometria.importar_nodos_editados(estructura_actual['nodos_editados'])
+                        estructura_geometria._actualizar_nodes_key()
                     
                     state.calculo_objetos.estructura_geometria = estructura_geometria
             
@@ -335,6 +292,7 @@ def register_callbacks(app):
                         print(f"⚠️ No hay cargas asignadas a los nodos")
             
             # Generar árboles
+            usar_3d = bool(adc_3d)
             resultado = generar_arboles_carga(
                 estructura_poo,
                 estructura_actual,
@@ -344,7 +302,9 @@ def register_callbacks(app):
                 mostrar_nodos=bool(mostrar_nodos),
                 fontsize_nodos=int(fontsize_nodos),
                 fontsize_flechas=int(fontsize_flechas),
-                mostrar_sismo=bool(mostrar_sismo)
+                mostrar_sismo=bool(mostrar_sismo),
+                usar_3d=usar_3d,
+                estructura_geometria=state.calculo_objetos.estructura_geometria
             )
             
             if not resultado['exito']:
@@ -399,23 +359,47 @@ def register_callbacks(app):
                 ])
             
             imagenes_cards = []
+            from utils.view_helpers import ViewHelpers
+            from dash import dcc
+            
             for img_info in resultado['imagenes']:
-                # Leer imagen y convertir a base64
-                with open(img_info['ruta'], 'rb') as f:
-                    img_str = base64.b64encode(f.read()).decode()
+                # Intentar cargar JSON para gráfico 3D interactivo
+                nombre_json = img_info['nombre'].replace('.png', '.json')
+                fig_dict = ViewHelpers.cargar_figura_plotly_json(nombre_json)
                 
-                imagenes_cards.append(
-                    dbc.Col([
-                        dbc.Card([
-                            dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
-                            dbc.CardBody([
-                                html.Img(src=f'data:image/png;base64,{img_str}', 
-                                        style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
-                                        className="img-fluid")
-                            ], style={'padding': '0.5rem'})
-                        ], className="mb-3")
-                    ], lg=5, md=6)
-                )
+                if fig_dict:
+                    # Gráfico 3D interactivo
+                    imagenes_cards.append(
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardHeader(html.H6(f"{img_info['hipotesis']}", className="mb-0 text-center")),
+                                dbc.CardBody([
+                                    dcc.Graph(
+                                        figure=fig_dict,
+                                        config={'displayModeBar': True, 'responsive': True},
+                                        style={'height': '900px', 'width': '100%'}
+                                    )
+                                ], style={'padding': '0.5rem'})
+                            ], className="mb-3")
+                        ], lg=12, md=12)
+                    )
+                else:
+                    # Gráfico 2D estático
+                    with open(img_info['ruta'], 'rb') as f:
+                        img_str = base64.b64encode(f.read()).decode()
+                    
+                    imagenes_cards.append(
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
+                                dbc.CardBody([
+                                    html.Img(src=f'data:image/png;base64,{img_str}', 
+                                            style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
+                                            className="img-fluid")
+                                ], style={'padding': '0.5rem'})
+                            ], className="mb-3")
+                        ], lg=5, md=6)
+                    )
             
             imagenes_html.extend([
                 html.H5("Árboles de Carga por Hipótesis", className="mt-4 mb-3"),

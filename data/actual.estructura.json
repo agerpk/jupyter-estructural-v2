@@ -64,6 +64,7 @@
   "RELFLECHA_SIN_VIENTO": true,
   "ZOOM_CABEZAL": 0.95,
   "REEMPLAZAR_TITULO_GRAFICO": false,
+  "ADC_3D": true,
   "Vn": 33,
   "estados_climaticos": {
     "I": {
@@ -99,7 +100,7 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-19T12:06:18.628251",
+  "fecha_modificacion": "2025-12-19T14:19:11.811621",
   "nodos_editados": [
     {
       "nombre": "C1A",
@@ -107,15 +108,17 @@
       "coordenadas": [
         0.0,
         1.3,
-        7.01
+        9.62
       ],
       "cable_id": "Al/Ac 70/12",
       "rotacion_eje_x": 0.0,
       "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 90.0,
+      "rotacion_eje_z": -90.0,
       "angulo_quiebre": 0.0,
       "tipo_fijacion": "suspensión",
-      "conectado_a": [],
+      "conectado_a": [
+        "C1A"
+      ],
       "es_editado": true
     },
     {
@@ -124,15 +127,20 @@
       "coordenadas": [
         0.0,
         0.0,
-        7.01
+        9.62
       ],
       "cable_id": "Al/Ac 70/12",
       "rotacion_eje_x": 0.0,
       "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 90.0,
+      "rotacion_eje_z": -90.0,
       "angulo_quiebre": 0.0,
       "tipo_fijacion": "suspensión",
-      "conectado_a": [],
+      "conectado_a": [
+        "C3A",
+        "C1A",
+        "BASE",
+        "CROSS_H1"
+      ],
       "es_editado": true
     },
     {
@@ -141,12 +149,12 @@
       "coordenadas": [
         0.0,
         -1.3,
-        7.01
+        9.62
       ],
       "cable_id": "Al/Ac 70/12",
       "rotacion_eje_x": 0.0,
       "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": 90.0,
+      "rotacion_eje_z": -90.0,
       "angulo_quiebre": 0.0,
       "tipo_fijacion": "suspensión",
       "conectado_a": [],

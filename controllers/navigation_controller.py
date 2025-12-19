@@ -115,12 +115,7 @@ def register_callbacks(app):
                 return crear_vista_seleccion_poste(estructura_actual, calculo_guardado)
             elif ultima_vista == "arboles-carga":
                 from components.vista_arboles_carga import crear_vista_arboles_carga
-                from utils.calculo_cache import CalculoCache
-                calculo_guardado = None
-                if estructura_actual:
-                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                    calculo_guardado = CalculoCache.cargar_calculo_arboles(nombre_estructura)
-                return crear_vista_arboles_carga(estructura_actual, calculo_guardado)
+                return crear_vista_arboles_carga(estructura_actual, None)
             elif ultima_vista == "calcular-todo":
                 from components.vista_calcular_todo import crear_vista_calcular_todo
                 return crear_vista_calcular_todo(estructura_actual, None)
@@ -204,16 +199,7 @@ def register_callbacks(app):
         elif trigger_id == "menu-arboles-carga":
             guardar_navegacion_state("arboles-carga")
             from components.vista_arboles_carga import crear_vista_arboles_carga
-            from utils.calculo_cache import CalculoCache
-            calculo_guardado = None
-            if estructura_actual:
-                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                calculo_guardado = CalculoCache.cargar_calculo_arboles(nombre_estructura)
-                if calculo_guardado:
-                    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-                    if not vigente:
-                        calculo_guardado = None
-            return crear_vista_arboles_carga(estructura_actual, calculo_guardado)
+            return crear_vista_arboles_carga(estructura_actual, None)
         
         elif trigger_id == "menu-seleccion-poste":
             guardar_navegacion_state("seleccion-poste")

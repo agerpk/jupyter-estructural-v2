@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 from utils.view_helpers import ViewHelpers
 from utils.calculo_cache import CalculoCache
 import pandas as pd
+import json
 
 
 def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
@@ -76,7 +77,7 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                             value=[True],
                             switch=True
                         )
-                    ], md=6),
+                    ], md=4),
                     dbc.Col([
                         dbc.Checklist(
                             id="param-mostrar-sismo",
@@ -84,17 +85,29 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                             value=[],
                             switch=True
                         )
-                    ], md=6),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Checklist(
+                            id="param-adc-3d",
+                            options=[{"label": "Gráficos 3D", "value": True}],
+                            value=[True] if estructura_actual and estructura_actual.get('ADC_3D', True) else [],
+                            switch=True
+                        )
+                    ], md=4),
                 ])
             ])
         ], className="mb-3"),
         
-        # Botón generar
+        # Botones
         dbc.Row([
             dbc.Col([
                 dbc.Button("Generar Árboles de Carga", id="btn-generar-arboles", 
                           color="success", size="lg", className="w-100"),
-            ])
+            ], md=6),
+            dbc.Col([
+                dbc.Button("Cargar desde Cache", id="btn-cargar-cache-arboles", 
+                          color="info", size="lg", className="w-100"),
+            ], md=6)
         ], className="mb-4"),
         
         # Área de resultados
@@ -145,26 +158,47 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual, mostrar_aler
                 )
             ])
         
-        # Organizar imágenes en dos columnas
+        # Organizar imágenes en dos columnas (verificar si hay JSON para 3D)
         imagenes_cards = []
         for img_info in imagenes:
-            img_str = ViewHelpers.cargar_imagen_base64(img_info['nombre'])
+            # Intentar cargar JSON para gráfico 3D interactivo
+            nombre_json = img_info['nombre'].replace('.png', '.json')
+            fig_dict = ViewHelpers.cargar_figura_plotly_json(nombre_json)
             
-            if not img_str:
-                continue
-            
-            imagenes_cards.append(
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
-                        dbc.CardBody([
-                            html.Img(src=f'data:image/png;base64,{img_str}', 
-                                    style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
-                                    className="img-fluid")
-                        ], style={'padding': '0.5rem'})
-                    ], className="mb-3")
-                ], lg=5, md=6)
-            )
+            if fig_dict:
+                # Gráfico 3D interactivo
+                imagenes_cards.append(
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.CardHeader(html.H6(f"{img_info['hipotesis']}", className="mb-0 text-center")),
+                            dbc.CardBody([
+                                dcc.Graph(
+                                    figure=fig_dict,
+                                    config={'displayModeBar': True, 'responsive': True},
+                                    style={'height': '900px', 'width': '100%'}
+                                )
+                            ], style={'padding': '0.5rem'})
+                        ], className="mb-3")
+                    ], lg=12, md=12)
+                )
+            else:
+                # Gráfico 2D estático
+                img_str = ViewHelpers.cargar_imagen_base64(img_info['nombre'])
+                if not img_str:
+                    continue
+                
+                imagenes_cards.append(
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
+                            dbc.CardBody([
+                                html.Img(src=f'data:image/png;base64,{img_str}', 
+                                        style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
+                                        className="img-fluid")
+                            ], style={'padding': '0.5rem'})
+                        ], className="mb-3")
+                    ], lg=5, md=6)
+                )
         
         # Crear filas de 2 columnas centradas
         if imagenes_cards:

@@ -667,12 +667,12 @@ def register_callbacks(app):
                     rot_x = float(nodo.get("rotacion_eje_x", 0.0))
                     rot_y = float(nodo.get("rotacion_eje_y", 0.0))
                     rot_z = float(nodo.get("rotacion_eje_z", 0.0))
-                    if not (0 <= rot_x <= 360):
-                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación X debe estar entre 0-360°", "danger", "danger"
-                    if not (0 <= rot_y <= 360):
-                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación Y debe estar entre 0-360°", "danger", "danger"
-                    if not (0 <= rot_z <= 360):
-                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación Z debe estar entre 0-360°", "danger", "danger"
+                    if not (-360 <= rot_x <= 360):
+                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación X debe estar entre -360° y 360°", "danger", "danger"
+                    if not (-360 <= rot_y <= 360):
+                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación Y debe estar entre -360° y 360°", "danger", "danger"
+                    if not (-360 <= rot_z <= 360):
+                        return dash.no_update, True, "Error", f"Fila {i+1}: Rotación Z debe estar entre -360° y 360°", "danger", "danger"
                 except (ValueError, TypeError):
                     return dash.no_update, True, "Error", f"Fila {i+1}: Rotaciones inválidas", "danger", "danger"
             
