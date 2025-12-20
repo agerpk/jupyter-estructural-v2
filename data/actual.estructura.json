@@ -34,17 +34,17 @@
   "FORZAR_N_POSTES": 3,
   "FORZAR_ORIENTACION": "No",
   "PRIORIDAD_DIMENSIONADO": "altura_libre",
-  "TENSION": 33,
+  "TENSION": 219,
   "Zona_estructura": "Rural",
-  "Lk": 0,
+  "Lk": 2,
   "ANG_APANTALLAMIENTO": 30,
   "AJUSTAR_POR_ALTURA_MSNM": false,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
   "Altura_MSNM": 900,
-  "DISPOSICION": "vertical",
-  "TERNA": "Doble",
-  "CANT_HG": 1,
-  "HG_CENTRADO": true,
+  "DISPOSICION": "horizontal",
+  "TERNA": "SIMPLE",
+  "CANT_HG": 2,
+  "HG_CENTRADO": false,
   "ALTURA_MINIMA_CABLE": 6.5,
   "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
   "LONGITUD_MENSULA_MINIMA_GUARDIA": 0,
@@ -100,21 +100,21 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-19T14:19:11.811621",
+  "fecha_modificacion": "2025-12-19T22:45:00.569860",
   "nodos_editados": [
     {
       "nombre": "C1A",
       "tipo": "general",
       "coordenadas": [
-        0.0,
+        0,
         1.3,
         9.62
       ],
       "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": -90.0,
-      "angulo_quiebre": 0.0,
+      "rotacion_eje_x": 0,
+      "rotacion_eje_y": 0,
+      "rotacion_eje_z": -90,
+      "angulo_quiebre": 0,
       "tipo_fijacion": "suspensión",
       "conectado_a": [
         "C1A"
@@ -125,15 +125,15 @@
       "nombre": "C2A",
       "tipo": "general",
       "coordenadas": [
-        0.0,
-        0.0,
+        0,
+        0,
         9.62
       ],
       "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": -90.0,
-      "angulo_quiebre": 0.0,
+      "rotacion_eje_x": 0,
+      "rotacion_eje_y": 0,
+      "rotacion_eje_z": -90,
+      "angulo_quiebre": 0,
       "tipo_fijacion": "suspensión",
       "conectado_a": [
         "C3A",
@@ -147,18 +147,19 @@
       "nombre": "C3A",
       "tipo": "general",
       "coordenadas": [
-        0.0,
+        0,
         -1.3,
         9.62
       ],
       "cable_id": "Al/Ac 70/12",
-      "rotacion_eje_x": 0.0,
-      "rotacion_eje_y": 0.0,
-      "rotacion_eje_z": -90.0,
-      "angulo_quiebre": 0.0,
+      "rotacion_eje_x": 0,
+      "rotacion_eje_y": 0,
+      "rotacion_eje_z": -90,
+      "angulo_quiebre": 0,
       "tipo_fijacion": "suspensión",
       "conectado_a": [],
       "es_editado": true
     }
-  ]
+  ],
+  "MORFOLOGIA": "SIMPLE-HORIZONTAL-2HG"
 }

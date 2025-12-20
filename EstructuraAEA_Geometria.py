@@ -42,13 +42,13 @@ class EstructuraAEA_Geometria:
     }
     
     def __init__(self, tipo_estructura, tension_nominal, zona_estructura, 
-                disposicion, terna, cant_hg, alpha_quiebre,
-                altura_minima_cable, long_mensula_min_conductor, long_mensula_min_guardia,
-                hadd, hadd_entre_amarres, lk, ancho_cruceta,
-                cable_conductor, cable_guardia, peso_estructura=0, peso_cadena=None,
+                disposicion=None, terna=None, cant_hg=None, alpha_quiebre=0.0,
+                altura_minima_cable=6.5, long_mensula_min_conductor=1.3, long_mensula_min_guardia=0.2,
+                hadd=0.4, hadd_entre_amarres=0.2, lk=2.5, ancho_cruceta=0.3,
+                cable_conductor=None, cable_guardia=None, peso_estructura=3900, peso_cadena=10.5,
                 hg_centrado=None, ang_apantallamiento=None, hadd_hg=0.0, hadd_lmen=0.0,
                 dist_reposicionar_hg=0.1, ajustar_por_altura_msnm=None,
-                metodo_altura_msnm=None, altura_msnm=None):  # ← NUEVOS PARÁMETROS
+                metodo_altura_msnm=None, altura_msnm=None, morfologia=None):
         """
         Inicializa una estructura completa
         
@@ -83,9 +83,28 @@ class EstructuraAEA_Geometria:
         self.tipo_estructura = tipo_estructura
         self.tension_nominal = tension_nominal
         self.zona_estructura = zona_estructura
-        self.disposicion = disposicion.lower()
-        self.terna = terna
-        self.cant_hg = cant_hg
+        
+        # SISTEMA DE MORFOLOGÍAS - Unificación de parámetros
+        if morfologia:
+            # Usar morfología como fuente principal
+            from EstructuraAEA_Geometria_Morfologias import extraer_parametros_morfologia
+            params = extraer_parametros_morfologia(morfologia)
+            self.morfologia = morfologia
+            self.terna = params["TERNA"]
+            self.disposicion = params["DISPOSICION"]
+            self.cant_hg = params["CANT_HG"]
+            self.hg_centrado = params["HG_CENTRADO"]
+        else:
+            # Compatibilidad: usar parámetros legacy
+            if disposicion and terna is not None and cant_hg is not None:
+                from EstructuraAEA_Geometria_Morfologias import inferir_morfologia_desde_parametros
+                self.morfologia = inferir_morfologia_desde_parametros(terna, disposicion, cant_hg, hg_centrado or False)
+                self.terna = terna
+                self.disposicion = disposicion.lower()
+                self.cant_hg = cant_hg
+                self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO
+            else:
+                raise ValueError("Debe especificar 'morfologia' o los parámetros 'disposicion', 'terna', 'cant_hg'")
         self.alpha_quiebre = alpha_quiebre
         self.altura_minima_cable = altura_minima_cable
         self.long_mensula_min_conductor = long_mensula_min_conductor
@@ -101,8 +120,7 @@ class EstructuraAEA_Geometria:
         self.metodo_altura_msnm = metodo_altura_msnm if metodo_altura_msnm is not None else self.METODO_ALTURA_MSNM
         self.altura_msnm = altura_msnm if altura_msnm is not None else self.ALTURA_MSNM
         
-        # Nuevos parámetros
-        self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO
+        # Parámetros de morfología ya configurados arriba
         self.ang_apantallamiento = ang_apantallamiento if ang_apantallamiento is not None else self.ANG_APANTALLAMIENTO
         self.hadd_hg = hadd_hg
         self.hadd_lmen = hadd_lmen
@@ -566,47 +584,35 @@ class EstructuraAEA_Geometria:
 
     
     def _crear_nodos_estructurales_nuevo(self, h1a, h2a, h3a, s_estructura=None, D_fases=None, theta_max=None):
-        """Crea todos los nodos según el proceso indicado CORREGIDO"""
-        self.nodos = {}
+        """Crea todos los nodos usando sistema de morfologías"""
+        from EstructuraAEA_Geometria_Morfologias import crear_nodos_morfologia
         
-        # NODO BASE
-        self.nodos["BASE"] = NodoEstructural(
-            "BASE", (0.0, 0.0, 0.0), "base", 
-            tipo_fijacion=self.tipo_fijacion_base
-        )
+        # Preparar parámetros calculados para morfologías
+        parametros_calculados = {
+            'h1a': h1a, 'h2a': h2a, 'h3a': h3a,
+            's_estructura': s_estructura or self.dimensiones.get('s_estructura', 0.5),
+            'D_fases': D_fases or self.dimensiones.get('D_fases', 1.5),
+            'theta_max': theta_max or self.dimensiones.get('theta_max', 0.0),
+            'lmen': self.lmen,
+            'lmen2c': self.lmen2c,
+            'lmenhg': self.lmenhg,
+            'hhg': self.hhg,
+            'phg1': self.phg1,
+            'phg2': self.phg2,
+            'pcma': self.pcma,
+            'hg_centrado': self.hg_centrado,
+            'cant_hg': self.cant_hg,
+            'cable_conductor': self.cable_conductor,
+            'cable_guardia1': self.cable_guardia1,
+            'cable_guardia2': self.cable_guardia2,
+            'alpha_quiebre': self.alpha_quiebre,
+            'tipo_fijacion_base': self.tipo_fijacion_base,
+            'lk': self.lk,
+            'ancho_cruceta': self.ancho_cruceta
+        }
         
-        # NODOS DE CRUCE (poste-ménsula) - SOLO crear los necesarios
-        # Solo crear CROSS_H1 si NO es horizontal simple
-        if not (self.disposicion == "horizontal" and self.terna == "Simple"):
-            self.nodos["CROSS_H1"] = NodoEstructural("CROSS_H1", (0.0, 0.0, h1a), "cruce")
-        
-        # Crear CROSS_H2 si hay conductores en h2a y h2a > h1a
-        if (self.disposicion in ["triangular", "vertical"]) and h2a > h1a:
-            self.nodos["CROSS_H2"] = NodoEstructural("CROSS_H2", (0.0, 0.0, h2a), "cruce")
-        
-        # Crear CROSS_H3 si hay conductores en h3a y h3a > h2a
-        if self.disposicion == "vertical" and h3a > h2a:
-            self.nodos["CROSS_H3"] = NodoEstructural("CROSS_H3", (0.0, 0.0, h3a), "cruce")
-        
-        # NODOS DE CONDUCTORES según configuración
-        print(f"   🔍 DEBUG: disposicion='{self.disposicion}', terna='{self.terna}'")
-        if self.disposicion == "horizontal":
-            print("📐 Configuración horizontal")
-            self._crear_nodos_horizontal_default(h1a, s_estructura, D_fases, theta_max)
-        elif self.terna == "Simple" and self.disposicion == "vertical":
-            self._crear_nodos_simple_vertical(h1a, h2a, h3a)
-        elif self.terna == "Simple" and self.disposicion == "triangular":
-            self._crear_nodos_simple_triangular(h1a, h2a)
-        elif self.terna == "Doble" and self.disposicion == "vertical":
-            self._crear_nodos_doble_vertical(h1a, h2a, h3a)
-        elif self.terna == "Doble" and self.disposicion == "triangular":
-            self._crear_nodos_doble_triangular(h1a, h2a)
-        else:
-            print(f"⚠️  Configuración no reconocida: terna={self.terna}, disposicion={self.disposicion}")
-            self._crear_nodos_horizontal_default(h1a, s_estructura, D_fases, theta_max)
-        
-        # NODOS DE GUARDIA (ahora se maneja en _crear_nodos_guardia_nuevo)
-        self._crear_nodos_guardia_nuevo()
+        # Crear nodos y conexiones usando morfología
+        self.nodos, self.conexiones = crear_nodos_morfologia(self.morfologia, parametros_calculados)
         
         # NODO DE VIENTO (a 2/3 de la altura total)
         altura_total = max(h3a, h2a, h1a, self.hhg) if self.hhg > 0 else max(h3a, h2a, h1a)
@@ -623,7 +629,7 @@ class EstructuraAEA_Geometria:
         # Actualizar nodes_key para compatibilidad
         self._actualizar_nodes_key()
         
-        print(f"   ✅ Nodos creados: {len(self.nodos)} nodos totales")
+        print(f"   ✅ Nodos creados usando morfología '{self.morfologia}': {len(self.nodos)} nodos totales")
     
     def _crear_nodos_simple_vertical(self, h1a, h2a, h3a):
         """Crea nodos para terna simple disposición vertical"""

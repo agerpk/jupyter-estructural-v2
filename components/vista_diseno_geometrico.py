@@ -8,6 +8,9 @@ from utils.view_helpers import ViewHelpers
 from utils.calculo_cache import CalculoCache
 
 
+
+
+
 def generar_tabla_editor_nodos(nodos_data, cables_disponibles):
     """Genera tabla editable de nodos para el modal
     
@@ -313,6 +316,35 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 
                 dbc.Row([
                     dbc.Col([
+                        dbc.Label("MORFOLOGIA", style={"fontSize": "1.125rem"}),
+                        dbc.Select(
+                            id="select-morfologia-dge",
+                            options=[
+                                {"label": "SIMPLE-VERTICAL-1HG", "value": "SIMPLE-VERTICAL-1HG"},
+                                {"label": "SIMPLE-TRIANGULAR-NOHG", "value": "SIMPLE-TRIANGULAR-NOHG"},
+                                {"label": "SIMPLE-TRIANGULAR-1HG-DEFASADO", "value": "SIMPLE-TRIANGULAR-1HG-DEFASADO"},
+                                {"label": "SIMPLE-HORIZONTAL-NOHG", "value": "SIMPLE-HORIZONTAL-NOHG"},
+                                {"label": "SIMPLE-HORIZONTAL-1HG", "value": "SIMPLE-HORIZONTAL-1HG"},
+                                {"label": "SIMPLE-HORIZONTAL-2HG", "value": "SIMPLE-HORIZONTAL-2HG"},
+                                {"label": "DOBLE-VERTICAL-NOHG", "value": "DOBLE-VERTICAL-NOHG"},
+                                {"label": "DOBLE-VERTICAL-1HG", "value": "DOBLE-VERTICAL-1HG"},
+                                {"label": "DOBLE-VERTICAL-2HG", "value": "DOBLE-VERTICAL-2HG"},
+                                {"label": "DOBLE-TRIANGULAR-NOHG", "value": "DOBLE-TRIANGULAR-NOHG"},
+                                {"label": "DOBLE-TRIANGULAR-1HG", "value": "DOBLE-TRIANGULAR-1HG"},
+                                {"label": "DOBLE-TRIANGULAR-2HG", "value": "DOBLE-TRIANGULAR-2HG"}
+                            ],
+                            value=estructura_actual.get("MORFOLOGIA", "DOBLE-VERTICAL-1HG") if estructura_actual else "DOBLE-VERTICAL-1HG",
+                            size="sm"
+                        ),
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Label("HG Centrado", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(id="switch-hg-centrado", value=estructura_actual.get("HG_CENTRADO", False)),
+                    ], md=6),
+                ], className="mb-3"),
+                
+                dbc.Row([
+                    dbc.Col([
                         dbc.Label("TENSION (kV)", style={"fontSize": "1.125rem"}),
                         dcc.Slider(id="slider-tension-geom", **{k: v for k, v in obtener_config_control("TENSION").items() if k != "tipo"}, value=estructura_actual.get("TENSION", 220), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
@@ -332,23 +364,6 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                         dbc.Label("Ángulo Apantallamiento (°)", style={"fontSize": "1.125rem"}),
                         dcc.Slider(id="slider-ang-apantallamiento", **{k: v for k, v in obtener_config_control("ANG_APANTALLAMIENTO").items() if k != "tipo"}, value=estructura_actual.get("ANG_APANTALLAMIENTO", 30.0), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),
-                ], className="mb-3"),
-                
-                dbc.Row([
-                    dbc.Col([
-                        dbc.Label("TERNA", style={"fontSize": "1.125rem"}),
-                        dbc.Select(id="select-terna-geom", value=estructura_actual.get("TERNA", "Simple"),
-                                   options=[{"label": opt, "value": opt} for opt in obtener_config_control("TERNA")["opciones"]]),
-                    ], md=4),
-                    dbc.Col([
-                        dbc.Label("DISPOSICION", style={"fontSize": "1.125rem"}),
-                        dbc.Select(id="select-disposicion-geom", value=estructura_actual.get("DISPOSICION", "triangular"),
-                                   options=[{"label": opt, "value": opt} for opt in obtener_config_control("DISPOSICION")["opciones"]]),
-                    ], md=4),
-                    dbc.Col([
-                        dbc.Label("CANT_HG", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-cant-hg-geom", **{k: v for k, v in obtener_config_control("CANT_HG").items() if k != "tipo"}, value=estructura_actual.get("CANT_HG", 2), tooltip={"placement": "bottom", "always_visible": True}),
-                    ], md=4),
                 ], className="mb-3"),
                 
                 dbc.Row([
@@ -401,12 +416,8 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 
                 dbc.Row([
                     dbc.Col([
-                        dbc.Label("HG Centrado", style={"fontSize": "1.125rem"}),
-                        dbc.Switch(id="switch-hg-centrado", value=estructura_actual.get("HG_CENTRADO", False)),
-                    ], md=6),
-                    dbc.Col([
                         dbc.Label("Autoajustar LMENHG", style={"fontSize": "1.125rem"}),
-                        dbc.Switch(id="switch-autoajustar-lmenhg", value=estructura_actual.get("AUTOAJUSTAR_LMENHG", True)),
+                        dbc.Switch(id="switch-autoajustar-lmenhg", value=estructura_actual.get("AUTOAJUSTAR_LMENHG", True) if estructura_actual else True),
                     ], md=6),
                 ], className="mb-3"),
                 

@@ -8,6 +8,8 @@ import json
 from datetime import datetime
 from config.parametros_controles import obtener_config_control
 
+
+
 def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
     """Crear un campo de parámetro usando configuración centralizada"""
     # Convertir valores vacíos o None a valores por defecto según el tipo
@@ -153,8 +155,23 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         "PRIORIDAD_DIMENSIONADO": ["altura_libre", "longitud_total"],
         "Zona_estructura": ["Peatonal", "Rural", "Urbana", "Autopista", "Ferrocarril", "Línea Eléctrica"],
         "METODO_ALTURA_MSNM": ["AEA 3%/300m"],
-        "DISPOSICION": ["triangular", "horizontal", "vertical"],
-        "TERNA": ["Simple", "Doble"],
+        "DISPOSICION": ["triangular", "horizontal", "vertical"],  # Mantener para compatibilidad
+        "TERNA": ["Simple", "Doble"],  # Mantener para compatibilidad
+        "MORFOLOGIA": [
+            "SIMPLE-VERTICAL-1HG",
+            "SIMPLE-TRIANGULAR-NOHG", 
+            "SIMPLE-TRIANGULAR-1HG-DEFASADO",
+            "SIMPLE-HORIZONTAL-NOHG",
+            "SIMPLE-HORIZONTAL-1HG",
+            "SIMPLE-HORIZONTAL-2HG",
+            "SIMPLE-HORIZONTAL-2HG-AT",
+            "DOBLE-VERTICAL-NOHG",
+            "DOBLE-VERTICAL-1HG", 
+            "DOBLE-VERTICAL-2HG",
+            "DOBLE-TRIANGULAR-NOHG",
+            "DOBLE-TRIANGULAR-1HG",
+            "DOBLE-TRIANGULAR-2HG"
+        ],
         "OBJ_CONDUCTOR": ["FlechaMin", "TiroMin"],
         "OBJ_GUARDIA": ["FlechaMin", "TiroMin"],
         "cable_conductor_id": cables_disponibles if cables_disponibles else [],
@@ -195,36 +212,44 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         estructura_actual, opciones
     ))
     
-    # CONFIGURACIÓN DISEÑO DE CABEZAL
-    bloques.append(crear_bloque(
-        "CONFIGURACIÓN DISEÑO DE CABEZAL",
-        [
-            ("TENSION", int, "Tensión nominal en kV", None),
-            ("Zona_estructura", str, None, "Zona_estructura"),
-            ("Lk", float, "Longitud cadena oscilante", None),
-            ("ANG_APANTALLAMIENTO", float, "Ángulo de apantallamiento", None),
-            ("AJUSTAR_POR_ALTURA_MSNM", bool, "Ajustar por alta montaña", None),
-            ("METODO_ALTURA_MSNM", str, None, "METODO_ALTURA_MSNM"),
-            ("Altura_MSNM", float, "Altura sobre nivel del mar", None),
-            ("DISPOSICION", str, None, "DISPOSICION"),
-            ("TERNA", str, None, "TERNA"),
-            ("CANT_HG", int, "Cantidad cables guardia", None),
-        ],
-        [
-            ("HG_CENTRADO", bool, "Cable guardia centrado", None),
-            ("ALTURA_MINIMA_CABLE", float, None, None),
-            ("LONGITUD_MENSULA_MINIMA_CONDUCTOR", float, None, None),
-            ("LONGITUD_MENSULA_MINIMA_GUARDIA", float, None, None),
-            ("HADD", float, "Altura adicional base", None),
-            ("HADD_ENTRE_AMARRES", float, "Altura adicional entre amarres", None),
-            ("HADD_HG", float, "Altura adicional cable guardia", None),
-            ("HADD_LMEN", float, "Altura adicional ménsula", None),
-            ("ANCHO_CRUCETA", float, None, None),
-            ("AUTOAJUSTAR_LMENHG", bool, "Autoajuste ménsula guardia", None),
-            ("DIST_REPOSICIONAR_HG", float, None, None),
-        ],
-        estructura_actual, opciones
-    ))
+    # CONFIGURACIÓN DISEÑO DE CABEZAL - CON SELECTOR DE MORFOLOGÍA
+    bloques.append(html.Div([
+        html.H5("CONFIGURACIÓN DISEÑO DE CABEZAL", style={"color": "#2084f2", "marginTop": "20px", "marginBottom": "15px", "fontSize": "1.5rem"}),
+        
+        # Resto de parámetros en dos columnas
+        dbc.Row([
+            dbc.Col([
+                crear_campo("MORFOLOGIA", str, estructura_actual.get("MORFOLOGIA", ""), None, opciones.get("MORFOLOGIA")),
+                crear_campo("TENSION", int, estructura_actual.get("TENSION", ""), "Tensión nominal en kV", None),
+                crear_campo("Zona_estructura", str, estructura_actual.get("Zona_estructura", ""), None, opciones.get("Zona_estructura")),
+                crear_campo("Lk", float, estructura_actual.get("Lk", ""), "Longitud cadena oscilante", None),
+                crear_campo("ANG_APANTALLAMIENTO", float, estructura_actual.get("ANG_APANTALLAMIENTO", ""), "Ángulo de apantallamiento", None),
+                crear_campo("AJUSTAR_POR_ALTURA_MSNM", bool, estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM", ""), "Ajustar por alta montaña", None),
+                crear_campo("METODO_ALTURA_MSNM", str, estructura_actual.get("METODO_ALTURA_MSNM", ""), None, opciones.get("METODO_ALTURA_MSNM")),
+                crear_campo("Altura_MSNM", float, estructura_actual.get("Altura_MSNM", ""), "Altura sobre nivel del mar", None),
+            ], width=6),
+            dbc.Col([
+                crear_campo("ALTURA_MINIMA_CABLE", float, estructura_actual.get("ALTURA_MINIMA_CABLE", ""), None, None),
+                crear_campo("LONGITUD_MENSULA_MINIMA_CONDUCTOR", float, estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR", ""), None, None),
+                crear_campo("LONGITUD_MENSULA_MINIMA_GUARDIA", float, estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA", ""), None, None),
+                crear_campo("HADD", float, estructura_actual.get("HADD", ""), "Altura adicional base", None),
+                crear_campo("HADD_ENTRE_AMARRES", float, estructura_actual.get("HADD_ENTRE_AMARRES", ""), "Altura adicional entre amarres", None),
+                crear_campo("HADD_HG", float, estructura_actual.get("HADD_HG", ""), "Altura adicional cable guardia", None),
+                crear_campo("HADD_LMEN", float, estructura_actual.get("HADD_LMEN", ""), "Altura adicional ménsula", None),
+            ], width=6)
+        ]),
+        
+        # Parámetros adicionales en una fila
+        dbc.Row([
+            dbc.Col([
+                crear_campo("ANCHO_CRUCETA", float, estructura_actual.get("ANCHO_CRUCETA", ""), None, None),
+                crear_campo("AUTOAJUSTAR_LMENHG", bool, estructura_actual.get("AUTOAJUSTAR_LMENHG", ""), "Autoajuste ménsula guardia", None),
+            ], width=6),
+            dbc.Col([
+                crear_campo("DIST_REPOSICIONAR_HG", float, estructura_actual.get("DIST_REPOSICIONAR_HG", ""), None, None),
+            ], width=6)
+        ])
+    ]))
     
     # PARÁMETROS DE DISEÑO DE LINEA
     bloques.append(crear_bloque(

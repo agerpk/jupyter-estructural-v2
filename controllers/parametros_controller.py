@@ -71,6 +71,8 @@ def register_callbacks(app):
         
         raise dash.exceptions.PreventUpdate
     
+
+    
     @app.callback(
         Output("estructura-actual", "data", allow_duplicate=True),
         Output("toast-notificacion", "is_open", allow_duplicate=True),
@@ -101,7 +103,21 @@ def register_callbacks(app):
                     if param_key in estructura_actual:
                         original_value = estructura_actual[param_key]
                         
-                        if isinstance(original_value, bool):
+                        # Manejar morfología especialmente
+                        if param_key == "MORFOLOGIA":
+                            # Extraer parámetros de morfología y actualizar legacy
+                            from EstructuraAEA_Geometria_Morfologias import extraer_parametros_morfologia
+                            try:
+                                params = extraer_parametros_morfologia(param_value)
+                                estructura_actualizada["MORFOLOGIA"] = param_value
+                                estructura_actualizada["TERNA"] = params["TERNA"]
+                                estructura_actualizada["DISPOSICION"] = params["DISPOSICION"]
+                                estructura_actualizada["CANT_HG"] = params["CANT_HG"]
+                                estructura_actualizada["HG_CENTRADO"] = params["HG_CENTRADO"]
+                            except Exception as e:
+                                print(f"Error procesando morfología {param_value}: {e}")
+                                estructura_actualizada[param_key] = param_value
+                        elif isinstance(original_value, bool):
                             estructura_actualizada[param_key] = bool(param_value)
                         elif isinstance(original_value, int):
                             try:

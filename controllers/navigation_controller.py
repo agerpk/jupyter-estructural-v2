@@ -84,6 +84,9 @@ def register_callbacks(app):
                 return crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
             elif ultima_vista == "diseno-geometrico":
                 from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
+                from config.app_config import DATA_DIR
+                # Recargar estructura actual desde archivo
+                estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
                 return crear_vista_diseno_geometrico(estructura_actual, None)
             elif ultima_vista == "diseno-mecanico":
                 from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
@@ -163,6 +166,9 @@ def register_callbacks(app):
         elif trigger_id == "menu-diseno-geometrico":
             guardar_navegacion_state("diseno-geometrico")
             from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
+            from config.app_config import DATA_DIR
+            # Recargar estructura actual desde archivo
+            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
             return crear_vista_diseno_geometrico(estructura_actual, None)
         
         elif trigger_id == "menu-diseno-mecanico":

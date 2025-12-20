@@ -230,6 +230,59 @@ threading.Thread(target=guardar_async, daemon=True).start()
 
 ## Lessons Learned
 
+## Lessons Learned
+
+### Selector de Morfología - Implementación Correcta
+
+**Context**: Implementando selector unificado de morfología para reemplazar 4 parámetros separados (TERNA, DISPOSICION, CANT_HG, HG_CENTRADO).
+
+**Issue 1**: Callback automático no solicitado generaba guardado cuando se cambiaba el selector.
+
+**Root Cause**: Se creó un callback `actualizar_morfologia()` que se ejecutaba automáticamente al cambiar el valor del selector, guardando archivos sin que el usuario lo solicitara.
+
+**Resolution**: 
+1. Eliminar completamente el callback automático de morfología
+2. Procesar morfología SOLO en el callback de "Guardar Parámetros"
+3. El selector es puramente visual hasta que se presiona guardar
+
+**Issue 2**: Selector con marco especial, descripciones y estilos inconsistentes.
+
+**Root Cause**: Se creó una función `crear_selector_morfologia()` que generaba un componente con marco azul, descripciones largas y parámetros legacy visibles.
+
+**Resolution**:
+1. Eliminar función especial `crear_selector_morfologia()`
+2. Agregar morfología al diccionario de opciones estándar
+3. Usar `crear_campo()` normal como cualquier otro parámetro
+4. Mismo estilo que `cable_conductor_id` - solo etiqueta y selector
+
+**Issue 3**: Error en vista CMC por clave `"tipo"` no válida en `dcc.Slider`.
+
+**Root Cause**: `obtener_config_control()` devuelve diccionario con clave `"tipo"` que `dcc.Slider` no acepta como parámetro.
+
+**Resolution**: Filtrar clave `"tipo"` antes de pasar a componente:
+```python
+# Incorrecto
+dcc.Slider(**obtener_config_control("alpha"), id="slider-alpha")
+
+# Correcto
+dcc.Slider(**{k: v for k, v in obtener_config_control("alpha").items() if k != "tipo"}, id="slider-alpha")
+```
+
+**Key Takeaways**:
+1. **Selectores pasivos**: No crear callbacks automáticos para selectores - solo procesar en guardado manual
+2. **Estilos consistentes**: Usar funciones estándar (`crear_campo()`) en lugar de componentes especiales
+3. **Filtrar parámetros**: Verificar que diccionarios de configuración no contengan claves no válidas para componentes Dash
+4. **Morfología como parámetro normal**: Tratar morfología igual que cualquier otro parámetro del sistema
+5. **Procesamiento en guardado**: Extraer parámetros legacy de morfología solo cuando se guarda, no en tiempo real
+
+**Archivos Modificados**:
+- `components/vista_ajuste_parametros.py` - Morfología como campo normal
+- `components/vista_diseno_geometrico.py` - Selector simple sin callbacks
+- `controllers/parametros_controller.py` - Sin callback automático, procesamiento en guardado
+- `components/vista_calculo_mecanico.py` - Filtrar clave "tipo" en sliders
+
+---
+
 ### Dual Format Storage for Plotly
 
 **Context**: Implementing "Calcular Todo" feature that orchestrates multiple calculations.

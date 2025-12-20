@@ -41,11 +41,11 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("alpha (°) - Ángulo de quiebre"),
-                        dcc.Slider(**{**obtener_config_control("alpha"), "id": "slider-alpha", "value": estructura_actual.get("alpha", 0)})
+                        dcc.Slider(**{k: v for k, v in obtener_config_control("alpha").items() if k != "tipo"}, id="slider-alpha", value=estructura_actual.get("alpha", 0))
                     ], md=3),
                     dbc.Col([
                         dbc.Label("theta (°) - Ángulo viento oblicuo"),
-                        dcc.Slider(**{**obtener_config_control("theta"), "id": "slider-theta", "value": estructura_actual.get("theta", 45)})
+                        dcc.Slider(**{k: v for k, v in obtener_config_control("theta").items() if k != "tipo"}, id="slider-theta", value=estructura_actual.get("theta", 45))
                     ], md=3),
                     dbc.Col([
                         dbc.Label("Vmax (m/s)"),
@@ -59,7 +59,7 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                     ], md=4),
                     dbc.Col([
                         dbc.Label("t_hielo (m) - Espesor manguito de hielo"),
-                        dcc.Slider(**{**obtener_config_control("t_hielo"), "id": "slider-t_hielo", "value": estructura_actual.get("t_hielo", 0.01)})
+                        dcc.Slider(**{k: v for k, v in obtener_config_control("t_hielo").items() if k != "tipo"}, id="slider-t_hielo", value=estructura_actual.get("t_hielo", 0.01))
                     ], md=8),
                 ])
             ])
@@ -108,11 +108,11 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("SALTO_PORCENTUAL - Para búsqueda de soluciones en cálculo mecánico"),
-                        dcc.Slider(**{**obtener_config_control("SALTO_PORCENTUAL"), "id": "slider-SALTO_PORCENTUAL", "value": estructura_actual.get("SALTO_PORCENTUAL", 0.05)})
+                        dcc.Slider(**{k: v for k, v in obtener_config_control("SALTO_PORCENTUAL").items() if k != "tipo"}, id="slider-SALTO_PORCENTUAL", value=estructura_actual.get("SALTO_PORCENTUAL", 0.05))
                     ], md=6),
                     dbc.Col([
                         dbc.Label("PASO_AFINADO - Refinamiento de búsqueda"),
-                        dcc.Slider(**{**obtener_config_control("PASO_AFINADO"), "id": "slider-PASO_AFINADO", "value": estructura_actual.get("PASO_AFINADO", 0.005)})
+                        dcc.Slider(**{k: v for k, v in obtener_config_control("PASO_AFINADO").items() if k != "tipo"}, id="slider-PASO_AFINADO", value=estructura_actual.get("PASO_AFINADO", 0.005))
                     ], md=6),
                 ], className="mb-3"),
                 dbc.Row([
@@ -143,7 +143,7 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("RELFLECHA_MAX_GUARDIA - Relación de flecha máxima para cable de guardia"),
-                        dcc.Slider(**{**obtener_config_control("RELFLECHA_MAX_GUARDIA"), "id": "slider-RELFLECHA_MAX_GUARDIA", "value": estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95)})
+                        dcc.Slider(**{k: v for k, v in obtener_config_control("RELFLECHA_MAX_GUARDIA").items() if k != "tipo"}, id="slider-RELFLECHA_MAX_GUARDIA", value=estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95))
                     ], md=12),
                 ])
             ])

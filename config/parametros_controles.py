@@ -123,7 +123,8 @@ CONTROLES_PARAMETROS = {
         "min": 0,
         "max": 2,
         "step": 1,
-        "marks": {0: '0', 1: '1', 2: '2'}
+        "marks": {0: '0', 1: '1', 2: '2'},
+        "readonly": True
     },
     "ANG_APANTALLAMIENTO": {
         "tipo": "slider",
@@ -196,11 +197,31 @@ CONTROLES_PARAMETROS = {
     },
     "DISPOSICION": {
         "tipo": "select",
-        "opciones": ["triangular", "horizontal", "vertical"]
+        "opciones": ["triangular", "horizontal", "vertical"],
+        "readonly": True
     },
     "TERNA": {
         "tipo": "select",
-        "opciones": ["Simple", "Doble"]
+        "opciones": ["Simple", "Doble"],
+        "readonly": True
+    },
+    "MORFOLOGIA": {
+        "tipo": "select",
+        "opciones": [
+            "SIMPLE-VERTICAL-1HG",
+            "SIMPLE-TRIANGULAR-NOHG", 
+            "SIMPLE-TRIANGULAR-1HG-DEFASADO",
+            "SIMPLE-HORIZONTAL-NOHG",
+            "SIMPLE-HORIZONTAL-1HG",
+            "SIMPLE-HORIZONTAL-2HG",
+            "SIMPLE-HORIZONTAL-2HG-AT",
+            "DOBLE-VERTICAL-NOHG",
+            "DOBLE-VERTICAL-1HG",
+            "DOBLE-VERTICAL-2HG",
+            "DOBLE-TRIANGULAR-NOHG",
+            "DOBLE-TRIANGULAR-1HG",
+            "DOBLE-TRIANGULAR-2HG"
+        ]
     },
     "OBJ_CONDUCTOR": {
         "tipo": "select",
@@ -219,7 +240,8 @@ CONTROLES_PARAMETROS = {
         "tipo": "switch"
     },
     "HG_CENTRADO": {
-        "tipo": "switch"
+        "tipo": "switch",
+        "readonly": True
     },
     "AUTOAJUSTAR_LMENHG": {
         "tipo": "switch"
