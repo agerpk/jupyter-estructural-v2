@@ -113,8 +113,106 @@ def _calcular_posicion_conductor_mas_alto(h1a, h2a, h3a, lmen, disposicion, tern
     
     return (x, y)
 
+def _calcular_posiciones_hg_horizontal_2hg(params):
+    """Calcula posiciones óptimas de HG1 y HG2 para morfología horizontal 2HG
+    
+    Restricciones:
+    1. Z >= max(altura_conductores) (no por debajo de conductores)
+    2. X >= LONGITUD_MENSULA_MINIMA_GUARDIA, Z >= h1a + HADD_HG (mínimos)
+    3. PCMA debe quedar apantallado por HG1 (ángulo ANG_APANTALLAMIENTO)
+    
+    Objetivo: Minimizar distancia de (0,0,h1a) a HG1(x,y,z)
+    """
+    h1a = params['h1a']
+    D_fases = params['D_fases']
+    s_estructura = params['s_estructura']
+    theta_max = params.get('theta_max', 0)
+    lk = params.get('lk', 2.5)
+    ancho_cruceta = params.get('ancho_cruceta', 0.3)
+    ang_apantallamiento = params.get('ang_apantallamiento', 30.0)
+    hadd_hg = params.get('hadd_hg', 1.5)
+    long_mensula_min_guardia = params.get('long_mensula_min_guardia', 0.2)
+    
+    print(f"🔧 DEBUG HG HORIZONTAL: Calculando posiciones HG1/HG2")
+    
+    # 1. Calcular PCMA (conductor más alejado)
+    dist_columna_x = max(lk * math.sin(math.radians(theta_max)) + s_estructura, D_fases / 2)
+    dist_conductor_x = dist_columna_x + lk * math.sin(math.radians(theta_max)) + s_estructura + ancho_cruceta/2
+    dist_conductor_final = max(D_fases, dist_conductor_x)
+    
+    x_pcma = dist_conductor_final
+    z_pcma = h1a - lk  # Altura del conductor después de cadena
+    
+    print(f"   PCMA en ({x_pcma:.2f}, 0, {z_pcma:.2f})")
+    
+    # 2. Restricciones mínimas
+    x_min = long_mensula_min_guardia
+    z_min = max(h1a + hadd_hg, z_pcma + 0.1)  # Por encima de conductores
+    
+    # 3. Restricción de apantallamiento: HG1 debe apantallar PCMA
+    # Línea desde HG1(x,0,z) debe pasar por encima de PCMA con ángulo ang_apantallamiento
+    # tan(ang) = (x_hg - x_pcma) / (z_hg - z_pcma)
+    # z_hg = z_pcma + (x_hg - x_pcma) / tan(ang)
+    
+    ang_rad = math.radians(ang_apantallamiento)
+    tan_ang = math.tan(ang_rad)
+    
+    # 4. Optimización: minimizar distancia desde (0,0,h1a) a HG1(x,0,z)
+    # distancia = sqrt(x² + z²) donde z = h1a + dz
+    # Sujeto a: z >= z_pcma + (x - x_pcma) / tan_ang (apantallamiento)
+    #          x >= x_min, z >= z_min
+    
+    # Probar diferentes valores de x y encontrar z mínimo que satisfaga restricciones
+    mejor_x = x_min
+    mejor_z = z_min
+    min_distancia = float('inf')
+    
+    # Rango de búsqueda para x
+    x_max = x_pcma + 2.0  # Límite razonable
+    
+    for x_test in [x_min + i * 0.1 for i in range(int((x_max - x_min) / 0.1) + 1)]:
+        # Calcular z mínimo por apantallamiento
+        if x_test >= x_pcma:
+            # HG está más alejado que PCMA, solo necesita altura mínima
+            z_apant = z_min
+        else:
+            # HG debe estar más alto para apantallar
+            z_apant = z_pcma + (x_pcma - x_test) / tan_ang
+        
+        # Z final considerando todas las restricciones
+        z_final = max(z_min, z_apant)
+        
+        # Calcular distancia desde (0,0,h1a)
+        distancia = math.sqrt(x_test**2 + (z_final - h1a)**2)
+        
+        if distancia < min_distancia:
+            min_distancia = distancia
+            mejor_x = x_test
+            mejor_z = z_final
+    
+    # 5. Posiciones finales
+    hg1_x = mejor_x
+    hg1_y = 0.0
+    hg1_z = mejor_z
+    
+    # HG2 es simétrico respecto a x=0
+    hg2_x = -mejor_x
+    hg2_y = 0.0
+    hg2_z = mejor_z
+    
+    print(f"   HG1 optimizado: ({hg1_x:.2f}, {hg1_y:.2f}, {hg1_z:.2f})")
+    print(f"   HG2 simétrico: ({hg2_x:.2f}, {hg2_y:.2f}, {hg2_z:.2f})")
+    print(f"   Distancia minimizada: {min_distancia:.2f}m")
+    
+    # Verificar apantallamiento
+    if hg1_x < x_pcma:
+        ang_real = math.degrees(math.atan((x_pcma - hg1_x) / (hg1_z - z_pcma)))
+        print(f"   Ángulo apantallamiento real: {ang_real:.1f}° (requerido: {ang_apantallamiento}°)")
+    
+    return (hg1_x, hg1_y, hg1_z), (hg2_x, hg2_y, hg2_z)
+
 def _calcular_cable_guardia(pcma, D_fases, Dhg, cant_hg, hg_centrado, ang_apantallamiento, hadd_hg, long_mensula_min_guardia):
-    """Calcula las posiciones de los cables de guardia - LÓGICA LEGACY"""
+    """Calcula las posiciones de los cables de guardia - LÓGICA LEGACY para otras morfologías"""
     x_pcma, y_pcma = pcma
     ang_rad = math.radians(ang_apantallamiento)
     
@@ -140,14 +238,16 @@ def _calcular_cable_guardia(pcma, D_fases, Dhg, cant_hg, hg_centrado, ang_apanta
         phg2 = (0.0, 0.0)
         return hhg, lmenhg, phg1, phg2
     
-    # Si hay 2 cables guardia
+    # Si hay 2 cables guardia - LÓGICA LEGACY para otras morfologías
     elif cant_hg == 2:
-        dvhg = Dhg * math.cos(ang_rad) + hadd_hg
-        hhg = y_pcma + dvhg
-        lmenhg_base = x_pcma - Dhg * math.sin(ang_rad)
-        lmenhg = max(lmenhg_base, long_mensula_min_guardia)
+        hhg_minimo = y_pcma + hadd_hg
+        hhg_apantallamiento = y_pcma + x_pcma / math.tan(ang_rad)
+        hhg = max(hhg_minimo, hhg_apantallamiento)
+        lmenhg = max(long_mensula_min_guardia, 0.5)
+        
         phg1 = (lmenhg, hhg)
         phg2 = (-lmenhg, hhg)
+        
         return hhg, lmenhg, phg1, phg2
     
     else:
@@ -255,7 +355,7 @@ def _crear_morfologia_at(morfologia: str, params):
         raise ValueError(f"Morfología AT no implementada: {morfologia}")
 
 def _crear_simple_horizontal_2hg_at(params):
-    """Simple horizontal con 2 HG - Topología AT con nodos Y (PRESERVADA)"""
+    """Simple horizontal con 2 HG - Topología AT con nodos Y (OPTIMIZADA)"""
     nodos = {}
     
     h1a = params['h1a']
@@ -264,14 +364,11 @@ def _crear_simple_horizontal_2hg_at(params):
     theta_max = params.get('theta_max', 0)
     lk = params.get('lk', 2.5)
     ancho_cruceta = params.get('ancho_cruceta', 0.3)
-    ang_apantallamiento = params.get('ang_apantallamiento', 30.0)
-    Dhg = params.get('Dhg', 1.0)
-    hadd_hg = params.get('hadd_hg', 0.0)
-    long_mensula_min_guardia = params.get('long_mensula_min_guardia', 0.2)
     
-    # Calcular pcma y guardia (LÓGICA LEGACY)
-    pcma = _calcular_posicion_conductor_mas_alto(h1a, h1a, h1a, 0, "horizontal", "Simple", s_estructura, D_fases, theta_max, lk, ancho_cruceta)
-    hhg, lmenhg, phg1, phg2 = _calcular_cable_guardia(pcma, D_fases, Dhg, 2, False, ang_apantallamiento, hadd_hg, long_mensula_min_guardia)
+    print(f"🔧 DEBUG MORFOLOGIA: SIMPLE-HORIZONTAL-2HG-AT iniciando")
+    
+    # Calcular posiciones optimizadas de HG1 y HG2
+    (hg1_x, hg1_y, hg1_z), (hg2_x, hg2_y, hg2_z) = _calcular_posiciones_hg_horizontal_2hg(params)
     
     # Calcular distancias para horizontal
     dist_columna_x = max(lk * math.sin(math.radians(theta_max)) + s_estructura, D_fases / 2)
@@ -280,22 +377,22 @@ def _crear_simple_horizontal_2hg_at(params):
     
     # Nodos estructura (TOPOLOGÍA AT PRESERVADA)
     nodos["BASE"] = NodoEstructural("BASE", (0.0, 0.0, 0.0), "base")
-    nodos["V"] = NodoEstructural("V", (0.0, 0.0, hhg * 2/3), "viento")
+    nodos["V"] = NodoEstructural("V", (0.0, 0.0, hg1_z * 2/3), "viento")
     nodos["Y1"] = NodoEstructural("Y1", (0.0, 0.0, h1a - 2*lk), "general")
     nodos["Y2"] = NodoEstructural("Y2", (-dist_columna_x, 0.0, h1a - lk), "general")
     nodos["Y3"] = NodoEstructural("Y3", (dist_columna_x, 0.0, h1a - lk), "general")
     nodos["Y4"] = NodoEstructural("Y4", (-dist_columna_x, 0.0, h1a), "general")
     nodos["Y5"] = NodoEstructural("Y5", (dist_columna_x, 0.0, h1a), "general")
-    nodos["TOP"] = NodoEstructural("TOP", (0.0, 0.0, hhg), "general")
+    nodos["TOP"] = NodoEstructural("TOP", (0.0, 0.0, hg1_z), "general")
     
     # Nodos conductor
     nodos["C1"] = NodoEstructural("C1", (-dist_conductor_final, 0.0, h1a), "conductor")
     nodos["C2"] = NodoEstructural("C2", (0.0, 0.0, h1a), "conductor")
     nodos["C3"] = NodoEstructural("C3", (dist_conductor_final, 0.0, h1a), "conductor")
     
-    # Nodos guardia (2 HG) - usar posiciones calculadas
-    nodos["HG1"] = NodoEstructural("HG1", (phg1[0], 0.0, phg1[1]), "guardia")
-    nodos["HG2"] = NodoEstructural("HG2", (phg2[0], 0.0, phg2[1]), "guardia")
+    # Nodos guardia (posiciones optimizadas)
+    nodos["HG1"] = NodoEstructural("HG1", (hg1_x, hg1_y, hg1_z), "guardia")
+    nodos["HG2"] = NodoEstructural("HG2", (hg2_x, hg2_y, hg2_z), "guardia")
     
     # Conexiones AT (LÓGICA ORIGINAL PRESERVADA)
     conexiones = [
@@ -751,9 +848,9 @@ def _crear_doble_vertical_1hg(params):
     altura_total = _calcular_altura_total_con_guardia(h1a, h2a, h3a, hhg)
     nodos["V"] = _crear_nodo_estructural_completo("V", (0.0, 0.0, altura_total * 2/3), "viento", params)
     
-    # Agregar nodos guardia
+    # Agregar nodos guardia - CORREGIDO: usar posición calculada phg1
     nodos["TOP"] = _crear_nodo_estructural_completo("TOP", (0.0, 0.0, hhg), "general", params)
-    nodos["HG1"] = _crear_nodo_estructural_completo("HG1", (0.0, 0.0, hhg), "guardia", params)
+    nodos["HG1"] = _crear_nodo_estructural_completo("HG1", (phg1[0], 0.0, phg1[1]), "guardia", params)
     
     # Eliminar TOP si está superpuesto
     nodos = _eliminar_top_superpuesto(nodos)

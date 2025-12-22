@@ -616,42 +616,67 @@ class EstructuraAEA_Graficos:
                             plt.plot([x_top, x_hg], [z_top, z_hg], 
                                     color=self.COLORES['poste'], linewidth=3, alpha=0.8)
         
-        # 3. APANTALLAMIENTO
+        # 3. APANTALLAMIENTO - CORREGIDO: usar coordenadas reales de nodos HG
         if nodos_guardia and hasattr(self.geometria, 'ang_apantallamiento'):
-            h_guardia = self.geometria.dimensiones.get('hhg', 0)
+            angulo_apant = self.geometria.ang_apantallamiento
             h1a = self.geometria.dimensiones.get('h1a', 0)
             h_terminacion = h1a - self.geometria.lk
-            angulo_apant = self.geometria.ang_apantallamiento
+            
+            print(f"🔧 DEBUG APANTALLAMIENTO: {len(nodos_guardia)} guardias, ángulo={angulo_apant}°")
             
             if len(nodos_guardia) == 1:
-                x_hg = nodos_guardia[0][0]
-                x_ext_izq = x_hg - (h_guardia - h_terminacion) * math.tan(math.radians(angulo_apant))
-                x_ext_der = x_hg + (h_guardia - h_terminacion) * math.tan(math.radians(angulo_apant))
+                # Un solo HG
+                x_hg, nombre_hg, coord_hg = nodos_guardia[0]
+                z_hg = coord_hg[2]
                 
-                plt.plot([x_hg, x_ext_izq], [h_guardia, h_terminacion], 
-                        color=self.COLORES['apantallamiento'], linestyle='--', alpha=0.7, linewidth=1.5)
-                plt.plot([x_hg, x_ext_der], [h_guardia, h_terminacion], 
+                print(f"   HG1 en ({x_hg:.2f}, {z_hg:.2f})")
+                
+                # Calcular extremos de apantallamiento desde posición real del HG
+                x_ext_izq = x_hg - (z_hg - h_terminacion) * math.tan(math.radians(angulo_apant))
+                x_ext_der = x_hg + (z_hg - h_terminacion) * math.tan(math.radians(angulo_apant))
+                
+                # Dibujar líneas desde HG real
+                plt.plot([x_hg, x_ext_izq], [z_hg, h_terminacion], 
+                        color=self.COLORES['apantallamiento'], linestyle='--', alpha=0.7, linewidth=1.5,
+                        label=f'Apantallamiento {angulo_apant}°')
+                plt.plot([x_hg, x_ext_der], [z_hg, h_terminacion], 
                         color=self.COLORES['apantallamiento'], linestyle='--', alpha=0.7, linewidth=1.5)
                 
+                # Zona protegida
                 x_fill = [x_ext_izq, x_hg, x_ext_der]
-                z_fill = [h_terminacion, h_guardia, h_terminacion]
+                z_fill = [h_terminacion, z_hg, h_terminacion]
                 plt.fill(x_fill, z_fill, color=self.COLORES['apantallamiento'], alpha=0.1)
+                
             else:
+                # Dos HG
                 guardias_x = [g[0] for g in nodos_guardia]
+                guardias_z = [g[2][2] for g in nodos_guardia]  # Coordenada Z real
                 x_hg_izq = min(guardias_x)
                 x_hg_der = max(guardias_x)
                 
-                x_izq_extremo = x_hg_izq - (h_guardia - h_terminacion) * math.tan(math.radians(angulo_apant))
-                x_der_extremo = x_hg_der + (h_guardia - h_terminacion) * math.tan(math.radians(angulo_apant))
+                # Usar altura promedio de los HG
+                z_hg_promedio = sum(guardias_z) / len(guardias_z)
                 
-                for x_hg, x_ext in [(x_hg_izq, x_izq_extremo), (x_hg_der, x_der_extremo)]:
-                    plt.plot([x_hg, x_ext], [h_guardia, h_terminacion], 
-                            color=self.COLORES['apantallamiento'],
-                            linestyle='--', alpha=0.7, linewidth=1.5)
+                print(f"   HG1 en ({x_hg_izq:.2f}, {guardias_z[0]:.2f}), HG2 en ({x_hg_der:.2f}, {guardias_z[1]:.2f})")
                 
-                # Rellenar zona protegida
+                # Calcular extremos desde cada HG
+                x_izq_extremo = x_hg_izq - (z_hg_promedio - h_terminacion) * math.tan(math.radians(angulo_apant))
+                x_der_extremo = x_hg_der + (z_hg_promedio - h_terminacion) * math.tan(math.radians(angulo_apant))
+                
+                # Dibujar líneas desde cada HG real
+                for i, (x_hg, nombre_hg, coord_hg) in enumerate(nodos_guardia):
+                    z_hg_real = coord_hg[2]
+                    if i == 0:  # Primer HG (izquierdo)
+                        plt.plot([x_hg, x_izq_extremo], [z_hg_real, h_terminacion], 
+                                color=self.COLORES['apantallamiento'], linestyle='--', alpha=0.7, linewidth=1.5,
+                                label=f'Apantallamiento {angulo_apant}°')
+                    else:  # Segundo HG (derecho)
+                        plt.plot([x_hg, x_der_extremo], [z_hg_real, h_terminacion], 
+                                color=self.COLORES['apantallamiento'], linestyle='--', alpha=0.7, linewidth=1.5)
+                
+                # Zona protegida
                 x_fill = [x_izq_extremo, x_hg_izq, x_hg_der, x_der_extremo]
-                z_fill = [h_terminacion, h_guardia, h_guardia, h_terminacion]
+                z_fill = [h_terminacion, z_hg_promedio, z_hg_promedio, h_terminacion]
                 plt.fill(x_fill, z_fill, color=self.COLORES['apantallamiento'], alpha=0.1)
         
         # 4. DIBUJAR CADENAS CON DECLINACIÓN

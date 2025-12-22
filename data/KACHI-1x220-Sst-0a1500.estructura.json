@@ -39,7 +39,7 @@
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
   "Altura_MSNM": 1500,
   "DISPOSICION": "horizontal",
-  "TERNA": "Simple",
+  "TERNA": "SIMPLE",
   "CANT_HG": 2,
   "HG_CENTRADO": false,
   "ALTURA_MINIMA_CABLE": 6.5,
@@ -64,11 +64,13 @@
   "Vn": 220,
   "fecha_creacion": "2024-12-09",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-16T15:26:33.566154",
+  "fecha_modificacion": "2025-12-20T14:02:32.969295",
   "VANO_DESNIVELADO": true,
   "H_PIQANTERIOR": 8.0,
   "H_PIQPOSTERIOR": -5.0,
   "VANO_DESNIVELADO_CMC": true,
   "H_PIQANTERIOR_CMC": 0,
-  "H_PIQPOSTERIOR_CMC": 5
+  "H_PIQPOSTERIOR_CMC": 5,
+  "nodos_editados": [],
+  "MORFOLOGIA": "SIMPLE-HORIZONTAL-2HG-AT"
 }

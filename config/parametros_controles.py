@@ -50,10 +50,11 @@ CONTROLES_PARAMETROS = {
     },
     "TENSION": {
         "tipo": "slider",
-        "min": 0,
-        "max": 1000,
+        "min": 13.2,
+        "max": 500,
         "step": 1,
-        "marks": {13.2: '13.2', 33: '33', 66: '66', 132: '132', 220: '220', 330: '330', 500: '500', 600: '600', 700: '700', 800: '800', 900: '900', 1000: '1000'}
+        "marks": {13.2: '13.2', 33: '33', 66: '66', 132: '132', 220: '220', 500: '500'},
+        "included": False
     },
     "Lk": {
         "tipo": "slider",
@@ -213,7 +214,6 @@ CONTROLES_PARAMETROS = {
             "SIMPLE-TRIANGULAR-1HG-DEFASADO",
             "SIMPLE-HORIZONTAL-NOHG",
             "SIMPLE-HORIZONTAL-1HG",
-            "SIMPLE-HORIZONTAL-2HG",
             "SIMPLE-HORIZONTAL-2HG-AT",
             "DOBLE-VERTICAL-NOHG",
             "DOBLE-VERTICAL-1HG",
@@ -388,12 +388,18 @@ def crear_slider(nombre, valor, config):
     """
     from dash import dcc
     
-    return dcc.Slider(
-        id=f"slider-{nombre}",
-        min=config["min"],
-        max=config["max"],
-        step=config["step"],
-        value=valor,
-        marks=config["marks"],
-        tooltip={"placement": "bottom", "always_visible": True}
-    )
+    slider_props = {
+        "id": f"slider-{nombre}",
+        "min": config["min"],
+        "max": config["max"],
+        "step": config["step"],
+        "value": valor,
+        "marks": config["marks"],
+        "tooltip": {"placement": "bottom", "always_visible": True}
+    }
+    
+    # Agregar included si está definido
+    if "included" in config:
+        slider_props["included"] = config["included"]
+    
+    return dcc.Slider(**slider_props)

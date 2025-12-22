@@ -772,19 +772,18 @@ def register_callbacks(app):
             return dash.no_update, True, "Error", f"Error al guardar nodos: {str(e)}", "danger", "danger"
     
     @app.callback(
+        Output("estructura-actual", "data", allow_duplicate=True),
         Output("toast-notificacion", "is_open", allow_duplicate=True),
         Output("toast-notificacion", "header", allow_duplicate=True),
         Output("toast-notificacion", "children", allow_duplicate=True),
         Output("toast-notificacion", "icon", allow_duplicate=True),
         Output("toast-notificacion", "color", allow_duplicate=True),
         Input("btn-guardar-params-geom", "n_clicks"),
+        State("select-morfologia-dge", "value"),
         State("slider-tension-geom", "value"),
         State("select-zona-estructura", "value"),
         State("slider-lk-geom", "value"),
         State("slider-ang-apantallamiento", "value"),
-        State("select-disposicion-geom", "value"),
-        State("select-terna-geom", "value"),
-        State("slider-cant-hg-geom", "value"),
         State("slider-altura-min-cable", "value"),
         State("slider-lmen-min-cond", "value"),
         State("slider-lmen-min-guard", "value"),
@@ -796,21 +795,36 @@ def register_callbacks(app):
         State("slider-dist-repos-hg", "value"),
         State("switch-hg-centrado", "value"),
         State("switch-autoajustar-lmenhg", "value"),
+        State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def guardar_parametros_geometria(n_clicks, tension, zona, lk, ang_apant, disposicion, terna, cant_hg,
+    def guardar_parametros_geometria(n_clicks, morfologia, tension, zona, lk, ang_apant,
                                      altura_min, lmen_cond, lmen_guard, hadd, hadd_amarres, hadd_hg, hadd_lmen,
-                                     ancho_cruceta, dist_repos, hg_centrado, autoajustar):
+                                     ancho_cruceta, dist_repos, hg_centrado, autoajustar, estructura_actual):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
         try:
+            from config.app_config import DATA_DIR
+            
+            # Recargar estructura desde archivo
+            ruta_actual = DATA_DIR / "actual.estructura.json"
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
+            
+            # Extraer parámetros legacy de morfología
+            from EstructuraAEA_Geometria_Morfologias import extraer_parametros_morfologia
+            params_morfologia = extraer_parametros_morfologia(morfologia)
+            
             parametros = {
+                "MORFOLOGIA": morfologia,
+                "TERNA": params_morfologia["TERNA"],
+                "DISPOSICION": params_morfologia["DISPOSICION"],
+                "CANT_HG": params_morfologia["CANT_HG"],
+                "HG_CENTRADO": params_morfologia["HG_CENTRADO"],
                 "TENSION": tension,
                 "Zona_estructura": zona,
                 "Lk": lk,
                 "ANG_APANTALLAMIENTO": ang_apant,
-                "MORFOLOGIA": morfologia,
                 "ALTURA_MINIMA_CABLE": altura_min,
                 "LONGITUD_MENSULA_MINIMA_CONDUCTOR": lmen_cond,
                 "LONGITUD_MENSULA_MINIMA_GUARDIA": lmen_guard,
@@ -820,14 +834,18 @@ def register_callbacks(app):
                 "HADD_LMEN": hadd_lmen,
                 "ANCHO_CRUCETA": ancho_cruceta,
                 "DIST_REPOSICIONAR_HG": dist_repos,
-                "HG_CENTRADO": hg_centrado,
                 "AUTOAJUSTAR_LMENHG": autoajustar
             }
             
+            # Actualizar parámetros
             state.estructura_manager.actualizar_parametros(parametros)
-            return True, "Éxito", "Parámetros de geometría guardados", "success", "success"
+            
+            # Recargar estructura actualizada
+            estructura_actualizada = state.estructura_manager.cargar_estructura(ruta_actual)
+            
+            return estructura_actualizada, True, "Éxito", "Parámetros de geometría guardados", "success", "success"
         except Exception as e:
-            return True, "Error", f"Error al guardar: {str(e)}", "danger", "danger"
+            return dash.no_update, True, "Error", f"Error al guardar: {str(e)}", "danger", "danger"
     
     @app.callback(
         Output("output-diseno-geometrico", "children", allow_duplicate=True),

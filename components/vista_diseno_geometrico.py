@@ -325,7 +325,7 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                                 {"label": "SIMPLE-TRIANGULAR-1HG-DEFASADO", "value": "SIMPLE-TRIANGULAR-1HG-DEFASADO"},
                                 {"label": "SIMPLE-HORIZONTAL-NOHG", "value": "SIMPLE-HORIZONTAL-NOHG"},
                                 {"label": "SIMPLE-HORIZONTAL-1HG", "value": "SIMPLE-HORIZONTAL-1HG"},
-                                {"label": "SIMPLE-HORIZONTAL-2HG", "value": "SIMPLE-HORIZONTAL-2HG"},
+                                {"label": "SIMPLE-HORIZONTAL-2HG-AT", "value": "SIMPLE-HORIZONTAL-2HG-AT"},
                                 {"label": "DOBLE-VERTICAL-NOHG", "value": "DOBLE-VERTICAL-NOHG"},
                                 {"label": "DOBLE-VERTICAL-1HG", "value": "DOBLE-VERTICAL-1HG"},
                                 {"label": "DOBLE-VERTICAL-2HG", "value": "DOBLE-VERTICAL-2HG"},
@@ -346,7 +346,12 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("TENSION (kV)", style={"fontSize": "1.125rem"}),
-                        dcc.Slider(id="slider-tension-geom", **{k: v for k, v in obtener_config_control("TENSION").items() if k != "tipo"}, value=estructura_actual.get("TENSION", 220), tooltip={"placement": "bottom", "always_visible": True}),
+                        dcc.Slider(
+                            id="slider-tension-geom", 
+                            **{k: v for k, v in obtener_config_control("TENSION").items() if k != "tipo"}, 
+                            value=estructura_actual.get("TENSION", 220), 
+                            tooltip={"placement": "bottom", "always_visible": True}
+                        ),
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Zona Estructura", style={"fontSize": "1.125rem"}),

@@ -26,15 +26,20 @@ def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
     
     if config:
         if config["tipo"] == "slider":
-            input_comp = dcc.Slider(
-                id={"type": "param-input", "index": nombre},
-                min=config["min"],
-                max=config["max"],
-                step=config["step"],
-                value=valor,
-                marks=config["marks"],
-                tooltip={"placement": "bottom", "always_visible": True}
-            )
+            slider_props = {
+                "id": {"type": "param-input", "index": nombre},
+                "min": config["min"],
+                "max": config["max"],
+                "step": config["step"],
+                "value": valor,
+                "marks": config["marks"],
+                "tooltip": {"placement": "bottom", "always_visible": True}
+            }
+            # Agregar included si está definido
+            if "included" in config:
+                slider_props["included"] = config["included"]
+            
+            input_comp = dcc.Slider(**slider_props)
         elif config["tipo"] == "slider_input":
             input_comp = dbc.Row([
                 dbc.Col(dcc.Slider(
