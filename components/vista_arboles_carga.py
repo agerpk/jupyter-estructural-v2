@@ -11,6 +11,27 @@ import json
 def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
     """Crear vista de árboles de carga"""
     
+    # Cargar configuración persistente
+    from config.app_config import DATA_DIR
+    import json
+    config_path = DATA_DIR / "arboles_config.json"
+    config_default = {
+        "zoom": 0.5,
+        "escala_flecha": 2.0,
+        "grosor_linea": 3,
+        "fontsize_nodos": 6,
+        "fontsize_flechas": 6,
+        "mostrar_nodos": True,
+        "mostrar_sismo": False,
+        "usar_3d": True
+    }
+    
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    except:
+        config = config_default
+    
     # Cargar resultados previos si existen
     resultados_previos = None
     if calculo_guardado:
@@ -38,13 +59,13 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Zoom"),
-                        dcc.Slider(id="slider-zoom-arboles", min=0.25, max=2.0, step=0.25, value=0.5,
+                        dcc.Slider(id="slider-zoom-arboles", min=0.25, max=2.0, step=0.25, value=config["zoom"],
                                   marks={i/4: f'{int(i*25)}%' for i in range(1, 9)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=6),
                     dbc.Col([
                         dbc.Label("Escala de Flechas"),
-                        dcc.Slider(id="slider-escala-flechas", min=0.5, max=3.0, step=0.5, value=1.8,
+                        dcc.Slider(id="slider-escala-flechas", min=0.5, max=3.0, step=0.5, value=config["escala_flecha"],
                                   marks={i/2: f'{int(i*50)}%' for i in range(1, 7)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=6),
@@ -52,19 +73,19 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("Grosor de Líneas"),
-                        dcc.Slider(id="slider-grosor-lineas", min=1, max=5, step=1, value=3.5,
+                        dcc.Slider(id="slider-grosor-lineas", min=1, max=5, step=1, value=config["grosor_linea"],
                                   marks={i: str(i) for i in range(1, 6)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=4),
                     dbc.Col([
                         dbc.Label("Tamaño letra nodos"),
-                        dcc.Slider(id="slider-fontsize-nodos", min=4, max=16, step=2, value=8,
+                        dcc.Slider(id="slider-fontsize-nodos", min=4, max=16, step=2, value=config["fontsize_nodos"],
                                   marks={i: str(i) for i in range(4, 17, 2)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=4),
                     dbc.Col([
                         dbc.Label("Tamaño letra flechas"),
-                        dcc.Slider(id="slider-fontsize-flechas", min=4, max=16, step=2, value=10,
+                        dcc.Slider(id="slider-fontsize-flechas", min=4, max=16, step=2, value=config["fontsize_flechas"],
                                   marks={i: str(i) for i in range(4, 17, 2)},
                                   tooltip={"placement": "bottom", "always_visible": True})
                     ], md=4),
@@ -74,7 +95,7 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                         dbc.Checklist(
                             id="param-mostrar-nodos",
                             options=[{"label": "Mostrar etiquetas de nodos", "value": True}],
-                            value=[True],
+                            value=[True] if config["mostrar_nodos"] else [],
                             switch=True
                         )
                     ], md=4),
@@ -82,7 +103,7 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                         dbc.Checklist(
                             id="param-mostrar-sismo",
                             options=[{"label": "Mostrar Sismo (C2)", "value": True}],
-                            value=[],
+                            value=[True] if config["mostrar_sismo"] else [],
                             switch=True
                         )
                     ], md=4),
@@ -90,7 +111,7 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
                         dbc.Checklist(
                             id="param-adc-3d",
                             options=[{"label": "Gráficos 3D", "value": True}],
-                            value=[True] if estructura_actual and estructura_actual.get('ADC_3D', True) else [],
+                            value=[True] if config["usar_3d"] else [],
                             switch=True
                         )
                     ], md=4),

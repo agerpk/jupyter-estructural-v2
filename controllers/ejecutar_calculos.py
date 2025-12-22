@@ -54,13 +54,41 @@ def ejecutar_calculo_arboles(estructura_actual, state):
     try:
         from utils.arboles_carga import generar_arboles_carga
         from utils.calculo_cache import CalculoCache
+        from config.app_config import DATA_DIR
+        import json
+        
+        # Cargar configuración persistente
+        config_path = DATA_DIR / "arboles_config.json"
+        config_default = {
+            "zoom": 0.5,
+            "escala_flecha": 2.0,
+            "grosor_linea": 3,
+            "fontsize_nodos": 6,
+            "fontsize_flechas": 6,
+            "mostrar_nodos": True,
+            "mostrar_sismo": False,
+            "usar_3d": True
+        }
+        
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+        except:
+            config = config_default
         
         estructura_mecanica = state.calculo_objetos.estructura_mecanica
         
         resultado_arboles = generar_arboles_carga(
             estructura_mecanica, estructura_actual,
-            zoom=1.0, escala_flecha=1.0, grosor_linea=1.5,
-            mostrar_nodos=True, fontsize_nodos=8, fontsize_flechas=8, mostrar_sismo=False
+            zoom=config["zoom"], 
+            escala_flecha=config["escala_flecha"], 
+            grosor_linea=config["grosor_linea"],
+            mostrar_nodos=config["mostrar_nodos"], 
+            fontsize_nodos=config["fontsize_nodos"], 
+            fontsize_flechas=config["fontsize_flechas"], 
+            mostrar_sismo=config["mostrar_sismo"],
+            usar_3d=config["usar_3d"],
+            estructura_geometria=state.calculo_objetos.estructura_geometria
         )
         
         if resultado_arboles['exito']:

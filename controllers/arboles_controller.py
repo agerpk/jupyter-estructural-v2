@@ -82,6 +82,21 @@ def register_callbacks(app):
             raise dash.exceptions.PreventUpdate
         
         try:
+            # Guardar configuración
+            from config.app_config import DATA_DIR
+            import json
+            config = {
+                "zoom": zoom,
+                "escala_flecha": escala,
+                "grosor_linea": grosor,
+                "fontsize_nodos": fontsize_nodos,
+                "fontsize_flechas": fontsize_flechas,
+                "mostrar_nodos": bool(mostrar_nodos),
+                "mostrar_sismo": bool(mostrar_sismo),
+                "usar_3d": bool(adc_3d)
+            }
+            with open(DATA_DIR / "arboles_config.json", 'w') as f:
+                json.dump(config, f)
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
             from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
             from EstructuraAEA_Geometria import EstructuraAEA_Geometria

@@ -375,6 +375,13 @@ def dibujar_estructura_2d(ax, nodes_key, linewidth):
                 z1, nombre1, coord1 = nodos_estructura[i]
                 z2, nombre2, coord2 = nodos_estructura[i+1]
                 ax.plot([0, 0], [z1, z2], color='black', linewidth=linewidth, alpha=0.8)
+        
+        # CASO ESPECIAL: HG1 centrado en doble terna vertical
+        if ('CROSS_H3' in nodes_key and 'HG1' in nodes_key and 
+            abs(nodes_key['HG1'][0]) < 0.001):  # HG1 centrado
+            x_cross, y_cross, z_cross = nodes_key['CROSS_H3']
+            x_hg, y_hg, z_hg = nodes_key['HG1']
+            ax.plot([0, 0], [z_cross, z_hg], color='black', linewidth=linewidth, alpha=0.8)
     
     # 3. DIBUJAR MENSULAS/CRUCETAS DE CONDUCTORES
     for altura, conductores in conductores_por_altura.items():
@@ -444,12 +451,41 @@ def dibujar_estructura_2d(ax, nodes_key, linewidth):
                         z_hg = coord_hg[2]
                         ax.plot([x_top, x_hg], [z_top, z_hg], 
                                color='black', linewidth=linewidth*0.85, alpha=0.8)
+    
+    # 5. DIBUJAR NODOS COMO CÍRCULOS
+    for nombre, coordenadas in nodes_key.items():
+        x, y, z = coordenadas
+        
+        if abs(y) > 0.001:  # Solo plano XZ
+            continue
+        
+        # Determinar color y tamaño según tipo de nodo
+        if nombre.startswith(('C1', 'C2', 'C3')):
+            color = '#1f77b4'  # Azul conductor
+            size = 0.08
+        elif nombre.startswith('HG'):
+            color = '#2ca02c' if nombre == 'HG1' else '#228B22'  # Verde guardia
+            size = 0.08
+        elif "BASE" in nombre:
+            color = '#000000'  # Negro estructura
+            size = 0.1
+        elif "TOP" in nombre or "CROSS" in nombre or nombre.startswith('Y'):
+            color = '#000000'  # Negro estructura
+            size = 0.06
+        else:
+            color = 'gray'
+            size = 0.05
+        
+        # Dibujar círculo
+        circle = plt.Circle((x, z), size, color=color, alpha=0.8, zorder=5)
+        ax.add_patch(circle)
 
 
 def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala, fontsize=9):
-    """Dibuja flechas de cargas en 2D"""
+    """Dibuja flechas de cargas en 2D con desplazamiento solo para posiciones exactamente iguales"""
     colores = {'x': 'red', 'y': 'green', 'z': 'blue'}
     longitud_base = 0.08 * rangos['max_range'] * escala
+    posiciones_etiquetas = []
     
     for nombre_nodo, carga in cargas_hipotesis.items():
         if not any(val != 0 for val in carga):
@@ -474,7 +510,21 @@ def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala, fontsize
                 ax.arrow(x, z, dx, dz, head_width=longitud_base*0.12,
                         head_length=longitud_base*0.2, fc=color, ec=color, 
                         linewidth=1.2, alpha=0.95, length_includes_head=True, zorder=500)
-                ax.text(x + dx/2, z + longitud_base*0.1, f"{fuerza_daN:.1f}", 
+                
+                # Posición inicial de etiqueta
+                x_etiq = x + dx/2
+                z_etiq = z + longitud_base*0.1
+                
+                # Desplazar solo si posición exactamente igual
+                desplazamiento = 0
+                while any(abs(x_etiq - pos[0]) < 0.01 and abs(z_etiq - pos[1]) < 0.01 
+                         for pos in posiciones_etiquetas):
+                    desplazamiento += longitud_base*0.6
+                    x_etiq = x + dx/2 + desplazamiento
+                
+                posiciones_etiquetas.append((x_etiq, z_etiq))
+                
+                ax.text(x_etiq, z_etiq, f"{fuerza_daN:.1f}", 
                        color='darkred', fontsize=fontsize, fontweight='bold', zorder=1000,
                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.95, 
                                edgecolor=color, linewidth=1.2), ha='center', va='center')
@@ -484,7 +534,21 @@ def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala, fontsize
                 ax.arrow(x, z, dx, dz, head_width=longitud_base*0.12,
                         head_length=longitud_base*0.2, fc=color, ec=color,
                         linewidth=1.2, alpha=0.95, length_includes_head=True, zorder=500)
-                ax.text(x + longitud_base*0.1, z + dz/2, f"{fuerza_daN:.1f}",
+                
+                # Posición inicial de etiqueta
+                x_etiq = x + longitud_base*0.1
+                z_etiq = z + dz/2
+                
+                # Desplazar solo si posición exactamente igual
+                desplazamiento = 0
+                while any(abs(x_etiq - pos[0]) < 0.01 and abs(z_etiq - pos[1]) < 0.01 
+                         for pos in posiciones_etiquetas):
+                    desplazamiento += longitud_base*0.6
+                    x_etiq = x + longitud_base*0.1 + desplazamiento
+                
+                posiciones_etiquetas.append((x_etiq, z_etiq))
+                
+                ax.text(x_etiq, z_etiq, f"{fuerza_daN:.1f}",
                        color='darkblue', fontsize=fontsize, fontweight='bold', zorder=1000,
                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.95,
                                edgecolor=color, linewidth=1.2), ha='center', va='center')
@@ -496,7 +560,21 @@ def dibujar_flechas_2d(ax, cargas_hipotesis, nodes_key, rangos, escala, fontsize
                         head_length=longitud_base*0.2, fc=color, ec=color,
                         linewidth=1.2, alpha=0.95, linestyle='--', 
                         length_includes_head=True, zorder=500)
-                ax.text(x + dx/2, z + dz/2 + longitud_base*0.1, f"{fuerza_daN:.1f}",
+                
+                # Posición inicial de etiqueta
+                x_etiq = x + dx/2
+                z_etiq = z + dz/2 + longitud_base*0.1
+                
+                # Desplazar solo si posición exactamente igual
+                desplazamiento = 0
+                while any(abs(x_etiq - pos[0]) < 0.01 and abs(z_etiq - pos[1]) < 0.01 
+                         for pos in posiciones_etiquetas):
+                    desplazamiento += longitud_base*0.6
+                    x_etiq = x + dx/2 + desplazamiento
+                
+                posiciones_etiquetas.append((x_etiq, z_etiq))
+                
+                ax.text(x_etiq, z_etiq, f"{fuerza_daN:.1f}",
                        color='darkgreen', fontsize=fontsize, fontweight='bold', zorder=1000,
                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.95,
                                edgecolor=color, linewidth=1.2), ha='center', va='center')
@@ -522,7 +600,9 @@ def dibujar_panel_reacciones_2d(ax, datos_reacciones, rangos):
 
 
 def dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key, fontsize=8):
-    """Dibuja etiquetas de nodos cargados"""
+    """Dibuja etiquetas de nodos cargados con desplazamiento solo para posiciones exactamente iguales"""
+    posiciones_usadas = []
+    
     for nombre_nodo in nodos_con_cargas:
         if nombre_nodo not in nodes_key:
             continue
@@ -530,7 +610,20 @@ def dibujar_etiquetas_nodos_2d(ax, nodos_con_cargas, nodes_key, fontsize=8):
         coords = nodes_key[nombre_nodo]
         x, z = coords[0], coords[2]
         
-        ax.text(x - 0.3, z + 0.2, nombre_nodo, fontsize=fontsize, fontweight='bold',
+        # Posición inicial de etiqueta
+        x_etiqueta = x - 0.3
+        z_etiqueta = z + 0.2
+        
+        # Verificar posición exactamente igual
+        desplazamiento = 0
+        while any(abs(x_etiqueta - pos[0]) < 0.01 and abs(z_etiqueta - pos[1]) < 0.01 
+                 for pos in posiciones_usadas):
+            desplazamiento += 1.4
+            x_etiqueta = x - 0.3 + desplazamiento
+        
+        posiciones_usadas.append((x_etiqueta, z_etiqueta))
+        
+        ax.text(x_etiqueta, z_etiqueta, nombre_nodo, fontsize=fontsize, fontweight='bold',
                ha='center', va='center',
                bbox=dict(boxstyle="round,pad=0.2", facecolor="yellow", alpha=0.7, edgecolor='black'))
 
@@ -857,7 +950,7 @@ def dibujar_lineas_estructura_3d(fig, nodes_key, estructura_geometria=None):
                         ))
         return
     
-    # Fallback: lógica original si no hay estructura_geometria
+    # Fallback: usar misma lógica que EstructuraAEA_Graficos
     tiene_y = any('Y' in nombre for nombre in nodes_key.keys())
     conexiones = []
     
@@ -867,12 +960,18 @@ def dibujar_lineas_estructura_3d(fig, nodes_key, estructura_geometria=None):
             ('Y1', 'Y3'), ('Y3', 'Y5'), ('Y4', 'HG1'), ('Y5', 'HG2')
         ]
     else:
+        # Estructura vertical: línea principal + conexión especial para HG centrado
         nodos_estructura = [(coords[2], nombre) for nombre, coords in nodes_key.items() 
                            if abs(coords[0]) < 0.001 and abs(coords[1]) < 0.001 
                            and not nombre.startswith(('C1', 'C2', 'C3', 'HG'))]
         nodos_estructura.sort(key=lambda x: x[0])
         conexiones = [(nodos_estructura[i][1], nodos_estructura[i+1][1]) 
                      for i in range(len(nodos_estructura)-1)]
+        
+        # CASO ESPECIAL: HG1 centrado en doble terna vertical
+        if ('CROSS_H3' in nodes_key and 'HG1' in nodes_key and 
+            abs(nodes_key['HG1'][0]) < 0.001):  # HG1 centrado
+            conexiones.append(('CROSS_H3', 'HG1'))
     
     for nodo1, nodo2 in conexiones:
         if nodo1 in nodes_key and nodo2 in nodes_key:
@@ -888,7 +987,7 @@ def dibujar_lineas_estructura_3d(fig, nodes_key, estructura_geometria=None):
 
 
 def dibujar_flechas_desde_dataframe(fig, cargas_hipotesis, nodes_key, hipotesis_nombre, visible=True):
-    """Dibuja flechas usando exactamente los valores del dataframe"""
+    """Dibuja flechas usando exactamente los valores del dataframe con desplazamiento solo para posiciones exactamente iguales"""
     colores = {'x': 'red', 'y': 'green', 'z': 'blue'}
     nombres = {'x': 'Fx Transversal', 'y': 'Fy Longitudinal', 'z': 'Fz Vertical'}
     TAMANO_MAX_FLECHA_3D = 2.0
@@ -896,6 +995,7 @@ def dibujar_flechas_desde_dataframe(fig, cargas_hipotesis, nodes_key, hipotesis_
     
     # Encontrar magnitud máxima
     max_fuerza = max(abs(val) for carga in cargas_hipotesis.values() for val in carga if val != 0) or 1
+    posiciones_etiquetas = []
     
     for nombre_nodo, carga in cargas_hipotesis.items():
         if nombre_nodo not in nodes_key or not any(abs(val) > 0.01 for val in carga):
@@ -949,10 +1049,20 @@ def dibujar_flechas_desde_dataframe(fig, cargas_hipotesis, nodes_key, hipotesis_
                 hoverinfo='skip'
             ))
             
-            # Etiqueta de magnitud
+            # Etiqueta de magnitud con desplazamiento solo para posiciones exactamente iguales
             x_text = (x0 + x1) / 2
             y_text = (y0 + y1) / 2
             z_text = (z0 + z1) / 2
+            
+            # Desplazar solo si posición exactamente igual
+            desplazamiento = 0
+            while any(abs(x_text - pos[0]) < 0.01 and abs(y_text - pos[1]) < 0.01 and abs(z_text - pos[2]) < 0.01 
+                     for pos in posiciones_etiquetas):
+                desplazamiento += 0.6
+                x_text = (x0 + x1) / 2 + desplazamiento
+            
+            posiciones_etiquetas.append((x_text, y_text, z_text))
+            
             fig.add_trace(go.Scatter3d(
                 x=[x_text], y=[y_text], z=[z_text],
                 mode='text',
