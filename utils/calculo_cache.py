@@ -217,7 +217,7 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
-    def guardar_calculo_arboles(nombre_estructura, estructura_data, imagenes_generadas, df_cargas_completo=None):
+    def guardar_calculo_arboles(nombre_estructura, estructura_data, imagenes_generadas, df_cargas_completo=None, config_arboles=None):
         """Guarda resultados de Árboles de Carga"""
         nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
@@ -242,7 +242,8 @@ class CalculoCache:
                 "hipotesis": img['hipotesis'],
                 "nombre": img['nombre']
             } for img in imagenes_generadas],
-            "df_cargas_completo": df_dict
+            "df_cargas_completo": df_dict,
+            "config_arboles": config_arboles
         }
         
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoARBOLES.json"

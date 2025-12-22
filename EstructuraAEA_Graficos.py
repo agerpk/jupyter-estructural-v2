@@ -763,13 +763,62 @@ class EstructuraAEA_Graficos:
                             plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), D_fases, 
                                                         color=self.COLORES['circulo'], fill=False, 
                                                         linestyle='--', linewidth=1.5, alpha=0.7))
+                            
+                            # Etiqueta D_fases
+                            offset_vertical = 0.017
+                            plt.annotate('D (entre fases)', xy=(x_conductor + D_fases/2, z_conductor + offset_vertical), 
+                                        xytext=(5, 2), textcoords='offset points', fontsize=8, fontweight='bold', 
+                                        color=self.COLORES['circulo'], 
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
+                                        verticalalignment='bottom')
+                            plt.annotate(f'{D_fases:.2f} m', xy=(x_conductor + D_fases/2, z_conductor - offset_vertical), 
+                                        xytext=(5, -2), textcoords='offset points', fontsize=8, fontweight='bold', 
+                                        color=self.COLORES['circulo'],
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
+                                        verticalalignment='top')
                         
                         elif nombre_cond.endswith('_L') and "C3" in nombre_cond:
                             plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), Dhg, 
                                                         color=self.COLORES['dhg_circulo'], fill=False, 
                                                         linestyle='--', linewidth=1.5, alpha=0.7))
+                            
+                            # Etiqueta Dhg
+                            offset_vertical = 0.017
+                            plt.annotate('Dhg (guardia-conductor)', xy=(x_conductor + Dhg/2, z_conductor + offset_vertical), 
+                                        xytext=(5, 2), textcoords='offset points', fontsize=8, fontweight='bold', 
+                                        color=self.COLORES['dhg_circulo'], 
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
+                                        verticalalignment='bottom')
+                            plt.annotate(f'{Dhg:.2f} m', xy=(x_conductor + Dhg/2, z_conductor - offset_vertical), 
+                                        xytext=(5, -2), textcoords='offset points', fontsize=8, fontweight='bold', 
+                                        color=self.COLORES['dhg_circulo'],
+                                        bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
+                                        verticalalignment='top')
         
-        # 5. DIBUJAR CONEXIONES Y NODOS
+        # 5. ANOTAR DISTANCIAS VERTICALES ENTRE NODOS CONDUCTOR
+        # Recolectar nodos conductor por altura para anotar distancias
+        nodos_conductor_cabezal = []
+        for nombre, coordenadas in self.geometria.nodes_key.items():
+            x, y, z = coordenadas
+            if abs(y) < 0.001 and nombre.startswith(('C1', 'C2', 'C3')):
+                nodos_conductor_cabezal.append((z, nombre, coordenadas))
+        
+        # Ordenar por altura y anotar distancias
+        nodos_conductor_cabezal.sort(key=lambda x: x[0])
+        for i in range(len(nodos_conductor_cabezal)-1):
+            z1, nombre1, coord1 = nodos_conductor_cabezal[i]
+            z2, nombre2, coord2 = nodos_conductor_cabezal[i+1]
+            dist_vertical = z2 - z1
+            if dist_vertical > 0.1:  # Solo mostrar si la distancia es significativa
+                z_medio = (z1 + z2) / 2
+                x_linea = max(coord1[0], coord2[0]) + 0.5  # Posición a la derecha
+                plt.plot([x_linea, x_linea + 0.3], [z_medio, z_medio], color='gray', linestyle=':', alpha=0.7, linewidth=1)
+                plt.annotate(f'{dist_vertical:.2f} m', xy=(x_linea + 0.3, z_medio), xytext=(5, 0), 
+                            textcoords='offset points', fontsize=9, fontweight='bold', 
+                            bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.8), 
+                            verticalalignment='center')
+        
+        # 6. DIBUJAR CONEXIONES Y NODOS
         # Dibujar conexiones entre nodos editados primero
         for nombre, nodo_obj in self.geometria.nodos.items():
             if hasattr(nodo_obj, 'es_editado') and nodo_obj.es_editado and hasattr(nodo_obj, 'conectado_a'):
@@ -856,7 +905,7 @@ class EstructuraAEA_Graficos:
                     color = self.COLORES['poste']
                     plt.scatter(x, z, color=color, s=120, marker='^', zorder=5)
         
-        # 6. CONFIGURACIÓN DE EJES
+        # 7. CONFIGURACIÓN DE EJES
         h1a = self.geometria.dimensiones.get('h1a', 0)
         hhg = self.geometria.dimensiones.get('hhg', 0)
         
@@ -870,7 +919,7 @@ class EstructuraAEA_Graficos:
         plt.xlim(x_center - x_range_cabezal/2 * zoom_factor, x_center + x_range_cabezal/2 * zoom_factor)
         plt.ylim(z_min_cabezal, z_max_cabezal)
         
-        # 7. CUADRÍCULA
+        # 8. CUADRÍCULA
         x_min, x_max = plt.xlim()
         z_min, z_max = plt.ylim()
         x_ticks = np.arange(np.floor(x_min * 10) / 10, np.ceil(x_max * 10) / 10 + 0.1, 0.1)
@@ -880,7 +929,7 @@ class EstructuraAEA_Graficos:
         plt.grid(which='minor', color='lightgray', linestyle='-', linewidth=0.4, alpha=0.5)
         plt.grid(which='major', alpha=0.2, linestyle='-', linewidth=0.7)
         
-        # 8. TÍTULOS Y ETIQUETAS
+        # 9. TÍTULOS Y ETIQUETAS
         plt.xlabel('Distancia Horizontal X [m]', fontsize=11, fontweight='bold')
         plt.ylabel('Altura Z [m]', fontsize=11, fontweight='bold')
         plt.title(f'CABEZAL DE ESTRUCTURA - DETALLE CADENAS Y DISTANCIAS', 
@@ -890,7 +939,7 @@ class EstructuraAEA_Graficos:
         plt.title(f'{self.geometria.tension_nominal}kV - {tipo_estructura_titulo.upper()} - {self.geometria.disposicion.upper()} - {terna_formato}', 
                 fontsize=10, pad=10)
         
-        # 9. LEYENDA SIMPLIFICADA - ABAJO DERECHA
+        # 10. LEYENDA SIMPLIFICADA - ABAJO DERECHA
         from matplotlib.patches import Patch
         leyenda = [
             Patch(facecolor=self.COLORES['conductor'], edgecolor='white', linewidth=1.5, label='Punto amarre'),
@@ -912,7 +961,7 @@ class EstructuraAEA_Graficos:
         
         plt.legend(handles=leyenda, loc='lower right', framealpha=0.95)
         
-        # 10. INFORMACIÓN TÉCNICA
+        # 11. INFORMACIÓN TÉCNICA
         info_text = f'H libre: {altura_total:.2f} m\nMénsula: {self.geometria.dimensiones.get("lmen", 0):.2f} m\nTipo: {tipo_estructura_titulo}\nTerna: {self.geometria.terna}\nCables guardia: {self.geometria.cant_hg}'
         plt.text(0.02, 0.98, info_text, transform=plt.gca().transAxes, fontsize=9,
                 bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8), verticalalignment='top')

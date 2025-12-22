@@ -35,7 +35,15 @@ def register_callbacks(app):
                 if "nodos_editados" not in estructura or not estructura["nodos_editados"]:
                     estructura["nodos_editados"] = []
                 
+                # GUARDAR EN ACTUAL.ESTRUCTURA.JSON
                 state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
+                
+                # TAMBIÉN GUARDAR EN TITULO.ESTRUCTURA.JSON
+                if "TITULO" in estructura:
+                    titulo = estructura["TITULO"]
+                    nombre_archivo = f"{titulo}.estructura.json"
+                    state.estructura_manager.guardar_estructura(estructura, DATA_DIR / nombre_archivo)
+                
                 return estructura, True, "Éxito", f"Estructura '{nombre_estructura}' cargada correctamente", "success", "success"
         except Exception as e:
             print(f"❌ Error cargando estructura: {e}")
@@ -141,7 +149,15 @@ def register_callbacks(app):
         
         try:
             nueva_estructura = state.estructura_manager.crear_nueva_estructura(titulo=nombre.strip())
+            
+            # GUARDAR EN ACTUAL.ESTRUCTURA.JSON
             state.estructura_manager.guardar_estructura(nueva_estructura, state.archivo_actual)
+            
+            # TAMBIÉN GUARDAR EN TITULO.ESTRUCTURA.JSON
+            titulo = nueva_estructura["TITULO"]
+            nombre_archivo = f"{titulo}.estructura.json"
+            state.estructura_manager.guardar_estructura(nueva_estructura, DATA_DIR / nombre_archivo)
+            
             return nueva_estructura, True, "Éxito", f"Nueva estructura '{nombre.strip()}' creada", "success", "success"
         except Exception as e:
             return dash.no_update, True, "Error", f"Error al crear estructura: {str(e)}", "danger", "danger"

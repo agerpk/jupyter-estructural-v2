@@ -193,7 +193,11 @@ def crear_tarjeta_estructuras_disponibles():
 def crear_tarjeta_estructura_actual():
     """Crear tarjeta con resumen de estructura actual"""
     state = AppState()
-    estructura = state.cargar_estructura_actual()
+    # SIEMPRE leer desde actual.estructura.json para obtener datos actualizados
+    try:
+        estructura = state.estructura_manager.cargar_estructura(state.archivo_actual)
+    except:
+        estructura = None
     
     if not estructura:
         return dbc.Card([

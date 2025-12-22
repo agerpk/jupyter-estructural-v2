@@ -144,7 +144,15 @@ def register_callbacks(app):
                     "danger", "danger"
                 )
             
+            # GUARDAR EN ACTUAL.ESTRUCTURA.JSON
             state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
+            
+            # TAMBIÉN GUARDAR EN TITULO.ESTRUCTURA.JSON
+            if "TITULO" in estructura:
+                titulo = estructura["TITULO"]
+                nombre_archivo = f"{titulo}.estructura.json"
+                state.estructura_manager.guardar_estructura(estructura, DATA_DIR / nombre_archivo)
+            
             upload_style = {'display': 'none'}
             
             return estructura, upload_style, True, "Éxito", f"Estructura '{filename}' cargada correctamente", "success", "success"

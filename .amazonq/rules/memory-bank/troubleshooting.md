@@ -825,3 +825,50 @@ if any(abs(val) > 0.01 for val in carga_lista):
 **Files Modified**:
 - `utils/arboles_carga.py` - Load tree generation and 3D visualization
 - `controllers/arboles_controller.py` - Load tree orchestration and caching
+
+---
+
+### Calcular Todo Vista No Muestra Componentes
+
+**Context**: Vista "Calcular Todo" carga cache exitosamente (50 componentes) pero no muestra nada en la UI.
+
+**Issue**: Cache se carga correctamente, componentes se crean exitosamente, pero la vista permanece vacía.
+
+**Root Cause**: Función `_crear_area_resultados()` de SPH retornaba una `list` pero se trataba como componente único con `componentes.append(resultado_sph)`. Esto agregaba la lista completa como un solo elemento, causando que Dash no pudiera renderizar la estructura.
+
+**Resolution**:
+```python
+# Incorrecto - agrega lista como elemento único
+componentes.append(resultado_sph)  # Si resultado_sph es [comp1, comp2, comp3]
+
+# Correcto - verificar tipo y manejar apropiadamente
+if isinstance(resultado_sph, list):
+    componentes.extend(resultado_sph)  # Agrega comp1, comp2, comp3 individualmente
+else:
+    componentes.append(resultado_sph)  # Agrega componente único
+```
+
+**Key Takeaway**:
+- **Siempre verificar tipo de retorno**: Funciones pueden retornar `list` o componente único
+- **Usar extend() para listas**: `extend()` agrega elementos individuales, `append()` agrega la lista completa
+- **Dash no renderiza listas anidadas**: Estructura debe ser plana de componentes válidos
+- **Debug con tipos**: Usar `type(component).__name__` para identificar problemas de estructura
+
+**Debugging Pattern**:
+```python
+print(f"🔍 DEBUG: Tipo de resultado: {type(resultado).__name__}")
+if isinstance(resultado, list):
+    print(f"   Es lista con {len(resultado)} elementos")
+    componentes.extend(resultado)
+else:
+    print(f"   Es {type(resultado).__name__}")
+    componentes.append(resultado)
+```
+
+**Files Modified**:
+- `components/vista_calcular_todo.py` - Manejo correcto de tipos de retorno en `cargar_resultados_modulares()`
+
+**Verification**:
+1. Ejecutar "Calcular Todo" → Verificar que aparecen todas las secciones (CMC, DGE, DME, Árboles, SPH)
+2. Verificar que gráficos interactivos funcionan correctamente
+3. Verificar que tablas y texto se muestran apropiadamente

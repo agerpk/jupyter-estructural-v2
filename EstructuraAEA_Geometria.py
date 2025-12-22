@@ -341,14 +341,15 @@ class EstructuraAEA_Geometria:
         # 2. Calcular h2a si: (disposición=triangular) o (disposición=vertical)
         if self.disposicion in ["triangular", "vertical"]:
             termino1 = self.hadd_entre_amarres + s_estructura + self.lk + self.ancho_cruceta
-            termino2 = self.hadd_entre_amarres - self.lk + D_fases
+            termino2 = self.hadd_entre_amarres + D_fases
             h2a = h1a + max(termino1, termino2)
         
         # 3. Calcular h3a si: (disposición=vertical)
         if self.disposicion == "vertical":
-            termino1 = self.hadd_entre_amarres + s_estructura + self.lk
-            termino2 = self.hadd_entre_amarres - self.lk + D_fases
+            termino1 = self.hadd_entre_amarres + s_estructura + self.lk + self.ancho_cruceta
+            termino2 = self.hadd_entre_amarres + D_fases
             h3a = h2a + max(termino1, termino2)
+            print(f"   🔍 DEBUG h3a: termino1={termino1:.3f}, termino2={termino2:.3f}, max={max(termino1, termino2):.3f}")
         
         return h1a, h2a, h3a
     

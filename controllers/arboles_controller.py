@@ -330,11 +330,21 @@ def register_callbacks(app):
                     "danger", "danger"
                 )
             
-            # PERSISTENCIA: Guardar en cache
+            # PERSISTENCIA: Guardar en cache con configuración
+            config_guardado = {
+                "zoom": float(zoom),
+                "escala_flecha": float(escala),
+                "grosor_linea": float(grosor),
+                "fontsize_nodos": int(fontsize_nodos),
+                "fontsize_flechas": int(fontsize_flechas),
+                "mostrar_nodos": bool(mostrar_nodos),
+                "mostrar_sismo": bool(mostrar_sismo),
+                "usar_3d": usar_3d
+            }
             print(f"💾 Guardando en cache. DataFrame: {estructura_poo.df_cargas_completo is not None}")
             if estructura_poo.df_cargas_completo is not None:
                 print(f"   Shape: {estructura_poo.df_cargas_completo.shape}")
-            CalculoCache.guardar_calculo_arboles(nombre_estructura, estructura_actual, resultado['imagenes'], estructura_poo.df_cargas_completo)
+            CalculoCache.guardar_calculo_arboles(nombre_estructura, estructura_actual, resultado['imagenes'], estructura_poo.df_cargas_completo, config_guardado)
             
             # Crear HTML con las imágenes generadas en dos columnas
             imagenes_html = [

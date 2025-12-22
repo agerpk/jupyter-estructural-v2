@@ -76,7 +76,16 @@ def register_callbacks(app):
             if not validar_estructura_json(estructura):
                 return dash.no_update, {'display': 'none'}, True, "Error", "El archivo no tiene una estructura válida", "danger", "danger"
             
+            # GUARDAR EN ACTUAL.ESTRUCTURA.JSON
             state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
+            
+            # TAMBIÉN GUARDAR EN TITULO.ESTRUCTURA.JSON
+            if "TITULO" in estructura:
+                titulo = estructura["TITULO"]
+                nombre_archivo = f"{titulo}.estructura.json"
+                from config.app_config import DATA_DIR
+                state.estructura_manager.guardar_estructura(estructura, DATA_DIR / nombre_archivo)
+            
             return estructura, {'display': 'none'}, True, "Éxito", f"Estructura '{filename}' cargada correctamente", "success", "success"
             
         except Exception as e:

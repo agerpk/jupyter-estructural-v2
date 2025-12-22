@@ -32,6 +32,10 @@ def crear_vista_arboles_carga(estructura_actual, calculo_guardado=None):
     except:
         config = config_default
     
+    # Si hay cache, usar configuración del cache
+    if calculo_guardado and calculo_guardado.get('config_arboles'):
+        config.update(calculo_guardado['config_arboles'])
+    
     # Cargar resultados previos si existen
     resultados_previos = None
     if calculo_guardado:
@@ -155,14 +159,41 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual, mostrar_aler
         if calculo_guardado.get('df_cargas_completo'):
             df_dict = calculo_guardado['df_cargas_completo']
             
-            # Reconstruir MultiIndex
-            arrays = []
-            for level_idx in range(len(df_dict['columns'])):
-                level_values = df_dict['columns'][level_idx]
-                codes = df_dict['column_codes'][level_idx]
-                arrays.append([level_values[code] for code in codes])
-            multi_idx = pd.MultiIndex.from_arrays(arrays)
-            df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)
+            # Reconstruir MultiIndex correctamente
+            if 'columns' in df_dict and 'column_codes' in df_dict:
+                # Método con codes (nuevo)
+                arrays = []
+                for level_idx in range(len(df_dict['columns'])):
+                    level_values = df_dict['columns'][level_idx]
+                    codes = df_dict['column_codes'][level_idx]
+                    arrays.append([level_values[code] for code in codes])
+                multi_idx = pd.MultiIndex.from_arrays(arrays)
+                df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)
+            else:
+                # Fallback: usar orient='split' para preservar MultiIndex
+                df_cargas = pd.read_json(json.dumps(df_dict), orient='split')
+                
+                # Si no tiene MultiIndex, intentar reconstruirlo desde nombres de columnas
+                if not isinstance(df_cargas.columns, pd.MultiIndex) and len(df_cargas.columns) > 2:
+                    # Extraer códigos de hipótesis de nombres de columnas
+                    nivel_superior = ['', '']  # Nodo, Unidad
+                    nivel_inferior = ['Nodo', 'Unidad']
+                    
+                    for col in df_cargas.columns[2:]:
+                        if '_' in str(col):
+                            # Extraer código de hipótesis del nombre completo
+                            partes = str(col).split('_')
+                            codigo = partes[-2] if len(partes) >= 2 else f'H{len(nivel_superior)//3}'
+                        else:
+                            codigo = f'H{(len(nivel_superior)-2)//3}'
+                        
+                        if len(nivel_superior) == 2 or nivel_superior[-3] != codigo:
+                            # Nueva hipótesis
+                            nivel_superior.extend([codigo] * 3)
+                            nivel_inferior.extend(['x', 'y', 'z'])
+                    
+                    multi_idx = pd.MultiIndex.from_arrays([nivel_superior, nivel_inferior])
+                    df_cargas.columns = multi_idx
             
             # Filtrar y formatear
             mask = (df_cargas.iloc[:, 2:].abs() > 0.001).any(axis=1)
