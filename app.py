@@ -199,4 +199,4 @@ def inicializar_datos():
 
 if __name__ == '__main__':
     inicializar_datos()
-    app.run(debug=False, port=APP_PORT)
+    app.run(debug=DEBUG_MODE, port=APP_PORT, host='0.0.0.0')
