@@ -145,11 +145,12 @@ def registrar_callbacks_fundacion(app):
             
             # Generar DataFrame y memoria
             df_resultados = sulzberger.obtener_dataframe_todas_hipotesis()
-            memoria_calculo = sulzberger.obtener_memoria_calculo()
+            memoria_calculo = sulzberger.generar_memoria_calculo_ingenieria()  # Usar nueva memoria
             
             print(f"✅ DEBUG: Cálculo completado. Hipótesis dimensionante: {resultados['hipotesis_dimensionante']}")
             print(f"📊 DEBUG: DataFrame generado con {len(df_resultados)} filas")
             print(f"📝 DEBUG: Memoria de cálculo: {len(memoria_calculo)} caracteres")
+            print(f"🔍 DEBUG: Primeras 500 chars de memoria: {memoria_calculo[:500]}...")
             
             # Guardar en cache en background
             def guardar_async():
@@ -617,7 +618,7 @@ def ejecutar_sph_automatico(nombre_estructura, estructura_actual):
             desarrollo_texto = buffer.getvalue()
             sys.stdout = old_stdout
             
-            # Parsear parámetros de la memoria de cálculo
+            # Extraer parámetros desde memoria de cálculo SPH
             import re
             
             # Extraer peso del poste
@@ -628,12 +629,23 @@ def ejecutar_sph_automatico(nombre_estructura, estructura_actual):
             he_match = re.search(r'Empotramiento final \(He\): ([\d.]+) m', desarrollo_texto)
             he = float(he_match.group(1)) if he_match else None
             
-            # Extraer altura libre (aproximada como altura total - he)
-            h_total = geometria.h1a + geometria.he if hasattr(geometria, 'h1a') and hasattr(geometria, 'he') else 15.0
-            hl = h_total - he if he else 13.5
+            # Extraer altura libre desde SPH (Hl)
+            hl_match = re.search(r'Altura libre final \(Hl\): ([\d.]+) m', desarrollo_texto)
+            hl = float(hl_match.group(1)) if hl_match else None
             
-            # Extraer diámetro en cima (aproximado)
-            dc = 0.31  # Valor típico, debería extraerse del SPH
+            # Extraer altura total desde SPH (Ht)
+            ht_match = re.search(r'Longitud total comercial \(Ht\): ([\d.]+) m', desarrollo_texto)
+            h_total = float(ht_match.group(1)) if ht_match else None
+            
+            # Extraer diámetro desde SPH
+            dc_match = re.search(r'Diámetro = (\d+) mm', desarrollo_texto)
+            dc = float(dc_match.group(1)) / 1000 if dc_match else 0.31  # Convertir mm a m
+            
+            # Fallbacks si no se encuentran valores
+            if not hl and he and h_total:
+                hl = h_total - he
+            if not h_total and hl and he:
+                h_total = hl + he
             
             # Extraer todas las fuerzas del objeto mecanica
             hipotesis_fuerzas = []
