@@ -410,9 +410,33 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
-    def eliminar_cache(nombre_estructura):
+    def guardar_calculo_fund(nombre_estructura, parametros, resultados):
+        """Guarda resultados de Cálculo de Fundaciones"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
+        hash_params = hashlib.md5(json.dumps(parametros, sort_keys=True).encode()).hexdigest()
+        
+        calculo_data = {
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "parametros": parametros,
+            "resultados": resultados
+        }
+        
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoFUND.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        return hash_params
+    
+    @staticmethod
+    def cargar_calculo_fund(nombre_estructura):
+        """Carga resultados de Cálculo de Fundaciones"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoFUND.json"
+        if not archivo.exists():
+            return None
+        return json.loads(archivo.read_text(encoding="utf-8"))
+    
         """Elimina todos los archivos de cache de una estructura"""
-        tipos = ['CMC', 'DGE', 'DME', 'ARBOLES', 'SPH', 'TODO']
+        tipos = ['CMC', 'DGE', 'DME', 'ARBOLES', 'SPH', 'TODO', 'FUND']
         eliminados = []
         
         for tipo in tipos:

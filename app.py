@@ -36,7 +36,8 @@ from controllers import (
     nuevo_controller,
     borrar_cache_controller,
     consola_controller,
-    comparar_cables_controller
+    comparar_cables_controller,
+    fundacion_controller
 )
 
 # Inicializar la aplicación Dash
@@ -97,6 +98,7 @@ calcular_todo_controller.register_callbacks(app)
 home_controller.register_callbacks(app)
 nuevo_controller.register_callbacks(app)
 consola_controller.register_callbacks(app)
+fundacion_controller.registrar_callbacks_fundacion(app)
 comparar_cables_controller.registrar_callbacks_comparar_cables(app)
 # borrar_cache_controller no requiere register_callbacks - usa decorador @callback directo
 

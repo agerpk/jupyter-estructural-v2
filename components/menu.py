@@ -79,6 +79,7 @@ def crear_menu_calcular():
             dbc.DropdownMenuItem("ADC - Árboles de Carga", id="menu-arboles-carga"),
             dbc.DropdownMenuItem(divider=True),
             dbc.DropdownMenuItem("Selección Poste Hormigón (SPH)", id="menu-seleccion-poste"),
+            dbc.DropdownMenuItem("Fundación", id="menu-fundacion"),
             dbc.DropdownMenuItem(divider=True),
             dbc.DropdownMenuItem("Calcular Todo", id="menu-calcular-todo", style={"fontWeight": "bold"}),
         ],

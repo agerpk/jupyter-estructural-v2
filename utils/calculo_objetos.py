@@ -268,6 +268,8 @@ class CalculoObjetosAEA:
             
         except Exception as e:
             return {"exito": False, "mensaje": f"Error: {str(e)}"}
+    
+    def crear_todos_objetos(self, estructura_config):
         """Crear todos los objetos (Cable, Cadena, Estructura)"""
         resultados = []
         
