@@ -198,3 +198,105 @@ def crear_grafico_flechas(cable_conductor, cable_guardia1, L_vano, cable_guardia
         return fig_combinado, fig_conductor, fig_guardia1, fig_guardia2
     
     return fig_combinado, fig_conductor, fig_guardia1
+
+def crear_grafico_flechas_solo_conductor(cable_conductor, L_vano):
+    """
+    Crear gráfico de flechas solo para conductor (sin guardia)
+    
+    Args:
+        cable_conductor: Objeto Cable_AEA del conductor con catenarias_cache
+        L_vano: Longitud del vano en metros
+    
+    Returns:
+        Figura de Plotly solo para conductor
+    """
+    
+    # Colores por estado
+    colores = {
+        "I": "#FF6B6B",    # Rojo - Tmáx
+        "II": "#4ECDC4",   # Turquesa - Tmín
+        "III": "#45B7D1",  # Azul - Vmáx
+        "IV": "#FFA07A",   # Naranja - Vmed
+        "V": "#98D8C8"     # Verde - TMA
+    }
+    
+    # Crear figura
+    fig_conductor = go.Figure()
+    
+    # Función auxiliar para plotear catenaria
+    def plotear_catenaria(fig, estado_id, cat_data, nombre, color):
+        x = cat_data['x']
+        y = cat_data['y']
+        idx_max = np.argmax(y)
+        x_max = x[idx_max]
+        nombre_con_x = f"{nombre} (x={x_max:.1f}m)"
+        fig.add_trace(go.Scatter(
+            x=x, y=y, mode='lines', name=nombre_con_x,
+            line=dict(color=color, width=2),
+            hovertemplate='<b>Vano:</b> %{x:.1f} m<br><b>Flecha:</b> %{y:.3f} m<extra></extra>'
+        ))
+    
+    # Plotear conductor
+    for estado_id, cat_estados in cable_conductor.catenarias_cache.items():
+        cat_data = cat_estados['catenaria_posterior']
+        plotear_catenaria(fig_conductor, estado_id, cat_data,
+                         f'Estado {estado_id}', colores.get(estado_id, "#000000"))
+        # Marcar punto de máxima flecha
+        idx_max = np.argmax(cat_data['y'])
+        fig_conductor.add_trace(go.Scatter(x=[cat_data['x'][idx_max]], y=[cat_data['y'][idx_max]], 
+                                          mode='markers', marker=dict(color='orange', size=8),
+                                          showlegend=False, hoverinfo='skip'))
+    
+    # Agregar línea de apoyos
+    fig_conductor.add_trace(go.Scatter(
+        x=[0, L_vano],
+        y=[0, 0],
+        mode='lines',
+        name='Apoyos',
+        line=dict(color='black', width=3),
+        showlegend=False
+    ))
+    
+    # Configurar layout
+    fig_conductor.update_layout(
+        title='Flechas de Conductor por Estado Climático',
+        xaxis_title='Vano (m)',
+        yaxis_title='Flecha (m)',
+        hovermode='closest',
+        legend=dict(
+            x=1.02,
+            y=1,
+            xanchor='left',
+            yanchor='top',
+            bgcolor='rgba(255, 255, 255, 0.8)',
+            bordercolor='gray',
+            borderwidth=1
+        ),
+        plot_bgcolor='#f8f9fa',
+        paper_bgcolor='white',
+        font=dict(size=12),
+        height=500,
+        margin=dict(r=250)
+    )
+    
+    # Configurar ejes
+    fig_conductor.update_xaxes(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='lightgray',
+        zeroline=True,
+        zerolinewidth=2,
+        zerolinecolor='black'
+    )
+    
+    fig_conductor.update_yaxes(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='lightgray',
+        zeroline=True,
+        zerolinewidth=2,
+        zerolinecolor='black',
+        autorange='reversed'
+    )
+    
+    return fig_conductor

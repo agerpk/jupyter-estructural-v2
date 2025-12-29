@@ -2,6 +2,25 @@
 
 ## Common Issues and Solutions
 
+### dcc.Slider Component TypeError - Unexpected Keyword Argument
+
+**Problem**: Error when navigating to CMC view: `TypeError: The dcc.Slider component received an unexpected keyword argument: 'tipo'`
+
+**Root Cause**: The `obtener_config_control()` function returns a dictionary that includes a `tipo` field (used internally to identify control type), but `dcc.Slider` doesn't accept this argument.
+
+**Solution**: Filter out the `tipo` field before passing configuration to `dcc.Slider`:
+```python
+# Wrong - passes all fields including 'tipo'
+dcc.Slider(**{**obtener_config_control("alpha"), "id": "slider-alpha", "value": value})
+
+# Correct - filter out 'tipo' field
+dcc.Slider(id="slider-alpha", value=value, **{k: v for k, v in obtener_config_control("alpha").items() if k != "tipo"})
+```
+
+**Key Learning**: Always validate that component arguments match the expected interface. Internal configuration fields should be filtered before passing to Dash components.
+
+---
+
 ### Plotly Graphs Not Appearing When Loading from Cache
 
 **Problem**: Interactive Plotly graphs appear when calculated directly in a view, but disappear when loading from cache or executing from "Calcular Todo".

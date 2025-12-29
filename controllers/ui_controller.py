@@ -57,6 +57,7 @@ def register_callbacks(app):
         Input("menu-arboles-carga", "n_clicks"),
         Input("menu-seleccion-poste", "n_clicks"),
         Input("menu-calcular-todo", "n_clicks"),
+        Input("menu-comparativa-cmc", "n_clicks"),
         prevent_initial_call=True
     )
     def actualizar_badge_vista(*args):
@@ -74,7 +75,8 @@ def register_callbacks(app):
             "menu-diseno-mecanico": "DME",
             "menu-arboles-carga": "Árboles de Carga",
             "menu-seleccion-poste": "SPH",
-            "menu-calcular-todo": "Calcular Todo"
+            "menu-calcular-todo": "Calcular Todo",
+            "menu-comparativa-cmc": "CC"
         }
         return nombres_vistas.get(trigger_id, "Vista")
     

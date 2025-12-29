@@ -6,6 +6,7 @@ from components.menu import (
     crear_menu_archivo, 
     crear_menu_editar,
     crear_menu_calcular,
+    crear_menu_herramientas,
     crear_menu_info,
     crear_modal_cargar_db, 
     crear_modal_guardar_como,
@@ -52,6 +53,7 @@ def crear_layout():
                     crear_menu_archivo(),
                     crear_menu_editar(),
                     crear_menu_calcular(),
+                    crear_menu_herramientas(),
                     crear_menu_info(),
                 ], navbar=True),
                 

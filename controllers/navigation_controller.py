@@ -56,13 +56,14 @@ def register_callbacks(app):
         Input("menu-seleccion-poste", "n_clicks"),
         Input("menu-calcular-todo", "n_clicks"),
         Input("menu-consola", "n_clicks"),
+        Input("menu-comparativa-cmc", "n_clicks"),
         State("estructura-actual", "data"),
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
                        n_clicks_eliminar, n_clicks_cmc,
                        n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
                        n_clicks_diseno_geom, n_clicks_diseno_mec, n_clicks_arboles, n_clicks_sph, 
-                       n_clicks_calcular_todo, n_clicks_consola, estructura_actual):
+                       n_clicks_calcular_todo, n_clicks_consola, n_clicks_comparativa_cmc, estructura_actual):
         ctx = callback_context
         
         # Detectar carga inicial (app restart o hot reload)
@@ -122,6 +123,25 @@ def register_callbacks(app):
             elif ultima_vista == "consola":
                 from components.vista_consola import crear_vista_consola
                 return crear_vista_consola()
+            elif ultima_vista == "comparativa-cmc":
+                from components.vista_comparar_cables import crear_vista_comparar_cables
+                # Intentar cargar comparativa actual desde navegación state
+                try:
+                    from config.app_config import DATA_DIR
+                    import json
+                    nav_file = DATA_DIR / "navegacion_state.json"
+                    comparativa_actual = None
+                    if nav_file.exists():
+                        with open(nav_file, 'r', encoding='utf-8') as f:
+                            nav_data = json.load(f)
+                            comparativa_titulo = nav_data.get("comparativa_actual")
+                            if comparativa_titulo:
+                                from utils.comparar_cables_manager import ComparativaCablesManager
+                                comparativa_actual = ComparativaCablesManager.cargar_comparativa(comparativa_titulo)
+                    return crear_vista_comparar_cables(comparativa_actual)
+                except Exception as e:
+                    print(f"Error cargando comparativa: {e}")
+                    return crear_vista_comparar_cables(None)
             return crear_vista_home()
         
         print(f"DEBUG: Trigger detectado: {trigger_id}")
@@ -224,6 +244,27 @@ def register_callbacks(app):
             guardar_navegacion_state("consola")
             from components.vista_consola import crear_vista_consola
             return crear_vista_consola()
+        
+        elif trigger_id == "menu-comparativa-cmc":
+            guardar_navegacion_state("comparativa-cmc")
+            from components.vista_comparar_cables import crear_vista_comparar_cables
+            # Intentar cargar comparativa actual desde navegación state
+            try:
+                from config.app_config import DATA_DIR
+                import json
+                nav_file = DATA_DIR / "navegacion_state.json"
+                comparativa_actual = None
+                if nav_file.exists():
+                    with open(nav_file, 'r', encoding='utf-8') as f:
+                        nav_data = json.load(f)
+                        comparativa_titulo = nav_data.get("comparativa_actual")
+                        if comparativa_titulo:
+                            from utils.comparar_cables_manager import ComparativaCablesManager
+                            comparativa_actual = ComparativaCablesManager.cargar_comparativa(comparativa_titulo)
+                return crear_vista_comparar_cables(comparativa_actual)
+            except Exception as e:
+                print(f"Error cargando comparativa: {e}")
+                return crear_vista_comparar_cables(None)
         
         elif "btn-volver" in trigger_id:
             try:

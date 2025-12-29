@@ -4,7 +4,7 @@ import json
 import hashlib
 from pathlib import Path
 from datetime import datetime
-from config.app_config import CACHE_DIR
+from config.app_config import CACHE_DIR, DATA_DIR
 import glob
 
 
@@ -295,6 +295,102 @@ class CalculoCache:
         """Carga resultados de Calcular Todo"""
         nombre_estructura = nombre_estructura.replace(' ', '_')
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoTODO.json"
+        if not archivo.exists():
+            return None
+        return json.loads(archivo.read_text(encoding="utf-8"))
+    
+    @staticmethod
+    def guardar_calculo_comparar_cmc(nombre_comparativa, parametros_comparativa, resultados_cables):
+        """Guarda resultados de Comparativa CMC"""
+        nombre_comparativa = str(nombre_comparativa).replace(' ', '_') if nombre_comparativa else "Sin_Titulo"
+        
+        # Validar parámetros
+        if not parametros_comparativa:
+            parametros_comparativa = {}
+        if not resultados_cables:
+            resultados_cables = {}
+            
+        hash_params = hashlib.md5(json.dumps(parametros_comparativa, sort_keys=True).encode()).hexdigest()
+        
+        # Procesar resultados por cable
+        dataframes_serializados = {}
+        graficos_guardados = {}
+        console_output_completo = ""
+        
+        for cable_nombre, resultado in resultados_cables.items():
+            if not resultado or "error" in resultado:
+                continue
+                
+            # Serializar DataFrame
+            if "dataframe_html" in resultado and resultado["dataframe_html"]:
+                dataframes_serializados[cable_nombre] = resultado["dataframe_html"]
+            
+            # Guardar gráficos Plotly (JSON para interactividad)
+            if "graficos" in resultado and resultado["graficos"]:
+                for nombre_grafico, fig in resultado["graficos"].items():
+                    if fig:
+                        try:
+                            # Sanitizar nombres de archivo
+                            cable_safe = str(cable_nombre).replace(' ', '_').replace('/', '_')
+                            grafico_safe = str(nombre_grafico).replace(' ', '_').replace('/', '_')
+                            
+                            # Guardar como JSON para interactividad
+                            json_path = CACHE_DIR / f"CC_{cable_safe}_{grafico_safe}.{hash_params}.json"
+                            fig.write_json(str(json_path))
+                            
+                            # También PNG para exportar
+                            png_path = CACHE_DIR / f"CC_{cable_safe}_{grafico_safe}.{hash_params}.png"
+                            fig.write_image(str(png_path), width=1200, height=600)
+                            
+                            if cable_nombre not in graficos_guardados:
+                                graficos_guardados[cable_nombre] = {}
+                            graficos_guardados[cable_nombre][nombre_grafico] = {
+                                "json": f"CC_{cable_safe}_{grafico_safe}.{hash_params}.json",
+                                "png": f"CC_{cable_safe}_{grafico_safe}.{hash_params}.png"
+                            }
+                        except Exception as e:
+                            print(f"Error guardando gráfico {nombre_grafico} para {cable_nombre}: {e}")
+        
+        # Crear gráfico comparativo y guardarlo
+        try:
+            from utils.comparativa_cmc_calculo import crear_grafico_comparativo
+            fig_comparativo = crear_grafico_comparativo(resultados_cables)
+            if fig_comparativo:
+                json_path = CACHE_DIR / f"CC_Comparativo.{hash_params}.json"
+                png_path = CACHE_DIR / f"CC_Comparativo.{hash_params}.png"
+                fig_comparativo.write_json(str(json_path))
+                fig_comparativo.write_image(str(png_path), width=1200, height=600)
+                graficos_guardados["comparativo"] = {
+                    "json": f"CC_Comparativo.{hash_params}.json",
+                    "png": f"CC_Comparativo.{hash_params}.png"
+                }
+        except Exception as e:
+            print(f"Error guardando gráfico comparativo: {e}")
+        
+        calculo_data = {
+            "nombre_comparativa": str(nombre_comparativa),
+            "parametros": parametros_comparativa,
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "resultados": {
+                "cables_calculados": [str(cable) for cable in resultados_cables.keys() if resultados_cables.get(cable) and "error" not in resultados_cables[cable]],
+                "dataframes": dataframes_serializados,
+                "graficos": graficos_guardados,
+                "errores": {str(cable): str(resultado.get("error", "Error desconocido")) for cable, resultado in resultados_cables.items() if resultado and "error" in resultado},
+                "console_output": str(console_output_completo)
+            }
+        }
+        
+        archivo = CACHE_DIR / f"{nombre_comparativa}.calculoCompararCMC.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"✅ Cache comparativa guardado: {archivo.name}")
+        return hash_params
+    
+    @staticmethod
+    def cargar_calculo_comparar_cmc(nombre_comparativa):
+        """Carga resultados de Comparativa CMC"""
+        nombre_comparativa = nombre_comparativa.replace(' ', '_')
+        archivo = CACHE_DIR / f"{nombre_comparativa}.calculoCompararCMC.json"
         if not archivo.exists():
             return None
         return json.loads(archivo.read_text(encoding="utf-8"))

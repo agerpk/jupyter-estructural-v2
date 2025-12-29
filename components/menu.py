@@ -142,6 +142,19 @@ def crear_modal_guardar_plantilla():
         ])
     ], id="modal-guardar-plantilla", is_open=False)
 
+def crear_menu_herramientas():
+    """Crear menú HERRAMIENTAS"""
+    return dbc.DropdownMenu(
+        children=[
+            dbc.DropdownMenuItem("Comparativa CMC", id="menu-comparativa-cmc"),
+        ],
+        nav=True,
+        in_navbar=True,
+        label="HERRAMIENTAS",
+        className="ms-2",
+        direction="down",
+    )
+
 def crear_menu_info():
     """Crear menú INFO"""
     return dbc.DropdownMenu(

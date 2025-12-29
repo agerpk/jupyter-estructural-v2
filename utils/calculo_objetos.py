@@ -4,6 +4,8 @@ Módulo para creación de objetos Cable, Cadena y Estructura según AEA-95301
 
 from CalculoCables import Cable_AEA, Elemento_AEA, LibCables
 from DatosCables import datos_cables
+import json
+from config.app_config import DATA_DIR
 
 
 class CalculoObjetosAEA:
@@ -20,7 +22,20 @@ class CalculoObjetosAEA:
         self.estructura_geometria = None
         self.estructura_mecanica = None
         self.estructura_graficos = None
-        self.DATOS_CABLES = datos_cables
+        self.DATOS_CABLES = self._cargar_datos_cables()
+    
+    def _cargar_datos_cables(self):
+        """Cargar datos de cables desde cables_2.json (incluye cables convertidos) o fallback a DatosCables.py"""
+        try:
+            cables_path = DATA_DIR / "cables_2.json"
+            if cables_path.exists():
+                with open(cables_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            else:
+                return datos_cables
+        except Exception as e:
+            print(f"Error cargando cables_2.json, usando DatosCables.py: {e}")
+            return datos_cables
     
     def crear_objetos_cable(self, estructura_config):
         """Crear objetos Cable según configuración de estructura"""
@@ -89,7 +104,7 @@ class CalculoObjetosAEA:
                 
                 return {
                     "exito": True,
-                    "mensaje": f"Cables creados exitosamente",
+                    "mensaje": "Cables creados exitosamente",
                     "conductor": self.cable_conductor.nombre,
                     "guardia1": self.cable_guardia1.nombre,
                     "guardia2": self.cable_guardia2.nombre
@@ -99,7 +114,7 @@ class CalculoObjetosAEA:
                 self.cable_guardia2 = self.cable_guardia1
                 return {
                     "exito": True,
-                    "mensaje": f"Cables creados exitosamente",
+                    "mensaje": "Cables creados exitosamente",
                     "conductor": self.cable_conductor.nombre,
                     "guardia1": self.cable_guardia1.nombre
                 }
@@ -151,7 +166,42 @@ class CalculoObjetosAEA:
         except Exception as e:
             return {"exito": False, "mensaje": f"Error: {str(e)}"}
     
-    def crear_todos_objetos(self, estructura_config):
+    def crear_cable_conductor(self, estructura_config):
+        """Crear solo objeto Cable conductor"""
+        try:
+            cable_conductor_id = estructura_config.get("cable_conductor_id")
+            
+            if cable_conductor_id not in self.DATOS_CABLES:
+                raise ValueError(f"Cable conductor '{cable_conductor_id}' no encontrado")
+            
+            viento_base_params_conductor = {
+                'V': estructura_config.get("Vmax"),
+                't_hielo': estructura_config.get("t_hielo"),
+                'exp': estructura_config.get("exposicion"),
+                'clase': estructura_config.get("clase"),
+                'Zc': estructura_config.get("Zco"),
+                'Cf': estructura_config.get("Cf_cable"),
+                'L_vano': estructura_config.get("L_vano")
+            }
+            
+            self.lib_cables = LibCables()
+            
+            self.cable_conductor = Cable_AEA(
+                id_cable=cable_conductor_id,
+                nombre=cable_conductor_id,
+                propiedades=self.DATOS_CABLES[cable_conductor_id],
+                viento_base_params=viento_base_params_conductor
+            )
+            self.lib_cables.agregar_cable(self.cable_conductor)
+            
+            return {
+                "exito": True,
+                "mensaje": "Cable conductor creado exitosamente",
+                "conductor": self.cable_conductor.nombre
+            }
+            
+        except Exception as e:
+            return {"exito": False, "mensaje": f"Error: {str(e)}"}
         """Crear todos los objetos (Cable, Cadena, Estructura)"""
         resultados = []
         
@@ -171,7 +221,7 @@ class CalculoObjetosAEA:
             
             return {
                 "exito": True,
-                "mensaje": f"Todos los objetos creados exitosamente\n✓ Cables: {cables_msg}\n✓ Cadena de Aisladores\n✓ Estructura"
+                "mensaje": f"Todos los objetos creados exitosamente - Cables: {cables_msg} - Cadena de Aisladores - Estructura"
             }
         else:
             errores = [r["mensaje"] for r in resultados if not r["exito"]]
