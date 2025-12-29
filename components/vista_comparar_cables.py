@@ -169,20 +169,7 @@ def _crear_seccion_parametros(comparativa_actual):
                         id="input-vmed-comparativa",
                         type="number", value=params.get("Vmed", 15.56), step=0.1
                     )
-                ], width=4),
-                dbc.Col([
-                    dbc.Label("Hielo (m):"),
-                    dbc.Select(
-                        id="select-hielo-comparativa",
-                        options=[
-                            {"label": "0 m", "value": 0},
-                            {"label": "0.01 m", "value": 0.01},
-                            {"label": "0.02 m", "value": 0.02},
-                            {"label": "0.03 m", "value": 0.03}
-                        ],
-                        value=params.get("t_hielo", 0)
-                    )
-                ], width=4)
+                ], width=6)
             ], className="mb-4"),
             
             # Configuración de cálculo
@@ -347,9 +334,8 @@ def _crear_tabla_estados_climaticos(estados_climaticos):
         html.Th("Temp (°C)", style={"width": "12%"}),
         html.Th("Descripción", style={"width": "20%"}),
         html.Th("Viento (m/s)", style={"width": "15%"}),
-        html.Th("Hielo (m)", style={"width": "12%"}),
-        html.Th("Rest. Cond.", style={"width": "16%"}),
-        html.Th("Rest. Guard.", style={"width": "17%"})
+        html.Th("Hielo (m)", style={"width": "15%"}),
+        html.Th("Rest. Cond.", style={"width": "30%"})
     ]
     
     filas = []
@@ -388,13 +374,6 @@ def _crear_tabla_estados_climaticos(estados_climaticos):
                 dbc.Input(
                     id={"type": "rest-cond-estado", "index": estado_id},
                     type="number", value=estado_data.get("restriccion_conductor", 0.25),
-                    size="sm", step=0.01, min=0, max=1, style={"width": "100%"}
-                )
-            ]),
-            html.Td([
-                dbc.Input(
-                    id={"type": "rest-guard-estado", "index": estado_id},
-                    type="number", value=estado_data.get("restriccion_guardia", 0.7),
                     size="sm", step=0.01, min=0, max=1, style={"width": "100%"}
                 )
             ])
@@ -471,11 +450,22 @@ def crear_tabla_comparativa(resultados):
         # Fila 1: Sección Total
         fila = ["Sección Total (mm²)"]
         for cable_nombre in cables_exitosos.keys():
-            seccion = propiedades_cables.get(cable_nombre, {}).get("seccion_total_mm2", "N/A")
-            if isinstance(seccion, (int, float)):
-                fila.append(f"{seccion:.1f}")
+            cable_props = propiedades_cables.get(cable_nombre, {})
+            tipo_cable = cable_props.get("tipo", "")
+            
+            # Para cables ACSS, mostrar sección de acero
+            if "ACSS" in tipo_cable:
+                seccion = cable_props.get("seccion_acero_mm2")
+                if seccion is not None:
+                    fila.append(f"{seccion:.1f} (acero)")
+                else:
+                    fila.append("N/A (acero)")
             else:
-                fila.append("N/A")
+                seccion = cable_props.get("seccion_total_mm2", "N/A")
+                if isinstance(seccion, (int, float)):
+                    fila.append(f"{seccion:.1f}")
+                else:
+                    fila.append("N/A")
         filas_datos.append(fila)
         
         # Fila 2: Diámetro Total
@@ -502,18 +492,40 @@ def crear_tabla_comparativa(resultados):
         # Fila 5: Módulo de Elasticidad
         fila = ["Módulo Elasticidad (daN/mm²)"]
         for cable_nombre in cables_exitosos.keys():
-            modulo = propiedades_cables.get(cable_nombre, {}).get("modulo_elasticidad_dan_mm2", "N/A")
-            fila.append(f"{modulo}" if modulo != "N/A" else "N/A")
+            cable_props = propiedades_cables.get(cable_nombre, {})
+            tipo_cable = cable_props.get("tipo", "")
+            
+            # Para cables ACSS, mostrar módulo de acero
+            if "ACSS" in tipo_cable:
+                modulo = cable_props.get("modulo_elasticidad_acero_dan_mm2")
+                if modulo is not None:
+                    fila.append(f"{modulo} (acero)")
+                else:
+                    fila.append("N/A (acero)")
+            else:
+                modulo = cable_props.get("modulo_elasticidad_dan_mm2", "N/A")
+                fila.append(f"{modulo}" if modulo != "N/A" else "N/A")
         filas_datos.append(fila)
         
         # Fila 6: Coeficiente Dilatación
         fila = ["Coef. Dilatación (1/°C)"]
         for cable_nombre in cables_exitosos.keys():
-            dilatacion = propiedades_cables.get(cable_nombre, {}).get("coeficiente_dilatacion_1_c", "N/A")
-            if isinstance(dilatacion, (int, float)):
-                fila.append(f"{dilatacion:.2e}")
+            cable_props = propiedades_cables.get(cable_nombre, {})
+            tipo_cable = cable_props.get("tipo", "")
+            
+            # Para cables ACSS, mostrar coeficiente de acero
+            if "ACSS" in tipo_cable:
+                dilatacion = cable_props.get("coeficiente_dilatacion_acero_1_c")
+                if dilatacion is not None:
+                    fila.append(f"{dilatacion:.2e} (acero)")
+                else:
+                    fila.append("N/A (acero)")
             else:
-                fila.append("N/A")
+                dilatacion = cable_props.get("coeficiente_dilatacion_1_c", "N/A")
+                if isinstance(dilatacion, (int, float)):
+                    fila.append(f"{dilatacion:.2e}")
+                else:
+                    fila.append("N/A")
         filas_datos.append(fila)
         
         # Agregar datos de resultados calculados
@@ -621,13 +633,25 @@ def generar_resultados_desde_cache(cache_data):
     if "comparativo" in graficos:
         try:
             from utils.view_helpers import ViewHelpers
-            grafico_comparativo = ViewHelpers.crear_grafico_interactivo(
-                graficos["comparativo"]["json"]
-            )
-            tab_comparativo_content.append(html.H6("Gráfico Comparativo", className="mt-3"))
-            tab_comparativo_content.append(grafico_comparativo)
+            
+            # Cargar gráfico de flechas
+            if "flechas" in graficos["comparativo"]:
+                grafico_flechas = ViewHelpers.crear_grafico_interactivo(
+                    graficos["comparativo"]["flechas"]["json"]
+                )
+                tab_comparativo_content.append(html.H6("Comparativa de Flechas", className="mt-3"))
+                tab_comparativo_content.append(grafico_flechas)
+            
+            # Cargar gráfico de tiros
+            if "tiros" in graficos["comparativo"]:
+                grafico_tiros = ViewHelpers.crear_grafico_interactivo(
+                    graficos["comparativo"]["tiros"]["json"]
+                )
+                tab_comparativo_content.append(html.H6("Comparativa de Tiros", className="mt-4"))
+                tab_comparativo_content.append(grafico_tiros)
+                
         except Exception as e:
-            print(f"Error cargando gráfico comparativo: {e}")
+            print(f"Error cargando gráficos comparativos: {e}")
     
     if tab_comparativo_content:
         tab_comparativo = dbc.Tab(

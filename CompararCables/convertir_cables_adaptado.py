@@ -59,6 +59,20 @@ def convertir_cables():
         modulo_elasticidad = prop_al * E_AL + prop_ac * E_AC
         coef_dilatacion = prop_al * ALPHA_AL + prop_ac * ALPHA_AC
         
+        # Propiedades del acero (solo si hay acero en el cable)
+        seccion_acero_mm2 = None
+        modulo_elasticidad_acero_dan_mm2 = None
+        coeficiente_dilatacion_acero_1_c = None
+        
+        if "ACSS" in datos['Tipo'] or "ACSR" in datos['Tipo']:
+            # Calcular sección de acero
+            seccion_acero_sqin = float(mec['Seccion_Total_sqin']) - float(mec['Seccion_Al_sqin'])
+            seccion_acero_mm2 = seccion_acero_sqin * SQIN_TO_MM2
+            
+            # Propiedades típicas del acero
+            modulo_elasticidad_acero_dan_mm2 = E_AC  # 20000 daN/mm²
+            coeficiente_dilatacion_acero_1_c = ALPHA_AC  # 11.5e-6 1/°C
+        
         # Material según tipo
         material_map = {
             'ACSR': 'Al/Ac',
@@ -83,10 +97,13 @@ def convertir_cables():
             'material': material_map.get(datos['Tipo'], 'Al/Ac'),
             'seccion_nominal': mec['Tamaño_kcmil'],
             'seccion_total_mm2': round(seccion_total_mm2, 2),
+            'seccion_acero_mm2': round(seccion_acero_mm2, 2) if seccion_acero_mm2 is not None else None,
             'diametro_total_mm': round(diametro_mm, 2),
             'peso_unitario_dan_m': round(peso_dan_m, 4),
             'coeficiente_dilatacion_1_c': coef_dilatacion,
+            'coeficiente_dilatacion_acero_1_c': coeficiente_dilatacion_acero_1_c,
             'modulo_elasticidad_dan_mm2': round(modulo_elasticidad, 1),
+            'modulo_elasticidad_acero_dan_mm2': modulo_elasticidad_acero_dan_mm2,
             'carga_rotura_minima_dan': round(carga_rotura_dan, 1),
             'tension_rotura_minima': round(carga_rotura_dan / seccion_total_mm2, 2),
             'carga_max_trabajo': round(carga_rotura_dan * 0.25, 1),

@@ -25,7 +25,7 @@ class Cable_AEA:
         "E":  {"Fc": 1.40, "Vmin": 800, "Vmax": 9999},
     }
     
-    def __init__(self, id_cable, nombre, propiedades, 
+    def __init__(self, id_cable, nombre, propiedades, tipocable,
                  viento_base_params=None):
         """
         Inicializa un objeto cable con parámetros de viento base OBLIGATORIOS
@@ -34,19 +34,42 @@ class Cable_AEA:
             id_cable (str): Identificador único del cable
             nombre (str): Nombre descriptivo del cable
             propiedades (dict): Diccionario con propiedades mecánicas y geométricas
+            tipocable (str): Tipo de cable (OBLIGATORIO) - ej: "ACSR", "ACSS", "ACCC/TW"
             viento_base_params (dict): Parámetros base de viento para cache (OBLIGATORIO)
         """
         self.id = id_cable
         self.nombre = nombre
         self.propiedades = propiedades
+        self.tipocable = tipocable  # Nueva propiedad obligatoria
         
         # Propiedades básicas
         self.diametro_m = propiedades["diametro_total_mm"] / 1000.0
-        self.seccion_mm2 = propiedades["seccion_total_mm2"]
         self.peso_unitario_dan_m = propiedades["peso_unitario_dan_m"]
         self.carga_rotura_dan = propiedades["carga_rotura_minima_dan"]
-        self.modulo_elasticidad_dan_mm2 = propiedades["modulo_elasticidad_dan_mm2"]
-        self.coeficiente_dilatacion = propiedades["coeficiente_dilatacion_1_c"]
+        
+        # Propiedades que dependen del tipo de cable (ACSS usa valores de acero)
+        if "ACSS" in tipocable:
+            # Verificar que existan los valores de acero requeridos
+            valores_faltantes = []
+            if propiedades.get("seccion_acero_mm2") is None:
+                valores_faltantes.append("seccion_acero_mm2")
+            if propiedades.get("modulo_elasticidad_acero_dan_mm2") is None:
+                valores_faltantes.append("modulo_elasticidad_acero_dan_mm2")
+            if propiedades.get("coeficiente_dilatacion_acero_1_c") is None:
+                valores_faltantes.append("coeficiente_dilatacion_acero_1_c")
+            
+            if valores_faltantes:
+                print(f"ERROR: Cable ACSS '{nombre}' - Faltan valores de acero: {', '.join(valores_faltantes)}")
+            
+            # Usar valores de acero para ACSS
+            self.seccion_mm2 = propiedades.get("seccion_acero_mm2", propiedades["seccion_total_mm2"])
+            self.modulo_elasticidad_dan_mm2 = propiedades.get("modulo_elasticidad_acero_dan_mm2", propiedades["modulo_elasticidad_dan_mm2"])
+            self.coeficiente_dilatacion = propiedades.get("coeficiente_dilatacion_acero_1_c", propiedades["coeficiente_dilatacion_1_c"])
+        else:
+            # Usar valores normales para otros tipos de cable
+            self.seccion_mm2 = propiedades["seccion_total_mm2"]
+            self.modulo_elasticidad_dan_mm2 = propiedades["modulo_elasticidad_dan_mm2"]
+            self.coeficiente_dilatacion = propiedades["coeficiente_dilatacion_1_c"]
         
         # Cache de cálculos de viento base (OBLIGATORIO)
         if viento_base_params is None:
@@ -310,6 +333,7 @@ class Cable_AEA:
         info = {
             "ID": self.id,
             "Nombre": self.nombre,
+            "Tipo Cable": self.tipocable,
             "Diámetro (mm)": self.diametro_m * 1000,
             "Sección (mm²)": self.seccion_mm2,
             "Peso unitario (daN/m)": self.peso_unitario_dan_m,
@@ -462,6 +486,21 @@ class Cable_AEA:
         estado_violador = None
         tipo_violacion = None
         factor_severidad = 0
+        
+        # DEBUG: Mostrar restricciones que se van a aplicar
+        print(f"   🔍 Verificando restricciones para {self.nombre}:")
+        print(f"      Objetivo: {objetivo}")
+        print(f"      Restricciones aplicadas:")
+        if objetivo != 'TiroMin':
+            for estado_id in resultados.keys():
+                tension_max_porcentaje = restricciones_cable.get("tension_max_porcentaje", {}).get(
+                    estado_id, 0.40
+                )
+                print(f"        {estado_id}: tensión máx {tension_max_porcentaje*100:.0f}%")
+        if objetivo == 'TiroMin' and flecha_max_permitida is not None and flecha_max_permitida > 0:
+            print(f"        Flecha máxima permitida: {flecha_max_permitida:.3f} m")
+        if es_guardia and "relflecha_max" in restricciones_cable:
+            print(f"        Relación flecha máxima: {restricciones_cable['relflecha_max']}")
         
         for estado_id, datos in resultados.items():
             # Para TiroMin: IGNORAR restricciones de tensión máxima
@@ -919,6 +958,14 @@ class Cable_AEA:
         print(f"\n🔧 Cálculo mecánico para {self.nombre} ({'Guardia' if es_guardia else 'Conductor'})")
         print(f"   Objetivo: {objetivo}, Vano: {vano} m")
         
+        # DEBUG: Mostrar valores usados en cálculos
+        print(f"   📊 Valores para cálculos mecánicos:")
+        print(f"      Sección: {self.seccion_mm2} mm²")
+        print(f"      Módulo E: {self.modulo_elasticidad_dan_mm2} daN/mm²")
+        print(f"      Coef. dilatación: {self.coeficiente_dilatacion} 1/°C")
+        if "ACSS" in self.tipocable:
+            print(f"      ⚙️ Cable ACSS - Usando propiedades del núcleo de acero")
+        
         # Mostrar advertencia si hay parámetros no usados (se usan valores fijos)
         if kwargs:
             print(f"   ⚠️  Parámetros ignorados (se usan valores fijos del algoritmo): {list(kwargs.keys())}")
@@ -928,6 +975,15 @@ class Cable_AEA:
             restricciones = {"tension_max_porcentaje": {}}
             for estado_id in estados_climaticos.keys():
                 restricciones["tension_max_porcentaje"][estado_id] = 0.40
+        
+        # DEBUG: Mostrar restricciones recibidas
+        print(f"   📋 Restricciones recibidas:")
+        if "tension_max_porcentaje" in restricciones:
+            print(f"      Tensión máxima por estado:")
+            for estado_id, valor in restricciones["tension_max_porcentaje"].items():
+                print(f"        {estado_id}: {valor*100:.0f}%")
+        if "relflecha_max" in restricciones:
+            print(f"      Relación flecha máxima: {restricciones['relflecha_max']}")
         
         # Para guardia, agregar restricción de relación de flecha si no existe
         if es_guardia and "relflecha_max" not in restricciones:

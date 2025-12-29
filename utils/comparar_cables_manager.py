@@ -36,11 +36,11 @@ class ComparativaCablesManager:
                 "RELFLECHA_SIN_VIENTO": True
             },
             "estados_climaticos": {
-                "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.25},
-                "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.4},
-                "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "hielo_espesor": 0, "restriccion_conductor": 0.4},
-                "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "hielo_espesor": 0.01, "restriccion_conductor": 0.4},
-                "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.25}
+                "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7},
+                "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
+                "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "hielo_espesor": 0, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
+                "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "hielo_espesor": 0.01, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
+                "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7}
             },
             "cables_seleccionados": []
         }

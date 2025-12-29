@@ -354,15 +354,29 @@ class CalculoCache:
         # Crear gráfico comparativo y guardarlo
         try:
             from utils.comparativa_cmc_calculo import crear_grafico_comparativo
-            fig_comparativo = crear_grafico_comparativo(resultados_cables)
-            if fig_comparativo:
-                json_path = CACHE_DIR / f"CC_Comparativo.{hash_params}.json"
-                png_path = CACHE_DIR / f"CC_Comparativo.{hash_params}.png"
-                fig_comparativo.write_json(str(json_path))
-                fig_comparativo.write_image(str(png_path), width=1200, height=600)
+            fig_flechas, fig_tiros = crear_grafico_comparativo(resultados_cables)
+            if fig_flechas and fig_tiros:
+                # Guardar gráfico de flechas
+                json_path_flechas = CACHE_DIR / f"CC_Flechas.{hash_params}.json"
+                png_path_flechas = CACHE_DIR / f"CC_Flechas.{hash_params}.png"
+                fig_flechas.write_json(str(json_path_flechas))
+                fig_flechas.write_image(str(png_path_flechas), width=1200, height=600)
+                
+                # Guardar gráfico de tiros
+                json_path_tiros = CACHE_DIR / f"CC_Tiros.{hash_params}.json"
+                png_path_tiros = CACHE_DIR / f"CC_Tiros.{hash_params}.png"
+                fig_tiros.write_json(str(json_path_tiros))
+                fig_tiros.write_image(str(png_path_tiros), width=1200, height=600)
+                
                 graficos_guardados["comparativo"] = {
-                    "json": f"CC_Comparativo.{hash_params}.json",
-                    "png": f"CC_Comparativo.{hash_params}.png"
+                    "flechas": {
+                        "json": f"CC_Flechas.{hash_params}.json",
+                        "png": f"CC_Flechas.{hash_params}.png"
+                    },
+                    "tiros": {
+                        "json": f"CC_Tiros.{hash_params}.json",
+                        "png": f"CC_Tiros.{hash_params}.png"
+                    }
                 }
         except Exception as e:
             print(f"Error guardando gráfico comparativo: {e}")

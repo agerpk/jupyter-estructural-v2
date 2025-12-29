@@ -112,9 +112,18 @@ def ejecutar_cmc_solo_conductor_para_cable(estructura, cable_nombre):
         # 3. Preparar parámetros solo para conductor
         estados_climaticos = estructura["estados_climaticos"]
         
-        # Restricciones solo para conductor
+        # Extraer restricciones de los estados climáticos
+        restricciones_conductor = {}
+        for estado_id, estado_data in estados_climaticos.items():
+            restriccion = estado_data.get("restriccion_conductor", 0.25)
+            restricciones_conductor[estado_id] = restriccion
+        
+        print(f"  📋 Restricciones extraídas de estados climáticos:")
+        for estado, valor in restricciones_conductor.items():
+            print(f"    {estado}: {valor*100}%")
+        
         restricciones = {
-            "conductor": {"tension_max_porcentaje": {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}}
+            "conductor": {"tension_max_porcentaje": restricciones_conductor}
         }
         
         params = {
@@ -202,9 +211,12 @@ def crear_grafico_comparativo(resultados):
     import pandas as pd
     import json
     
-    # Estados ordenados: TMAX, TMA, VMAX, VMED, TMIN
-    estados_orden = ["I", "V", "III", "IV", "II"]
+    # Estados con nombres descriptivos
     estados_nombres = {"I": "TMAX", "V": "TMA", "III": "VMAX", "IV": "VMED", "II": "TMIN"}
+    
+    # Ordenamiento diferente para cada gráfico
+    estados_orden_flechas = ["III", "I", "V", "IV", "II"]  # VMAX TMAX TMA VMED TMIN
+    estados_orden_tiros = ["III", "IV", "II", "V", "I"]     # VMAX VMED TMIN TMA TMAX
     
     # Gráfico de Flechas
     fig_flechas = go.Figure()
@@ -224,11 +236,9 @@ def crear_grafico_comparativo(resultados):
             
             print(f"Procesando {cable_nombre}: {len(df)} filas, columnas: {list(df.columns)}")
             
+            # Procesar flechas
             flechas = []
-            tiros = []
-            
-            for estado in estados_orden:
-                # Buscar fila por descripción
+            for estado in estados_orden_flechas:
                 estado_row = None
                 for idx, row in df.iterrows():
                     desc = str(row.get('Descrip.', '')).lower()
@@ -241,43 +251,59 @@ def crear_grafico_comparativo(resultados):
                         break
                 
                 if estado_row is not None:
-                    # Extraer flecha
                     flecha = 0
                     for col in df.columns:
                         if 'Flecha' in str(col) and ('m]' in str(col) or 'Vertical' in str(col)):
                             val = estado_row[col]
                             flecha = float(val) if val is not None and not pd.isna(val) else 0
                             break
-                    
-                    # Extraer tiro
+                    flechas.append(flecha)
+                    print(f"  {estado} ({estados_nombres[estado]}): Flecha={flecha:.3f}m")
+                else:
+                    flechas.append(0)
+                    print(f"  {estado} ({estados_nombres[estado]}): NO ENCONTRADO")
+            
+            # Procesar tiros
+            tiros = []
+            for estado in estados_orden_tiros:
+                estado_row = None
+                for idx, row in df.iterrows():
+                    desc = str(row.get('Descrip.', '')).lower()
+                    if ((estado == 'I' and 'tmáx' in desc) or 
+                        (estado == 'V' and 'tma' in desc) or 
+                        (estado == 'III' and 'vmáx' in desc) or 
+                        (estado == 'IV' and 'vmed' in desc) or 
+                        (estado == 'II' and 'tmín' in desc)):
+                        estado_row = row
+                        break
+                
+                if estado_row is not None:
                     tiro = 0
                     for col in df.columns:
                         if 'Tiro' in str(col) and 'daN' in str(col):
                             val = estado_row[col]
                             tiro = float(val) if val is not None and not pd.isna(val) else 0
                             break
-                    
-                    flechas.append(flecha)
                     tiros.append(tiro)
-                    print(f"  {estado} ({estados_nombres[estado]}): Flecha={flecha:.3f}m, Tiro={tiro:.0f}daN")
+                    print(f"  {estado} ({estados_nombres[estado]}): Tiro={tiro:.0f}daN")
                 else:
-                    flechas.append(0)
                     tiros.append(0)
                     print(f"  {estado} ({estados_nombres[estado]}): NO ENCONTRADO")
             
-            # Estados para eje X
-            estados_x = [estados_nombres[e] for e in estados_orden]
+            # Estados para eje X (diferentes para cada gráfico)
+            estados_x_flechas = [estados_nombres[e] for e in estados_orden_flechas]
+            estados_x_tiros = [estados_nombres[e] for e in estados_orden_tiros]
             
             # Agregar a gráfico de flechas
             fig_flechas.add_trace(
-                go.Scatter(x=estados_x, y=flechas, name=cable_nombre, 
+                go.Scatter(x=estados_x_flechas, y=flechas, name=cable_nombre, 
                           line=dict(width=3), mode='lines+markers', marker=dict(size=8),
                           hovertemplate=f"{cable_nombre}<br>Estado: %{{x}}<br>Flecha: %{{y:.3f}} m<extra></extra>")
             )
             
             # Agregar a gráfico de tiros
             fig_tiros.add_trace(
-                go.Scatter(x=estados_x, y=tiros, name=cable_nombre,
+                go.Scatter(x=estados_x_tiros, y=tiros, name=cable_nombre,
                           line=dict(width=3), mode='lines+markers', marker=dict(size=8),
                           hovertemplate=f"{cable_nombre}<br>Estado: %{{x}}<br>Tiro: %{{y:.0f}} daN<extra></extra>")
             )

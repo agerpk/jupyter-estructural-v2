@@ -1,7 +1,7 @@
 {
   "titulo": "ASD1",
   "fecha_creacion": "2025-12-26T16:05:44.941320",
-  "fecha_modificacion": "2025-12-29T11:56:50.609207",
+  "fecha_modificacion": "2025-12-29T12:55:31.150825",
   "version": "1.0",
   "parametros_linea": {
     "L_vano": 400,
@@ -29,35 +29,35 @@
       "descripcion": "Tmáx",
       "viento_velocidad": 0,
       "hielo_espesor": 0,
-      "restriccion_conductor": 0.25
+      "restriccion_conductor": 0.4
     },
     "II": {
       "temperatura": -20,
       "descripcion": "Tmín",
       "viento_velocidad": 0,
       "hielo_espesor": 0,
-      "restriccion_conductor": 0.4
+      "restriccion_conductor": 0.7
     },
     "III": {
       "temperatura": 10,
       "descripcion": "Vmáx",
       "viento_velocidad": 38.9,
       "hielo_espesor": 0,
-      "restriccion_conductor": 0.4
+      "restriccion_conductor": 0.7
     },
     "IV": {
       "temperatura": -5,
       "descripcion": "Vmed",
       "viento_velocidad": 15.56,
       "hielo_espesor": 0.01,
-      "restriccion_conductor": 0.4
+      "restriccion_conductor": 0.7
     },
     "V": {
       "temperatura": 8,
       "descripcion": "TMA",
       "viento_velocidad": 0,
       "hielo_espesor": 0,
-      "restriccion_conductor": 0.25
+      "restriccion_conductor": 0.4
     }
   },
   "cables_seleccionados": [

@@ -249,14 +249,13 @@ def registrar_callbacks_comparar_cables(app):
          Input({"type": "desc-estado", "index": dash.ALL}, "value"),
          Input({"type": "viento-estado", "index": dash.ALL}, "value"),
          Input({"type": "hielo-estado", "index": dash.ALL}, "value"),
-         Input({"type": "rest-cond-estado", "index": dash.ALL}, "value"),
-         Input({"type": "rest-guard-estado", "index": dash.ALL}, "value")],
+         Input({"type": "rest-cond-estado", "index": dash.ALL}, "value")],
         State("store-comparativa-actual", "data"),
         prevent_initial_call=True
     )
-    def actualizar_estados_climaticos(temps, descs, vientos, hielos, rest_conds, rest_guards, comparativa_actual):
+    def actualizar_estados_climaticos(temps, descs, vientos, hielos, rest_conds, comparativa_actual):
         """Actualizar estados climáticos editados"""
-        if not comparativa_actual or not any([temps, descs, vientos, hielos, rest_conds, rest_guards]):
+        if not comparativa_actual or not any([temps, descs, vientos, hielos, rest_conds]):
             return dash.no_update
         
         ctx = callback_context
@@ -289,10 +288,6 @@ def registrar_callbacks_comparar_cables(app):
             for i, rest in enumerate(rest_conds):
                 if i < len(estados_ids) and rest is not None:
                     estados[estados_ids[i]]["restriccion_conductor"] = rest
-        elif "rest-guard-estado" in trigger_info and rest_guards:
-            for i, rest in enumerate(rest_guards):
-                if i < len(estados_ids) and rest is not None:
-                    estados[estados_ids[i]]["restriccion_guardia"] = rest
         
         comparativa_actual["estados_climaticos"] = estados
         return comparativa_actual
@@ -304,7 +299,6 @@ def registrar_callbacks_comparar_cables(app):
          Input("select-theta-comparativa", "value"),
          Input("input-vmax-comparativa", "value"),
          Input("input-vmed-comparativa", "value"),
-         Input("select-hielo-comparativa", "value"),
          Input("switch-vano-desnivelado", "value"),
          Input("select-objetivo-conductor", "value"),
          Input("select-salto-porcentual", "value"),
@@ -318,7 +312,7 @@ def registrar_callbacks_comparar_cables(app):
         State("store-comparativa-actual", "data"),
         prevent_initial_call=True
     )
-    def actualizar_parametros(vano, theta, vmax, vmed, hielo, vano_desnivelado, 
+    def actualizar_parametros(vano, theta, vmax, vmed, vano_desnivelado, 
                              objetivo, salto, paso, h_anterior, h_posterior, 
                              exposicion, clase, zco, cf_cable, comparativa_actual):
         """Actualizar parámetros en el estado de la comparativa"""
@@ -331,7 +325,6 @@ def registrar_callbacks_comparar_cables(app):
             "theta": theta if theta is not None else 0,
             "Vmax": vmax or 38.9,
             "Vmed": vmed or 15.56,
-            "t_hielo": hielo if hielo is not None else 0,
             "exposicion": exposicion or "C",
             "clase": clase or "C",
             "Zco": zco if zco is not None else 13.0,

@@ -25,17 +25,55 @@ class CalculoObjetosAEA:
         self.DATOS_CABLES = self._cargar_datos_cables()
     
     def _cargar_datos_cables(self):
-        """Cargar datos de cables desde cables_2.json (incluye cables convertidos) o fallback a DatosCables.py"""
+        """Cargar datos de cables desde cables.json"""
         try:
-            cables_path = DATA_DIR / "cables_2.json"
+            cables_path = DATA_DIR / "cables.json"
             if cables_path.exists():
                 with open(cables_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             else:
                 return datos_cables
         except Exception as e:
-            print(f"Error cargando cables_2.json, usando DatosCables.py: {e}")
+            print(f"Error cargando cables.json, usando DatosCables.py: {e}")
             return datos_cables
+    
+    def _preparar_propiedades_cable(self, propiedades_originales, tipo_cable):
+        """Prepara las propiedades del cable, usando valores de acero para ACSS"""
+        propiedades = propiedades_originales.copy()
+        
+        if "ACSS" in tipo_cable:
+            print(f"🔧 Detectado cable ACSS: {tipo_cable}")
+            
+            # Verificar que existan los valores de acero requeridos
+            valores_faltantes = []
+            if propiedades.get("seccion_acero_mm2") is None:
+                valores_faltantes.append("seccion_acero_mm2")
+            if propiedades.get("modulo_elasticidad_acero_dan_mm2") is None:
+                valores_faltantes.append("modulo_elasticidad_acero_dan_mm2")
+            if propiedades.get("coeficiente_dilatacion_acero_1_c") is None:
+                valores_faltantes.append("coeficiente_dilatacion_acero_1_c")
+            
+            if valores_faltantes:
+                print(f"ERROR: Cable ACSS '{tipo_cable}' - Faltan valores de acero: {', '.join(valores_faltantes)}")
+            else:
+                # Mostrar valores antes del cambio
+                print(f"   Valores originales:")
+                print(f"     Sección: {propiedades['seccion_total_mm2']} mm²")
+                print(f"     Módulo E: {propiedades['modulo_elasticidad_dan_mm2']} daN/mm²")
+                print(f"     Coef. dil: {propiedades['coeficiente_dilatacion_1_c']} 1/°C")
+                
+                # Reemplazar valores normales con valores de acero para ACSS
+                propiedades["seccion_total_mm2"] = propiedades["seccion_acero_mm2"]
+                propiedades["modulo_elasticidad_dan_mm2"] = propiedades["modulo_elasticidad_acero_dan_mm2"]
+                propiedades["coeficiente_dilatacion_1_c"] = propiedades["coeficiente_dilatacion_acero_1_c"]
+                
+                # Mostrar valores después del cambio
+                print(f"   Valores de acero aplicados:")
+                print(f"     Sección: {propiedades['seccion_total_mm2']} mm² (acero)")
+                print(f"     Módulo E: {propiedades['modulo_elasticidad_dan_mm2']} daN/mm² (acero)")
+                print(f"     Coef. dil: {propiedades['coeficiente_dilatacion_1_c']} 1/°C (acero)")
+        
+        return propiedades
     
     def crear_objetos_cable(self, estructura_config):
         """Crear objetos Cable según configuración de estructura"""
@@ -74,19 +112,33 @@ class CalculoObjetosAEA:
             
             self.lib_cables = LibCables()
             
+            # Preparar propiedades para conductor (usar valores de acero si es ACSS)
+            propiedades_conductor = self._preparar_propiedades_cable(
+                self.DATOS_CABLES[cable_conductor_id],
+                self.DATOS_CABLES[cable_conductor_id].get("tipo", "ACSR")
+            )
+            
             self.cable_conductor = Cable_AEA(
                 id_cable=cable_conductor_id,
                 nombre=cable_conductor_id,
-                propiedades=self.DATOS_CABLES[cable_conductor_id],
+                propiedades=propiedades_conductor,
+                tipocable=self.DATOS_CABLES[cable_conductor_id].get("tipo", "ACSR"),
                 viento_base_params=viento_base_params_conductor
             )
             self.lib_cables.agregar_cable(self.cable_conductor)
+            
+            # Preparar propiedades para guardia 1 (usar valores de acero si es ACSS)
+            propiedades_guardia1 = self._preparar_propiedades_cable(
+                self.DATOS_CABLES[cable_guardia_id],
+                self.DATOS_CABLES[cable_guardia_id].get("tipo", "ACSR")
+            )
             
             # Cable guardia 1 (derecha, HG1)
             self.cable_guardia1 = Cable_AEA(
                 id_cable=cable_guardia_id,
                 nombre=cable_guardia_id,
-                propiedades=self.DATOS_CABLES[cable_guardia_id],
+                propiedades=propiedades_guardia1,
+                tipocable=self.DATOS_CABLES[cable_guardia_id].get("tipo", "ACSR"),
                 viento_base_params=viento_base_params_guardia
             )
             self.lib_cables.agregar_cable(self.cable_guardia1)
@@ -94,10 +146,17 @@ class CalculoObjetosAEA:
             
             # Si hay 2 cables de guardia y se especifica el segundo
             if cant_hg == 2 and cable_guardia2_id:
+                # Preparar propiedades para guardia 2 (usar valores de acero si es ACSS)
+                propiedades_guardia2 = self._preparar_propiedades_cable(
+                    self.DATOS_CABLES[cable_guardia2_id],
+                    self.DATOS_CABLES[cable_guardia2_id].get("tipo", "ACSR")
+                )
+                
                 self.cable_guardia2 = Cable_AEA(
                     id_cable=cable_guardia2_id,
                     nombre=cable_guardia2_id,
-                    propiedades=self.DATOS_CABLES[cable_guardia2_id],
+                    propiedades=propiedades_guardia2,
+                    tipocable=self.DATOS_CABLES[cable_guardia2_id].get("tipo", "ACSR"),
                     viento_base_params=viento_base_params_guardia
                 )
                 self.lib_cables.agregar_cable(self.cable_guardia2)
@@ -186,10 +245,17 @@ class CalculoObjetosAEA:
             
             self.lib_cables = LibCables()
             
+            # Preparar propiedades para conductor (usar valores de acero si es ACSS)
+            propiedades_conductor = self._preparar_propiedades_cable(
+                self.DATOS_CABLES[cable_conductor_id],
+                self.DATOS_CABLES[cable_conductor_id].get("tipo", "ACSR")
+            )
+            
             self.cable_conductor = Cable_AEA(
                 id_cable=cable_conductor_id,
                 nombre=cable_conductor_id,
-                propiedades=self.DATOS_CABLES[cable_conductor_id],
+                propiedades=propiedades_conductor,
+                tipocable=self.DATOS_CABLES[cable_conductor_id].get("tipo", "ACSR"),
                 viento_base_params=viento_base_params_conductor
             )
             self.lib_cables.agregar_cable(self.cable_conductor)

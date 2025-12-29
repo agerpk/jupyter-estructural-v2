@@ -3,6 +3,7 @@
 from datetime import datetime
 import pandas as pd
 import base64
+import json
 from pathlib import Path
 from config.app_config import CACHE_DIR
 from utils.calculo_cache import CalculoCache
@@ -246,12 +247,358 @@ def generar_seccion_arboles(calculo_arboles):
     return '\n'.join(html)
 
 
-def generar_seccion_sph(calculo_sph):
-    """Genera HTML para sección SPH"""
-    html = ['<h3>5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)</h3>']
+def generar_html_comparativa(titulo, comparativa_data, resultados_html=None):
+    """Genera HTML completo para comparativa de cables
     
-    if calculo_sph.get('desarrollo_texto'):
-        html.append('<h5>Desarrollo del Cálculo</h5>')
-        html.append(f'<pre>{calculo_sph["desarrollo_texto"]}</pre>')
+    Args:
+        titulo: Título de la comparativa
+        comparativa_data: Datos de configuración de la comparativa
+        resultados_html: Componentes HTML de resultados (opcional)
+        
+    Returns:
+        String con HTML completo
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Cargar cache si existe
+    cache_data = CalculoCache.cargar_calculo_comparar_cmc(titulo)
+    
+    # Generar secciones HTML
+    secciones = []
+    
+    # 1. Parámetros de comparativa
+    secciones.append(generar_seccion_parametros_comparativa(comparativa_data))
+    
+    # 2. Tabla comparativa
+    if cache_data:
+        secciones.append(generar_seccion_tabla_comparativa(cache_data))
+    
+    # 3. Gráficos comparativos
+    if cache_data:
+        secciones.append(generar_seccion_graficos_comparativos(cache_data))
+    
+    # 4. Resultados por cable
+    if cache_data:
+        secciones.append(generar_seccion_resultados_por_cable(cache_data))
+    
+    contenido_html = "\n".join(secciones)
+    
+    html_completo = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Comparativa de Cables - {titulo}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {{ padding: 20px; font-family: Arial, sans-serif; background-color: #f8f9fa; }}
+        .container-fluid {{ max-width: 1400px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+        h1 {{ color: #0d6efd; border-bottom: 3px solid #0d6efd; padding-bottom: 10px; }}
+        h3 {{ color: #198754; margin-top: 40px; border-bottom: 2px solid #198754; padding-bottom: 8px; }}
+        h4 {{ color: #0dcaf0; margin-top: 30px; }}
+        h5 {{ color: #6c757d; margin-top: 20px; }}
+        h6 {{ color: #adb5bd; margin-top: 15px; font-style: italic; }}
+        table {{ margin: 20px 0; font-size: 0.9em; }}
+        table th {{ background-color: #e9ecef; font-weight: 600; }}
+        pre {{ background-color: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 5px; font-size: 0.85em; overflow-x: auto; }}
+        img {{ max-width: 100%; height: auto; margin: 20px 0; border: 1px solid #dee2e6; }}
+        .timestamp {{ color: #6c757d; font-size: 0.9em; margin-bottom: 30px; }}
+        .params-table {{ font-size: 0.9em; }}
+        .params-table td:first-child {{ font-weight: 600; background-color: #f8f9fa; }}
+        .cable-section {{ margin: 40px 0; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; }}
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>Comparativa de Cables - {titulo}</h1>
+        <p class="timestamp">Generado: {timestamp}</p>
+        <hr>
+        {contenido_html}
+    </div>
+</body>
+</html>"""
+    
+    return html_completo
+
+
+def generar_seccion_parametros_comparativa(comparativa_data):
+    """Genera HTML para parámetros de comparativa"""
+    import json
+    
+    html = ['<h3>PARÁMETROS DE COMPARATIVA</h3>']
+    
+    # Cables seleccionados
+    cables = comparativa_data.get("cables_seleccionados", [])
+    html.append(f'<h5>Cables Comparados ({len(cables)})</h5>')
+    html.append('<ul>')
+    for cable in cables:
+        html.append(f'<li>{cable}</li>')
+    html.append('</ul>')
+    
+    # Parámetros de línea
+    params_linea = comparativa_data.get("parametros_linea", {})
+    if params_linea:
+        html.append('<h5>Parámetros de Línea</h5>')
+        html.append('<table class="table table-bordered params-table">')
+        for campo, valor in params_linea.items():
+            html.append(f'<tr><td>{campo}</td><td>{valor}</td></tr>')
+        html.append('</table>')
+    
+    # Estados climáticos
+    estados = comparativa_data.get("estados_climaticos", {})
+    if estados:
+        html.append('<h5>Estados Climáticos</h5>')
+        html.append('<table class="table table-bordered table-striped">')
+        html.append('<thead><tr><th>Estado</th><th>Temp (°C)</th><th>Descripción</th><th>Viento (m/s)</th><th>Hielo (m)</th><th>Rest. Cond.</th></tr></thead>')
+        html.append('<tbody>')
+        for estado_id, estado_data in estados.items():
+            html.append(f'<tr>')
+            html.append(f'<td><strong>{estado_id}</strong></td>')
+            html.append(f'<td>{estado_data.get("temperatura", 0)}</td>')
+            html.append(f'<td>{estado_data.get("descripcion", "")}</td>')
+            html.append(f'<td>{estado_data.get("viento_velocidad", 0)}</td>')
+            html.append(f'<td>{estado_data.get("hielo_espesor", 0)}</td>')
+            html.append(f'<td>{estado_data.get("restriccion_conductor", 0.25)}</td>')
+            html.append(f'</tr>')
+        html.append('</tbody></table>')
+    
+    return '\n'.join(html)
+
+
+def generar_seccion_tabla_comparativa(cache_data):
+    """Genera HTML para tabla comparativa completa"""
+    html = ['<h3>TABLA COMPARATIVA DE CABLES</h3>']
+    
+    resultados = cache_data.get("resultados", {})
+    cables_calculados = resultados.get("cables_calculados", [])
+    dataframes = resultados.get("dataframes", {})
+    
+    if cables_calculados and dataframes:
+        try:
+            # Cargar propiedades de cables desde cables.json
+            from config.app_config import DATA_DIR
+            cables_path = DATA_DIR / "cables.json"
+            
+            propiedades_cables = {}
+            if cables_path.exists():
+                with open(cables_path, 'r', encoding='utf-8') as f:
+                    cables_data = json.load(f)
+                    propiedades_cables = cables_data
+            
+            # Crear tabla HTML
+            html.append('<table class="table table-striped table-bordered">')
+            html.append('<thead><tr><th>Valores/Cable</th>')
+            for cable in cables_calculados:
+                html.append(f'<th>{cable}</th>')
+            html.append('</tr></thead><tbody>')
+            
+            # Filas de propiedades
+            filas_datos = []
+            
+            # Fila 1: Sección Total
+            fila = ["Sección Total (mm²)"]
+            for cable_nombre in cables_calculados:
+                cable_props = propiedades_cables.get(cable_nombre, {})
+                tipo_cable = cable_props.get("tipo", "")
+                
+                if "ACSS" in tipo_cable:
+                    seccion = cable_props.get("seccion_acero_mm2")
+                    if seccion is not None:
+                        fila.append(f"{seccion:.1f} (acero)")
+                    else:
+                        fila.append("N/A (acero)")
+                else:
+                    seccion = cable_props.get("seccion_total_mm2", "N/A")
+                    if isinstance(seccion, (int, float)):
+                        fila.append(f"{seccion:.1f}")
+                    else:
+                        fila.append("N/A")
+            filas_datos.append(fila)
+            
+            # Fila 2: Diámetro Total
+            fila = ["Diámetro Total (mm)"]
+            for cable_nombre in cables_calculados:
+                diametro = propiedades_cables.get(cable_nombre, {}).get("diametro_total_mm", "N/A")
+                fila.append(f"{diametro}" if diametro != "N/A" else "N/A")
+            filas_datos.append(fila)
+            
+            # Fila 3: Peso Unitario
+            fila = ["Peso Unitario (daN/m)"]
+            for cable_nombre in cables_calculados:
+                peso = propiedades_cables.get(cable_nombre, {}).get("peso_unitario_dan_m", "N/A")
+                fila.append(f"{peso}" if peso != "N/A" else "N/A")
+            filas_datos.append(fila)
+            
+            # Fila 4: Carga de Rotura
+            fila = ["Carga Rotura (daN)"]
+            for cable_nombre in cables_calculados:
+                rotura = propiedades_cables.get(cable_nombre, {}).get("carga_rotura_minima_dan", "N/A")
+                fila.append(f"{rotura:,.0f}" if isinstance(rotura, (int, float)) else "N/A")
+            filas_datos.append(fila)
+            
+            # Fila 5: Módulo de Elasticidad
+            fila = ["Módulo Elasticidad (daN/mm²)"]
+            for cable_nombre in cables_calculados:
+                cable_props = propiedades_cables.get(cable_nombre, {})
+                tipo_cable = cable_props.get("tipo", "")
+                
+                if "ACSS" in tipo_cable:
+                    modulo = cable_props.get("modulo_elasticidad_acero_dan_mm2")
+                    if modulo is not None:
+                        fila.append(f"{modulo} (acero)")
+                    else:
+                        fila.append("N/A (acero)")
+                else:
+                    modulo = cable_props.get("modulo_elasticidad_dan_mm2", "N/A")
+                    fila.append(f"{modulo}" if modulo != "N/A" else "N/A")
+            filas_datos.append(fila)
+            
+            # Fila 6: Coeficiente Dilatación
+            fila = ["Coef. Dilatación (1/°C)"]
+            for cable_nombre in cables_calculados:
+                cable_props = propiedades_cables.get(cable_nombre, {})
+                tipo_cable = cable_props.get("tipo", "")
+                
+                if "ACSS" in tipo_cable:
+                    dilatacion = cable_props.get("coeficiente_dilatacion_acero_1_c")
+                    if dilatacion is not None:
+                        fila.append(f"{dilatacion:.2e} (acero)")
+                    else:
+                        fila.append("N/A (acero)")
+                else:
+                    dilatacion = cable_props.get("coeficiente_dilatacion_1_c", "N/A")
+                    if isinstance(dilatacion, (int, float)):
+                        fila.append(f"{dilatacion:.2e}")
+                    else:
+                        fila.append("N/A")
+            filas_datos.append(fila)
+            
+            # Fila 7: Flecha Máxima
+            fila = ["Flecha Máxima (m)"]
+            for cable_nombre in cables_calculados:
+                flecha_max = 0
+                try:
+                    if cable_nombre in dataframes:
+                        df_data = json.loads(dataframes[cable_nombre])
+                        df = pd.DataFrame(df_data['data'], columns=df_data['columns'])
+                        
+                        for col in df.columns:
+                            if 'Flecha' in str(col) and ('m]' in str(col) or 'Vertical' in str(col)):
+                                flecha_max = df[col].max()
+                                break
+                                
+                    fila.append(f"{flecha_max:.3f}" if flecha_max > 0 else "N/A")
+                except:
+                    fila.append("N/A")
+            filas_datos.append(fila)
+            
+            # Fila 8: Tiro Máximo
+            fila = ["Tiro Máximo (daN)"]
+            for cable_nombre in cables_calculados:
+                tiro_max = 0
+                try:
+                    if cable_nombre in dataframes:
+                        df_data = json.loads(dataframes[cable_nombre])
+                        df = pd.DataFrame(df_data['data'], columns=df_data['columns'])
+                        
+                        for col in df.columns:
+                            if 'Tiro' in str(col) and 'daN' in str(col):
+                                tiro_max = df[col].max()
+                                break
+                                
+                    fila.append(f"{tiro_max:,.0f}" if tiro_max > 0 else "N/A")
+                except:
+                    fila.append("N/A")
+            filas_datos.append(fila)
+            
+            # Generar filas HTML
+            for fila_data in filas_datos:
+                html.append('<tr>')
+                for i, valor in enumerate(fila_data):
+                    if i == 0:  # Primera columna (nombre de propiedad)
+                        html.append(f'<td><strong>{valor}</strong></td>')
+                    else:
+                        html.append(f'<td>{valor}</td>')
+                html.append('</tr>')
+            
+            html.append('</tbody></table>')
+            
+        except Exception as e:
+            html.append(f'<p>Error generando tabla comparativa: {e}</p>')
+    
+    return '\n'.join(html)
+
+
+def generar_seccion_graficos_comparativos(cache_data):
+    """Genera HTML para gráficos comparativos"""
+    html = ['<h3>GRÁFICOS COMPARATIVOS</h3>']
+    
+    resultados = cache_data.get("resultados", {})
+    graficos = resultados.get("graficos", {})
+    hash_params = cache_data.get("hash_parametros")
+    
+    if "comparativo" in graficos and hash_params:
+        # Gráfico de flechas
+        if "flechas" in graficos["comparativo"]:
+            nombre_png = f"CC_Flechas.{hash_params}.png"
+            img_str = ViewHelpers.cargar_imagen_base64(nombre_png)
+            if img_str:
+                html.append('<h5>Comparativa de Flechas</h5>')
+                html.append(f'<img src="data:image/png;base64,{img_str}" alt="Comparativa de Flechas">')
+        
+        # Gráfico de tiros
+        if "tiros" in graficos["comparativo"]:
+            nombre_png = f"CC_Tiros.{hash_params}.png"
+            img_str = ViewHelpers.cargar_imagen_base64(nombre_png)
+            if img_str:
+                html.append('<h5>Comparativa de Tiros</h5>')
+                html.append(f'<img src="data:image/png;base64,{img_str}" alt="Comparativa de Tiros">')
+    
+    return '\n'.join(html)
+
+
+def generar_seccion_resultados_por_cable(cache_data):
+    """Genera HTML para resultados detallados por cable"""
+    html = ['<h3>RESULTADOS DETALLADOS POR CABLE</h3>']
+    
+    resultados = cache_data.get("resultados", {})
+    cables_calculados = resultados.get("cables_calculados", [])
+    dataframes = resultados.get("dataframes", {})
+    graficos = resultados.get("graficos", {})
+    errores = resultados.get("errores", {})
+    
+    # Cables exitosos
+    for cable_nombre in cables_calculados:
+        html.append(f'<div class="cable-section">')
+        html.append(f'<h4>{cable_nombre}</h4>')
+        
+        # Tabla de resultados
+        if cable_nombre in dataframes:
+            try:
+                df_data = json.loads(dataframes[cable_nombre])
+                df = pd.DataFrame(df_data['data'], columns=df_data['columns'])
+                html.append('<h6>Resultados por Estado Climático</h6>')
+                html.append(df.to_html(classes='table table-striped table-bordered table-hover table-sm', index=False))
+            except Exception as e:
+                html.append(f'<p>Error cargando tabla: {e}</p>')
+        
+        # Gráficos del cable
+        if cable_nombre in graficos:
+            hash_params = cache_data.get("hash_parametros")
+            for nombre_grafico, archivos in graficos[cable_nombre].items():
+                if "png" in archivos:
+                    img_str = ViewHelpers.cargar_imagen_base64(archivos["png"])
+                    if img_str:
+                        html.append(f'<h6>{nombre_grafico}</h6>')
+                        html.append(f'<img src="data:image/png;base64,{img_str}" alt="{nombre_grafico}">')
+        
+        html.append('</div>')
+    
+    # Cables con errores
+    for cable_nombre, error_msg in errores.items():
+        html.append(f'<div class="cable-section">')
+        html.append(f'<h4>{cable_nombre} (Error)</h4>')
+        html.append(f'<div class="alert alert-danger">Error: {error_msg}</div>')
+        html.append('</div>')
     
     return '\n'.join(html)
