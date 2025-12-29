@@ -71,7 +71,53 @@
 
 ### ❌ FALLAS IDENTIFICADAS
 
-Ninguna falla identificada hasta el momento.
+#### Corrección de Cálculo de Fuerzas y Emojis
+- **Fecha**: 2025-01-02
+- **Estado**: 🔧 TESTING PENDIENTE
+- **Descripción**: Corregidos dos problemas identificados en la salida de resultados
+- **Problemas corregidos**:
+  1. **Cálculo Gp efectivo**: La conversión de Fz (daN) a peso adicional (kg) estaba mal. Corregida fórmula: `peso_adicional = abs(Tiro_z) / 9.81`
+  2. **Emojis en tabla**: Cambiados ✓ por círculos de colores: 🟢 para convergencia, 🟡 para dimensionante
+- **Archivos modificados**: `utils/Sulzberger.py`
+- **Testing requerido**: Verificar que los valores de Gp efectivo ahora son correctos y que los emojis aparecen como círculos
+- **Fecha**: 2025-01-02
+- **Estado**: 🔧 TESTING PENDIENTE
+- **Descripción**: Cálculo se ejecuta correctamente (consola muestra todos los resultados), pero la vista UI permanece vacía
+- **Síntomas**: 
+  - Consola muestra: "Cálculo completado. Hipótesis dimensionante: HIP_Suspension_Recta_A5_Tiro unilateral reducido"
+  - DataFrame generado con 8 filas
+  - Memoria de cálculo: 685 caracteres
+  - Cache guardado correctamente
+  - Pero vista UI no muestra ningún resultado
+- **Debugging implementado**:
+  - Agregados mensajes debug detallados en callback
+  - Simplificados componentes HTML (eliminados ViewHelpers)
+  - Verificación de tipos de componentes antes del retorno
+- **Hipótesis**: Problema en construcción de componentes HTML o callback interceptado
+- **Solución en progreso**: Simplificación de componentes para identificar causa raíz
+
+#### Error 'Tiro_x' en Cálculo Fundación
+- **Fecha**: 2025-01-02
+- **Estado**: ✅ RESUELTO
+- **Descripción**: Error "'Ft'" al ejecutar cálculo de fundación después de SPH automático
+- **Root Cause**: SPH se ejecuta correctamente y extrae hipótesis de fuerzas, pero Sulzberger esperaba valores individuales Ft/Fl en lugar de lista de hipótesis
+- **Solución Implementada**: 
+  - Corregido controller para pasar `hipotesis_fuerzas` como lista al Sulzberger
+  - Eliminado debug de parámetros individuales Ft/Fl que no existían
+  - Agregado debug de cantidad de hipótesis extraídas
+  - Cache SPH ahora retorna lista vacía de hipótesis (no tiene datos individuales)
+  - **Nomenclatura actualizada**: Reemplazados 'Ft'/'Fl' por 'Tiro_x'/'Tiro_y' en todo el proyecto
+- **Resolución**: Nomenclatura ahora es consistente con estructura de datos DME
+
+#### Eliminación de Valores por Defecto
+- **Fecha**: 2025-01-02
+- **Estado**: 🔧 TESTING PENDIENTE
+- **Descripción**: Removidos valores por defecto, ahora requiere SPH obligatoriamente
+- **Cambios**: 
+  - Error claro si no hay cache SPH: "Debe ejecutar SPH primero"
+  - No usa valores hardcodeados
+  - Fuerza al usuario a ejecutar SPH antes de fundación
+- **Testing pendiente**: Verificar mensaje de error cuando no hay SPH
 
 ## Próximos Pasos Pendientes
 
@@ -129,7 +175,45 @@ resultados = {
 
 ## Cambios Realizados en Esta Sesión
 
-### 2025-01-02 - Sesión 4: Integración Automática SPH
+### 2025-01-02 - Sesión 9: Corrección Cálculo Fuerzas y Emojis
+1. **Cálculo Gp efectivo corregido**: Corregida fórmula de conversión de fuerzas verticales
+   - **Antes**: `Gp_efectivo = Gp_base + (-Tiro_z / 9.81)` (doble negativo incorrecto)
+   - **Ahora**: `peso_adicional = abs(Tiro_z) / 9.81; Gp_efectivo = Gp_base + peso_adicional`
+   - **Lógica**: Si Fz < 0 (compresión), se suma el valor absoluto convertido a kg
+2. **Emojis actualizados**: Cambiados símbolos en DataFrame de resultados
+   - **Convergencia**: ✓ → 🟢 (círculo verde)
+   - **Dimensionante**: ✓ → 🟡 (círculo amarillo)
+3. **Testing pendiente**: Verificar que valores Gp efectivo son ahora correctos
+
+### 2025-01-02 - Sesión 8: Inclusión de Fuerza Vertical (Tiro_z) - Corregida
+1. **Fuerza vertical agregada**: Incluido Tiro_z en extracción de hipótesis desde DME (con signo original)
+2. **Cálculo Gp efectivo corregido**: Solo se suma si Tiro_z < 0: Gp = Gp_base + (-Tiro_z)/9.81
+3. **Lógica**: Si Tiro_z es negativo (tirando hacia abajo), se invierte el signo y se suma al peso
+4. **Hipótesis individuales**: Cada hipótesis tiene su propio Gp efectivo basado en su Tiro_z
+5. **DataFrame actualizado**: Agregadas columnas Tiro_z y Gp efectivo
+6. **Debug mejorado**: Muestra las 3 fuerzas (x, y, z) con signos originales
+
+### 2025-01-02 - Sesión 7: Reemplazo Ft/Fl por Tiro_x/Tiro_y
+1. **Nomenclatura actualizada**: Reemplazados todos los 'Ft' por 'Tiro_x' y 'Fl' por 'Tiro_y' en todo el proyecto
+2. **Archivos modificados**:
+   - `utils/Sulzberger.py`: Actualizados métodos, parámetros y DataFrame
+   - `controllers/fundacion_controller.py`: Actualizada extracción de hipótesis y debug
+3. **Consistencia**: Nomenclatura ahora coincide con la estructura de datos de DME (`Tiro_X_daN`, `Tiro_Y_daN`)
+4. **Testing pendiente**: Verificar que el cálculo funciona correctamente con la nueva nomenclatura
+
+### 2025-01-02 - Sesión 6: Corrección Error 'Ft'
+1. **Error 'Ft' identificado**: SPH ejecuta correctamente pero Sulzberger no puede acceder a parámetros individuales
+2. **Controller corregido**: Eliminado debug de Ft/Fl individuales, agregado debug de hipótesis extraídas
+3. **Cache SPH actualizado**: Retorna lista vacía de hipótesis (no tiene datos individuales por hipótesis)
+4. **Sulzberger preparado**: Clase ya tiene método `calcular_fundacion_multiples_hipotesis()` implementado
+5. **Debug mejorado**: Agregados mensajes para diagnosticar extracción de hipótesis desde DME
+
+### 2025-01-02 - Sesión 5: Controller Actualizado
+1. **Controller completo**: Nuevo controller con todos los parámetros de la especificación
+2. **Parámetros organizados**: Estados separados por categorías (estructura, suelo, cálculo, poste)
+3. **Validación robusta**: Verificación de todos los parámetros obligatorios
+4. **Cache completo**: Persistencia de todos los parámetros configurables
+5. **Integración SPH**: Mantiene auto-extracción de parámetros de estructura
 1. **Menú**: Cambiado de "Fundación - Método Sulzberger" a solo "Fundación"
 2. **Selector Método**: Agregado dropdown para elegir método en vista
 3. **Auto-extracción SPH**: Eliminados inputs manuales de Gp, Ft, Fl, he
@@ -168,6 +252,34 @@ resultados = {
 - `docs/Implementando_Fundaciones.md` - Este documento (ACTUALIZADO)
 
 ## Estado General
-- **Progreso**: 85% completado
-- **Próxima sesión**: Testing de integración SPH y persistencia en JSON
+- **Progreso**: 90% completado
+- **Próxima sesión**: Testing completo de la implementación
 - **Bloqueadores**: Ninguno identificado
+
+### ❌ FALLAS IDENTIFICADAS
+
+#### Error de Sintaxis en Vista Fundación
+- **Fecha**: 2025-01-02
+- **Estado**: ✅ RESUELTO
+- **Descripción**: SyntaxError en vista_fundacion.py línea 120 - faltaba coma
+- **Solución**: Agregada coma faltante después de `], className="mb-3")`
+- **Archivo**: `components/vista_fundacion.py`
+
+#### Botones No Funcionan en Vista Fundación
+- **Fecha**: 2025-01-02
+- **Estado**: ✅ RESUELTO
+- **Descripción**: Los botones "Calcular" y "Guardar Parámetros" no respondían
+- **Solución**: Error de sintaxis corregido, callbacks funcionan correctamente
+- **Verificación**: Cálculo ejecutado exitosamente, completado en 1 iteración
+- **Resultados**: Todas las verificaciones cumplen (FS=1.546/1.502, dimensiones finales: t=1.7m, a=1.3m, b=1.3m)
+- **Cache**: Guardado correctamente para estructura TECPETROL_Sdt_mas3
+
+#### Eliminación de Valores por Defecto
+- **Fecha**: 2025-01-02
+- **Estado**: 🔧 TESTING PENDIENTE
+- **Descripción**: Removidos valores por defecto, ahora requiere SPH obligatoriamente
+- **Cambios**: 
+  - Error claro si no hay cache SPH: "Debe ejecutar SPH primero"
+  - No usa valores hardcodeados
+  - Fuerza al usuario a ejecutar SPH antes de fundación
+- **Testing pendiente**: Verificar mensaje de error cuando no hay SPH

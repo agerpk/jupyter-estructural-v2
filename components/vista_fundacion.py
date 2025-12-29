@@ -109,19 +109,26 @@ def crear_vista_fundacion(estructura_actual, calculo_guardado=None):
             dbc.Row([
                 dbc.Col([
                     dbc.Label("Incremento Iteraciones [m]"),
-                    dbc.Input(id="input-incremento", type="number", value=0.01, step=0.001)
+                    dbc.Input(id="input-incremento-calc", type="number", value=0.01, step=0.001)
+                ], width=3)
+            ], className="mb-3"),
+            
+            html.Hr(),
+            
+            # Constantes
+            html.H6("Constantes", className="text-primary"),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Label("Densidad Hormigón [kg/m³]"),
+                    dbc.Input(id="input-gamma-hor", type="number", value=2200)
                 ], width=3),
                 dbc.Col([
-                    dbc.Label("Profundidad Máxima [m]"),
-                    dbc.Input(id="input-t-max", type="number", value=3.0, step=0.1)
+                    dbc.Label("Densidad Tierra [kg/m³]"),
+                    dbc.Input(id="input-gamma-tierra", type="number", value=3800)
                 ], width=3),
                 dbc.Col([
-                    dbc.Label("Máximo Iteraciones"),
-                    dbc.Input(id="input-max-iter", type="number", value=100)
-                ], width=3),
-                dbc.Col([
-                    dbc.Label("Factor Base Rómbica"),
-                    dbc.Input(id="input-factor-rombica", type="number", value=0.5, step=0.1)
+                    dbc.Label("Coef. Aumento Cb/Ct"),
+                    dbc.Input(id="input-cacb", type="number", value=1.20, step=0.01)
                 ], width=3)
             ], className="mb-3"),
             
@@ -185,6 +192,8 @@ def crear_vista_fundacion(estructura_actual, calculo_guardado=None):
                 dbc.Col([
                     dbc.Button("Calcular Fundación", id="btn-calcular-fundacion", 
                               color="primary", className="me-2"),
+                    dbc.Button("Guardar Parámetros", id="btn-guardar-fundacion", 
+                              color="success", className="me-2"),
                     dbc.Button("Cargar desde Cache", id="btn-cargar-cache-fundacion", 
                               color="secondary", outline=True)
                 ], width=12)
