@@ -23,15 +23,15 @@ def registrar_callbacks_comparar_cables(app):
     def cargar_cables_disponibles(_):
         """Cargar lista de cables disponibles"""
         try:
-            # Cargar desde cables_2.json (incluye cables convertidos)
+            # Cargar desde cables.json (incluye cables convertidos)
             from config.app_config import DATA_DIR
-            cables_path = DATA_DIR / "cables_2.json"
+            cables_path = DATA_DIR / "cables.json"
             if cables_path.exists():
                 with open(cables_path, 'r', encoding='utf-8') as f:
                     cables_data = json.load(f)
                 cables = list(cables_data.keys())
             else:
-                # Fallback a cables.json original
+                # Fallback a cable manager
                 cable_manager = CableManager()
                 cables = cable_manager.obtener_lista_cables()
             
@@ -500,27 +500,35 @@ def registrar_callbacks_comparar_cables(app):
             tabs = []
             print(f"📋 Creando tabs para {len(resultados)} cables...")
             
-            # Tab comparativo primero
+            # Tab comparativo primero con tabla y gráficos
+            tab_comparativo_content = []
+            
+            # Agregar tabla comparativa
+            try:
+                from components.vista_comparar_cables import crear_tabla_comparativa
+                tabla_comparativa = crear_tabla_comparativa(resultados)
+                tab_comparativo_content.append(tabla_comparativa)
+                tab_comparativo_content.append(html.Hr())
+            except Exception as e:
+                print(f"Error creando tabla comparativa: {e}")
+            
+            # Agregar gráficos comparativos
             try:
                 from utils.comparativa_cmc_calculo import crear_grafico_comparativo
                 fig_flechas, fig_tiros = crear_grafico_comparativo(resultados)
-                tab_comparativo = dbc.Tab(
-                    label="Comparativo", 
-                    tab_id="tab-comparativo",
-                    children=[
-                        html.H6("Comparativa de Flechas", className="mt-3"),
-                        dcc.Graph(figure=fig_flechas, config={'displayModeBar': True}),
-                        html.H6("Comparativa de Tiros", className="mt-4"),
-                        dcc.Graph(figure=fig_tiros, config={'displayModeBar': True})
-                    ]
-                )
-                tabs.append(tab_comparativo)
+                tab_comparativo_content.append(html.H6("Comparativa de Flechas", className="mt-3"))
+                tab_comparativo_content.append(dcc.Graph(figure=fig_flechas, config={'displayModeBar': True}))
+                tab_comparativo_content.append(html.H6("Comparativa de Tiros", className="mt-4"))
+                tab_comparativo_content.append(dcc.Graph(figure=fig_tiros, config={'displayModeBar': True}))
             except Exception as e:
                 print(f"Error creando gráficos comparativos: {e}")
+                tab_comparativo_content.append(dbc.Alert("Error generando gráficos comparativos", color="warning"))
+            
+            if tab_comparativo_content:
                 tab_comparativo = dbc.Tab(
-                    label="Comparativo",
-                    tab_id="tab-comparativo", 
-                    children=[dbc.Alert("Error generando gráficos comparativos", color="warning")]
+                    label="Comparativa", 
+                    tab_id="tab-comparativo",
+                    children=tab_comparativo_content
                 )
                 tabs.append(tab_comparativo)
             

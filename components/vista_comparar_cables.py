@@ -440,6 +440,146 @@ def _crear_modales():
         ], id="modal-cargar-comparativa", is_open=False)
     ])
 
+def crear_tabla_comparativa(resultados):
+    """Crear tabla comparativa con propiedades de cables"""
+    import json
+    import pandas as pd
+    
+    if not resultados:
+        return dbc.Alert("No hay datos para comparar", color="warning")
+    
+    # Obtener cables exitosos
+    cables_exitosos = {k: v for k, v in resultados.items() if "error" not in v}
+    
+    if not cables_exitosos:
+        return dbc.Alert("No hay cables con resultados exitosos", color="warning")
+    
+    try:
+        # Cargar propiedades de cables desde cables.json
+        from config.app_config import DATA_DIR
+        cables_path = DATA_DIR / "cables.json"
+        
+        propiedades_cables = {}
+        if cables_path.exists():
+            with open(cables_path, 'r', encoding='utf-8') as f:
+                cables_data = json.load(f)
+                propiedades_cables = cables_data
+        
+        # Crear filas de la tabla
+        filas_datos = []
+        
+        # Fila 1: Sección Total
+        fila = ["Sección Total (mm²)"]
+        for cable_nombre in cables_exitosos.keys():
+            seccion = propiedades_cables.get(cable_nombre, {}).get("seccion_total_mm2", "N/A")
+            if isinstance(seccion, (int, float)):
+                fila.append(f"{seccion:.1f}")
+            else:
+                fila.append("N/A")
+        filas_datos.append(fila)
+        
+        # Fila 2: Diámetro Total
+        fila = ["Diámetro Total (mm)"]
+        for cable_nombre in cables_exitosos.keys():
+            diametro = propiedades_cables.get(cable_nombre, {}).get("diametro_total_mm", "N/A")
+            fila.append(f"{diametro}" if diametro != "N/A" else "N/A")
+        filas_datos.append(fila)
+        
+        # Fila 3: Peso Unitario
+        fila = ["Peso Unitario (daN/m)"]
+        for cable_nombre in cables_exitosos.keys():
+            peso = propiedades_cables.get(cable_nombre, {}).get("peso_unitario_dan_m", "N/A")
+            fila.append(f"{peso}" if peso != "N/A" else "N/A")
+        filas_datos.append(fila)
+        
+        # Fila 4: Carga de Rotura
+        fila = ["Carga Rotura (daN)"]
+        for cable_nombre in cables_exitosos.keys():
+            rotura = propiedades_cables.get(cable_nombre, {}).get("carga_rotura_minima_dan", "N/A")
+            fila.append(f"{rotura:,.0f}" if isinstance(rotura, (int, float)) else "N/A")
+        filas_datos.append(fila)
+        
+        # Fila 5: Módulo de Elasticidad
+        fila = ["Módulo Elasticidad (daN/mm²)"]
+        for cable_nombre in cables_exitosos.keys():
+            modulo = propiedades_cables.get(cable_nombre, {}).get("modulo_elasticidad_dan_mm2", "N/A")
+            fila.append(f"{modulo}" if modulo != "N/A" else "N/A")
+        filas_datos.append(fila)
+        
+        # Fila 6: Coeficiente Dilatación
+        fila = ["Coef. Dilatación (1/°C)"]
+        for cable_nombre in cables_exitosos.keys():
+            dilatacion = propiedades_cables.get(cable_nombre, {}).get("coeficiente_dilatacion_1_c", "N/A")
+            if isinstance(dilatacion, (int, float)):
+                fila.append(f"{dilatacion:.2e}")
+            else:
+                fila.append("N/A")
+        filas_datos.append(fila)
+        
+        # Agregar datos de resultados calculados
+        # Fila 7: Flecha Máxima (del estado determinante)
+        fila = ["Flecha Máxima (m)"]
+        for cable_nombre, resultado in cables_exitosos.items():
+            flecha_max = 0
+            try:
+                if resultado.get('dataframe_html'):
+                    df_data = json.loads(resultado['dataframe_html'])
+                    df = pd.DataFrame(df_data['data'], columns=df_data['columns'])
+                    
+                    # Buscar columna de flecha
+                    for col in df.columns:
+                        if 'Flecha' in str(col) and ('m]' in str(col) or 'Vertical' in str(col)):
+                            flecha_max = df[col].max()
+                            break
+                            
+                fila.append(f"{flecha_max:.3f}" if flecha_max > 0 else "N/A")
+            except:
+                fila.append("N/A")
+        filas_datos.append(fila)
+        
+        # Fila 8: Tiro Máximo
+        fila = ["Tiro Máximo (daN)"]
+        for cable_nombre, resultado in cables_exitosos.items():
+            tiro_max = 0
+            try:
+                if resultado.get('dataframe_html'):
+                    df_data = json.loads(resultado['dataframe_html'])
+                    df = pd.DataFrame(df_data['data'], columns=df_data['columns'])
+                    
+                    # Buscar columna de tiro
+                    for col in df.columns:
+                        if 'Tiro' in str(col) and 'daN' in str(col):
+                            tiro_max = df[col].max()
+                            break
+                            
+                fila.append(f"{tiro_max:,.0f}" if tiro_max > 0 else "N/A")
+            except:
+                fila.append("N/A")
+        filas_datos.append(fila)
+        
+        # Crear DataFrame para la tabla
+        columnas = ["Valores/Cable"] + list(cables_exitosos.keys())
+        df_comparativa = pd.DataFrame(filas_datos, columns=columnas)
+        
+        # Crear tabla Bootstrap
+        tabla = dbc.Table.from_dataframe(
+            df_comparativa, 
+            striped=True, 
+            bordered=True, 
+            hover=True, 
+            size="sm",
+            style={"fontSize": "0.9rem"}
+        )
+        
+        return html.Div([
+            html.H6("Tabla Comparativa de Cables", className="mb-3"),
+            tabla
+        ])
+        
+    except Exception as e:
+        print(f"Error creando tabla comparativa: {e}")
+        return dbc.Alert(f"Error creando tabla comparativa: {e}", color="danger")
+
 def generar_resultados_desde_cache(cache_data):
     """Generar HTML de resultados desde cache"""
     import json
@@ -458,24 +598,44 @@ def generar_resultados_desde_cache(cache_data):
     # Crear tabs desde cache
     tabs = []
     
-    # Tab comparativo primero
+    # Tab comparativo primero con tabla y gráficos
+    tab_comparativo_content = []
+    
+    # Agregar tabla comparativa
+    try:
+        # Reconstruir resultados para tabla comparativa
+        resultados_reconstruidos = {}
+        for cable_nombre in cables_calculados:
+            if cable_nombre in dataframes:
+                resultados_reconstruidos[cable_nombre] = {
+                    "dataframe_html": dataframes[cable_nombre]
+                }
+        
+        tabla_comparativa = crear_tabla_comparativa(resultados_reconstruidos)
+        tab_comparativo_content.append(tabla_comparativa)
+        tab_comparativo_content.append(html.Hr())
+    except Exception as e:
+        print(f"Error creando tabla comparativa desde cache: {e}")
+    
+    # Agregar gráficos comparativos
     if "comparativo" in graficos:
         try:
             from utils.view_helpers import ViewHelpers
             grafico_comparativo = ViewHelpers.crear_grafico_interactivo(
                 graficos["comparativo"]["json"]
             )
-            tab_comparativo = dbc.Tab(
-                label="Comparativo",
-                tab_id="tab-comparativo",
-                children=[
-                    html.H6("Gráfico Comparativo", className="mt-3"),
-                    grafico_comparativo
-                ]
-            )
-            tabs.append(tab_comparativo)
+            tab_comparativo_content.append(html.H6("Gráfico Comparativo", className="mt-3"))
+            tab_comparativo_content.append(grafico_comparativo)
         except Exception as e:
             print(f"Error cargando gráfico comparativo: {e}")
+    
+    if tab_comparativo_content:
+        tab_comparativo = dbc.Tab(
+            label="Comparativa",
+            tab_id="tab-comparativo",
+            children=tab_comparativo_content
+        )
+        tabs.append(tab_comparativo)
     
     # Tabs por cable
     for cable_nombre in cables_calculados:
@@ -533,7 +693,7 @@ def generar_resultados_desde_cache(cache_data):
     if tabs:
         return html.Div([
             dbc.Alert(f"Cache cargado: {len(cables_calculados)} cables exitosos, {len(errores)} errores", color="success"),
-            dbc.Tabs(tabs, active_tab="tab-comparativo" if "comparativo" in graficos else tabs[0].tab_id)
+            dbc.Tabs(tabs, active_tab="tab-comparativo" if tabs else None)
         ])
     else:
         return dbc.Alert("Error procesando cache", color="danger")
