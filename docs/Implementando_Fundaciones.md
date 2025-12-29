@@ -283,3 +283,40 @@ resultados = {
   - No usa valores hardcodeados
   - Fuerza al usuario a ejecutar SPH antes de fundación
 - **Testing pendiente**: Verificar mensaje de error cuando no hay SPH
+
+### 2025-01-02 - Sesión 10: Gráfico 3D Fundación Sulzberger Monobloque
+1. **Nuevo módulo gráfico**: Creado `utils/grafico_sulzberger_monobloque.py`
+   - Clase `GraficoSulzbergerMonobloque` para generar visualización 3D
+   - Carga automática de datos desde cache de fundación
+   - Bloque de hormigón gris transparente con dimensiones a×b×t
+   - Huecos cilíndricos para postes según n_postes y orientación
+   - Plano de terreno marrón transparente en z=0
+2. **Integración en controller**: Agregada generación automática de gráfico 3D en callback de cálculo
+3. **Vista actualizada**: Incluido gráfico 3D tanto en cálculo nuevo como en carga desde cache
+4. **Configuraciones soportadas**:
+   - **1 poste**: Hueco centrado
+   - **2 postes**: Separados según orientación (transversal=X, longitudinal=Y)
+   - **3 postes**: Disposición triangular
+5. **Archivos modificados**:
+   - `utils/grafico_sulzberger_monobloque.py` (NUEVO)
+   - `controllers/fundacion_controller.py` (agregado gráfico 3D)
+   - `components/vista_fundacion.py` (agregado gráfico 3D en cache)
+6. **Estado**: 🔧 TESTING PENDIENTE - Verificar que el gráfico 3D aparece correctamente
+
+### 2025-01-02 - Sesión 12: Corrección Cache Fundaciones - Patrón DGE
+1. **Método cache corregido**: Actualizado `CalculoCache.guardar_calculo_fund()` para seguir patrón DGE
+   - Agregado parámetro `estructura_data` para hash correcto
+   - Implementado guardado dual PNG+JSON para gráficos 3D Plotly
+   - Firma actualizada: `guardar_calculo_fund(nombre, estructura_data, parametros, resultados, fig_3d=None)`
+2. **Vista actualizada**: `generar_resultados_fundacion()` ahora retorna lista de componentes (patrón DGE)
+   - Verificación de vigencia de cache
+   - Carga de gráfico 3D desde JSON para interactividad
+   - Uso de `dbc.Table.from_dataframe()` directo
+   - Manejo de errores robusto
+3. **Controller corregido**: Actualizado guardado de cache con parámetros correctos
+   - Pasa `estructura_actual` como segundo parámetro
+   - Guarda figura 3D si existe
+4. **Vista vacía inicial**: Siguiendo patrón DGE, vista inicia vacía y usuario elige acción
+   - Navigation controller pasa `None` como calculo_guardado
+   - Callbacks separados para "Calcular" y "Cargar desde Cache"
+5. **Estado**: 🔧 TESTING PENDIENTE - Verificar que cache se guarda/carga correctamente

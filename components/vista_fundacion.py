@@ -4,7 +4,14 @@ import pandas as pd
 from utils.view_helpers import ViewHelpers
 
 def crear_vista_fundacion(estructura_actual, calculo_guardado=None):
-    """Crear vista para cálculo de fundaciones"""
+    """Crear vista para cálculo de fundaciones - inicia vacía como DGE"""
+    
+    # Generar resultados si hay cálculo guardado
+    resultados_previos = []
+    if calculo_guardado:
+        resultados_previos = generar_resultados_fundacion(calculo_guardado, estructura_actual)
+        if not isinstance(resultados_previos, list):
+            resultados_previos = [resultados_previos]
     
     # Formulario de parámetros
     formulario = dbc.Card([
@@ -202,7 +209,7 @@ def crear_vista_fundacion(estructura_actual, calculo_guardado=None):
     ], className="mb-3")
     
     # Área de resultados
-    area_resultados = html.Div(id="resultados-fundacion")
+    area_resultados = html.Div(id="resultados-fundacion", children=resultados_previos if resultados_previos else [])
     
     # Toast para notificaciones
     toast = dbc.Toast(
@@ -222,35 +229,98 @@ def crear_vista_fundacion(estructura_actual, calculo_guardado=None):
     ])
 
 def generar_resultados_fundacion(calculo_guardado, estructura_actual):
-    """Generar componentes de resultados desde cache"""
+    """Generar componentes de resultados desde cache - retorna lista de componentes"""
+    print(f"🔍 DEBUG: Iniciando generar_resultados_fundacion")
+    
     if not calculo_guardado:
-        return html.Div()
+        print(f"⚠️ DEBUG: calculo_guardado es None")
+        return [dbc.Alert("No hay datos de cálculo disponibles", color="warning")]
     
     resultados = calculo_guardado.get('resultados', {})
     hash_params = calculo_guardado.get('hash_parametros', '')
     
-    # Crear tabla de resultados
-    if 'dataframe_html' in resultados:
-        df = pd.read_json(resultados['dataframe_html'], orient='split')
-        tabla = ViewHelpers.crear_tabla_desde_dataframe(df, responsive=False)
-    else:
-        tabla = html.P("No hay datos de tabla disponibles")
+    print(f"📋 DEBUG: Resultados keys: {list(resultados.keys())}")
     
-    # Memoria de cálculo
-    memoria = html.Pre(
-        resultados.get('memoria_calculo', 'No hay memoria de cálculo disponible'),
-        style={'background': '#1e1e1e', 'color': '#d4d4d4', 'padding': '8px', 'font-size': '12px'}
-    )
+    # Verificar vigencia
+    from utils.calculo_cache import CalculoCache
+    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+    
+    output = []
     
     # Alerta de cache
-    alerta = ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=True)
+    alerta = ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente)
+    if alerta:
+        output.append(alerta)
     
-    componentes = [
-        alerta,
-        html.H5("Resultados del Cálculo"),
-        tabla,
-        html.H5("Memoria de Cálculo", className="mt-4"),
-        memoria
-    ]
+    output.append(dbc.Alert("Resultados cargados desde cache", color="info", className="mb-3"))
     
-    return html.Div(componentes)
+    # Crear tabla de resultados
+    if 'dataframe_html' in resultados:
+        try:
+            df = pd.read_json(resultados['dataframe_html'], orient='split')
+            tabla = dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True, size="sm")
+            output.append(html.H5("Resultados por Hipótesis"))
+            output.append(tabla)
+            print(f"📊 DEBUG: Tabla creada con {len(df)} filas")
+        except Exception as e:
+            print(f"❌ ERROR creando tabla: {e}")
+            output.append(html.P("Error cargando tabla de resultados"))
+    else:
+        print(f"⚠️ DEBUG: No hay dataframe_html en resultados")
+        output.append(html.P("No hay datos de tabla disponibles"))
+    
+    # Cargar gráfico 3D interactivo desde JSON
+    if hash_params:
+        try:
+            fig_3d_json = ViewHelpers.cargar_figura_plotly_json(f"FUND_3D.{hash_params}.json")
+            if fig_3d_json and isinstance(fig_3d_json, dict):
+                output.append(html.Hr(className="mt-4"))
+                output.append(html.H5("Visualización 3D de la Fundación"))
+                grafico_3d = dcc.Graph(
+                    figure=fig_3d_json,
+                    config={'displayModeBar': True},
+                    style={'height': '800px', 'width': '100%'}
+                )
+                output.append(grafico_3d)
+                print(f"📊 DEBUG: Componente 3D creado desde cache")
+        except Exception as e:
+            print(f"❌ ERROR cargando gráfico 3D desde cache: {e}")
+    
+    # Si no hay gráfico en cache, intentar crear nuevo
+    if not any(isinstance(comp, dcc.Graph) for comp in output):
+        try:
+            print(f"⚠️ DEBUG: No hay gráfico en cache, intentando crear nuevo...")
+            from utils.grafico_sulzberger_monobloque import crear_componente_fundacion_3d
+            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            componente_3d = crear_componente_fundacion_3d(nombre_estructura)
+            if componente_3d:
+                output.append(html.Hr(className="mt-4"))
+                output.append(html.H5("Visualización 3D de la Fundación"))
+                output.append(componente_3d)
+                print(f"📊 DEBUG: Componente 3D creado nuevo exitosamente")
+        except Exception as e:
+            print(f"❌ ERROR creando componente 3D nuevo: {e}")
+    
+    # Memoria de cálculo
+    memoria_texto = resultados.get('memoria_calculo', 'No hay memoria de cálculo disponible')
+    if memoria_texto and memoria_texto != 'No hay memoria de cálculo disponible':
+        output.append(html.Hr(className="mt-4"))
+        output.append(html.H5("Memoria de Cálculo"))
+        output.append(html.Pre(
+            memoria_texto,
+            style={
+                'backgroundColor': '#1e1e1e',
+                'color': '#d4d4d4',
+                'padding': '10px',
+                'borderRadius': '5px',
+                'fontSize': '0.75rem',
+                'maxHeight': '300px',
+                'overflowY': 'auto',
+                'whiteSpace': 'pre-wrap',
+                'fontFamily': 'monospace'
+            }
+        ))
+        print(f"📋 DEBUG: Memoria de cálculo: {len(memoria_texto)} caracteres")
+    
+    print(f"🔍 DEBUG: Retornando lista con {len(output)} componentes")
+    return output

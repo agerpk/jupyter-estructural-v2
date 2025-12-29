@@ -8,9 +8,34 @@ from utils.calculo_cache import CalculoCache
 from utils.view_helpers import ViewHelpers
 from models.app_state import AppState
 from config.app_config import DATA_DIR
+from dash import dcc
 
 def registrar_callbacks_fundacion(app):
     """Registrar callbacks para la vista de fundación"""
+    
+    # Callback para selector de hipótesis (dinámico)
+    @app.callback(
+        Output({"type": "grafico-fundacion", "index": dash.dependencies.MATCH}, "figure"),
+        Input({"type": "selector-hipotesis", "index": dash.dependencies.MATCH}, "value"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def actualizar_grafico_hipotesis(hipotesis_seleccionada, estructura_actual):
+        """Actualizar gráfico 3D según hipótesis seleccionada"""
+        if not hipotesis_seleccionada or not estructura_actual:
+            return dash.no_update
+        
+        try:
+            from utils.grafico_sulzberger_monobloque import GraficoSulzbergerMonobloque
+            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            
+            grafico = GraficoSulzbergerMonobloque(nombre_estructura)
+            grafico.cargar_datos_cache()
+            
+            return grafico._crear_grafico_hipotesis(hipotesis_seleccionada)
+        except Exception as e:
+            print(f"Error actualizando gráfico hipótesis: {e}")
+            return dash.no_update
     
     @app.callback(
         [Output("resultados-fundacion", "children"),
@@ -169,10 +194,13 @@ def registrar_callbacks_fundacion(app):
                         'memoria_calculo': memoria_calculo
                     }
                     
+                    # Guardar con gráfico 3D
                     CalculoCache.guardar_calculo_fund(
                         nombre_estructura,
+                        estructura_actual,
                         parametros_cache,
-                        resultados_cache
+                        resultados_cache,
+                        fig_3d if 'fig_3d' in locals() else None
                     )
                     print(f"💾 DEBUG: Cache guardado para {nombre_estructura}")
                 except Exception as e:
@@ -180,8 +208,25 @@ def registrar_callbacks_fundacion(app):
             
             threading.Thread(target=guardar_async, daemon=True).start()
             
-            # Crear componentes de resultado - SIMPLIFICADO PARA DEBUG
-            print(f"🔍 DEBUG: Creando componentes HTML simplificados")
+            # Generar componente 3D interactivo y guardarlo
+            from utils.grafico_sulzberger_monobloque import GraficoSulzbergerMonobloque
+            grafico_obj = GraficoSulzbergerMonobloque(nombre_estructura)
+            grafico_obj.parametros = {
+                'estructura': parametros_estructura_completos,
+                'suelo': parametros_suelo,
+                'calculo': parametros_calculo,
+                'poste': parametros_poste
+            }
+            grafico_obj.todas_hipotesis = resultados['todas_hipotesis']
+            
+            # Generar gráfico 3D para hipótesis dimensionante
+            hipotesis_dim = resultados['hipotesis_dimensionante']
+            fig_3d = grafico_obj._crear_grafico_hipotesis(hipotesis_dim)
+            
+            componente_3d = grafico_obj.crear_componente_interactivo()
+            
+            # Crear componentes de resultado
+            print(f"🔍 DEBUG: Creando componentes HTML con componente 3D interactivo")
             
             resultados_html = [
                 dbc.Alert("Cálculo completado exitosamente", color="success", className="mb-3"),
@@ -199,9 +244,16 @@ def registrar_callbacks_fundacion(app):
                     )
                 )
             
-            # Agregar memoria de cálculo - SIMPLIFICADO
+            # Agregar componente 3D interactivo
+            if componente_3d:
+                print(f"📊 DEBUG: Agregando componente 3D interactivo de fundación")
+                resultados_html.append(html.Hr(className="mt-4"))
+                resultados_html.append(html.H5("Visualización 3D de la Fundación"))
+                resultados_html.append(componente_3d)
+            
+            # Agregar memoria de cálculo
             if memoria_calculo:
-                print(f"📋 DEBUG: Agregando memoria de cálculo directamente")
+                print(f"📋 DEBUG: Agregando memoria de cálculo")
                 resultados_html.append(html.Hr(className="mt-4"))
                 resultados_html.append(html.H5("Memoria de Cálculo"))
                 resultados_html.append(
@@ -276,9 +328,13 @@ def registrar_callbacks_fundacion(app):
             if not calculo_guardado:
                 return dash.no_update, True, "Advertencia", "No hay cache disponible para esta estructura", "warning", "warning"
             
+            print(f"📋 DEBUG: Cache encontrado, generando resultados...")
+            
             # Generar resultados desde cache
             from components.vista_fundacion import generar_resultados_fundacion
             resultados_html = generar_resultados_fundacion(calculo_guardado, estructura_actual)
+            
+            print(f"🔍 DEBUG: Resultados generados: {type(resultados_html).__name__}")
             
             return resultados_html, True, "Cache", "Resultados cargados desde cache", "info", "info"
             

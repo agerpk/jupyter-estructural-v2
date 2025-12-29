@@ -410,16 +410,32 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
-    def guardar_calculo_fund(nombre_estructura, parametros, resultados):
+    def guardar_calculo_fund(nombre_estructura, estructura_data, parametros, resultados, fig_3d=None):
         """Guarda resultados de Cálculo de Fundaciones"""
         nombre_estructura = nombre_estructura.replace(' ', '_')
-        hash_params = hashlib.md5(json.dumps(parametros, sort_keys=True).encode()).hexdigest()
+        hash_params = CalculoCache.calcular_hash(estructura_data)
+        
+        # Guardar gráfico 3D si existe (PNG + JSON)
+        if fig_3d:
+            try:
+                # PNG para exportar
+                png_path = CACHE_DIR / f"FUND_3D.{hash_params}.png"
+                fig_3d.write_image(str(png_path), width=1200, height=800)
+                
+                # JSON para interactividad
+                json_path = CACHE_DIR / f"FUND_3D.{hash_params}.json"
+                fig_3d.write_json(str(json_path))
+                
+                print(f"✅ Gráfico 3D fundación guardado: PNG + JSON")
+            except Exception as e:
+                print(f"Advertencia: No se pudo guardar gráfico 3D: {e}")
         
         calculo_data = {
             "hash_parametros": hash_params,
             "fecha_calculo": datetime.now().isoformat(),
             "parametros": parametros,
-            "resultados": resultados
+            "resultados": resultados,
+            "imagen_3d": f"FUND_3D.{hash_params}.json" if fig_3d else None
         }
         
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoFUND.json"
