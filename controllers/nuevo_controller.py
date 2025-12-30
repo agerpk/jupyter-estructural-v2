@@ -77,7 +77,7 @@ def register_callbacks(app):
                 return dash.no_update, {'display': 'none'}, True, "Error", "El archivo no tiene una estructura válida", "danger", "danger"
             
             # GUARDAR EN ACTUAL.ESTRUCTURA.JSON
-            state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
+            state.set_estructura_actual(estructura)
             
             # TAMBIÉN GUARDAR EN TITULO.ESTRUCTURA.JSON
             if "TITULO" in estructura:

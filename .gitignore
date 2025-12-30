@@ -33,6 +33,7 @@ data/cache/
 # Data files - solo excluir archivos temporales
 data/*.hipotesismaestro.json
 data/navegacion_state.json
+data/actual.estructura.json
 
 # IDE
 .vscode/
@@ -47,3 +48,11 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Render specific
+.env
+*.env
+
+# Temporary files
+*.tmp
+*.temp

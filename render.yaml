@@ -1,0 +1,34 @@
+# Render Configuration
+# Este archivo contiene configuraciones específicas para el despliegue en Render
+
+# Build Settings
+BUILD_COMMAND="pip install -r requirements.txt"
+START_COMMAND="gunicorn app:server --bind 0.0.0.0:$PORT --timeout 120 --workers 2"
+
+# Environment Variables
+PYTHON_VERSION="3.11.0"
+DEBUG="false"
+
+# Service Configuration
+SERVICE_TYPE="Web Service"
+INSTANCE_TYPE="Starter"  # o "Professional" según necesidades
+
+# Auto Deploy
+AUTO_DEPLOY="true"
+
+# Health Check
+HEALTH_CHECK_PATH="/"
+
+# Timeout Settings
+REQUEST_TIMEOUT="120"
+WORKER_TIMEOUT="120"
+
+# Memory and CPU
+# Starter: 512MB RAM, 0.1 CPU
+# Professional: 2GB RAM, 1 CPU
+
+# Notes:
+# - La aplicación está optimizada para funcionar en el plan gratuito Starter
+# - Para cálculos muy complejos, considerar upgrade a Professional
+# - Los archivos de cache se generan dinámicamente y no se persisten entre despliegues
+# - La aplicación maneja automáticamente la creación de directorios necesarios

@@ -12,20 +12,8 @@ def register_callbacks(app):
     
     state = AppState()
     
-    @app.callback(
-        Output("badge-estructura-actual", "children"),
-        Input("estructura-actual", "data"),
-        prevent_initial_call=True
-    )
-    def actualizar_badge_estructura(estructura_actual):
-        if estructura_actual:
-            titulo = estructura_actual.get("TITULO", "Sin estructura")
-            tipo_estructura = estructura_actual.get("TIPO_ESTRUCTURA", "N/A")
-            terna = estructura_actual.get("TERNA", "N/A")
-            disposicion = estructura_actual.get("DISPOSICION", "N/A")
-            tension = estructura_actual.get("TENSION", "N/A")
-            return f"{titulo} | {tipo_estructura} | {terna} | {disposicion} | {tension}kV"
-        return "Sin estructura"
+    # Callback removido - duplicado con navigation_controller.py
+    # El badge se actualiza desde navigation_controller.py
     
     @app.callback(
         Output("modal-acerca-de", "is_open"),

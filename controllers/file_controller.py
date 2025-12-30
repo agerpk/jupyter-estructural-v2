@@ -144,14 +144,10 @@ def register_callbacks(app):
                     "danger", "danger"
                 )
             
-            # GUARDAR EN ACTUAL.ESTRUCTURA.JSON
-            state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
-            
-            # TAMBIÉN GUARDAR EN TITULO.ESTRUCTURA.JSON
-            if "TITULO" in estructura:
-                titulo = estructura["TITULO"]
-                nombre_archivo = f"{titulo}.estructura.json"
-                state.estructura_manager.guardar_estructura(estructura, DATA_DIR / nombre_archivo)
+            # Guardar usando el sistema unificado
+            state.set_estructura_actual(estructura)
+            ruta_actual = state.get_estructura_actual_path()
+            state.estructura_manager.guardar_estructura(estructura, ruta_actual)
             
             upload_style = {'display': 'none'}
             

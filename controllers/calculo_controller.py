@@ -154,16 +154,6 @@ def register_callbacks(app):
                 "RELFLECHA_SIN_VIENTO": bool(RELFLECHA_SIN_VIENTO)
             })
             
-            # Guardar en actual.estructura.json
-            state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
-            
-            # Guardar en archivo específico si existe
-            titulo = estructura_actualizada.get('TITULO', '')
-            if titulo:
-                from pathlib import Path
-                archivo_especifico = Path(f"data/{titulo}.estructura.json")
-                state.estructura_manager.guardar_estructura(estructura_actualizada, archivo_especifico)
-            
             return estructura_actualizada, True, "Éxito", "Parámetros guardados", "success", "success"
         except Exception as e:
             return dash.no_update, True, "Error", f"Error: {str(e)}", "danger", "danger"
@@ -227,16 +217,6 @@ def register_callbacks(app):
                 "RELFLECHA_MAX_GUARDIA": float(RELFLECHA_MAX_GUARDIA),
                 "RELFLECHA_SIN_VIENTO": bool(RELFLECHA_SIN_VIENTO)
             })
-            
-            # Guardar en actual.estructura.json
-            state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
-            
-            # Guardar en archivo específico si existe
-            titulo = estructura_actualizada.get('TITULO', '')
-            if titulo:
-                from pathlib import Path
-                archivo_especifico = Path(f"data/{titulo}.estructura.json")
-                state.estructura_manager.guardar_estructura(estructura_actualizada, archivo_especifico)
             
             estructura_actual = estructura_actualizada
             resultado_objetos = state.calculo_objetos.crear_todos_objetos(estructura_actual)

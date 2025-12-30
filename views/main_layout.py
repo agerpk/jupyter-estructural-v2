@@ -24,10 +24,11 @@ def crear_layout():
     """Crear el layout principal de la aplicación"""
     
     state = AppState()
+    estructura_actual = state.cargar_estructura_actual()
     
     return html.Div([
         # Almacenamiento de estado
-        dcc.Store(id="estructura-actual", data=state.cargar_estructura_actual()),
+        dcc.Store(id="estructura-actual", data=estructura_actual),
         dcc.Store(id="estructuras-disponibles", data=state.estructura_manager.listar_estructuras()),
         
         # Barra de navegación superior

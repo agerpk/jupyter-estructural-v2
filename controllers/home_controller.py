@@ -34,7 +34,8 @@ def register_callbacks(app):
         try:
             ruta = DATA_DIR / estructura_nombre
             estructura = state.estructura_manager.cargar_estructura(ruta)
-            state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
+            # Actualizar estado y guardar en archivo unificado
+            state.set_estructura_actual(estructura)
             return estructura, True, "Éxito", f"Estructura '{estructura_nombre}' cargada", "success"
         except Exception as e:
             return dash.no_update, True, "Error", f"Error: {str(e)}", "danger"
@@ -164,8 +165,8 @@ def register_callbacks(app):
             ruta_destino = DATA_DIR / nombre_archivo
             state.estructura_manager.guardar_estructura(estructura, ruta_destino)
             
-            # Guardar como actual
-            state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
+            # Guardar como actual usando sistema unificado
+            state.set_estructura_actual(estructura)
             
             return False, estructura, True, "Éxito", f"Estructura duplicada como '{nuevo_nombre}'", "success"
         except Exception as e:

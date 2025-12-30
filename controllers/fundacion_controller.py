@@ -86,9 +86,11 @@ def registrar_callbacks_fundacion(app):
             return dash.no_update, False, "", "", "", ""
         
         try:
-            # Recargar estructura actual
+            # Recargar estructura actual usando el nuevo sistema
             state = AppState()
-            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
             
             print(f"🔵 DEBUG: Iniciando cálculo fundación para {nombre_estructura}")
@@ -315,9 +317,11 @@ def registrar_callbacks_fundacion(app):
             return dash.no_update, False, "", "", "", ""
         
         try:
-            # Recargar estructura actual
+            # Recargar estructura actual usando el nuevo sistema
             state = AppState()
-            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
             
             print(f"🔵 DEBUG: Cargando cache fundación para {nombre_estructura}")
@@ -388,9 +392,11 @@ def registrar_callbacks_fundacion(app):
             return False, "", "", "", ""
         
         try:
-            # Recargar estructura actual
+            # Recargar estructura actual usando el nuevo sistema
             state = AppState()
-            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
             
             print(f"🔵 DEBUG: Guardando parámetros fundación para {nombre_estructura}")
@@ -438,8 +444,10 @@ def registrar_callbacks_fundacion(app):
             # Agregar parámetros a estructura actual
             estructura_actual['fundacion'] = parametros_fundacion
             
-            # Guardar en actual.estructura.json
-            state.estructura_manager.guardar_estructura(estructura_actual, DATA_DIR / "actual.estructura.json")
+            # Guardar usando el sistema unificado
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
+            state.estructura_manager.guardar_estructura(estructura_actual, ruta_actual)
             
             # Guardar en archivo específico de la estructura
             archivo_estructura = DATA_DIR / f"{nombre_estructura}.estructura.json"

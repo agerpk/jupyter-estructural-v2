@@ -36,7 +36,10 @@ def register_callbacks(app):
         
         # Recargar estructura desde archivo
         from config.app_config import DATA_DIR
-        estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+        # Recargar estructura desde archivo usando el nuevo sistema
+        state.set_estructura_actual(estructura_actual)
+        ruta_actual = state.get_estructura_actual_path()
+        estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
         
         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
         calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)

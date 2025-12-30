@@ -259,7 +259,7 @@ def register_callbacks(app):
             estructura_actualizada["MOSTRAR_C2"] = mostrar_c2
             estructura_actualizada["REEMPLAZAR_TITULO_GRAFICO"] = reemplazar_titulo
             
-            state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
+            state.set_estructura_actual(estructura_actualizada)
             
             # También guardar en DB
             if "TITULO" in estructura_actualizada:
@@ -434,7 +434,10 @@ def register_callbacks(app):
                 else:
                     # Cargar desde cache - recargar estructura actual para obtener nodos editados
                     from config.app_config import DATA_DIR
-                    estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+                    # Recargar estructura desde archivo usando el nuevo sistema
+                    state.set_estructura_actual(estructura_actual)
+                    ruta_actual = state.get_estructura_actual_path()
+                    estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
                     
                     from EstructuraAEA_Geometria import EstructuraAEA_Geometria
                     state.calculo_objetos.estructura_geometria = EstructuraAEA_Geometria(

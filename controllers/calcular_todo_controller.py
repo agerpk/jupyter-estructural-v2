@@ -34,7 +34,9 @@ def register_callbacks(app):
         # Recargar estructura actual desde archivo
         from config.app_config import DATA_DIR
         try:
-            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
             print(f"📂 MANUAL: Estructura recargada: {estructura_actual.get('TITULO', 'N/A')}")
         except Exception as e:
             print(f"❌ MANUAL: Error recargando estructura: {e}")
@@ -65,7 +67,9 @@ def register_callbacks(app):
         # Recargar estructura actual desde archivo
         from config.app_config import DATA_DIR
         try:
-            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
             print(f"📂 Estructura recargada: {estructura_actual.get('TITULO', 'N/A')}")
         except Exception as e:
             print(f"❌ Error recargando estructura: {e}")

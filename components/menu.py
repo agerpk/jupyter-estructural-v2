@@ -176,7 +176,7 @@ def crear_modal_acerca_de():
         dbc.ModalBody([
             html.Div([
                 html.H5("AGP - Análisis General de Postaciones", className="text-center mb-4"),
-                html.P("Versión 0", className="text-center"),
+                html.P("Versión 1.0", className="text-center"),
                 html.P("Programado por AGPK", className="text-center"),
                 html.P(["Tg: ", html.A("@alegerpk", href="https://t.me/alegerpk", target="_blank")], className="text-center"),
                 html.P("Año 2025", className="text-center")

@@ -6,7 +6,6 @@ from pathlib import Path
 DATA_DIR = Path("data")
 CACHE_DIR = DATA_DIR / "cache"
 CABLES_PATH = DATA_DIR / "cables.json"
-ARCHIVO_ACTUAL = DATA_DIR / "actual.estructura.json"
 
 # Crear directorio de cache si no existe
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -14,9 +13,15 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 # Configuración de la aplicación
 import os
 
-APP_TITLE = "AGP - Análisis General de Postaciones"
+APP_TITLE = "AGP - Análisis General de Postaciones v1.0"
 APP_PORT = int(os.environ.get("PORT", 8050))
 DEBUG_MODE = os.environ.get("DEBUG", "False").lower() == "true"
+
+# Configuración específica para producción
+PRODUCTION = os.environ.get("RENDER", "False").lower() == "true"
+if PRODUCTION:
+    # Configuraciones específicas para Render
+    DEBUG_MODE = False
 
 # Tema visual
 THEME = {
@@ -63,7 +68,7 @@ body {{
 '''
 
 # Archivos excluidos de operaciones
-ARCHIVOS_PROTEGIDOS = ["actual.estructura.json", "plantilla.estructura.json"]
+ARCHIVOS_PROTEGIDOS = ["plantilla.estructura.json"]
 
 # Configuración de notificaciones
 TOAST_DURATION = 4000

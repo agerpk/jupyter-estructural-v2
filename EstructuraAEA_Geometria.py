@@ -548,6 +548,7 @@ class EstructuraAEA_Geometria:
             "phg2_x": self.phg2[0], "phg2_y": self.phg2[1],
             "D_fases": D_fases, "s_estructura": s_estructura, "Dhg": Dhg,
             "theta_max": theta_max, "k": distancias['k'],
+            "Ka": distancias['Ka'],  # Asegurar que Ka se guarde
             "h_base_electrica": self.h_base_electrica,
             "hg_centrado": self.hg_centrado,
             "ang_apantallamiento": self.ang_apantallamiento,

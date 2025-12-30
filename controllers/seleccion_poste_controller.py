@@ -59,7 +59,7 @@ def register_callbacks(app):
         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
         archivo = state.estructura_manager.data_dir / f"{nombre_estructura}.estructura.json"
         state.estructura_manager.guardar_estructura(estructura_actual, archivo)
-        state.estructura_manager.guardar_estructura(estructura_actual, state.archivo_actual)
+        state.set_estructura_actual(estructura_actual)
         
         return (
             estructura_actual,

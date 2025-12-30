@@ -316,7 +316,9 @@ def register_callbacks(app):
             from config.app_config import DATA_DIR
             
             # RECARGAR estructura desde archivo
-            ruta_actual = DATA_DIR / "actual.estructura.json"
+            # RECARGAR estructura desde archivo usando el nuevo sistema
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
             estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
             print(f"📂 DEBUG: Estructura recargada: {estructura_actual.get('TITULO', 'N/A')}")
             
@@ -758,7 +760,10 @@ def register_callbacks(app):
             
             # Recargar estructura desde archivo para asegurar persistencia
             from config.app_config import DATA_DIR
-            ruta_actual = DATA_DIR / "actual.estructura.json"
+            # Recargar estructura actual usando el nuevo sistema
+            state = AppState()
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
             estructura_actualizada = state.estructura_manager.cargar_estructura(ruta_actual)
             
             print(f"💾 DEBUG: Nodos guardados en archivo. Total nodos_editados: {len(estructura_actualizada.get('nodos_editados', []))}")
@@ -845,8 +850,9 @@ def register_callbacks(app):
         from components.vista_diseno_geometrico import generar_resultados_dge
         from config.app_config import DATA_DIR
         
-        # Recargar estructura desde archivo
-        ruta_actual = DATA_DIR / "actual.estructura.json"
+        # Recargar estructura desde archivo usando el nuevo sistema
+        state.set_estructura_actual(estructura_actual)
+        ruta_actual = state.get_estructura_actual_path()
         estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
         
@@ -867,9 +873,9 @@ def register_callbacks(app):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
-        # SIEMPRE recargar estructura desde archivo
-        from config.app_config import DATA_DIR
-        ruta_actual = DATA_DIR / "actual.estructura.json"
+        # SIEMPRE recargar estructura desde archivo usando el nuevo sistema
+        state.set_estructura_actual(estructura_actual)
+        ruta_actual = state.get_estructura_actual_path()
         estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
         
         # Guardar navegación

@@ -133,9 +133,18 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
     
     if estructura_actual is None:
         try:
-            with open("actual.estructura.json", "r", encoding="utf-8") as f:
-                estructura_actual = json.load(f)
-        except FileNotFoundError:
+            from models.app_state import AppState
+            state = AppState()
+            # Intentar cargar estructura actual desde el sistema unificado
+            if hasattr(state, '_current_estructura_titulo') and state._current_estructura_titulo:
+                ruta_actual = state.get_estructura_actual_path()
+                with open(ruta_actual, "r", encoding="utf-8") as f:
+                    estructura_actual = json.load(f)
+            else:
+                # Fallback a plantilla si no hay estructura actual
+                with open("data/plantilla.estructura.json", "r", encoding="utf-8") as f:
+                    estructura_actual = json.load(f)
+        except (FileNotFoundError, AttributeError):
             with open("data/plantilla.estructura.json", "r", encoding="utf-8") as f:
                 estructura_actual = json.load(f)
     

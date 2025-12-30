@@ -1,21 +1,23 @@
-"""Script de prueba para verificar que la aplicacion puede iniciarse"""
+"""
+Script de prueba para verificar que la aplicación puede iniciarse
+"""
 
 try:
-    print("[DEBUG] Importando modulos principales...")
+    print("🔍 Importando módulos principales...")
     
-    # Importar configuracion
+    # Importar configuración
     from config.app_config import APP_TITLE, APP_PORT, DEBUG_MODE
-    print("[OK] Configuracion importada")
+    print("✅ Configuración importada")
     
     # Importar layout
     from views.main_layout import crear_layout
-    print("[OK] Layout importado")
+    print("✅ Layout importado")
     
     # Importar AppState
     from models.app_state import AppState
-    print("[OK] AppState importado")
+    print("✅ AppState importado")
     
-    # Probar importacion de controladores uno por uno
+    # Probar importación de controladores uno por uno
     controladores = [
         "navigation_controller",
         "file_controller", 
@@ -39,11 +41,11 @@ try:
     for controlador in controladores:
         try:
             exec(f"from controllers import {controlador}")
-            print(f"[OK] {controlador} importado")
+            print(f"✅ {controlador} importado")
         except Exception as e:
-            print(f"[ERROR] Error importando {controlador}: {e}")
+            print(f"❌ Error importando {controlador}: {e}")
     
-    print("\n[DEBUG] Probando creacion de app Dash...")
+    print("\n🔍 Probando creación de app Dash...")
     import dash
     import dash_bootstrap_components as dbc
     
@@ -52,34 +54,34 @@ try:
         external_stylesheets=[dbc.themes.BOOTSTRAP],
         suppress_callback_exceptions=True
     )
-    print("[OK] App Dash creada")
+    print("✅ App Dash creada")
     
-    print("\n[DEBUG] Probando creacion de layout...")
+    print("\n🔍 Probando creación de layout...")
     layout = crear_layout()
-    print("[OK] Layout creado")
+    print("✅ Layout creado")
     
     app.layout = layout
-    print("[OK] Layout asignado")
+    print("✅ Layout asignado")
     
-    print("\n[DEBUG] Probando registro de callbacks...")
-    # Solo probar algunos controladores criticos
+    print("\n🔍 Probando registro de callbacks...")
+    # Solo probar algunos controladores críticos
     try:
         from controllers import navigation_controller
         navigation_controller.register_callbacks(app)
-        print("[OK] navigation_controller registrado")
+        print("✅ navigation_controller registrado")
     except Exception as e:
-        print(f"[ERROR] Error registrando navigation_controller: {e}")
+        print(f"❌ Error registrando navigation_controller: {e}")
     
     try:
         from controllers import ui_controller
         ui_controller.register_callbacks(app)
-        print("[OK] ui_controller registrado")
+        print("✅ ui_controller registrado")
     except Exception as e:
-        print(f"[ERROR] Error registrando ui_controller: {e}")
+        print(f"❌ Error registrando ui_controller: {e}")
     
-    print("\n[OK] Prueba completada - La aplicacion deberia funcionar")
+    print("\n✅ Prueba completada - La aplicación debería funcionar")
     
 except Exception as e:
-    print(f"[ERROR] Error critico: {e}")
+    print(f"❌ Error crítico: {e}")
     import traceback
     traceback.print_exc()

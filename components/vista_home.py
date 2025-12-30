@@ -193,9 +193,13 @@ def crear_tarjeta_estructuras_disponibles():
 def crear_tarjeta_estructura_actual():
     """Crear tarjeta con resumen de estructura actual"""
     state = AppState()
-    # SIEMPRE leer desde actual.estructura.json para obtener datos actualizados
+    # Leer estructura actual usando el sistema unificado
     try:
-        estructura = state.estructura_manager.cargar_estructura(state.archivo_actual)
+        if hasattr(state, '_current_estructura_titulo') and state._current_estructura_titulo:
+            ruta_actual = state.get_estructura_actual_path()
+            estructura = state.estructura_manager.cargar_estructura(ruta_actual)
+        else:
+            estructura = state.estructura_manager.cargar_estructura(state.get_estructura_actual_path())
     except:
         estructura = None
     

@@ -40,6 +40,20 @@ def register_callbacks(app):
     
     state = AppState()
     
+    # Callback para sincronizar AppState con Dash Store
+    @app.callback(
+        Output("badge-estructura-actual", "children"),
+        Input("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def sincronizar_estructura_actual(estructura_data):
+        """Sincronizar AppState cuando cambia el Store de Dash"""
+        if estructura_data:
+            state.set_estructura_actual(estructura_data)
+            titulo = estructura_data.get('TITULO', 'Sin título')
+            return f"📁 {titulo}"
+        return "📁 Sin estructura"
+    
     @app.callback(
         Output("contenido-principal", "children"),
         Input("btn-inicio", "n_clicks"),
@@ -95,7 +109,7 @@ def register_callbacks(app):
                 from config.app_config import DATA_DIR
                 
                 if not estructura_actual:
-                    estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
+                    estructura_actual = state.estructura_manager.cargar_estructura(state.get_estructura_actual_path())
                 
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                 estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
@@ -197,7 +211,7 @@ def register_callbacks(app):
             from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_base
             
             if not estructura_actual:
-                estructura_actual = state.estructura_manager.cargar_estructura(state.archivo_actual)
+                estructura_actual = state.estructura_manager.cargar_estructura(state.get_estructura_actual_path())
             
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
             

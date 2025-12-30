@@ -35,14 +35,10 @@ def register_callbacks(app):
                 if "nodos_editados" not in estructura or not estructura["nodos_editados"]:
                     estructura["nodos_editados"] = []
                 
-                # GUARDAR EN ACTUAL.ESTRUCTURA.JSON
-                state.estructura_manager.guardar_estructura(estructura, state.archivo_actual)
-                
-                # TAMBIÉN GUARDAR EN TITULO.ESTRUCTURA.JSON
-                if "TITULO" in estructura:
-                    titulo = estructura["TITULO"]
-                    nombre_archivo = f"{titulo}.estructura.json"
-                    state.estructura_manager.guardar_estructura(estructura, DATA_DIR / nombre_archivo)
+                # Guardar usando el sistema unificado
+                state.set_estructura_actual(estructura)
+                ruta_actual = state.get_estructura_actual_path()
+                state.estructura_manager.guardar_estructura(estructura, ruta_actual)
                 
                 return estructura, True, "Éxito", f"Estructura '{nombre_estructura}' cargada correctamente", "success", "success"
         except Exception as e:
@@ -74,8 +70,10 @@ def register_callbacks(app):
             nombre_archivo = f"{nuevo_titulo.strip()}.estructura.json"
             ruta_destino = DATA_DIR / nombre_archivo
             
-            state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_destino)
-            state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
+            # Guardar usando el sistema unificado
+            state.set_estructura_actual(estructura_actualizada)
+            ruta_actual = state.get_estructura_actual_path()
+            state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_actual)
             
             # Copiar hipótesis de estructura origen si existen
             from utils.hipotesis_manager import HipotesisManager
@@ -150,13 +148,10 @@ def register_callbacks(app):
         try:
             nueva_estructura = state.estructura_manager.crear_nueva_estructura(titulo=nombre.strip())
             
-            # GUARDAR EN ACTUAL.ESTRUCTURA.JSON
-            state.estructura_manager.guardar_estructura(nueva_estructura, state.archivo_actual)
-            
-            # TAMBIÉN GUARDAR EN TITULO.ESTRUCTURA.JSON
-            titulo = nueva_estructura["TITULO"]
-            nombre_archivo = f"{titulo}.estructura.json"
-            state.estructura_manager.guardar_estructura(nueva_estructura, DATA_DIR / nombre_archivo)
+            # Guardar usando el sistema unificado
+            state.set_estructura_actual(nueva_estructura)
+            ruta_actual = state.get_estructura_actual_path()
+            state.estructura_manager.guardar_estructura(nueva_estructura, ruta_actual)
             
             return nueva_estructura, True, "Éxito", f"Nueva estructura '{nombre.strip()}' creada", "success", "success"
         except Exception as e:
@@ -176,10 +171,10 @@ def register_callbacks(app):
     def guardar_estructura_db(n_clicks, estructura_actual):
         if estructura_actual and "TITULO" in estructura_actual:
             try:
-                titulo = estructura_actual["TITULO"]
-                nombre_archivo = f"{titulo}.estructura.json"
-                state.estructura_manager.guardar_estructura(estructura_actual, DATA_DIR / nombre_archivo)
-                state.estructura_manager.guardar_estructura(estructura_actual, state.archivo_actual)
+                # Guardar usando el sistema unificado
+                state.set_estructura_actual(estructura_actual)
+                ruta_actual = state.get_estructura_actual_path()
+                state.estructura_manager.guardar_estructura(estructura_actual, ruta_actual)
                 estructuras = state.estructura_manager.listar_estructuras()
                 return True, "Éxito", f"Estructura guardada: {nombre_archivo}", "success", "success", estructuras
             except Exception as e:

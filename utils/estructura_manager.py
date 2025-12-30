@@ -62,7 +62,7 @@ class EstructuraManager:
         estructuras = []
         for archivo in self.data_dir.glob("*.estructura.json"):
             # Excluir archivos especiales
-            if archivo.name not in ["actual.estructura.json", "plantilla.estructura.json"]:
+            if archivo.name not in ["plantilla.estructura.json"]:
                 estructuras.append(archivo.name)
         return sorted(estructuras)
     
@@ -71,7 +71,7 @@ class EstructuraManager:
         ruta_archivo = self.data_dir / nombre_archivo
         
         # No permitir eliminar archivos especiales
-        if nombre_archivo in ["actual.estructura.json", "plantilla.estructura.json"]:
+        if nombre_archivo in ["plantilla.estructura.json"]:
             return False
         
         if ruta_archivo.exists():
@@ -93,39 +93,46 @@ class EstructuraManager:
         return estructura
     
     def actualizar_parametros(self, parametros: Dict[str, Any]):
-        """Actualizar parámetros de estructura actual y guardar en ambos archivos"""
-        ruta_actual = self.data_dir / "actual.estructura.json"
+        """Actualizar parámetros de estructura actual usando el sistema unificado"""
+        from models.app_state import AppState
+        state = AppState()
+        
+        # Cargar estructura actual
+        ruta_actual = state.get_estructura_actual_path()
         estructura = self.cargar_estructura(ruta_actual)
         estructura.update(parametros)
         
-        # Guardar en archivo con nombre de título
-        titulo = estructura.get("TITULO", "estructura")
-        nombre_archivo = f"{titulo}.estructura.json"
-        ruta_titulo = self.data_dir / nombre_archivo
-        
-        self.guardar_estructura(estructura, ruta_titulo)
+        # Guardar solo en el archivo unificado
         self.guardar_estructura(estructura, ruta_actual)
+        
+        # Actualizar el estado
+        state.set_estructura_actual(estructura)
     
     def guardar_nodos_editados(self, nodos_list: List[Dict[str, Any]]):
-        """Guardar nodos editados en estructura actual y archivo con título"""
-        ruta_actual = self.data_dir / "actual.estructura.json"
+        """Guardar nodos editados usando el sistema unificado"""
+        from models.app_state import AppState
+        state = AppState()
+        
+        # Cargar estructura actual
+        ruta_actual = state.get_estructura_actual_path()
         estructura = self.cargar_estructura(ruta_actual)
         
         # Actualizar nodos_editados
         estructura["nodos_editados"] = nodos_list
         
-        # Guardar en ambos archivos
-        titulo = estructura.get("TITULO", "estructura")
-        nombre_archivo = f"{titulo}.estructura.json"
-        ruta_titulo = self.data_dir / nombre_archivo
-        
-        self.guardar_estructura(estructura, ruta_titulo)
+        # Guardar solo en el archivo unificado
         self.guardar_estructura(estructura, ruta_actual)
+        
+        # Actualizar el estado
+        state.set_estructura_actual(estructura)
         
         print(f"✅ {len(nodos_list)} nodos editados guardados")
     
     def cargar_nodos_editados(self) -> List[Dict[str, Any]]:
-        """Cargar nodos editados desde estructura actual"""
-        ruta_actual = self.data_dir / "actual.estructura.json"
+        """Cargar nodos editados usando el sistema unificado"""
+        from models.app_state import AppState
+        state = AppState()
+        
+        ruta_actual = state.get_estructura_actual_path()
         estructura = self.cargar_estructura(ruta_actual)
         return estructura.get("nodos_editados", [])

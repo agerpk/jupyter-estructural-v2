@@ -91,7 +91,11 @@ def register_callbacks(app):
         try:
             # SIEMPRE recargar desde archivo para obtener datos actualizados
             from config.app_config import DATA_DIR
-            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+            
+            # Usar el nuevo sistema de estructura actual
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
             estructura_actualizada = estructura_actual.copy()
             
             for param_id, param_value in zip(param_ids, param_values):
@@ -118,14 +122,11 @@ def register_callbacks(app):
                     else:
                         estructura_actualizada[param_key] = param_value
             
-            state.estructura_manager.guardar_estructura(estructura_actualizada, state.archivo_actual)
+            # Guardar en el archivo de la estructura actual (unificado)
+            state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_actual)
             
-            # También guardar en DB si tiene título
-            if "TITULO" in estructura_actualizada:
-                from config.app_config import DATA_DIR
-                titulo = estructura_actualizada["TITULO"]
-                nombre_archivo = f"{titulo}.estructura.json"
-                state.estructura_manager.guardar_estructura(estructura_actualizada, DATA_DIR / nombre_archivo)
+            # Actualizar el estado interno
+            state.set_estructura_actual(estructura_actualizada)
             
             return (
                 estructura_actualizada,
