@@ -5,7 +5,7 @@ from dash import Input, Output, State, ALL, callback_context
 import json
 from pathlib import Path
 from components.vista_home import crear_vista_home
-from components.vista_ajuste_parametros import crear_vista_ajuste_parametros
+from components.vista_ajuste_parametros import crear_vista_ajuste_parametros_con_pestanas
 from components.vista_eliminar_estructura import crear_vista_eliminar_estructura
 from components.vista_calculo_mecanico import crear_vista_calculo_mecanico
 from components.vista_gestion_cables import crear_vista_agregar_cable, crear_vista_modificar_cable, crear_vista_eliminar_cable
@@ -97,7 +97,7 @@ def register_callbacks(app):
                 return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado)
             elif ultima_vista == "ajustar-parametros":
                 cables_disponibles = state.cable_manager.obtener_cables()
-                return crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
+                return crear_vista_ajuste_parametros_con_pestanas(estructura_actual, cables_disponibles)
             elif ultima_vista == "diseno-geometrico":
                 from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
                 return crear_vista_diseno_geometrico(estructura_actual, None)
@@ -171,7 +171,7 @@ def register_callbacks(app):
         elif trigger_id == "menu-ajustar-parametros":
             guardar_navegacion_state("ajustar-parametros")
             cables_disponibles = state.cable_manager.obtener_cables()
-            return crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
+            return crear_vista_ajuste_parametros_con_pestanas(estructura_actual, cables_disponibles)
         
         elif trigger_id == "menu-eliminar-estructura":
             return crear_vista_eliminar_estructura()

@@ -8,6 +8,24 @@ import json
 from datetime import datetime
 from config.parametros_controles import obtener_config_control
 
+def crear_vista_ajuste_parametros_con_pestanas(estructura_actual=None, cables_disponibles=None):
+    """Crear vista de ajuste de parámetros con sistema de pestañas"""
+    
+    from components.pestanas_parametros import crear_pestanas_parametros, crear_toast_validacion, crear_botones_accion
+    
+    return html.Div([
+        dbc.Card([
+            dbc.CardHeader(html.H4("Ajustar Parámetros de Estructura", className="mb-0")),
+            dbc.CardBody([
+                # Botones arriba de las pestañas
+                crear_botones_accion(),
+                html.Hr(),
+                crear_pestanas_parametros(),
+                crear_toast_validacion()
+            ])
+        ])
+    ])
+
 def crear_campo(nombre, tipo, valor, descripcion, opciones=None):
     """Crear un campo de parámetro usando configuración centralizada"""
     # Convertir valores vacíos o None a valores por defecto según el tipo
