@@ -456,9 +456,8 @@ class CalculoCache:
         """Guarda resultados de Cálculo de Costeo"""
         nombre_estructura = nombre_estructura.replace(' ', '_')
         
-        # Hash basado en estructura + parámetros de precios
-        data_completa = {**estructura_data, 'parametros_precios': parametros_precios}
-        hash_params = CalculoCache.calcular_hash(data_completa)
+        # Hash basado solo en estructura (los precios no afectan la validez estructural)
+        hash_params = CalculoCache.calcular_hash(estructura_data)
         
         calculo_data = {
             "hash_parametros": hash_params,
@@ -495,9 +494,13 @@ class CalculoCache:
         # Eliminar imágenes asociadas
         patrones = [
             f"CMC_*.*.png",
+            f"CMC_*.*.json",
             f"Estructura.*.png",
             f"Cabezal.*.png",
+            f"Nodos.*.json",
             f"DME_*.*.png",
+            f"FUND_3D.*.png",
+            f"FUND_3D.*.json",
             f"{nombre_estructura}.arbolcarga.*.*.png"
         ]
         

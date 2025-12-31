@@ -163,9 +163,10 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
         if not resultado_objetos["exito"]:
             return {"exito": False, "mensaje": resultado_objetos["mensaje"]}
         
-        # Estados climáticos desde estructura o defaults
+        # Estados climáticos desde estructura o defaults configurables por zona AEA
         estados_climaticos = estructura_actual.get("estados_climaticos", {
-            "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
+            # Defaults para zona D (AEA 95301) - configurable por estructura
+            "I": {"temperatura": estructura_actual.get("temp_max_zona", 40), "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
             "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
             "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": estructura_actual.get("Vmax", 38.9), "espesor_hielo": 0},
             "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": estructura_actual.get("Vmed", 15.56), "espesor_hielo": estructura_actual.get("t_hielo", 0.01)},

@@ -145,3 +145,185 @@ def ejecutar_calculo_sph(estructura_actual, state):
         return {"exito": True, "mensaje": "Cálculo SPH completado", "resultados": resultados_serializables, "desarrollo_texto": desarrollo_texto}
     except Exception as e:
         return {"exito": False, "mensaje": str(e)}
+
+
+def ejecutar_calculo_fundacion(estructura_actual, state):
+    """Ejecuta cálculo de fundación y retorna resultados"""
+    try:
+        from utils.validacion_prerequisitos import validar_prerequisitos_fundacion
+        from utils.Sulzberger import Sulzberger
+        from utils.calculo_cache import CalculoCache
+        import threading
+        
+        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+        
+        # Validar prerequisitos
+        prerequisitos_ok, mensaje_prereq = validar_prerequisitos_fundacion(nombre_estructura)
+        if not prerequisitos_ok:
+            return {"exito": False, "mensaje": f"Prerequisitos faltantes: {mensaje_prereq}"}
+        
+        # Obtener parámetros desde SPH usando la lógica del controlador
+        from controllers.fundacion_controller import obtener_parametros_desde_sph
+        parametros_estructura = obtener_parametros_desde_sph(nombre_estructura, estructura_actual)
+        
+        if not parametros_estructura:
+            return {"exito": False, "mensaje": "No se pudieron obtener parámetros de SPH"}
+        
+        # Configurar parámetros usando valores del JSON
+        parametros_suelo = {
+            'C': estructura_actual.get('indice_compresibilidad', 5000000),
+            'sigma_adm': estructura_actual.get('presion_admisible', 50000),
+            'beta': estructura_actual.get('angulo_tierra_gravante', 8.0),
+            'mu': estructura_actual.get('coef_friccion_terreno_hormigon', 0.4),
+            'gamma_hor': estructura_actual.get('densidad_hormigon', 2200),
+            'gamma_tierra': estructura_actual.get('densidad_tierra', 3800)
+        }
+        parametros_calculo = {
+            'FS': estructura_actual.get('coef_seguridad_volcamiento', 1.5),
+            'tg_alfa_adm': estructura_actual.get('inclinacion_desplazamiento', 0.01),
+            't_he_max': estructura_actual.get('relacion_max_sin_armadura', 1.25),
+            'sigma_max_adm': estructura_actual.get('superacion_presion_admisible', 1.33),
+            'incremento': estructura_actual.get('incremento_calculo', 0.01),
+            'cacb': estructura_actual.get('coef_aumento_cb_ct', 1.2),
+            'max_iteraciones': 10000,
+            't_max': 3.0,
+            'factor_rombica': 0.5
+        }
+        
+        parametros_poste = {
+            'dml': estructura_actual.get('distancia_molde_hueco_lateral', 0.15),
+            'dmf': estructura_actual.get('distancia_molde_hueco_fondo', 0.2),
+            'dmol': estructura_actual.get('diametro_molde', 0.6),
+            'spc': estructura_actual.get('separacion_postes_cima', 0.3),
+            'pp': estructura_actual.get('pendiente_postes_multiples', 4),
+            'con': estructura_actual.get('conicidad_poste', 1.5)
+        }
+        
+        dimensiones = {
+            'tin': estructura_actual.get('profundidad_propuesta', 1.7),
+            'ain': estructura_actual.get('longitud_colineal_inferior', 1.3),
+            'bin': estructura_actual.get('longitud_transversal_inferior', 1.3)
+        }
+        
+        # Crear instancia Sulzberger
+        parametros_estructura_completos = {
+            'Gp': parametros_estructura['Gp'],
+            'h': parametros_estructura.get('h', 15.0),
+            'hl': parametros_estructura.get('hl', 13.5),
+            'he': parametros_estructura['he'],
+            'dc': parametros_estructura.get('dc', 0.31),
+            'n_postes': 1,
+            'hipotesis_fuerzas': parametros_estructura['hipotesis_fuerzas']
+        }
+        
+        sulzberger = Sulzberger(
+            parametros_estructura=parametros_estructura_completos,
+            parametros_suelo=parametros_suelo,
+            parametros_calculo=parametros_calculo
+        )
+        
+        # Ejecutar cálculo
+        resultados = sulzberger.calcular_fundacion_multiples_hipotesis(
+            tin=dimensiones['tin'],
+            ain=dimensiones['ain'],
+            bin=dimensiones['bin'],
+            tipo_base=estructura_actual.get('tipo_base_fundacion', 'cuadrada')
+        )
+        
+        # Generar DataFrame y memoria
+        df_resultados = sulzberger.obtener_dataframe_todas_hipotesis()
+        memoria_calculo = sulzberger.generar_memoria_calculo_ingenieria()
+        
+        # Generar gráfico 3D para hipótesis dimensionante
+        fig_3d = None
+        try:
+            from utils.grafico_sulzberger_monobloque import GraficoSulzbergerMonobloque
+            grafico_obj = GraficoSulzbergerMonobloque(nombre_estructura)
+            grafico_obj.parametros = {
+                'estructura': parametros_estructura_completos,
+                'suelo': parametros_suelo,
+                'calculo': parametros_calculo,
+                'poste': parametros_poste
+            }
+            grafico_obj.todas_hipotesis = resultados['todas_hipotesis']
+            
+            hipotesis_dim = resultados['hipotesis_dimensionante']
+            fig_3d = grafico_obj._crear_grafico_hipotesis(hipotesis_dim)
+        except Exception as e:
+            print(f"Advertencia: No se pudo generar gráfico 3D: {e}")
+        
+        # Guardar en cache
+        parametros_cache = {
+            'estructura': parametros_estructura,
+            'suelo': parametros_suelo,
+            'calculo': parametros_calculo,
+            'poste': parametros_poste,
+            'dimensiones': dimensiones
+        }
+        
+        resultados_cache = {
+            'resultados': resultados,
+            'dataframe_html': df_resultados.to_json(orient='split'),
+            'memoria_calculo': memoria_calculo
+        }
+        
+        # Corregir llamada al cache - usar estructura_actual como estructura_data
+        CalculoCache.guardar_calculo_fund(
+            nombre_estructura,
+            estructura_actual,    # estructura_data
+            parametros_cache,     # parametros
+            resultados_cache,     # resultados
+            fig_3d               # fig_3d
+        )
+        
+        return {"exito": True, "mensaje": "Cálculo de fundación completado", "resultados": resultados}
+    except Exception as e:
+        return {"exito": False, "mensaje": str(e)}
+
+
+def ejecutar_calculo_costeo(estructura_actual, state):
+    """Ejecuta cálculo de costeo y retorna resultados"""
+    try:
+        # Usar lógica del controlador de costeo
+        from utils.calculo_costeo import verificar_cadena_completa_costeo, ejecutar_cadena_completa_costeo, extraer_datos_para_costeo, calcular_costeo_completo
+        from utils.calculo_cache import CalculoCache
+        
+        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+        
+        # Obtener parámetros de costeo desde estructura
+        parametros_costeo = estructura_actual.get('costeo', {})
+        if not parametros_costeo or not parametros_costeo.get('fundaciones', {}).get('precio_m3_hormigon'):
+            return {"exito": False, "mensaje": "No hay parámetros de costeo configurados"}
+        
+        # Verificar prerequisitos usando lógica del controlador
+        cadena_completa = verificar_cadena_completa_costeo(nombre_estructura, estructura_actual)
+        
+        if not cadena_completa:
+            exito_cadena = ejecutar_cadena_completa_costeo(nombre_estructura, estructura_actual)
+            if not exito_cadena:
+                return {"exito": False, "mensaje": "No se pudo completar la cadena de cálculos prerequisitos"}
+        
+        # Extraer datos necesarios
+        datos_estructura = extraer_datos_para_costeo(nombre_estructura)
+        if not datos_estructura:
+            return {"exito": False, "mensaje": "No se pudieron extraer datos de SPH y Fundaciones"}
+        
+        # Obtener tensión de la estructura
+        tension_kv = estructura_actual.get('TENSION', 220)
+        
+        # Ejecutar cálculo de costeo
+        resultados = calcular_costeo_completo(datos_estructura, parametros_costeo, tension_kv)
+        
+        # Guardar en cache
+        CalculoCache.guardar_calculo_costeo(
+            nombre_estructura,
+            estructura_actual,
+            parametros_costeo,
+            resultados
+        )
+        
+        return {"exito": True, "mensaje": "Cálculo de costeo completado", "resultados": resultados}
+    except Exception as e:
+        import traceback
+        print(f"Error en costeo: {traceback.format_exc()}")
+        return {"exito": False, "mensaje": str(e)}

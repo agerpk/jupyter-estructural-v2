@@ -222,6 +222,58 @@ def cargar_resultados_modulares(estructura_actual):
         print("❌ Cache SPH no encontrado")
         componentes.append(crear_placeholder("5. SPH"))
     
+    # 6. Fundación
+    print("🔍 Verificando cache Fundación...")
+    calculo_fundacion = CalculoCache.cargar_calculo_fund(nombre_estructura)
+    if calculo_fundacion:
+        print("✅ Cache Fundación encontrado")
+        from components.vista_fundacion import generar_resultados_fundacion
+        componentes.append(html.H3("6. FUNDACIÓN", className="mt-4"))
+        try:
+            resultado_fundacion = generar_resultados_fundacion(calculo_fundacion, estructura_actual)
+            print(f"🔍 DEBUG Fundación: Tipo de resultado_fundacion: {type(resultado_fundacion)}")
+            if isinstance(resultado_fundacion, list):
+                print(f"   Fundación es lista con {len(resultado_fundacion)} elementos")
+                componentes.extend(resultado_fundacion)
+                print(f"✅ Fundación: {len(resultado_fundacion)} componentes agregados")
+            else:
+                print(f"   Fundación es {type(resultado_fundacion).__name__}")
+                componentes.append(resultado_fundacion)
+                print("✅ Fundación: 1 componente agregado")
+        except Exception as e:
+            import traceback
+            print(f"❌ Error cargando Fundación: {traceback.format_exc()}")
+            componentes.append(dbc.Alert(f"Error cargando Fundación: {str(e)}", color="danger"))
+    else:
+        print("❌ Cache Fundación no encontrado")
+        componentes.append(crear_placeholder("6. Fundación"))
+    
+    # 7. Costeo
+    print("🔍 Verificando cache Costeo...")
+    calculo_costeo = CalculoCache.cargar_calculo_costeo(nombre_estructura)
+    if calculo_costeo:
+        print("✅ Cache Costeo encontrado")
+        from components.vista_costeo import generar_resultados_costeo
+        componentes.append(html.H3("7. COSTEO", className="mt-4"))
+        try:
+            resultado_costeo = generar_resultados_costeo(calculo_costeo, estructura_actual, mostrar_alerta_cache=True)
+            print(f"🔍 DEBUG Costeo: Tipo de resultado_costeo: {type(resultado_costeo)}")
+            if isinstance(resultado_costeo, list):
+                print(f"   Costeo es lista con {len(resultado_costeo)} elementos")
+                componentes.extend(resultado_costeo)
+                print(f"✅ Costeo: {len(resultado_costeo)} componentes agregados")
+            else:
+                print(f"   Costeo es {type(resultado_costeo).__name__}")
+                componentes.append(resultado_costeo)
+                print("✅ Costeo: 1 componente agregado")
+        except Exception as e:
+            import traceback
+            print(f"❌ Error cargando Costeo: {traceback.format_exc()}")
+            componentes.append(dbc.Alert(f"Error cargando Costeo: {str(e)}", color="danger"))
+    else:
+        print("❌ Cache Costeo no encontrado")
+        componentes.append(crear_placeholder("7. Costeo"))
+    
     print(f"✅ Carga modular completada: {len(componentes)} componentes totales")
     print(f"🔍 DEBUG FINAL: Tipos de componentes en lista:")
     for i, comp in enumerate(componentes[:10]):  # Solo primeros 10 para debug
@@ -258,7 +310,9 @@ def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
                         html.Li("Diseño Geométrico de Estructura (DGE)"),
                         html.Li("Diseño Mecánico de Estructura (DME)"),
                         html.Li("Árboles de Carga"),
-                        html.Li("Selección de Poste de Hormigón (SPH)")
+                        html.Li("Selección de Poste de Hormigón (SPH)"),
+                        html.Li("Fundación"),
+                        html.Li("Costeo")
                     ]),
                     html.P("Los resultados se mostrarán en orden a continuación.", className="mb-0")
                 ], color="info", className="mb-4"),

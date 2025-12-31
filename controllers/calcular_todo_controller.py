@@ -186,6 +186,54 @@ def register_callbacks(app):
                 print(f"❌ SPH falló: {resultado_sph.get('mensaje')}")
                 resultados.append(dbc.Alert(f"Error SPH: {resultado_sph.get('mensaje')}", color="danger"))
             
+            # 6. Fundación
+            from controllers.ejecutar_calculos import ejecutar_calculo_fundacion
+            
+            print("🔧 Ejecutando Fundación...")
+            resultados.append(html.H3("6. FUNDACIÓN", className="mt-4"))
+            resultado_fundacion = ejecutar_calculo_fundacion(estructura_actual, state)
+            if resultado_fundacion.get('exito'):
+                print("✅ Fundación exitoso, cargando desde cache...")
+                calculo_fundacion = CalculoCache.cargar_calculo_fund(estructura_actual.get('TITULO', 'estructura'))
+                if calculo_fundacion:
+                    from components.vista_fundacion import generar_resultados_fundacion
+                    resultado_fund = generar_resultados_fundacion(calculo_fundacion, estructura_actual)
+                    if isinstance(resultado_fund, list):
+                        resultados.extend(resultado_fund)
+                        print(f"✅ Fundación: {len(resultado_fund)} componentes agregados")
+                    else:
+                        resultados.append(resultado_fund)
+                        print("✅ Fundación: 1 componente agregado")
+                else:
+                    print("❌ Fundación: No se pudo cargar desde cache")
+            else:
+                print(f"❌ Fundación falló: {resultado_fundacion.get('mensaje')}")
+                resultados.append(dbc.Alert(f"Error Fundación: {resultado_fundacion.get('mensaje')}", color="danger"))
+            
+            # 7. Costeo
+            from controllers.ejecutar_calculos import ejecutar_calculo_costeo
+            
+            print("🔧 Ejecutando Costeo...")
+            resultados.append(html.H3("7. COSTEO", className="mt-4"))
+            resultado_costeo = ejecutar_calculo_costeo(estructura_actual, state)
+            if resultado_costeo.get('exito'):
+                print("✅ Costeo exitoso, cargando desde cache...")
+                calculo_costeo = CalculoCache.cargar_calculo_costeo(estructura_actual.get('TITULO', 'estructura'))
+                if calculo_costeo:
+                    from components.vista_costeo import generar_resultados_costeo
+                    resultado_cost = generar_resultados_costeo(calculo_costeo, estructura_actual)
+                    if isinstance(resultado_cost, list):
+                        resultados.extend(resultado_cost)
+                        print(f"✅ Costeo: {len(resultado_cost)} componentes agregados")
+                    else:
+                        resultados.append(resultado_cost)
+                        print("✅ Costeo: 1 componente agregado")
+                else:
+                    print("❌ Costeo: No se pudo cargar desde cache")
+            else:
+                print(f"❌ Costeo falló: {resultado_costeo.get('mensaje')}")
+                resultados.append(dbc.Alert(f"Error Costeo: {resultado_costeo.get('mensaje')}", color="danger"))
+            
             print(f"✅ CÁLCULO COMPLETO FINALIZADO - Retornando {len(resultados)} componentes")
             resultado_final = (
                 resultados,
