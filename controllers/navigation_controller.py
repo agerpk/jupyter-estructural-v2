@@ -69,6 +69,7 @@ def register_callbacks(app):
         Input("menu-arboles-carga", "n_clicks"),
         Input("menu-seleccion-poste", "n_clicks"),
         Input("menu-fundacion", "n_clicks"),
+        Input("menu-costeo", "n_clicks"),
         Input("menu-calcular-todo", "n_clicks"),
         Input("menu-consola", "n_clicks"),
         Input("menu-comparativa-cmc", "n_clicks"),
@@ -78,7 +79,7 @@ def register_callbacks(app):
                        n_clicks_eliminar, n_clicks_cmc,
                        n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
                        n_clicks_diseno_geom, n_clicks_diseno_mec, n_clicks_arboles, n_clicks_sph, 
-                       n_clicks_fundacion, n_clicks_calcular_todo, n_clicks_consola, n_clicks_comparativa_cmc, estructura_actual):
+                       n_clicks_fundacion, n_clicks_costeo, n_clicks_calcular_todo, n_clicks_consola, n_clicks_comparativa_cmc, estructura_actual):
         ctx = callback_context
         
         # Detectar carga inicial (app restart o hot reload)
@@ -135,6 +136,9 @@ def register_callbacks(app):
             elif ultima_vista == "fundacion":
                 from components.vista_fundacion import crear_vista_fundacion
                 return crear_vista_fundacion(estructura_actual, None)
+            elif ultima_vista == "costeo":
+                from components.vista_costeo import crear_vista_costeo
+                return crear_vista_costeo(estructura_actual, None)
             elif ultima_vista == "calcular-todo":
                 from components.vista_calcular_todo import crear_vista_calcular_todo
                 return crear_vista_calcular_todo(estructura_actual, None)
@@ -257,6 +261,11 @@ def register_callbacks(app):
             guardar_navegacion_state("fundacion")
             from components.vista_fundacion import crear_vista_fundacion
             return crear_vista_fundacion(estructura_actual, None)
+        
+        elif trigger_id == "menu-costeo":
+            guardar_navegacion_state("costeo")
+            from components.vista_costeo import crear_vista_costeo
+            return crear_vista_costeo(estructura_actual, None)
         
         elif trigger_id == "menu-calcular-todo":
             guardar_navegacion_state("calcular-todo")

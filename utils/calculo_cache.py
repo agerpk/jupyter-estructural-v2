@@ -451,8 +451,39 @@ class CalculoCache:
             return None
         return json.loads(archivo.read_text(encoding="utf-8"))
     
+    @staticmethod
+    def guardar_calculo_costeo(nombre_estructura, estructura_data, parametros_precios, resultados):
+        """Guarda resultados de Cálculo de Costeo"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
+        
+        # Hash basado en estructura + parámetros de precios
+        data_completa = {**estructura_data, 'parametros_precios': parametros_precios}
+        hash_params = CalculoCache.calcular_hash(data_completa)
+        
+        calculo_data = {
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "parametros_precios": parametros_precios,
+            "resultados": resultados
+        }
+        
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoCOSTEO.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        return hash_params
+    
+    @staticmethod
+    def cargar_calculo_costeo(nombre_estructura):
+        """Carga resultados de Cálculo de Costeo"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoCOSTEO.json"
+        if not archivo.exists():
+            return None
+        return json.loads(archivo.read_text(encoding="utf-8"))
+    
+    @staticmethod
+    def eliminar_cache_estructura(nombre_estructura):
         """Elimina todos los archivos de cache de una estructura"""
-        tipos = ['CMC', 'DGE', 'DME', 'ARBOLES', 'SPH', 'TODO', 'FUND']
+        tipos = ['CMC', 'DGE', 'DME', 'ARBOLES', 'SPH', 'TODO', 'FUND', 'COSTEO']
         eliminados = []
         
         for tipo in tipos:
