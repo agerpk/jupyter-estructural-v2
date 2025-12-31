@@ -515,6 +515,85 @@ class ParametrosManager:
             "descripcion": "Incremento para iteraciones de cálculo",
             "tipo": "float",
             "categoria": "Fundación"
+        },
+        
+        # PARÁMETROS DE COSTEO
+        "costeo.postes.coef_a": {
+            "simbolo": "Ca",
+            "unidad": "UM/kg",
+            "descripcion": "Coeficiente A (por kg peso)",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.postes.coef_b": {
+            "simbolo": "Cb",
+            "unidad": "UM/m",
+            "descripcion": "Coeficiente B (por m altura)",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.postes.coef_c": {
+            "simbolo": "Cc",
+            "unidad": "UM",
+            "descripcion": "Coeficiente C (fijo)",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.accesorios.vinculos": {
+            "simbolo": "Pv",
+            "unidad": "UM/u",
+            "descripcion": "Precio vínculos",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.accesorios.crucetas": {
+            "simbolo": "Pc",
+            "unidad": "UM/u",
+            "descripcion": "Precio crucetas",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.accesorios.mensulas": {
+            "simbolo": "Pm",
+            "unidad": "UM/u",
+            "descripcion": "Precio ménsulas",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.fundaciones.precio_m3_hormigon": {
+            "simbolo": "Ph",
+            "unidad": "UM/m³",
+            "descripcion": "Precio hormigón por m³",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.fundaciones.factor_hierro": {
+            "simbolo": "Fh",
+            "unidad": "-",
+            "descripcion": "Factor hierro",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.montaje.precio_por_estructura": {
+            "simbolo": "Pe",
+            "unidad": "UM",
+            "descripcion": "Precio por estructura",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.montaje.factor_terreno": {
+            "simbolo": "Ft",
+            "unidad": "-",
+            "descripcion": "Factor terreno",
+            "tipo": "float",
+            "categoria": "Costeo"
+        },
+        "costeo.adicional_estructura": {
+            "simbolo": "Pad",
+            "unidad": "UM",
+            "descripcion": "Adicional por estructura",
+            "tipo": "float",
+            "categoria": "Costeo"
         }
     }
     
@@ -541,6 +620,89 @@ class ParametrosManager:
                     "categoria": metadata["categoria"]
                 })
         
+        # Procesar parámetros anidados de costeo
+        if "costeo" in estructura and isinstance(estructura["costeo"], dict):
+            costeo = estructura["costeo"]
+            
+            # Postes
+            if "postes" in costeo:
+                for key, valor in costeo["postes"].items():
+                    param_key = f"costeo.postes.{key}"
+                    if param_key in cls.PARAMETROS_METADATA:
+                        metadata = cls.PARAMETROS_METADATA[param_key]
+                        tabla_data.append({
+                            "parametro": param_key,
+                            "simbolo": metadata["simbolo"],
+                            "valor": valor,
+                            "unidad": metadata["unidad"],
+                            "descripcion": metadata["descripcion"],
+                            "tipo": metadata["tipo"],
+                            "categoria": metadata["categoria"]
+                        })
+            
+            # Accesorios
+            if "accesorios" in costeo:
+                for key, valor in costeo["accesorios"].items():
+                    param_key = f"costeo.accesorios.{key}"
+                    if param_key in cls.PARAMETROS_METADATA:
+                        metadata = cls.PARAMETROS_METADATA[param_key]
+                        tabla_data.append({
+                            "parametro": param_key,
+                            "simbolo": metadata["simbolo"],
+                            "valor": valor,
+                            "unidad": metadata["unidad"],
+                            "descripcion": metadata["descripcion"],
+                            "tipo": metadata["tipo"],
+                            "categoria": metadata["categoria"]
+                        })
+            
+            # Fundaciones
+            if "fundaciones" in costeo:
+                for key, valor in costeo["fundaciones"].items():
+                    param_key = f"costeo.fundaciones.{key}"
+                    if param_key in cls.PARAMETROS_METADATA:
+                        metadata = cls.PARAMETROS_METADATA[param_key]
+                        tabla_data.append({
+                            "parametro": param_key,
+                            "simbolo": metadata["simbolo"],
+                            "valor": valor,
+                            "unidad": metadata["unidad"],
+                            "descripcion": metadata["descripcion"],
+                            "tipo": metadata["tipo"],
+                            "categoria": metadata["categoria"]
+                        })
+            
+            # Montaje
+            if "montaje" in costeo:
+                for key, valor in costeo["montaje"].items():
+                    param_key = f"costeo.montaje.{key}"
+                    if param_key in cls.PARAMETROS_METADATA:
+                        metadata = cls.PARAMETROS_METADATA[param_key]
+                        tabla_data.append({
+                            "parametro": param_key,
+                            "simbolo": metadata["simbolo"],
+                            "valor": valor,
+                            "unidad": metadata["unidad"],
+                            "descripcion": metadata["descripcion"],
+                            "tipo": metadata["tipo"],
+                            "categoria": metadata["categoria"]
+                        })
+            
+            # Adicional estructura
+            if "adicional_estructura" in costeo:
+                param_key = "costeo.adicional_estructura"
+                if param_key in cls.PARAMETROS_METADATA:
+                    metadata = cls.PARAMETROS_METADATA[param_key]
+                    tabla_data.append({
+                        "parametro": param_key,
+                        "simbolo": metadata["simbolo"],
+                        "valor": costeo["adicional_estructura"],
+                        "unidad": metadata["unidad"],
+                        "descripcion": metadata["descripcion"],
+                        "tipo": metadata["tipo"],
+                        "categoria": metadata["categoria"]
+                    })
+        
         # Ordenar por categoría y luego por parámetro
         tabla_data.sort(key=lambda x: (x["categoria"], x["parametro"]))
         return tabla_data
@@ -549,6 +711,7 @@ class ParametrosManager:
     def tabla_a_estructura(cls, tabla_data: List[Dict]) -> Dict:
         """Convierte datos de tabla a estructura JSON"""
         estructura = {}
+        costeo = {"postes": {}, "accesorios": {}, "fundaciones": {}, "montaje": {}}
         
         for fila in tabla_data:
             parametro = fila["parametro"]
@@ -559,7 +722,22 @@ class ParametrosManager:
                 tipo = cls.PARAMETROS_METADATA[parametro]["tipo"]
                 valor = cls._convertir_valor(valor, tipo)
             
-            estructura[parametro] = valor
+            # Manejar parámetros anidados de costeo
+            if parametro.startswith("costeo."):
+                parts = parametro.split(".")
+                if len(parts) == 3:  # costeo.categoria.parametro
+                    categoria = parts[1]
+                    param_name = parts[2]
+                    if categoria in costeo:
+                        costeo[categoria][param_name] = valor
+                elif len(parts) == 2 and parts[1] == "adicional_estructura":
+                    costeo["adicional_estructura"] = valor
+            else:
+                estructura[parametro] = valor
+        
+        # Agregar costeo si tiene datos
+        if any(costeo[cat] for cat in ["postes", "accesorios", "fundaciones", "montaje"]) or "adicional_estructura" in costeo:
+            estructura["costeo"] = costeo
         
         return estructura
     

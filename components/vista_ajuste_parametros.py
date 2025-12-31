@@ -368,6 +368,45 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         estructura_actual, opciones
     ))
     
+    # PARÁMETROS DE COSTEO
+    def crear_campos_costeo(estructura_actual):
+        """Crear campos para parámetros de costeo anidados"""
+        costeo = estructura_actual.get('costeo', {})
+        postes = costeo.get('postes', {})
+        accesorios = costeo.get('accesorios', {})
+        fundaciones = costeo.get('fundaciones', {})
+        montaje = costeo.get('montaje', {})
+        adicional = costeo.get('adicional_estructura', 2000.0)
+        
+        campos_col1 = [
+            crear_campo("costeo_coef_a", float, postes.get('coef_a', 0.5), "Coeficiente A (por kg peso)"),
+            crear_campo("costeo_coef_b", float, postes.get('coef_b', 100.0), "Coeficiente B (por m altura)"),
+            crear_campo("costeo_coef_c", float, postes.get('coef_c', 1000.0), "Coeficiente C (fijo)"),
+            crear_campo("costeo_precio_vinculos", float, accesorios.get('vinculos', 50.0), "Precio vínculos [UM/u]"),
+            crear_campo("costeo_precio_crucetas", float, accesorios.get('crucetas', 400.0), "Precio crucetas [UM/u]"),
+            crear_campo("costeo_precio_mensulas", float, accesorios.get('mensulas', 175.0), "Precio ménsulas [UM/u]"),
+        ]
+        
+        campos_col2 = [
+            crear_campo("costeo_precio_hormigon", float, fundaciones.get('precio_m3_hormigon', 150.0), "Precio hormigón [UM/m³]"),
+            crear_campo("costeo_factor_hierro", float, fundaciones.get('factor_hierro', 1.2), "Factor hierro"),
+            crear_campo("costeo_precio_estructura", float, montaje.get('precio_por_estructura', 5000.0), "Precio por estructura [UM]"),
+            crear_campo("costeo_factor_terreno", float, montaje.get('factor_terreno', 1.0), "Factor terreno"),
+            crear_campo("costeo_adicional_estructura", float, adicional, "Adicional estructura [UM]"),
+        ]
+        
+        return campos_col1, campos_col2
+    
+    campos_costeo_col1, campos_costeo_col2 = crear_campos_costeo(estructura_actual)
+    
+    bloques.append(html.Div([
+        html.H5("PARÁMETROS DE COSTEO", style={"color": "#2084f2", "marginTop": "20px", "marginBottom": "15px", "fontSize": "1.5rem"}),
+        dbc.Row([
+            dbc.Col(campos_costeo_col1, width=6),
+            dbc.Col(campos_costeo_col2, width=6)
+        ])
+    ]))
+    
     return html.Div([
         dbc.Card([
             dbc.CardHeader(html.H4("Ajustar Parámetros de Estructura", className="mb-0")),

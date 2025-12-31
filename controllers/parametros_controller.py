@@ -102,7 +102,45 @@ def register_callbacks(app):
                 if param_id and "index" in param_id:
                     param_key = param_id["index"]
                     
-                    if param_key in estructura_actual:
+                    # Manejar parámetros de costeo anidados
+                    if param_key.startswith("costeo_"):
+                        # Inicializar estructura de costeo si no existe
+                        if "costeo" not in estructura_actualizada:
+                            estructura_actualizada["costeo"] = {
+                                "postes": {},
+                                "accesorios": {},
+                                "fundaciones": {},
+                                "montaje": {},
+                                "adicional_estructura": 2000.0
+                            }
+                        
+                        # Mapear parámetros de costeo
+                        costeo_map = {
+                            "costeo_coef_a": ("postes", "coef_a"),
+                            "costeo_coef_b": ("postes", "coef_b"),
+                            "costeo_coef_c": ("postes", "coef_c"),
+                            "costeo_precio_vinculos": ("accesorios", "vinculos"),
+                            "costeo_precio_crucetas": ("accesorios", "crucetas"),
+                            "costeo_precio_mensulas": ("accesorios", "mensulas"),
+                            "costeo_precio_hormigon": ("fundaciones", "precio_m3_hormigon"),
+                            "costeo_factor_hierro": ("fundaciones", "factor_hierro"),
+                            "costeo_precio_estructura": ("montaje", "precio_por_estructura"),
+                            "costeo_factor_terreno": ("montaje", "factor_terreno"),
+                            "costeo_adicional_estructura": (None, "adicional_estructura")
+                        }
+                        
+                        if param_key in costeo_map:
+                            categoria, sub_param = costeo_map[param_key]
+                            try:
+                                valor_float = float(param_value)
+                                if categoria:
+                                    estructura_actualizada["costeo"][categoria][sub_param] = valor_float
+                                else:
+                                    estructura_actualizada["costeo"][sub_param] = valor_float
+                            except:
+                                pass  # Ignorar valores inválidos
+                    
+                    elif param_key in estructura_actual:
                         original_value = estructura_actual[param_key]
                         
                         if isinstance(original_value, bool):

@@ -100,5 +100,26 @@
   "separacion_postes_cima": 0.3,
   "pendiente_postes_multiples": 4.0,
   "conicidad_poste": 1.5,
-  "incremento_calculo": 0.01
+  "incremento_calculo": 0.01,
+  "costeo": {
+    "postes": {
+      "coef_a": 0.5,
+      "coef_b": 100.0,
+      "coef_c": 1000.0
+    },
+    "accesorios": {
+      "vinculos": 50.0,
+      "crucetas": 400.0,
+      "mensulas": 175.0
+    },
+    "fundaciones": {
+      "precio_m3_hormigon": 150.0,
+      "factor_hierro": 1.2
+    },
+    "montaje": {
+      "precio_por_estructura": 5000.0,
+      "factor_terreno": 1.0
+    },
+    "adicional_estructura": 2000.0
+  }
 }
