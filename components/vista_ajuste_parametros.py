@@ -186,7 +186,10 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         "OBJ_GUARDIA": ["FlechaMin", "TiroMin"],
         "cable_conductor_id": cables_disponibles if cables_disponibles else [],
         "cable_guardia_id": cables_disponibles if cables_disponibles else [],
-        "cable_guardia2_id": cables_disponibles if cables_disponibles else []
+        "cable_guardia2_id": cables_disponibles if cables_disponibles else [],
+        "metodo_fundacion": ["sulzberger", "mohr_pohl"],
+        "forma_fundacion": ["monobloque", "escalonada_recta", "escalonada_piramide"],
+        "tipo_base_fundacion": ["Rombica", "Cuadrada"]
     }
     
     # Definir bloques
@@ -327,6 +330,40 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         [
             ("MOSTRAR_C2", bool, None, None),
             ("Vn", float, None, None),
+        ],
+        estructura_actual, opciones
+    ))
+    
+    # PARÁMETROS DE FUNDACIÓN
+    bloques.append(crear_bloque(
+        "PARÁMETROS DE FUNDACIÓN",
+        [
+            ("metodo_fundacion", str, "Método de cálculo", "metodo_fundacion"),
+            ("forma_fundacion", str, "Forma de fundación", "forma_fundacion"),
+            ("tipo_base_fundacion", str, "Tipo de base", "tipo_base_fundacion"),
+            ("profundidad_propuesta", float, "Profundidad propuesta (tin) [m]", None),
+            ("longitud_colineal_inferior", float, "Longitud colineal inferior (ain) [m]", None),
+            ("longitud_transversal_inferior", float, "Longitud transversal inferior (bin) [m]", None),
+            ("coef_seguridad_volcamiento", float, "Coef. seguridad volcamiento (F.S)", None),
+            ("inclinacion_desplazamiento", float, "Inclinación desplazamiento (tg α adm)", None),
+            ("relacion_max_sin_armadura", float, "Relación máx. sin armadura (t/he)", None),
+            ("superacion_presion_admisible", float, "Superación presión adm. (σmax/σadm)", None),
+            ("indice_compresibilidad", float, "Índice compresibilidad C [kg/m³]", None),
+        ],
+        [
+            ("presion_admisible", float, "Presión admisible σadm [kg/m²]", None),
+            ("angulo_tierra_gravante", float, "Ángulo tierra gravante β [°]", None),
+            ("coef_friccion_terreno_hormigon", float, "Coef. fricción terreno-hormigón μ", None),
+            ("densidad_hormigon", float, "Densidad hormigón [kg/m³]", None),
+            ("densidad_tierra", float, "Densidad tierra [kg/m³]", None),
+            ("coef_aumento_cb_ct", float, "Coef. aumento Cb/Ct", None),
+            ("distancia_molde_hueco_lateral", float, "Distancia molde hueco lateral (dml) [m]", None),
+            ("distancia_molde_hueco_fondo", float, "Distancia molde hueco fondo (dmf) [m]", None),
+            ("diametro_molde", float, "Diámetro molde (dmol) [m]", None),
+            ("separacion_postes_cima", float, "Separación postes cima (spc) [m]", None),
+            ("pendiente_postes_multiples", float, "Pendiente postes múltiples (pp) [%]", None),
+            ("conicidad_poste", float, "Conicidad poste (con) [%]", None),
+            ("incremento_calculo", float, "Incremento cálculo [m]", None),
         ],
         estructura_actual, opciones
     ))

@@ -237,6 +237,104 @@ CONTROLES_PARAMETROS = {
         "tipo": "switch"
     },
     
+    # PARÁMETROS DE FUNDACIÓN
+    "metodo_fundacion": {
+        "tipo": "select",
+        "opciones": ["sulzberger", "mohr_pohl"]
+    },
+    "forma_fundacion": {
+        "tipo": "select",
+        "opciones": ["monobloque", "escalonada_recta", "escalonada_piramide"]
+    },
+    "tipo_base_fundacion": {
+        "tipo": "select",
+        "opciones": ["Rombica", "Cuadrada"]
+    },
+    "profundidad_propuesta": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "longitud_colineal_inferior": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "longitud_transversal_inferior": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "coef_seguridad_volcamiento": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "inclinacion_desplazamiento": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "relacion_max_sin_armadura": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "superacion_presion_admisible": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "indice_compresibilidad": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "presion_admisible": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "angulo_tierra_gravante": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "coef_friccion_terreno_hormigon": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "densidad_hormigon": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "densidad_tierra": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "coef_aumento_cb_ct": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "distancia_molde_hueco_lateral": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "distancia_molde_hueco_fondo": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "diametro_molde": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "separacion_postes_cima": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "pendiente_postes_multiples": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "conicidad_poste": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    "incremento_calculo": {
+        "tipo": "input",
+        "input_type": "number"
+    },
+    
     # Inputs numéricos simples
     "L_vano": {
         "tipo": "input",

@@ -345,6 +345,176 @@ class ParametrosManager:
             "descripcion": "Mostrar C2",
             "tipo": "bool",
             "categoria": "Gráficos"
+        },
+        
+        # PARÁMETROS DE FUNDACIÓN
+        "metodo_fundacion": {
+            "simbolo": "MF",
+            "unidad": "-",
+            "descripcion": "Método de cálculo de fundación",
+            "tipo": "select",
+            "categoria": "Fundación"
+        },
+        "forma_fundacion": {
+            "simbolo": "FF",
+            "unidad": "-",
+            "descripcion": "Forma de la fundación",
+            "tipo": "select",
+            "categoria": "Fundación"
+        },
+        "tipo_base_fundacion": {
+            "simbolo": "TB",
+            "unidad": "-",
+            "descripcion": "Tipo de base de fundación",
+            "tipo": "select",
+            "categoria": "Fundación"
+        },
+        "profundidad_propuesta": {
+            "simbolo": "tin",
+            "unidad": "m",
+            "descripcion": "Profundidad propuesta",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "longitud_colineal_inferior": {
+            "simbolo": "ain",
+            "unidad": "m",
+            "descripcion": "Longitud colineal con línea, inferior",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "longitud_transversal_inferior": {
+            "simbolo": "bin",
+            "unidad": "m",
+            "descripcion": "Longitud transversal a línea, inferior",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "coef_seguridad_volcamiento": {
+            "simbolo": "F.S",
+            "unidad": "-",
+            "descripcion": "Coeficiente de seguridad al volcamiento",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "inclinacion_desplazamiento": {
+            "simbolo": "tg α adm",
+            "unidad": "-",
+            "descripcion": "Inclinación por desplazamiento de base",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "relacion_max_sin_armadura": {
+            "simbolo": "t/he",
+            "unidad": "-",
+            "descripcion": "Relación máx. sin armadura",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "superacion_presion_admisible": {
+            "simbolo": "σmax/σadm",
+            "unidad": "-",
+            "descripcion": "Superación de la presión admisible",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "indice_compresibilidad": {
+            "simbolo": "C",
+            "unidad": "kg/m³",
+            "descripcion": "Índice de compresibilidad C, al metro",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "presion_admisible": {
+            "simbolo": "σadm",
+            "unidad": "kg/m²",
+            "descripcion": "Presión admisible",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "angulo_tierra_gravante": {
+            "simbolo": "β",
+            "unidad": "°",
+            "descripcion": "Ángulo de tierra gravante",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "coef_friccion_terreno_hormigon": {
+            "simbolo": "μ",
+            "unidad": "-",
+            "descripcion": "Coeficiente de fricción terreno-hormigón",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "densidad_hormigon": {
+            "simbolo": "γhor",
+            "unidad": "kg/m³",
+            "descripcion": "Densidad del hormigón",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "densidad_tierra": {
+            "simbolo": "γtierra",
+            "unidad": "kg/m³",
+            "descripcion": "Densidad tierra",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "coef_aumento_cb_ct": {
+            "simbolo": "cacb",
+            "unidad": "-",
+            "descripcion": "Coeficiente aumento Cb respecto Ct",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "distancia_molde_hueco_lateral": {
+            "simbolo": "dml",
+            "unidad": "m",
+            "descripcion": "Distancia del molde p/ hueco al lateral",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "distancia_molde_hueco_fondo": {
+            "simbolo": "dmf",
+            "unidad": "m",
+            "descripcion": "Distancia del molde p/ hueco al fondo",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "diametro_molde": {
+            "simbolo": "dmol",
+            "unidad": "m",
+            "descripcion": "Diámetro del molde",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "separacion_postes_cima": {
+            "simbolo": "spc",
+            "unidad": "m",
+            "descripcion": "Separación entre postes en cima",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "pendiente_postes_multiples": {
+            "simbolo": "pp",
+            "unidad": "%",
+            "descripcion": "Pendiente de postes dobles, triples entre sí",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "conicidad_poste": {
+            "simbolo": "con",
+            "unidad": "%",
+            "descripcion": "Conicidad poste",
+            "tipo": "float",
+            "categoria": "Fundación"
+        },
+        "incremento_calculo": {
+            "simbolo": "incremento",
+            "unidad": "m",
+            "descripcion": "Incremento para iteraciones de cálculo",
+            "tipo": "float",
+            "categoria": "Fundación"
         }
     }
     
