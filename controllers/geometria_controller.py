@@ -777,6 +777,7 @@ def register_callbacks(app):
             return dash.no_update, True, "Error", f"Error al guardar nodos: {str(e)}", "danger", "danger"
     
     @app.callback(
+        Output("estructura-actual", "data", allow_duplicate=True),
         Output("toast-notificacion", "is_open", allow_duplicate=True),
         Output("toast-notificacion", "header", allow_duplicate=True),
         Output("toast-notificacion", "children", allow_duplicate=True),
@@ -801,16 +802,23 @@ def register_callbacks(app):
         State("slider-dist-repos-hg", "value"),
         State("switch-hg-centrado", "value"),
         State("switch-autoajustar-lmenhg", "value"),
+        State("estructura-actual", "data"),
         prevent_initial_call=True
     )
     def guardar_parametros_geometria(n_clicks, tension, zona, lk, ang_apant, disposicion, terna, cant_hg,
                                      altura_min, lmen_cond, lmen_guard, hadd, hadd_amarres, hadd_hg, hadd_lmen,
-                                     ancho_cruceta, dist_repos, hg_centrado, autoajustar):
+                                     ancho_cruceta, dist_repos, hg_centrado, autoajustar, estructura_actual):
         if not n_clicks:
-            raise dash.exceptions.PreventUpdate
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         
         try:
-            parametros = {
+            # Recargar estructura desde archivo
+            state.set_estructura_actual(estructura_actual)
+            ruta_actual = state.get_estructura_actual_path()
+            estructura_actualizada = state.estructura_manager.cargar_estructura(ruta_actual)
+            
+            # Actualizar parámetros
+            estructura_actualizada.update({
                 "TENSION": tension,
                 "Zona_estructura": zona,
                 "Lk": lk,
@@ -829,12 +837,31 @@ def register_callbacks(app):
                 "DIST_REPOSICIONAR_HG": dist_repos,
                 "HG_CENTRADO": hg_centrado,
                 "AUTOAJUSTAR_LMENHG": autoajustar
-            }
+            })
             
-            state.estructura_manager.actualizar_parametros(parametros)
-            return True, "Éxito", "Parámetros de geometría guardados", "success", "success"
+            # Guardar usando el manager
+            state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_actual)
+            
+            # Actualizar estado interno
+            state.set_estructura_actual(estructura_actualizada)
+            
+            return (
+                estructura_actualizada,
+                True, 
+                "Éxito", 
+                "Parámetros de geometría guardados", 
+                "success", 
+                "success"
+            )
         except Exception as e:
-            return True, "Error", f"Error al guardar: {str(e)}", "danger", "danger"
+            return (
+                dash.no_update,
+                True, 
+                "Error", 
+                f"Error al guardar: {str(e)}", 
+                "danger", 
+                "danger"
+            )
     
     @app.callback(
         Output("output-diseno-geometrico", "children", allow_duplicate=True),

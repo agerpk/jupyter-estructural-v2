@@ -19,7 +19,7 @@ from models.app_state import AppState
      Output("toast-validacion-tabla", "icon", allow_duplicate=True)],
     Input("pestanas-parametros", "active_tab"),
     State("estructura-actual", "data"),
-    prevent_initial_call=True
+    prevent_initial_call='initial_duplicate'
 )
 def cambiar_pestana_parametros(tab_activo, estructura_actual):
     """Cambia contenido según pestaña activa"""
@@ -122,12 +122,16 @@ def guardar_parametros_desde_tabla(n_clicks, tabla_data, estructura_actual):
             if key not in estructura_actualizada:
                 estructura_actualizada[key] = value
         
-        # Guardar en archivo
+        # Guardar usando el mismo patrón que parametros_controller
         state = AppState()
+        state.set_estructura_actual(estructura_actual)
         ruta_actual = state.get_estructura_actual_path()
         
-        with open(ruta_actual, "w", encoding="utf-8") as f:
-            json.dump(estructura_actualizada, f, indent=2, ensure_ascii=False)
+        # Guardar en el archivo usando el manager
+        state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_actual)
+        
+        # Actualizar el estado interno
+        state.set_estructura_actual(estructura_actualizada)
         
         return estructura_actualizada, True, "Parámetros guardados exitosamente", "success"
         

@@ -11,17 +11,17 @@ def crear_pestanas_parametros() -> html.Div:
     return html.Div([
         dbc.Tabs(
             id="pestanas-parametros",
-            active_tab="panel",
+            active_tab="tabla",
             children=[
                 dbc.Tab(
-                    label="Modo Panel",
-                    tab_id="panel",
+                    label="Modo Tabla", 
+                    tab_id="tabla",
                     label_style={"color": "#495057"},
                     active_label_style={"color": "#007bff", "font-weight": "bold"}
                 ),
                 dbc.Tab(
-                    label="Modo Tabla", 
-                    tab_id="tabla",
+                    label="Modo Panel",
+                    tab_id="panel",
                     label_style={"color": "#495057"},
                     active_label_style={"color": "#007bff", "font-weight": "bold"}
                 )
