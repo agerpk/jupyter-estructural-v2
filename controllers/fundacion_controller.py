@@ -468,67 +468,183 @@ def obtener_parametros_desde_sph(nombre_estructura, estructura_actual):
     """Obtener parámetros de estructura desde SPH (con cálculo encadenado si es necesario)"""
     from utils.calculo_cache import CalculoCache
     
-    # Intentar cargar desde cache SPH
-    calculo_sph = CalculoCache.cargar_calculo_sph(nombre_estructura)
+    print(f"🔍 DEBUG: Verificando cadena completa de cálculos para {nombre_estructura}")
     
-    if calculo_sph:
-        # Verificar vigencia del cache
-        vigente, _ = CalculoCache.verificar_vigencia(calculo_sph, estructura_actual)
-        if vigente:
-            print(f"📋 DEBUG: Usando parámetros desde cache SPH válido")
-            resultados = calculo_sph.get('resultados', {})
-            
-            # Obtener hipótesis desde DME (no desde SPH)
-            hipotesis_fuerzas = obtener_hipotesis_desde_dme(nombre_estructura, estructura_actual)
-            
-            return {
-                'Gp': resultados.get('peso_total_kg', 4680),
-                'he': resultados.get('altura_empotrada_m', 1.5),
-                'hipotesis_fuerzas': hipotesis_fuerzas
-            }
+    # Verificar si existe cache completo de toda la cadena
+    cache_completo = verificar_cache_cadena_completa(nombre_estructura, estructura_actual)
     
-    # Si no hay cache válido, ejecutar SPH automáticamente
-    print(f"⚙️ DEBUG: Ejecutando SPH automáticamente (no hay cache válido)...")
-    return ejecutar_sph_automatico(nombre_estructura, estructura_actual)
+    if cache_completo:
+        print(f"✅ DEBUG: Cache completo disponible, usando datos existentes")
+        return cache_completo
+    
+    # Si no hay cache completo, ejecutar cadena completa
+    print(f"⚙️ DEBUG: Cache incompleto, ejecutando cadena completa CMC→DGE→DME→SPH...")
+    return ejecutar_cadena_completa(nombre_estructura, estructura_actual)
 
-def obtener_hipotesis_desde_dme(nombre_estructura, estructura_actual):
-    """Obtener hipótesis de fuerzas desde cache DME"""
+def verificar_cache_cadena_completa(nombre_estructura, estructura_actual):
+    """Verificar si existe cache válido de toda la cadena CMC→DGE→DME→SPH"""
     from utils.calculo_cache import CalculoCache
     
-    # Cargar desde cache DME
+    # Verificar CMC
+    calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
+    if not calculo_cmc:
+        print(f"❌ DEBUG: No hay cache CMC")
+        return None
+    vigente_cmc, _ = CalculoCache.verificar_vigencia(calculo_cmc, estructura_actual)
+    if not vigente_cmc:
+        print(f"❌ DEBUG: Cache CMC no vigente")
+        return None
+    
+    # Verificar DGE
+    calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
+    if not calculo_dge:
+        print(f"❌ DEBUG: No hay cache DGE")
+        return None
+    vigente_dge, _ = CalculoCache.verificar_vigencia(calculo_dge, estructura_actual)
+    if not vigente_dge:
+        print(f"❌ DEBUG: Cache DGE no vigente")
+        return None
+    
+    # Verificar DME
     calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
+    if not calculo_dme:
+        print(f"❌ DEBUG: No hay cache DME")
+        return None
+    vigente_dme, _ = CalculoCache.verificar_vigencia(calculo_dme, estructura_actual)
+    if not vigente_dme:
+        print(f"❌ DEBUG: Cache DME no vigente")
+        return None
     
-    if calculo_dme:
-        vigente, _ = CalculoCache.verificar_vigencia(calculo_dme, estructura_actual)
-        if vigente:
-            print(f"📋 DEBUG: Usando hipótesis desde cache DME válido")
-            df_reacciones = calculo_dme.get('df_reacciones', {})
-            
-            print(f"🔍 DEBUG: Claves disponibles en df_reacciones: {list(df_reacciones.keys()) if df_reacciones else 'Vacío'}")
-            
-            hipotesis_fuerzas = []
-            for hipotesis, datos in df_reacciones.items():
-                print(f"🔍 DEBUG: Hipótesis {hipotesis}, datos disponibles: {list(datos.keys()) if isinstance(datos, dict) else type(datos)}")
-                
-                # Usar tiros para X e Y, reacción para Z
-                tiro_x = abs(datos.get('Tiro_X_daN', 0))       # Tiro transversal
-                tiro_y = abs(datos.get('Tiro_Y_daN', 0))       # Tiro longitudinal
-                fuerza_z = datos.get('Reaccion_Fz_daN', 0)     # Fuerza vertical en base (con signo)
-                
-                print(f"🔍 DEBUG: Fuerzas extraídas - Tiro_x: {tiro_x}, Tiro_y: {tiro_y}, Fz: {fuerza_z}")
-                
-                hipotesis_fuerzas.append({
-                    'hipotesis': hipotesis,
-                    'Tiro_x': tiro_x,
-                    'Tiro_y': tiro_y,
-                    'Tiro_z': fuerza_z
-                })
-            
-            print(f"🔍 DEBUG: Hipótesis extraídas desde DME: {len(hipotesis_fuerzas)} hipótesis")
-            return hipotesis_fuerzas
+    # Verificar SPH
+    calculo_sph = CalculoCache.cargar_calculo_sph(nombre_estructura)
+    if not calculo_sph:
+        print(f"❌ DEBUG: No hay cache SPH")
+        return None
+    vigente_sph, _ = CalculoCache.verificar_vigencia(calculo_sph, estructura_actual)
+    if not vigente_sph:
+        print(f"❌ DEBUG: Cache SPH no vigente")
+        return None
     
-    print(f"⚠️ DEBUG: No hay cache DME válido, ejecutando automáticamente...")
-    return ejecutar_dme_automatico(nombre_estructura, estructura_actual)
+    print(f"✅ DEBUG: Toda la cadena CMC→DGE→DME→SPH tiene cache válido")
+    
+    # Extraer parámetros desde SPH
+    resultados_sph = calculo_sph.get('resultados', {})
+    
+    # Extraer hipótesis desde DME
+    df_reacciones = calculo_dme.get('df_reacciones', {})
+    hipotesis_fuerzas = []
+    
+    for hipotesis, datos in df_reacciones.items():
+        tiro_x = abs(datos.get('Tiro_X_daN', 0))
+        tiro_y = abs(datos.get('Tiro_Y_daN', 0))
+        fuerza_z = datos.get('Reaccion_Fz_daN', 0)
+        
+        hipotesis_fuerzas.append({
+            'hipotesis': hipotesis,
+            'Tiro_x': tiro_x,
+            'Tiro_y': tiro_y,
+            'Tiro_z': fuerza_z
+        })
+    
+    return {
+        'Gp': resultados_sph.get('peso_total_kg', 4680),
+        'he': resultados_sph.get('altura_empotrada_m', 1.5),
+        'h': resultados_sph.get('altura_total_m', 15.0),
+        'hl': resultados_sph.get('altura_libre_m', 13.5),
+        'dc': resultados_sph.get('diametro_cima_m', 0.31),
+        'hipotesis_fuerzas': hipotesis_fuerzas
+    }
+
+def ejecutar_cadena_completa(nombre_estructura, estructura_actual):
+    """Ejecutar cadena completa CMC→DGE→DME→SPH si no hay cache completo"""
+    try:
+        print(f"🔄 DEBUG: Ejecutando cadena completa para {nombre_estructura}")
+        
+        # Importar controladores necesarios
+        from controllers.geometria_controller import ejecutar_calculo_cmc_automatico, ejecutar_calculo_dge
+        from controllers.ejecutar_calculos import ejecutar_calculo_dme, ejecutar_calculo_sph
+        from models.app_state import AppState
+        
+        state = AppState()
+        
+        # 1. Ejecutar CMC
+        print(f"🔄 DEBUG: Ejecutando CMC...")
+        resultado_cmc = ejecutar_calculo_cmc_automatico(estructura_actual, state)
+        if not resultado_cmc["exito"]:
+            print(f"❌ ERROR en CMC: {resultado_cmc['mensaje']}")
+            return None
+        
+        # 2. Ejecutar DGE
+        print(f"🔄 DEBUG: Ejecutando DGE...")
+        resultado_dge = ejecutar_calculo_dge(estructura_actual, state)
+        if not resultado_dge["exito"]:
+            print(f"❌ ERROR en DGE: {resultado_dge['mensaje']}")
+            return None
+        
+        # 3. Ejecutar DME
+        print(f"🔄 DEBUG: Ejecutando DME...")
+        resultado_dme = ejecutar_calculo_dme(estructura_actual, state)
+        if not resultado_dme["exito"]:
+            print(f"❌ ERROR en DME: {resultado_dme['mensaje']}")
+            return None
+        
+        # 4. Ejecutar SPH
+        print(f"🔄 DEBUG: Ejecutando SPH...")
+        resultado_sph = ejecutar_calculo_sph(estructura_actual, state)
+        if not resultado_sph["exito"]:
+            print(f"❌ ERROR en SPH: {resultado_sph['mensaje']}")
+            return None
+        
+        print(f"✅ DEBUG: Cadena completa ejecutada exitosamente")
+        
+        # Extraer parámetros desde los resultados de SPH
+        from utils.calculo_cache import CalculoCache
+        calculo_sph = CalculoCache.cargar_calculo_sph(nombre_estructura)
+        calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
+        
+        if not calculo_sph or not calculo_dme:
+            print(f"❌ ERROR: No se pudo cargar cache después de ejecutar")
+            return None
+        
+        # Extraer parámetros de SPH
+        resultados_sph = calculo_sph.get('resultados', {})
+        
+        # Extraer hipótesis de DME
+        df_reacciones = calculo_dme.get('df_reacciones', {})
+        hipotesis_fuerzas = []
+        
+        for hipotesis, datos in df_reacciones.items():
+            tiro_x = abs(datos.get('Tiro_X_daN', 0))
+            tiro_y = abs(datos.get('Tiro_Y_daN', 0))
+            fuerza_z = datos.get('Reaccion_Fz_daN', 0)
+            
+            hipotesis_fuerzas.append({
+                'hipotesis': hipotesis,
+                'Tiro_x': tiro_x,
+                'Tiro_y': tiro_y,
+                'Tiro_z': fuerza_z
+            })
+        
+        return {
+            'Gp': resultados_sph.get('peso_total_kg', 4680),
+            'he': resultados_sph.get('altura_empotrada_m', 1.5),
+            'h': resultados_sph.get('altura_total_m', 15.0),
+            'hl': resultados_sph.get('altura_libre_m', 13.5),
+            'dc': resultados_sph.get('diametro_cima_m', 0.31),
+            'hipotesis_fuerzas': hipotesis_fuerzas
+        }
+        
+    except Exception as e:
+        print(f"❌ ERROR ejecutando cadena completa: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def obtener_hipotesis_desde_dme(nombre_estructura, estructura_actual):
+    """Obtener hipótesis de fuerzas desde cache DME (OBSOLETO - usar verificar_cache_cadena_completa)"""
+    # Esta función ya no se usa, la lógica se movió a verificar_cache_cadena_completa
+    print(f"⚠️ DEBUG: obtener_hipotesis_desde_dme es obsoleto, usar verificar_cache_cadena_completa")
+    return []
 
 def ejecutar_sph_automatico(nombre_estructura, estructura_actual):
     """Ejecutar SPH automáticamente si no hay cache válido"""
