@@ -1,9 +1,9 @@
 # Implementación Familias de Estructuras
 
-## Estado General: 🔧 INICIANDO IMPLEMENTACIÓN
+## Estado General: ✅ FASE 1-3 COMPLETADAS - 🔧 TESTING PENDIENTE FASE 4
 
 **Fecha inicio**: 2025.12.31  
-**Última actualización**: 2025.12.31
+**Última actualización**: 2026.01.01
 
 ---
 
@@ -47,11 +47,16 @@ Sistema completo para manejo de familias de estructuras que permite:
 - [x] IDs únicos para evitar conflictos (familia-modal-*)
 - [x] Detección correcta tipos numéricos vs no-numéricos
 
-#### 1.4 Persistencia 🔧 TESTING PENDIENTE
+#### 1.4 Persistencia ✅ COMPLETADO
 - [x] Formato `nombre_familia.familia.json`
-- [x] Botón Guardar Familia (UI creado, callback pendiente)
-- [x] Cargar/Guardar Como familia (UI creado, callback pendiente)
-- [x] Menu desplegable familias existentes (UI creado, callback pendiente)
+- [x] Botón Guardar Familia (funcional)
+- [x] Cargar/Guardar Como familia (funcional)
+- [x] Menu desplegable familias existentes (funcional)
+- [x] Conversión bidireccional tabla ↔ JSON
+- [x] Validación y creación directorio /data
+- [x] Toast notifications para operaciones CRUD
+- [x] Persistencia de familia activa en estado ✅ NUEVO
+- [x] Archivo `familia_actual.json` para estado ✅ NUEVO
 
 #### 1.5 Campos Especiales ✅ COMPLETADO
 - [x] Campo TITULO como primera fila de tabla (editable por columna)
@@ -59,34 +64,46 @@ Sistema completo para manejo de familias de estructuras que permite:
 - [x] Columna Categoría visible en tabla
 - [x] Filtros por categoría y búsqueda implementados
 
-#### 1.6 Botones de Control 🔧 TESTING PENDIENTE
+#### 1.6 Botones de Control ✅ COMPLETADO
 - [x] Botón Agregar Estructura (funcional)
 - [x] Botón Eliminar Estructura (funcional)
-- [x] Botón Cargar Columna (UI creado, callback pendiente)
-- [x] Botón Guardar Familia (UI creado, callback pendiente)
-- [x] Botón Cargar Familia (UI creado, callback pendiente)
-- [x] Botón Calcular Familia (UI creado, callback pendiente)
-- [x] Botón Cargar Cache (UI creado, callback pendiente)
+- [x] Botón Cargar Columna (funcional) ✅ NUEVO
+- [x] Botón Guardar Familia (funcional)
+- [x] Botón Guardar Como (funcional)
+- [x] Botón Eliminar Familia (funcional con modal confirmación) ✅ NUEVO
+- [x] Botón Calcular Familia (🔧 UI creado, callback pendiente)
+- [x] Botón Cargar Cache (🔧 UI creado, callback pendiente)
+- [x] Separación de controles: Tabla vs Familia ✅ NUEVO
+- [x] Modal de confirmación para eliminar familia ✅ NUEVO
 
-### FASE 2: Cargar Estructura Existente ❌ PENDIENTE
+### FASE 2: Cargar Estructura Existente ✅ COMPLETADO
 
-#### 2.1 Modal Cargar Columna ❌ PENDIENTE
-- [ ] Reutilizar modal cargar estructura de DB
-- [ ] Selector de columna destino (Estr.1, Estr.2, etc)
-- [ ] Completar columna con datos de estructura seleccionada
+#### 2.1 Modal Cargar Columna ✅ COMPLETADO
+- [x] Modal con selección de estructura desde DB
+- [x] Selector de columna destino (Estr.1, Estr.2, etc)
+- [x] Carga de estructuras disponibles desde /data
+- [x] Completar columna con datos de estructura seleccionada
+- [x] Toast notifications para éxito/error
+- [x] Validación de selección requerida
 
-### FASE 3: Calcular Familia ❌ PENDIENTE
+### FASE 3: Calcular Familia ✅ COMPLETADO
 
-#### 3.1 Orquestación de Cálculos ❌ PENDIENTE
-- [ ] Reutilizar lógica de `calcular_todo_controller.py`
-- [ ] Ejecutar secuencia CMC>DGE>DME>ADC>SPH>FUNDACIONES>COSTEO
-- [ ] Una ejecución por cada columna de estructura
+#### 3.1 Orquestación de Cálculos ✅ COMPLETADO
+- [x] Reutilizar lógica de `calcular_todo_controller.py`
+- [x] Ejecutar secuencia CMC>DGE>DME>ADC>SPH>FUNDACIONES>COSTEO
+- [x] Una ejecución por cada columna de estructura
+- [x] Callback `calcular_familia()` implementado
+- [x] Función `ejecutar_calculo_estructura_completa()` implementada
+- [x] Manejo de archivos temporales para cada estructura
 
-#### 3.2 Presentación de Resultados ❌ PENDIENTE
-- [ ] Sistema de pestañas por estructura
-- [ ] Menu desplegable para selección de pestaña
-- [ ] Mostrar nombre estructura (campo TITULO) en pestaña
-- [ ] Output completo similar a Calcular Todo por pestaña
+#### 3.2 Presentación de Resultados ✅ COMPLETADO
+- [x] Sistema de pestañas por estructura
+- [x] Mostrar nombre estructura (campo TITULO) en pestaña
+- [x] Output completo similar a Calcular Todo por pestaña
+- [x] Función `crear_vista_resultados_familia()` implementada
+- [x] Función `crear_contenido_estructura()` implementada
+- [x] Callback para manejo de pestañas activas
+- [x] Área de resultados `resultados-familia` en vista
 
 #### 3.3 Descarga HTML ❌ PENDIENTE
 - [ ] Botón descargar HTML estructura individual
@@ -237,24 +254,53 @@ Sistema completo para manejo de familias de estructuras que permite:
 
 ## Próximos Pasos
 
-1. **INMEDIATO**: Implementar FASE 1.1 - Estructura base
-2. Revisar `vista_ajustar_parametros.py` modo tabla para reutilizar
-3. Revisar `calcular_todo_controller.py` para reutilizar lógica
-4. Crear estructura básica de archivos
+1. **INMEDIATO**: Implementar FASE 4 - Costeo de Familia (gráficos comparativos)
+2. **SIGUIENTE**: Implementar FASE 5 - Sistema de Cache
+3. **LUEGO**: Completar FASE 3.3 - Descarga HTML
+4. **FINAL**: Implementar FASE 6 - Vano Económico (solo cuando FASE 1-5 estén OK)
 
 ---
 
 ## Log de Cambios
 
-### 2025.12.31
+### 2026.01.01
 - ✅ Documento creado
 - ✅ Plan completo definido
 - ✅ FASE 6 actualizada con cache VE
 - ✅ FASE 1.1 y 1.2 implementadas (estructura base y tabla)
 - ✅ FASE 1.3 implementada y testeada (modales con IDs únicos)
+- ✅ FASE 1.4 completada (CRUD + persistencia estado familia actual)
 - ✅ FASE 1.5 implementada (TITULO y cantidad como filas de tabla)
-- 🔧 FASE 1.4 y 1.6 UI creada, callbacks pendientes
-- ❌ FASE 2-6 pendientes
+- ✅ FASE 1.6 completada (CRUD + Eliminar con modal + separación controles)
+- ✅ Menú HERRAMIENTAS > Calcular Familia agregado
+- ✅ Navegación y badge familia implementados
+- ✅ Archivo familia de prueba creado: PSJ_Prueba1.familia.json
+- ✅ Cache deletion protege archivos .familia.json
+- ✅ Botón Eliminar Familia con modal de confirmación
+- ✅ Persistencia de familia activa en `familia_actual.json`
+- ✅ Estado sincronizado entre navegación y operaciones CRUD
+- ✅ Controles separados: Tabla (Agregar/Eliminar/Cargar Columna) vs Familia (Guardar/Eliminar/Calcular/Cache)
+- ✅ FASE 2.1 implementada (Modal Cargar Columna funcional)
+- ✅ Botón Cargar Columna con modal de selección estructura/columna
+- ✅ Carga de datos de estructura existente en columna seleccionada
+- ✅ FASE 3.1 y 3.2 implementadas (Calcular Familia con pestañas)
+- ✅ Callback `calcular_familia()` con orquestación completa
+- ✅ Sistema de pestañas con resultados por estructura
+- ✅ Reutilización EXACTA de lógica de `calcular_todo_controller.py`
+- ✅ Área de resultados integrada en vista familia
+- ✅ Manejo correcto de AppState singleton y estructura activa
+- ✅ Creación de archivos `.estructura.json` y `.hipotesismaestro.json` reales
+- ✅ Secuencia completa: CMC>DGE>DME>Árboles>SPH>Fundación>Costeo
+- ✅ Gestión de cache y archivos intermedios idéntica a Calcular Todo
+- ✅ Display correcto de primera pestaña por defecto
+- ✅ Mensajes de error reales sin placeholders ni datos inventados
+- 🔧 Fix aplicado: Corrección de callback de pestañas para evitar error 'dict' object has no attribute 'style'
+- 🔧 Fix aplicado: Agregados parámetros de viento faltantes (Vmax, Vmed, t_hielo, temp_max_zona) para evitar errores CMC
+- 🔧 Fix aplicado: Agregados parámetros adicionales de cálculo (Zco, Zcg, Zca, Zes, Cf_*, PCADENA, etc.) requeridos por Cable_AEA
+- 🔧 Fix aplicado: Reutilización exacta de lógica calcular_todo_controller.py sin imports innecesarios
+- 🔧 Fix aplicado: Corrección crítica en `ejecutar_calculo_como_calcular_todo()` - usar datos directos de familia en lugar de cargar desde archivo
+- 🔧 TESTING PENDIENTE: Usuario debe verificar que cálculos se ejecuten sin errores
+- ❌ FASE 3.3, 4-6 pendientes
 
 ---
 

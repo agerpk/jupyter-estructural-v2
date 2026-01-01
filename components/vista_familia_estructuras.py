@@ -55,6 +55,9 @@ def crear_vista_familia_estructuras(familia_actual=None):
                 # Campo nombre familia
                 crear_campo_nombre_familia(familia_actual.get("nombre_familia", "")),
                 
+                # Dropdown para cargar familia existente
+                crear_dropdown_cargar_familia(),
+                
                 # Botones de control
                 crear_botones_control_familia(),
                 
@@ -151,64 +154,90 @@ def crear_filtros_familia():
         ], width=4)
     ], className="mb-3")
 
-def crear_botones_control_familia():
-    """Crear botones de control para familia"""
+def crear_dropdown_cargar_familia():
+    """Crear dropdown para cargar familia existente"""
     return dbc.Row([
         dbc.Col([
-            dbc.ButtonGroup([
-                dbc.Button(
-                    "Agregar Estructura",
-                    id="btn-agregar-estructura",
-                    color="success",
-                    size="sm"
-                ),
-                dbc.Button(
-                    "Eliminar Estructura",
-                    id="btn-eliminar-estructura",
-                    color="danger",
-                    size="sm"
-                )
-            ], className="me-2"),
-            
-            dbc.ButtonGroup([
-                dbc.Button(
-                    "Cargar Columna",
-                    id="btn-cargar-columna",
-                    color="info",
-                    size="sm"
-                ),
-                dbc.Button(
-                    "Guardar Familia",
-                    id="btn-guardar-familia",
-                    color="primary",
-                    size="sm"
-                ),
-                dbc.Button(
-                    "Guardar Como",
-                    id="btn-guardar-como-familia",
-                    color="outline-primary",
-                    size="sm"
-                ),
-                dbc.Button(
-                    "Cargar Familia",
-                    id="btn-cargar-familia",
-                    color="secondary",
-                    size="sm"
-                ),
-                dbc.Button(
-                    "Calcular Familia",
-                    id="btn-calcular-familia",
-                    color="warning",
-                    size="sm"
-                ),
-                dbc.Button(
-                    "Cargar Cache",
-                    id="btn-cargar-cache-familia",
-                    color="dark",
-                    size="sm"
-                )
-            ])
-        ], width=12)
+            html.Label("CARGAR FAMILIA EXISTENTE:", className="form-label fw-bold"),
+            dbc.Select(
+                id="select-familia-existente",
+                placeholder="Seleccione familia...",
+                size="lg"
+            )
+        ], width=6)
+    ], className="mb-3")
+
+def crear_botones_control_familia():
+    """Crear botones de control para familia"""
+    return html.Div([
+        # Controles de Tabla
+        dbc.Row([
+            dbc.Col([
+                html.H6("Controles de Tabla:", className="text-muted mb-2"),
+                dbc.ButtonGroup([
+                    dbc.Button(
+                        "Agregar Estructura",
+                        id="btn-agregar-estructura",
+                        color="success",
+                        size="sm"
+                    ),
+                    dbc.Button(
+                        "Eliminar Estructura",
+                        id="btn-eliminar-estructura",
+                        color="danger",
+                        size="sm"
+                    ),
+                    dbc.Button(
+                        "Cargar Columna",
+                        id="btn-cargar-columna",
+                        color="info",
+                        size="sm"
+                    )
+                ])
+            ], width=12)
+        ], className="mb-3"),
+        
+        # Controles de Familia
+        dbc.Row([
+            dbc.Col([
+                html.H6("Controles de Familia:", className="text-muted mb-2"),
+                dbc.ButtonGroup([
+                    dbc.Button(
+                        "Guardar Familia",
+                        id="btn-guardar-familia",
+                        color="primary",
+                        size="sm"
+                    ),
+                    dbc.Button(
+                        "Guardar Como",
+                        id="btn-guardar-como-familia",
+                        color="outline-primary",
+                        size="sm"
+                    ),
+                    dbc.Button(
+                        "Eliminar Familia",
+                        id="btn-eliminar-familia",
+                        color="outline-danger",
+                        size="sm"
+                    )
+                ], className="me-3"),
+                
+                dbc.ButtonGroup([
+                    dbc.Button(
+                        "Calcular Familia",
+                        id="btn-calcular-familia",
+                        color="warning",
+                        size="sm"
+                    ),
+                    dbc.Button(
+                        "Cargar Cache",
+                        id="btn-cargar-cache-familia",
+                        color="dark",
+                        size="sm"
+                    )
+                ])
+            ], width=12)
+        ])
     ], className="mb-3")
 
 def crear_campo_nombre_familia(nombre_actual):
@@ -223,15 +252,7 @@ def crear_campo_nombre_familia(nombre_actual):
                 placeholder="Ingrese nombre de la familia...",
                 size="lg"
             )
-        ], width=6),
-        dbc.Col([
-            html.Label("CARGAR FAMILIA EXISTENTE:", className="form-label fw-bold"),
-            dbc.Select(
-                id="select-familia-existente",
-                placeholder="Seleccione familia...",
-                size="lg"
-            )
-        ], width=6)
+        ], width=12)
     ], className="mb-3")
 
 def crear_modal_familia():
@@ -247,9 +268,54 @@ def crear_modal_familia():
             ])
         ], id="modal-familia-parametro", is_open=False),
         
+        # Modal para confirmar eliminar familia
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle("Eliminar Familia")),
+            dbc.ModalBody([
+                html.P("¿Está seguro que desea eliminar esta familia?"),
+                html.P(id="modal-eliminar-familia-nombre", className="fw-bold text-danger"),
+                html.P("Esta acción no se puede deshacer.", className="text-warning")
+            ]),
+            dbc.ModalFooter([
+                dbc.Button("Cancelar", id="modal-eliminar-cancelar", color="secondary", className="me-2"),
+                dbc.Button("Eliminar", id="modal-eliminar-confirmar", color="danger")
+            ])
+        ], id="modal-eliminar-familia", is_open=False),
+        
+        # Modal para cargar columna con estructura existente
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle("Cargar Columna con Estructura Existente")),
+            dbc.ModalBody([
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Seleccionar estructura:"),
+                        dbc.Select(
+                            id="select-estructura-cargar-columna",
+                            placeholder="Seleccione estructura..."
+                        )
+                    ], width=6),
+                    dbc.Col([
+                        dbc.Label("Columna destino:"),
+                        dbc.Select(
+                            id="select-columna-destino",
+                            placeholder="Seleccione columna..."
+                        )
+                    ], width=6)
+                ])
+            ]),
+            dbc.ModalFooter([
+                dbc.Button("Cancelar", id="modal-cargar-columna-cancelar", color="secondary", className="me-2"),
+                dbc.Button("Cargar", id="modal-cargar-columna-confirmar", color="primary")
+            ])
+        ], id="modal-cargar-columna", is_open=False),
+        
         # Stores para datos
         dcc.Store(id="modal-familia-celda-info", data=None),
         dcc.Store(id="tabla-familia-original", data=None),
+        dcc.Store(id="familia-actual-state", data=None),
+        
+        # Área de resultados
+        html.Div(id="resultados-familia", className="mt-4"),
         
         # Toast para notificaciones
         dbc.Toast(

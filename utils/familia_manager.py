@@ -17,14 +17,11 @@ class FamiliaManager:
     def cargar_familia_actual(cls) -> Dict:
         """Cargar familia actual o crear nueva"""
         try:
-            # Intentar cargar última familia usada
-            estado_file = cls.DATA_DIR / "familia_actual.json"
-            if estado_file.exists():
-                with open(estado_file, "r", encoding="utf-8") as f:
-                    estado = json.load(f)
-                    nombre_familia = estado.get("nombre_familia")
-                    if nombre_familia:
-                        return cls.cargar_familia(nombre_familia)
+            # Usar la función del controlador para consistencia
+            from controllers.familia_controller import cargar_familia_actual_state
+            familia_actual = cargar_familia_actual_state()
+            if familia_actual:
+                return familia_actual
         except:
             pass
         

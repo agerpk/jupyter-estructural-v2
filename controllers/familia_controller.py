@@ -343,7 +343,8 @@ def register_callbacks(app):
         [Output("toast-notificacion", "is_open", allow_duplicate=True),
          Output("toast-notificacion", "header", allow_duplicate=True),
          Output("toast-notificacion", "children", allow_duplicate=True),
-         Output("toast-notificacion", "color", allow_duplicate=True)],
+         Output("toast-notificacion", "color", allow_duplicate=True),
+         Output("familia-activa-state", "data", allow_duplicate=True)],
         Input("btn-guardar-familia", "n_clicks"),
         [State("input-nombre-familia", "value"),
          State("tabla-familia", "data"),
@@ -353,7 +354,7 @@ def register_callbacks(app):
     def guardar_familia(n_clicks, nombre_familia, tabla_data, columnas):
         """Guardar familia en archivo JSON"""
         if not n_clicks or not nombre_familia or not tabla_data:
-            return no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update
         
         try:
             # Convertir tabla a formato familia
@@ -367,10 +368,13 @@ def register_callbacks(app):
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(familia_data, f, indent=2, ensure_ascii=False)
             
-            return True, "Éxito", f"Familia '{nombre_familia}' guardada en {filename.name}", "success"
+            # Persistir estado
+            guardar_familia_actual_state(familia_data)
+            
+            return True, "Éxito", f"Familia '{nombre_familia}' guardada en {filename.name}", "success", familia_data
             
         except Exception as e:
-            return True, "Error", f"Error al guardar familia: {str(e)}", "danger"
+            return True, "Error", f"Error al guardar familia: {str(e)}", "danger", no_update
     
     # Callback para cargar opciones de familias existentes
     @app.callback(
@@ -402,14 +406,15 @@ def register_callbacks(app):
          Output("toast-notificacion", "is_open", allow_duplicate=True),
          Output("toast-notificacion", "header", allow_duplicate=True),
          Output("toast-notificacion", "children", allow_duplicate=True),
-         Output("toast-notificacion", "color", allow_duplicate=True)],
+         Output("toast-notificacion", "color", allow_duplicate=True),
+         Output("familia-activa-state", "data", allow_duplicate=True)],
         Input("select-familia-existente", "value"),
         prevent_initial_call=True
     )
     def cargar_familia_seleccionada(archivo_familia):
         """Cargar familia desde archivo seleccionado"""
         if not archivo_familia:
-            return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
         
         try:
             from pathlib import Path
@@ -421,14 +426,220 @@ def register_callbacks(app):
             # Convertir familia a formato tabla
             tabla_data, columnas = familia_a_tabla(familia_data)
             
+            # Persistir estado
+            guardar_familia_actual_state(familia_data)
+            
             return (familia_data["nombre_familia"], tabla_data, columnas, 
-                   True, "Éxito", f"Familia '{familia_data['nombre_familia']}' cargada", "success")
+                   True, "Éxito", f"Familia '{familia_data['nombre_familia']}' cargada", "success", familia_data)
             
         except Exception as e:
             return (no_update, no_update, no_update, 
-                   True, "Error", f"Error al cargar familia: {str(e)}", "danger")
+                   True, "Error", f"Error al cargar familia: {str(e)}", "danger", no_update)
     
-    # Callback para Guardar Como
+    # Callback para abrir modal eliminar familia
+    @app.callback(
+        [Output("modal-eliminar-familia", "is_open"),
+         Output("modal-eliminar-familia-nombre", "children")],
+        [Input("btn-eliminar-familia", "n_clicks"),
+         Input("modal-eliminar-cancelar", "n_clicks")],
+        [State("input-nombre-familia", "value"),
+         State("modal-eliminar-familia", "is_open")],
+        prevent_initial_call=True
+    )
+    def abrir_modal_eliminar(n_clicks_eliminar, n_clicks_cancelar, nombre_familia, is_open):
+        """Abrir/cerrar modal de confirmación para eliminar familia"""
+        if not ctx.triggered:
+            return no_update, no_update
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "btn-eliminar-familia" and nombre_familia:
+            return True, f"Familia: {nombre_familia}"
+        elif trigger_id == "modal-eliminar-cancelar":
+            return False, no_update
+        
+        return no_update, no_update
+    
+    # Callback para Eliminar Familia (confirmado)
+    @app.callback(
+        [Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True),
+         Output("input-nombre-familia", "value", allow_duplicate=True),
+         Output("tabla-familia", "data", allow_duplicate=True),
+         Output("tabla-familia", "columns", allow_duplicate=True),
+         Output("modal-eliminar-familia", "is_open", allow_duplicate=True),
+         Output("familia-activa-state", "data", allow_duplicate=True)],
+        Input("modal-eliminar-confirmar", "n_clicks"),
+        [State("input-nombre-familia", "value")],
+        prevent_initial_call=True
+    )
+    def eliminar_familia_confirmado(n_clicks, nombre_familia):
+        """Eliminar familia tras confirmación"""
+        if not n_clicks or not nombre_familia:
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        
+        try:
+            from pathlib import Path
+            data_dir = Path("data")
+            filename = data_dir / f"{nombre_familia.replace(' ', '_')}.familia.json"
+            
+            if filename.exists():
+                filename.unlink()  # Eliminar archivo
+                
+                # Resetear vista a familia vacía
+                plantilla = cargar_plantilla_estructura()
+                familia_vacia = {
+                    "nombre_familia": "",
+                    "estructuras": {"Estr.1": plantilla}
+                }
+                tabla_data, columnas = familia_a_tabla(familia_vacia)
+                
+                # Limpiar estado de familia actual
+                guardar_familia_actual_state(None)
+                
+                return (True, "Éxito", f"Familia '{nombre_familia}' eliminada", "success",
+                       "", tabla_data, columnas, False, None)
+            else:
+                return (True, "Advertencia", f"Archivo de familia '{nombre_familia}' no encontrado", "warning",
+                       no_update, no_update, no_update, False, no_update)
+                
+        except Exception as e:
+            return (True, "Error", f"Error al eliminar familia: {str(e)}", "danger",
+                   no_update, no_update, no_update, False, no_update)
+    
+    # Callback para persistir estado de familia actual
+    @app.callback(
+        Output("familia-activa-state", "data", allow_duplicate=True),
+        [Input("btn-guardar-familia", "n_clicks"),
+         Input("select-familia-existente", "value")],
+        [State("input-nombre-familia", "value"),
+         State("tabla-familia", "data"),
+         State("tabla-familia", "columns")],
+        prevent_initial_call=True
+    )
+    def actualizar_familia_actual_state(n_guardar, familia_seleccionada, nombre_familia, tabla_data, columnas):
+        """Actualizar estado de familia actual"""
+        if not ctx.triggered:
+            return no_update
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "btn-guardar-familia" and nombre_familia and tabla_data:
+            # Guardar estado tras guardar familia
+            familia_data = tabla_a_familia(tabla_data, columnas, nombre_familia)
+            guardar_familia_actual_state(familia_data)
+            return familia_data
+        elif trigger_id == "select-familia-existente" and familia_seleccionada:
+            # Cargar estado de familia seleccionada
+            try:
+                from pathlib import Path
+                archivo_path = Path("data") / familia_seleccionada
+                with open(archivo_path, 'r', encoding='utf-8') as f:
+                    familia_data = json.load(f)
+                guardar_familia_actual_state(familia_data)
+                return familia_data
+            except:
+                return no_update
+        
+        return no_update
+    
+    # Callback para modal cargar columna
+    @app.callback(
+        [Output("modal-cargar-columna", "is_open"),
+         Output("select-estructura-cargar-columna", "options"),
+         Output("select-columna-destino", "options")],
+        [Input("btn-cargar-columna", "n_clicks"),
+         Input("modal-cargar-columna-cancelar", "n_clicks")],
+        [State("tabla-familia", "columns")],
+        prevent_initial_call=True
+    )
+    def abrir_modal_cargar_columna(n_clicks_abrir, n_clicks_cancelar, columnas):
+        """Abrir/cerrar modal cargar columna"""
+        if not ctx.triggered:
+            return no_update, no_update, no_update
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "btn-cargar-columna":
+            # Cargar estructuras disponibles
+            try:
+                from pathlib import Path
+                data_dir = Path("data")
+                estructuras = []
+                
+                if data_dir.exists():
+                    for archivo in data_dir.glob("*.estructura.json"):
+                        if archivo.name != "plantilla.estructura.json":
+                            try:
+                                with open(archivo, 'r', encoding='utf-8') as f:
+                                    data = json.load(f)
+                                    titulo = data.get("TITULO", archivo.stem)
+                                    estructuras.append({"label": titulo, "value": archivo.name})
+                            except:
+                                continue
+                
+                # Cargar columnas disponibles
+                cols_estructura = [{"label": col["name"], "value": col["id"]} 
+                                 for col in columnas if col["id"].startswith("Estr.")]
+                
+                return True, estructuras, cols_estructura
+            except:
+                return True, [], []
+        
+        elif trigger_id == "modal-cargar-columna-cancelar":
+            return False, no_update, no_update
+        
+        return no_update, no_update, no_update
+    
+    # Callback para cargar estructura en columna
+    @app.callback(
+        [Output("tabla-familia", "data", allow_duplicate=True),
+         Output("modal-cargar-columna", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("modal-cargar-columna-confirmar", "n_clicks"),
+        [State("select-estructura-cargar-columna", "value"),
+         State("select-columna-destino", "value"),
+         State("tabla-familia", "data")],
+        prevent_initial_call=True
+    )
+    def cargar_estructura_en_columna(n_clicks, archivo_estructura, columna_destino, tabla_data):
+        """Cargar estructura existente en columna seleccionada"""
+        if not n_clicks or not archivo_estructura or not columna_destino:
+            return no_update, no_update, no_update, no_update, no_update, no_update
+        
+        try:
+            from pathlib import Path
+            archivo_path = Path("data") / archivo_estructura
+            
+            with open(archivo_path, 'r', encoding='utf-8') as f:
+                estructura_data = json.load(f)
+            
+            # Actualizar tabla con datos de estructura
+            tabla_actualizada = []
+            for fila in tabla_data:
+                nueva_fila = fila.copy()
+                parametro = fila["parametro"]
+                
+                if parametro in estructura_data:
+                    nueva_fila[columna_destino] = estructura_data[parametro]
+                elif parametro == "cantidad":
+                    nueva_fila[columna_destino] = 1  # Valor por defecto
+                
+                tabla_actualizada.append(nueva_fila)
+            
+            titulo_estructura = estructura_data.get("TITULO", "Estructura")
+            
+            return (tabla_actualizada, False, 
+                   True, "Éxito", f"Estructura '{titulo_estructura}' cargada en {columna_destino}", "success")
+            
+        except Exception as e:
+            return (no_update, False,
+                   True, "Error", f"Error al cargar estructura: {str(e)}", "danger")
     @app.callback(
         [Output("toast-notificacion", "is_open", allow_duplicate=True),
          Output("toast-notificacion", "header", allow_duplicate=True),
@@ -466,6 +677,66 @@ def register_callbacks(app):
             
         except Exception as e:
             return (True, "Error", f"Error al guardar como: {str(e)}", "danger", no_update)
+    
+    # Callback para Calcular Familia
+    @app.callback(
+        [Output("resultados-familia", "children"),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("btn-calcular-familia", "n_clicks"),
+        [State("tabla-familia", "data"),
+         State("tabla-familia", "columns"),
+         State("input-nombre-familia", "value")],
+        prevent_initial_call=True
+    )
+    def calcular_familia(n_clicks, tabla_data, columnas, nombre_familia):
+        """Ejecutar cálculos para toda la familia"""
+        if not n_clicks or not tabla_data or not nombre_familia:
+            return no_update, no_update, no_update, no_update, no_update
+        
+        print(f"🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
+        
+        try:
+            # Convertir tabla a formato familia
+            familia_data = tabla_a_familia(tabla_data, columnas, nombre_familia)
+            estructuras = familia_data.get("estructuras", {})
+            
+            if not estructuras:
+                return (no_update, True, "Error", "No hay estructuras para calcular", "danger")
+            
+            # Ejecutar cálculos para cada estructura
+            resultados_familia = {}
+            
+            for nombre_estr, datos_estr in estructuras.items():
+                print(f"🔧 Calculando {nombre_estr}: {datos_estr.get('TITULO', 'Sin título')}")
+                
+                # Ejecutar secuencia completa para esta estructura
+                resultado_estructura = ejecutar_calculo_estructura_familia(datos_estr)
+                resultados_familia[nombre_estr] = resultado_estructura
+            
+            # Crear vista con pestañas
+            vista_resultados = crear_vista_resultados_familia(resultados_familia, estructuras)
+            
+            print(f"✅ CÁLCULO FAMILIA COMPLETADO: {len(resultados_familia)} estructuras")
+            return (vista_resultados, True, "Éxito", f"Familia '{nombre_familia}' calculada exitosamente", "success")
+            
+        except Exception as e:
+            import traceback
+            error_msg = f"Error calculando familia: {str(e)}"
+            print(f"❌ ERROR CÁLCULO FAMILIA: {traceback.format_exc()}")
+            return (no_update, True, "Error", error_msg, "danger")
+
+def guardar_familia_activa_state(familia_data):
+    """Guardar estado de familia activa en memoria (no archivo)"""
+    # Solo mantener en memoria, no persistir en archivo
+    pass
+
+def cargar_familia_activa_state():
+    """Cargar estado de familia activa desde memoria"""
+    # No cargar desde archivo, trabajar solo con estado en memoria
+    return None
 
 def cargar_plantilla_estructura():
     """Cargar plantilla de estructura"""
@@ -579,6 +850,342 @@ def familia_a_tabla(familia_data):
     
     return tabla_data, columnas
 
+def ejecutar_calculo_estructura_familia(estructura_data):
+    """Ejecutar cálculos para una estructura de familia"""
+    from models.app_state import AppState
+    from dash import html
+    import dash_bootstrap_components as dbc
+    
+    titulo = estructura_data.get('TITULO', 'estructura')
+    print(f"🔧 Ejecutando cálculos para: {titulo}")
+    
+    # Crear AppState EXACTAMENTE como en calcular_todo_controller.py
+    state = AppState()
+    
+    try:
+        # USAR DIRECTAMENTE los datos de estructura_data, NO cargar desde archivo
+        estructura_actual = estructura_data.copy()
+        print(f"📂 Usando datos de familia: {estructura_actual.get('TITULO', 'N/A')}")
+        
+        # COPIAR EXACTAMENTE el código de calcular_todo_controller.py
+        resultados = {}
+        
+        # 1. CMC - CÓDIGO EXACTO de calcular_todo_controller.py
+        from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
+        from utils.calculo_cache import CalculoCache
+        
+        state.cargado_desde_cache = False
+        
+        print("🔧 Ejecutando CMC...")
+        # CREAR archivo temporal para que el sistema funcione
+        import tempfile
+        import json
+        from pathlib import Path
+        
+        # Crear archivo temporal con los datos de la estructura
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.estructura.json', delete=False, encoding='utf-8') as temp_file:
+            json.dump(estructura_actual, temp_file, indent=2, ensure_ascii=False)
+            temp_path = Path(temp_file.name)
+        
+        # Establecer la ruta temporal en el state
+        state.set_estructura_actual(estructura_actual)
+        state._estructura_actual_path = temp_path
+        
+        resultado_cmc = ejecutar_calculo_cmc_automatico(estructura_actual, state)
+        if resultado_cmc.get('exito'):
+            print("✅ CMC exitoso, cargando desde cache...")
+            calculo_cmc = CalculoCache.cargar_calculo_cmc(estructura_actual.get('TITULO', 'estructura'))
+            if calculo_cmc:
+                resultados['cmc'] = {'exito': True, 'cache': calculo_cmc}
+                print(f"✅ CMC: Cache cargado")
+            else:
+                print("❌ CMC: No se pudo cargar desde cache")
+                resultados['cmc'] = {'exito': False, 'mensaje': 'No se pudo cargar cache CMC'}
+        else:
+            print(f"❌ CMC falló: {resultado_cmc.get('mensaje')}")
+            resultados['cmc'] = {'exito': False, 'mensaje': resultado_cmc.get('mensaje')}
+        
+        # 2. DGE - CÓDIGO EXACTO de calcular_todo_controller.py
+        from controllers.geometria_controller import ejecutar_calculo_dge
+        
+        print("🔧 Ejecutando DGE...")
+        resultado_dge = ejecutar_calculo_dge(estructura_actual, state)
+        if resultado_dge.get('exito'):
+            print("✅ DGE exitoso, cargando desde cache...")
+            calculo_dge = CalculoCache.cargar_calculo_dge(estructura_actual.get('TITULO', 'estructura'))
+            if calculo_dge:
+                resultados['dge'] = {'exito': True, 'cache': calculo_dge}
+                print(f"✅ DGE: Cache cargado")
+            else:
+                print("❌ DGE: No se pudo cargar desde cache")
+                resultados['dge'] = {'exito': False, 'mensaje': 'No se pudo cargar cache DGE'}
+        else:
+            print(f"❌ DGE falló: {resultado_dge.get('mensaje')}")
+            resultados['dge'] = {'exito': False, 'mensaje': resultado_dge.get('mensaje')}
+        
+        # 3. DME - CÓDIGO EXACTO de calcular_todo_controller.py
+        from controllers.ejecutar_calculos import ejecutar_calculo_dme
+        
+        print("🔧 Ejecutando DME...")
+        resultado_dme = ejecutar_calculo_dme(estructura_actual, state)
+        if resultado_dme.get('exito'):
+            print("✅ DME exitoso, cargando desde cache...")
+            calculo_dme = CalculoCache.cargar_calculo_dme(estructura_actual.get('TITULO', 'estructura'))
+            if calculo_dme:
+                resultados['dme'] = {'exito': True, 'cache': calculo_dme}
+                print(f"✅ DME: Cache cargado")
+            else:
+                print("❌ DME: No se pudo cargar desde cache")
+                resultados['dme'] = {'exito': False, 'mensaje': 'No se pudo cargar cache DME'}
+        else:
+            print(f"❌ DME falló: {resultado_dme.get('mensaje')}")
+            resultados['dme'] = {'exito': False, 'mensaje': resultado_dme.get('mensaje')}
+        
+        # 4. Árboles - CÓDIGO EXACTO de calcular_todo_controller.py
+        from controllers.ejecutar_calculos import ejecutar_calculo_arboles
+        
+        print("🔧 Ejecutando Árboles...")
+        resultado_arboles = ejecutar_calculo_arboles(estructura_actual, state)
+        if resultado_arboles.get('exito'):
+            print("✅ Árboles exitoso, cargando desde cache...")
+            calculo_arboles = CalculoCache.cargar_calculo_arboles(estructura_actual.get('TITULO', 'estructura'))
+            if calculo_arboles:
+                resultados['arboles'] = {'exito': True, 'cache': calculo_arboles}
+                print(f"✅ Árboles: Cache cargado")
+            else:
+                print("❌ Árboles: No se pudo cargar desde cache")
+                resultados['arboles'] = {'exito': False, 'mensaje': 'No se pudo cargar cache Árboles'}
+        else:
+            print(f"❌ Árboles falló: {resultado_arboles.get('mensaje')}")
+            resultados['arboles'] = {'exito': False, 'mensaje': resultado_arboles.get('mensaje')}
+        
+        # 5. SPH - CÓDIGO EXACTO de calcular_todo_controller.py
+        from controllers.ejecutar_calculos import ejecutar_calculo_sph
+        
+        print("🔧 Ejecutando SPH...")
+        resultado_sph = ejecutar_calculo_sph(estructura_actual, state)
+        if resultado_sph.get('exito'):
+            print("✅ SPH exitoso, cargando desde cache...")
+            calculo_sph = CalculoCache.cargar_calculo_sph(estructura_actual.get('TITULO', 'estructura'))
+            if calculo_sph:
+                resultados['sph'] = {'exito': True, 'cache': calculo_sph}
+                print(f"✅ SPH: Cache cargado")
+            else:
+                print("❌ SPH: No se pudo cargar desde cache")
+                resultados['sph'] = {'exito': False, 'mensaje': 'No se pudo cargar cache SPH'}
+        else:
+            print(f"❌ SPH falló: {resultado_sph.get('mensaje')}")
+            resultados['sph'] = {'exito': False, 'mensaje': resultado_sph.get('mensaje')}
+        
+        print(f"✅ Cálculos completados para {titulo}")
+        
+        # Limpiar archivo temporal
+        try:
+            if 'temp_path' in locals() and temp_path.exists():
+                temp_path.unlink()
+        except:
+            pass
+        
+        return resultados
+        
+    except Exception as e:
+        print(f"❌ Error en cálculos para {titulo}: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        
+        # Limpiar archivo temporal en caso de error
+        try:
+            if 'temp_path' in locals() and temp_path.exists():
+                temp_path.unlink()
+        except:
+            pass
+        
+        return {'error': str(e)}
+
+def crear_vista_resultados_familia(resultados_familia, estructuras):
+    """Crear vista con pestañas para resultados de familia"""
+    from dash import html, dcc
+    import dash_bootstrap_components as dbc
+    
+    if not resultados_familia:
+        return html.Div([html.P("No hay resultados para mostrar")])
+    
+    # Crear pestañas
+    tabs = []
+    tab_contents = []
+    first_tab = True
+    
+    for nombre_estr, resultados in resultados_familia.items():
+        titulo_estructura = estructuras[nombre_estr].get('TITULO', nombre_estr)
+        
+        # Crear pestaña
+        tabs.append(
+            dbc.Tab(
+                label=titulo_estructura,
+                tab_id=f"tab-{nombre_estr}",
+                active_tab_style={"textTransform": "none"}
+            )
+        )
+        
+        # Crear contenido de pestaña
+        contenido_estructura = crear_contenido_estructura(resultados, estructuras[nombre_estr])
+        tab_contents.append(
+            html.Div(
+                contenido_estructura,
+                id=f"content-{nombre_estr}",
+                style={"display": "block" if first_tab else "none"}
+            )
+        )
+        first_tab = False
+    
+    return html.Div([
+        html.H4("Resultados de Familia", className="mb-3"),
+        dbc.Tabs(
+            tabs,
+            id="tabs-familia",
+            active_tab=f"tab-{list(resultados_familia.keys())[0]}" if resultados_familia else None
+        ),
+        html.Div(tab_contents, id="tab-content-familia", className="mt-3")
+    ])
+
+def crear_contenido_estructura(resultados, estructura_data):
+    """Crear contenido para una estructura individual usando EXACTAMENTE las mismas funciones que Calcular Todo"""
+    from dash import html
+    import dash_bootstrap_components as dbc
+    
+    contenido = []
+    titulo = estructura_data.get('TITULO', 'Estructura')
+    
+    contenido.append(html.H5(f"Resultados para: {titulo}", className="mb-3"))
+    
+    # Verificar si hay error
+    if 'error' in resultados:
+        contenido.append(dbc.Alert(f"Error en cálculos: {resultados['error']}", color="danger"))
+        return contenido
+    
+    # CMC - EXACTAMENTE como en calcular_todo_controller.py
+    if resultados.get('cmc', {}).get('exito'):
+        contenido.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
+        calculo_cmc = resultados['cmc'].get('cache')
+        if calculo_cmc:
+            try:
+                from components.vista_calcular_todo import generar_resultados_cmc_lista
+                lista_cmc = generar_resultados_cmc_lista(calculo_cmc, estructura_data, mostrar_alerta_cache=False)
+                contenido.extend(lista_cmc)
+            except Exception as e:
+                contenido.append(dbc.Alert(f"Error cargando CMC: {str(e)}", color="warning"))
+    else:
+        mensaje_cmc = resultados.get('cmc', {}).get('mensaje', 'CMC no ejecutado exitosamente')
+        contenido.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
+        contenido.append(dbc.Alert(f"Error CMC: {mensaje_cmc}", color="danger"))
+    
+    # DGE - EXACTAMENTE como en calcular_todo_controller.py
+    if resultados.get('dge', {}).get('exito'):
+        contenido.append(html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"))
+        calculo_dge = resultados['dge'].get('cache')
+        if calculo_dge:
+            try:
+                from components.vista_diseno_geometrico import generar_resultados_dge
+                lista_dge = generar_resultados_dge(calculo_dge, estructura_data, mostrar_alerta_cache=False)
+                if isinstance(lista_dge, list):
+                    contenido.extend(lista_dge)
+                else:
+                    contenido.append(lista_dge)
+            except Exception as e:
+                contenido.append(dbc.Alert(f"Error cargando DGE: {str(e)}", color="warning"))
+    else:
+        mensaje_dge = resultados.get('dge', {}).get('mensaje', 'DGE no ejecutado exitosamente')
+        contenido.append(html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"))
+        contenido.append(dbc.Alert(f"Error DGE: {mensaje_dge}", color="danger"))
+    
+    # DME - EXACTAMENTE como en calcular_todo_controller.py
+    if resultados.get('dme', {}).get('exito'):
+        contenido.append(html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"))
+        calculo_dme = resultados['dme'].get('cache')
+        if calculo_dme:
+            try:
+                from components.vista_diseno_mecanico import generar_resultados_dme
+                contenido.append(generar_resultados_dme(calculo_dme, estructura_data, mostrar_alerta_cache=False))
+            except Exception as e:
+                contenido.append(dbc.Alert(f"Error cargando DME: {str(e)}", color="warning"))
+    else:
+        mensaje_dme = resultados.get('dme', {}).get('mensaje', 'DME no ejecutado exitosamente')
+        contenido.append(html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"))
+        contenido.append(dbc.Alert(f"Error DME: {mensaje_dme}", color="danger"))
+    
+    # Árboles - EXACTAMENTE como en calcular_todo_controller.py
+    if resultados.get('arboles', {}).get('exito'):
+        contenido.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
+        calculo_arboles = resultados['arboles'].get('cache')
+        if calculo_arboles:
+            try:
+                from components.vista_arboles_carga import generar_resultados_arboles
+                contenido.append(html.Div(generar_resultados_arboles(calculo_arboles, estructura_data, mostrar_alerta_cache=False)))
+            except Exception as e:
+                contenido.append(dbc.Alert(f"Error cargando Árboles: {str(e)}", color="warning"))
+    else:
+        mensaje_arboles = resultados.get('arboles', {}).get('mensaje', 'Árboles no ejecutado exitosamente')
+        contenido.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
+        contenido.append(dbc.Alert(f"Error Árboles: {mensaje_arboles}", color="danger"))
+    
+    # SPH - EXACTAMENTE como en calcular_todo_controller.py
+    if resultados.get('sph', {}).get('exito'):
+        contenido.append(html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"))
+        calculo_sph = resultados['sph'].get('cache')
+        if calculo_sph:
+            try:
+                from components.vista_seleccion_poste import _crear_area_resultados
+                resultado_sph = _crear_area_resultados(calculo_sph, estructura_data)
+                if isinstance(resultado_sph, list):
+                    contenido.extend(resultado_sph)
+                else:
+                    contenido.append(resultado_sph)
+            except Exception as e:
+                contenido.append(dbc.Alert(f"Error cargando SPH: {str(e)}", color="warning"))
+    else:
+        mensaje_sph = resultados.get('sph', {}).get('mensaje', 'SPH no ejecutado exitosamente')
+        contenido.append(html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"))
+        contenido.append(dbc.Alert(f"Error SPH: {mensaje_sph}", color="danger"))
+    
+    return contenido
+
+# Callback para manejar pestañas de resultados
+@callback(
+    Output("tab-content-familia", "children", allow_duplicate=True),
+    Input("tabs-familia", "active_tab"),
+    State("tab-content-familia", "children"),
+    prevent_initial_call=True
+)
+def mostrar_contenido_tab(active_tab, current_content):
+    """Mostrar contenido de pestaña activa"""
+    if not active_tab or not current_content:
+        return no_update
+    
+    # Crear nueva lista con estilos actualizados
+    updated_content = []
+    tab_id = active_tab.replace("tab-", "content-")
+    
+    for content in current_content:
+        if hasattr(content, 'id') and content.id == tab_id:
+            # Mostrar contenido activo - crear nuevo componente con estilo
+            from dash import html
+            new_content = html.Div(
+                content.children if hasattr(content, 'children') else content,
+                id=content.id if hasattr(content, 'id') else None,
+                style={"display": "block"}
+            )
+        else:
+            # Ocultar otros contenidos - crear nuevo componente con estilo
+            from dash import html
+            new_content = html.Div(
+                content.children if hasattr(content, 'children') else content,
+                id=content.id if hasattr(content, 'id') else None,
+                style={"display": "none"}
+            )
+        updated_content.append(new_content)
+    
+    return updated_content
+
 # Callback único para navegación
 @callback(
     Output("contenido-principal", "children", allow_duplicate=True),
@@ -592,8 +1199,9 @@ def mostrar_vista_familia(n_clicks):
     
     try:
         from components.vista_familia_estructuras import crear_vista_familia_estructuras
-        familia_actual = None  # Por ahora usar valores por defecto
-        vista = crear_vista_familia_estructuras(familia_actual)
+        # Cargar familia activa desde estado en memoria
+        familia_activa = None  # Solo trabajar con datos en memoria
+        vista = crear_vista_familia_estructuras(familia_activa)
         return vista
     except Exception as e:
         return html.Div([

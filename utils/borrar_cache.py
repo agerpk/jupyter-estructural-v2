@@ -24,8 +24,7 @@ def borrar_cache():
     extensiones_protegidas = {
         ".estructura.json",
         ".hipotesismaestro.json",
-        ".familia.json",
-        ".calculoVE.json"
+        ".familia.json"
     }
     
     extensiones_cache = {
