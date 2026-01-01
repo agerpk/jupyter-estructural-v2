@@ -73,13 +73,14 @@ def register_callbacks(app):
         Input("menu-calcular-todo", "n_clicks"),
         Input("menu-consola", "n_clicks"),
         Input("menu-comparativa-cmc", "n_clicks"),
+        Input("menu-familia-estructuras", "n_clicks"),
         State("estructura-actual", "data"),
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
                        n_clicks_eliminar, n_clicks_cmc,
                        n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
                        n_clicks_diseno_geom, n_clicks_diseno_mec, n_clicks_arboles, n_clicks_sph, 
-                       n_clicks_fundacion, n_clicks_costeo, n_clicks_calcular_todo, n_clicks_consola, n_clicks_comparativa_cmc, estructura_actual):
+                       n_clicks_fundacion, n_clicks_costeo, n_clicks_calcular_todo, n_clicks_consola, n_clicks_comparativa_cmc, n_clicks_familia, estructura_actual):
         ctx = callback_context
         
         # Detectar carga inicial (app restart o hot reload)
@@ -164,6 +165,11 @@ def register_callbacks(app):
                 except Exception as e:
                     print(f"Error cargando comparativa: {e}")
                     return crear_vista_comparar_cables(None)
+            elif ultima_vista == "familia-estructuras":
+                from components.vista_familia_estructuras import crear_vista_familia_estructuras
+                from utils.familia_manager import FamiliaManager
+                familia_actual = FamiliaManager.cargar_familia_actual()
+                return crear_vista_familia_estructuras(familia_actual)
             return crear_vista_home()
         
         print(f"DEBUG: Trigger detectado: {trigger_id}")
@@ -297,6 +303,13 @@ def register_callbacks(app):
             except Exception as e:
                 print(f"Error cargando comparativa: {e}")
                 return crear_vista_comparar_cables(None)
+        
+        elif trigger_id == "menu-familia-estructuras":
+            guardar_navegacion_state("familia-estructuras")
+            from components.vista_familia_estructuras import crear_vista_familia_estructuras
+            from utils.familia_manager import FamiliaManager
+            familia_actual = FamiliaManager.cargar_familia_actual()
+            return crear_vista_familia_estructuras(familia_actual)
         
         elif "btn-volver" in trigger_id:
             try:
