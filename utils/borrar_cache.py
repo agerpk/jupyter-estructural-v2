@@ -20,6 +20,14 @@ def borrar_cache():
         "navegacion_state.json"
     }
     
+    # Extensiones de archivos a no eliminar
+    extensiones_protegidas = {
+        ".estructura.json",
+        ".hipotesismaestro.json",
+        ".familia.json",
+        ".calculoVE.json"
+    }
+    
     extensiones_cache = {
         ".calculoCMC.json",
         ".calculoDGE.json", 
@@ -45,8 +53,8 @@ def borrar_cache():
             if archivo.name in archivos_protegidos:
                 continue
             
-            # Proteger archivos .estructura.json y .hipotesismaestro.json
-            if archivo.name.endswith(".estructura.json") or archivo.name.endswith(".hipotesismaestro.json"):
+            # Proteger archivos por extensión
+            if any(archivo.name.endswith(ext) for ext in extensiones_protegidas):
                 continue
             
             # Borrar archivos de cache

@@ -235,6 +235,7 @@ def register_callbacks(app):
         cols_estructura = [col for col in columnas_actuales if col["id"].startswith("Estr.")]
         
         if len(cols_estructura) <= 1:
+            # No eliminar si solo queda una estructura - mostrar advertencia
             return no_update, no_update
         
         # Encontrar última columna por número
@@ -264,21 +265,51 @@ def register_callbacks(app):
         
         return columnas_actualizadas, tabla_actualizada
     
-    # Callbacks para filtros
+    # Callback para manejar modal de texto
     @app.callback(
-        Output("tabla-familia", "data", allow_duplicate=True),
-        [Input("filtro-categoria-familia", "value"),
-         Input("buscar-parametro-familia", "value")],
-        State("tabla-familia", "data"),
+        [Output("tabla-familia", "data", allow_duplicate=True),
+         Output("modal-familia-parametro", "is_open", allow_duplicate=True)],
+        Input("modal-familia-confirmar", "n_clicks"),
+        [State("input-valor", "value"),
+         State("modal-familia-celda-info", "data"),
+         State("tabla-familia", "data")],
         prevent_initial_call=True
     )
-    def filtrar_tabla_familia(categoria_seleccionada, texto_busqueda, tabla_data_original):
+    def confirmar_modal_texto(n_clicks, valor_texto, celda_info, tabla_data):
+        """Confirmar edición de texto en modal"""
+        if not n_clicks or not celda_info or valor_texto is None:
+            return no_update, no_update
+        
+        # Actualizar tabla
+        fila = celda_info["fila"]
+        columna = celda_info["columna"]
+        tabla_data[fila][columna] = valor_texto
+        
+        return tabla_data, False
+    
+    # Callbacks para filtros
+    @app.callback(
+        [Output("tabla-familia", "data", allow_duplicate=True),
+         Output("tabla-familia-original", "data")],
+        [Input("filtro-categoria-familia", "value"),
+         Input("buscar-parametro-familia", "value")],
+        [State("tabla-familia", "data"),
+         State("tabla-familia-original", "data")],
+        prevent_initial_call=True
+    )
+    def filtrar_tabla_familia(categoria_seleccionada, texto_busqueda, tabla_data_actual, tabla_original):
         """Filtrar tabla por categoría y búsqueda"""
-        if not tabla_data_original:
-            return no_update
+        # Si no hay datos originales, usar los actuales como base
+        if not tabla_original:
+            tabla_original = tabla_data_actual
+        
+        if not tabla_original:
+            return no_update, no_update
+        
+        # Siempre filtrar desde los datos originales
+        tabla_filtrada = tabla_original.copy()
         
         # Aplicar filtro de categoría
-        tabla_filtrada = tabla_data_original
         if categoria_seleccionada and categoria_seleccionada != "todas":
             tabla_filtrada = [fila for fila in tabla_filtrada if fila.get("categoria") == categoria_seleccionada]
         
@@ -292,7 +323,149 @@ def register_callbacks(app):
                     texto_lower in fila["simbolo"].lower())
             ]
         
-        return tabla_filtrada
+        return tabla_filtrada, tabla_original
+    
+    # Callback para inicializar datos originales
+    @app.callback(
+        Output("tabla-familia-original", "data", allow_duplicate=True),
+        Input("tabla-familia", "data"),
+        State("tabla-familia-original", "data"),
+        prevent_initial_call=True
+    )
+    def inicializar_datos_originales(tabla_data, tabla_original):
+        """Inicializar store con datos originales la primera vez"""
+        if not tabla_original and tabla_data:
+            return tabla_data
+        return no_update
+
+    # Callback para Guardar Familia
+    @app.callback(
+        [Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("btn-guardar-familia", "n_clicks"),
+        [State("input-nombre-familia", "value"),
+         State("tabla-familia", "data"),
+         State("tabla-familia", "columns")],
+        prevent_initial_call=True
+    )
+    def guardar_familia(n_clicks, nombre_familia, tabla_data, columnas):
+        """Guardar familia en archivo JSON"""
+        if not n_clicks or not nombre_familia or not tabla_data:
+            return no_update, no_update, no_update, no_update
+        
+        try:
+            # Convertir tabla a formato familia
+            familia_data = tabla_a_familia(tabla_data, columnas, nombre_familia)
+            
+            # Guardar archivo
+            from pathlib import Path
+            data_dir = Path("data")
+            data_dir.mkdir(exist_ok=True)
+            filename = data_dir / f"{nombre_familia.replace(' ', '_')}.familia.json"
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(familia_data, f, indent=2, ensure_ascii=False)
+            
+            return True, "Éxito", f"Familia '{nombre_familia}' guardada en {filename.name}", "success"
+            
+        except Exception as e:
+            return True, "Error", f"Error al guardar familia: {str(e)}", "danger"
+    
+    # Callback para cargar opciones de familias existentes
+    @app.callback(
+        Output("select-familia-existente", "options"),
+        Input("select-familia-existente", "id"),
+        prevent_initial_call=False
+    )
+    def cargar_opciones_familias(_):
+        """Cargar lista de familias existentes"""
+        try:
+            from pathlib import Path
+            data_dir = Path("data")
+            familias = []
+            
+            if data_dir.exists():
+                for archivo in data_dir.glob("*.familia.json"):
+                    nombre = archivo.stem.replace("_", " ")
+                    familias.append({"label": nombre, "value": archivo.name})
+            
+            return familias
+        except:
+            return []
+    
+    # Callback para cargar familia seleccionada
+    @app.callback(
+        [Output("input-nombre-familia", "value"),
+         Output("tabla-familia", "data", allow_duplicate=True),
+         Output("tabla-familia", "columns", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("select-familia-existente", "value"),
+        prevent_initial_call=True
+    )
+    def cargar_familia_seleccionada(archivo_familia):
+        """Cargar familia desde archivo seleccionado"""
+        if not archivo_familia:
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        
+        try:
+            from pathlib import Path
+            archivo_path = Path("data") / archivo_familia
+            
+            with open(archivo_path, 'r', encoding='utf-8') as f:
+                familia_data = json.load(f)
+            
+            # Convertir familia a formato tabla
+            tabla_data, columnas = familia_a_tabla(familia_data)
+            
+            return (familia_data["nombre_familia"], tabla_data, columnas, 
+                   True, "Éxito", f"Familia '{familia_data['nombre_familia']}' cargada", "success")
+            
+        except Exception as e:
+            return (no_update, no_update, no_update, 
+                   True, "Error", f"Error al cargar familia: {str(e)}", "danger")
+    
+    # Callback para Guardar Como
+    @app.callback(
+        [Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True),
+         Output("input-nombre-familia", "value", allow_duplicate=True)],
+        Input("btn-guardar-como-familia", "n_clicks"),
+        [State("input-nombre-familia", "value"),
+         State("tabla-familia", "data"),
+         State("tabla-familia", "columns")],
+        prevent_initial_call=True
+    )
+    def guardar_como_familia(n_clicks, nombre_actual, tabla_data, columnas):
+        """Guardar familia con nuevo nombre"""
+        if not n_clicks or not nombre_actual or not tabla_data:
+            return no_update, no_update, no_update, no_update, no_update
+        
+        # Generar nuevo nombre
+        nuevo_nombre = f"{nombre_actual}_copia"
+        
+        try:
+            # Convertir tabla a formato familia
+            familia_data = tabla_a_familia(tabla_data, columnas, nuevo_nombre)
+            
+            # Guardar archivo
+            from pathlib import Path
+            data_dir = Path("data")
+            data_dir.mkdir(exist_ok=True)
+            filename = data_dir / f"{nuevo_nombre.replace(' ', '_')}.familia.json"
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(familia_data, f, indent=2, ensure_ascii=False)
+            
+            return (True, "Éxito", f"Familia guardada como '{nuevo_nombre}'", "success", nuevo_nombre)
+            
+        except Exception as e:
+            return (True, "Error", f"Error al guardar como: {str(e)}", "danger", no_update)
 
 def cargar_plantilla_estructura():
     """Cargar plantilla de estructura"""
@@ -301,6 +474,110 @@ def cargar_plantilla_estructura():
             return json.load(f)
     except FileNotFoundError:
         return {}
+
+def tabla_a_familia(tabla_data, columnas, nombre_familia):
+    """Convertir datos de tabla a formato familia"""
+    from datetime import datetime
+    
+    # Obtener columnas de estructura
+    cols_estructura = [col["id"] for col in columnas if col["id"].startswith("Estr.")]
+    
+    # Crear estructura familia
+    familia = {
+        "nombre_familia": nombre_familia,
+        "fecha_creacion": datetime.now().isoformat(),
+        "fecha_modificacion": datetime.now().isoformat(),
+        "estructuras": {}
+    }
+    
+    # Procesar cada estructura
+    for col_estr in cols_estructura:
+        estructura = {}
+        
+        # Extraer valores de cada parámetro
+        for fila in tabla_data:
+            parametro = fila["parametro"]
+            valor = fila.get(col_estr, "")
+            estructura[parametro] = valor
+        
+        familia["estructuras"][col_estr] = estructura
+    
+    return familia
+
+def familia_a_tabla(familia_data):
+    """Convertir formato familia a datos de tabla"""
+    estructuras = familia_data.get("estructuras", {})
+    
+    # Configurar columnas
+    columnas = [
+        {"name": "Categoría", "id": "categoria", "editable": False, "type": "text"},
+        {"name": "Parámetro", "id": "parametro", "editable": False, "type": "text"},
+        {"name": "Símbolo", "id": "simbolo", "editable": False, "type": "text"},
+        {"name": "Unidad", "id": "unidad", "editable": False, "type": "text"},
+        {"name": "Descripción", "id": "descripcion", "editable": False, "type": "text"}
+    ]
+    
+    # Agregar columnas de estructuras
+    for nombre_estr in sorted(estructuras.keys()):
+        columnas.append({
+            "name": nombre_estr,
+            "id": nombre_estr,
+            "editable": True,
+            "type": "any"
+        })
+    
+    # Generar datos de tabla usando ParametrosManager
+    from utils.parametros_manager import ParametrosManager
+    plantilla = cargar_plantilla_estructura()
+    tabla_base = ParametrosManager.estructura_a_tabla(plantilla)
+    
+    # Agregar filas especiales (TITULO y cantidad)
+    tabla_data = []
+    
+    # Fila TITULO
+    fila_titulo = {
+        "categoria": "General",
+        "parametro": "TITULO",
+        "simbolo": "TÍTULO",
+        "unidad": "-",
+        "descripcion": "Título de la estructura",
+        "tipo": "str"
+    }
+    for nombre_estr, datos_estr in estructuras.items():
+        fila_titulo[nombre_estr] = datos_estr.get("TITULO", "")
+    tabla_data.append(fila_titulo)
+    
+    # Fila cantidad
+    fila_cantidad = {
+        "categoria": "General",
+        "parametro": "cantidad",
+        "simbolo": "CANT",
+        "unidad": "unidades",
+        "descripcion": "Cantidad de estructuras",
+        "tipo": "int"
+    }
+    for nombre_estr, datos_estr in estructuras.items():
+        fila_cantidad[nombre_estr] = datos_estr.get("cantidad", 1)
+    tabla_data.append(fila_cantidad)
+    
+    # Resto de parámetros
+    for fila_base in tabla_base:
+        parametro = fila_base["parametro"]
+        fila = {
+            "categoria": fila_base["categoria"],
+            "parametro": parametro,
+            "simbolo": fila_base["simbolo"],
+            "unidad": fila_base["unidad"],
+            "descripcion": fila_base["descripcion"],
+            "tipo": fila_base["tipo"]
+        }
+        
+        for nombre_estr, datos_estr in estructuras.items():
+            fila[nombre_estr] = datos_estr.get(parametro, fila_base["valor"])
+        
+        tabla_data.append(fila)
+    
+    return tabla_data, columnas
 
 # Callback único para navegación
 @callback(

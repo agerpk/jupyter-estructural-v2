@@ -49,9 +49,24 @@ Sistema completo para manejo de familias de estructuras que permite:
 
 #### 1.4 Persistencia 🔧 TESTING PENDIENTE
 - [x] Formato `nombre_familia.familia.json`
-- [x] Botón Guardar Familia
-- [x] Cargar/Guardar Como familia
-- [x] Menu desplegable familias existentes
+- [x] Botón Guardar Familia (UI creado, callback pendiente)
+- [x] Cargar/Guardar Como familia (UI creado, callback pendiente)
+- [x] Menu desplegable familias existentes (UI creado, callback pendiente)
+
+#### 1.5 Campos Especiales ✅ COMPLETADO
+- [x] Campo TITULO como primera fila de tabla (editable por columna)
+- [x] Campo cantidad como segunda fila de tabla (entero, default=1)
+- [x] Columna Categoría visible en tabla
+- [x] Filtros por categoría y búsqueda implementados
+
+#### 1.6 Botones de Control 🔧 TESTING PENDIENTE
+- [x] Botón Agregar Estructura (funcional)
+- [x] Botón Eliminar Estructura (funcional)
+- [x] Botón Cargar Columna (UI creado, callback pendiente)
+- [x] Botón Guardar Familia (UI creado, callback pendiente)
+- [x] Botón Cargar Familia (UI creado, callback pendiente)
+- [x] Botón Calcular Familia (UI creado, callback pendiente)
+- [x] Botón Cargar Cache (UI creado, callback pendiente)
 
 ### FASE 2: Cargar Estructura Existente ❌ PENDIENTE
 
@@ -237,7 +252,8 @@ Sistema completo para manejo de familias de estructuras que permite:
 - ✅ FASE 6 actualizada con cache VE
 - ✅ FASE 1.1 y 1.2 implementadas (estructura base y tabla)
 - ✅ FASE 1.3 implementada y testeada (modales con IDs únicos)
-- 🔧 FASE 1.4 testing pendiente (persistencia)
+- ✅ FASE 1.5 implementada (TITULO y cantidad como filas de tabla)
+- 🔧 FASE 1.4 y 1.6 UI creada, callbacks pendientes
 - ❌ FASE 2-6 pendientes
 
 ---

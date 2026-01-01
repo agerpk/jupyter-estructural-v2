@@ -67,7 +67,7 @@ def crear_vista_familia_estructuras(familia_actual=None):
                     id="tabla-familia",
                     data=tabla_data,
                     columns=columnas,
-                    editable=False,  # Usar modal
+                    editable=True,  # Enable direct editing for numeric values
                     row_deletable=False,
                     sort_action="native",
                     filter_action="native",
@@ -184,6 +184,12 @@ def crear_botones_control_familia():
                     size="sm"
                 ),
                 dbc.Button(
+                    "Guardar Como",
+                    id="btn-guardar-como-familia",
+                    color="outline-primary",
+                    size="sm"
+                ),
+                dbc.Button(
                     "Cargar Familia",
                     id="btn-cargar-familia",
                     color="secondary",
@@ -217,6 +223,14 @@ def crear_campo_nombre_familia(nombre_actual):
                 placeholder="Ingrese nombre de la familia...",
                 size="lg"
             )
+        ], width=6),
+        dbc.Col([
+            html.Label("CARGAR FAMILIA EXISTENTE:", className="form-label fw-bold"),
+            dbc.Select(
+                id="select-familia-existente",
+                placeholder="Seleccione familia...",
+                size="lg"
+            )
         ], width=6)
     ], className="mb-3")
 
@@ -234,7 +248,18 @@ def crear_modal_familia():
         ], id="modal-familia-parametro", is_open=False),
         
         # Stores para datos
-        dcc.Store(id="modal-familia-celda-info", data=None)
+        dcc.Store(id="modal-familia-celda-info", data=None),
+        dcc.Store(id="tabla-familia-original", data=None),
+        
+        # Toast para notificaciones
+        dbc.Toast(
+            id="toast-notificacion",
+            header="Notificación",
+            is_open=False,
+            dismissable=True,
+            duration=4000,
+            style={"position": "fixed", "top": 80, "right": 20, "width": 300, "z-index": 1050}
+        )
     ])
 
 # Los callbacks están ahora en familia_controller.py
