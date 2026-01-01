@@ -249,6 +249,55 @@ threading.Thread(target=guardar_async, daemon=True).start()
 
 ## Lessons Learned
 
+### Callback Conflicts - Unique IDs for Multiple Modal Systems
+
+**Context**: Implementing family structures feature with modal editing similar to tabla_parametros.
+
+**Issue**: DuplicateCallback error when both familia_controller.py and tabla_parametros_controller.py used same modal IDs (`modal-parametro`, `modal-body-parametro`, `modal-celda-info`).
+
+**Root Cause**: Multiple controllers defining callbacks with identical Output IDs causes Dash to reject duplicate callback registration.
+
+**Resolution**:
+1. **Unique ID prefixes**: Use `familia-modal-*` for family modals vs `modal-*` for parameter table modals
+2. **Unique button types**: Use `familia-opcion-btn`, `familia-bool-btn` vs `opcion-btn`, `bool-btn`
+3. **Component ID consistency**: Update both controller callbacks AND component creation to use same unique IDs
+
+**Critical Pattern**:
+```python
+# Controller callbacks
+@app.callback(
+    [Output("modal-familia-parametro", "is_open"),
+     Output("modal-familia-body-parametro", "children")],
+    [Input("tabla-familia", "active_cell"),
+     Input("modal-familia-confirmar", "n_clicks")]
+)
+
+# Component creation
+dbc.Modal([
+    dbc.ModalBody(id="modal-familia-body-parametro"),
+    dbc.ModalFooter([
+        dbc.Button("Confirmar", id="modal-familia-confirmar")
+    ])
+], id="modal-familia-parametro")
+
+# Button types in modal content
+dbc.Button(
+    opcion,
+    id={"type": "familia-opcion-btn", "value": opcion}
+)
+```
+
+**Key Takeaway**: When implementing similar features, always use unique ID prefixes to avoid callback conflicts. Apply prefix consistently across:
+- Controller callback Inputs/Outputs
+- Component creation IDs
+- Pattern-matching component types
+
+**Files Modified**:
+- `controllers/familia_controller.py` - Unique callback IDs
+- `components/vista_familia_estructuras.py` - Unique component IDs
+
+## Lessons Learned
+
 ### Dual Format Storage for Plotly
 
 **Context**: Implementing "Calcular Todo" feature that orchestrates multiple calculations.

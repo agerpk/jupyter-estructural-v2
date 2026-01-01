@@ -51,8 +51,28 @@ def register_callbacks(app):
         if estructura_data:
             state.set_estructura_actual(estructura_data)
             titulo = estructura_data.get('TITULO', 'Sin título')
-            return f"📁 {titulo}"
-        return "📁 Sin estructura"
+            return f"Estructura: {titulo}"
+        return "Sin estructura"
+    
+    # Badge para familia actual
+    @app.callback(
+        Output("badge-familia-actual", "children"),
+        Input("contenido-principal", "children"),
+        prevent_initial_call=True
+    )
+    def actualizar_badge_familia(contenido):
+        """Actualizar badge de familia cuando se navega a vista familia"""
+        try:
+            ultima_vista = cargar_navegacion_state()
+            if ultima_vista == "familia-estructuras":
+                from utils.familia_manager import FamiliaManager
+                familia_actual = FamiliaManager.cargar_familia_actual()
+                if familia_actual and familia_actual.get("nombre_familia"):
+                    return f"Familia: {familia_actual['nombre_familia']}"
+                return "Sin familia"
+            return "Sin familia"
+        except:
+            return "Sin familia"
     
     @app.callback(
         Output("contenido-principal", "children"),

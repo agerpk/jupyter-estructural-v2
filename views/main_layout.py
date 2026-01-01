@@ -68,6 +68,13 @@ def crear_layout():
                         )
                     ),
                     dbc.NavItem(
+                        dbc.Badge(
+                            id="badge-familia-actual",
+                            color="warning",
+                            className="ms-2"
+                        )
+                    ),
+                    dbc.NavItem(
                         html.Span(
                             id="badge-vista-actual",
                             className="badge ms-2",

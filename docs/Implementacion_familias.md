@@ -28,18 +28,24 @@ Sistema completo para manejo de familias de estructuras que permite:
 - [x] Crear `utils/familia_manager.py`
 - [x] Agregar entrada en menú HERRAMIENTAS > Calcular Familia
 
-#### 1.2 Tabla de Parámetros Multi-Columna 🔧 TESTING PENDIENTE
+#### 1.2 Tabla de Parámetros Multi-Columna ✅ COMPLETADO
 - [x] Reutilizar lógica de `vista_ajustar_parametros.py` modo tabla
 - [x] Implementar columnas dinámicas (Estr.1, Estr.2, Estr.n...)
 - [x] Botones Agregar/Eliminar Estructura
 - [x] Campo NOMBRE FAMILIA
 - [x] Campo CANTIDAD (entero, default=1)
+- [x] Filtros por categoría (General, Cables, Cabezal, etc.)
+- [x] Búsqueda de parámetros por nombre/descripción
+- [x] Columna Categoría visible en tabla
 
-#### 1.3 Modales y Edición ❌ PENDIENTE
-- [ ] Reutilizar modales de ajustar parámetros
-- [ ] Entrada numérica para valores numéricos
-- [ ] Modales para valores no numéricos
-- [ ] Validación de datos por columna
+#### 1.3 Modales y Edición ✅ COMPLETADO
+- [x] Reutilizar clase ModalCelda de ajustar parámetros
+- [x] Entrada numérica para valores numéricos
+- [x] Modales para valores no numéricos (select, bool)
+- [x] Validación de datos por columna
+- [x] Callbacks para manejo de opciones y booleanos
+- [x] IDs únicos para evitar conflictos (familia-modal-*)
+- [x] Detección correcta tipos numéricos vs no-numéricos
 
 #### 1.4 Persistencia 🔧 TESTING PENDIENTE
 - [x] Formato `nombre_familia.familia.json`
@@ -230,7 +236,8 @@ Sistema completo para manejo de familias de estructuras que permite:
 - ✅ Plan completo definido
 - ✅ FASE 6 actualizada con cache VE
 - ✅ FASE 1.1 y 1.2 implementadas (estructura base y tabla)
-- 🔧 FASE 1.3 y 1.4 testing pendiente (modales y persistencia)
+- ✅ FASE 1.3 implementada y testeada (modales con IDs únicos)
+- 🔧 FASE 1.4 testing pendiente (persistencia)
 - ❌ FASE 2-6 pendientes
 
 ---
