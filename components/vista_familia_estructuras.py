@@ -29,6 +29,7 @@ def crear_vista_familia_estructuras(familia_actual=None):
     
     # Configurar columnas dinámicamente
     columnas = [
+        {"name": "Categoría", "id": "categoria", "editable": False, "type": "text"},
         {"name": "Parámetro", "id": "parametro", "editable": False, "type": "text"},
         {"name": "Símbolo", "id": "simbolo", "editable": False, "type": "text"},
         {"name": "Unidad", "id": "unidad", "editable": False, "type": "text"},
@@ -53,6 +54,12 @@ def crear_vista_familia_estructuras(familia_actual=None):
             dbc.CardBody([
                 # Campo nombre familia
                 crear_campo_nombre_familia(familia_actual.get("nombre_familia", "")),
+                
+                # Botones de control
+                crear_botones_control_familia(),
+                
+                # Filtros por categoría
+                crear_filtros_familia(),
                 html.Hr(),
                 
                 # Tabla de parámetros multi-columna
@@ -115,6 +122,89 @@ def crear_vista_familia_estructuras(familia_actual=None):
         ])
     ])
 
+def crear_filtros_familia():
+    """Crear filtros por categoría para familia"""
+    from utils.parametros_manager import ParametrosManager
+    
+    categorias = ParametrosManager.obtener_parametros_por_categoria()
+    opciones_categoria = [{"label": "Todas", "value": "todas"}]
+    opciones_categoria.extend([{"label": cat, "value": cat} for cat in sorted(categorias.keys())])
+    
+    return dbc.Row([
+        dbc.Col([
+            html.Label("Filtrar por categoría:", className="form-label"),
+            dbc.Select(
+                id="filtro-categoria-familia",
+                options=opciones_categoria,
+                value="todas",
+                size="sm"
+            )
+        ], width=4),
+        dbc.Col([
+            html.Label("Buscar parámetro:", className="form-label"),
+            dbc.Input(
+                id="buscar-parametro-familia",
+                type="text",
+                placeholder="Escriba para buscar...",
+                size="sm"
+            )
+        ], width=4)
+    ], className="mb-3")
+
+def crear_botones_control_familia():
+    """Crear botones de control para familia"""
+    return dbc.Row([
+        dbc.Col([
+            dbc.ButtonGroup([
+                dbc.Button(
+                    "Agregar Estructura",
+                    id="btn-agregar-estructura",
+                    color="success",
+                    size="sm"
+                ),
+                dbc.Button(
+                    "Eliminar Estructura",
+                    id="btn-eliminar-estructura",
+                    color="danger",
+                    size="sm"
+                )
+            ], className="me-2"),
+            
+            dbc.ButtonGroup([
+                dbc.Button(
+                    "Cargar Columna",
+                    id="btn-cargar-columna",
+                    color="info",
+                    size="sm"
+                ),
+                dbc.Button(
+                    "Guardar Familia",
+                    id="btn-guardar-familia",
+                    color="primary",
+                    size="sm"
+                ),
+                dbc.Button(
+                    "Cargar Familia",
+                    id="btn-cargar-familia",
+                    color="secondary",
+                    size="sm"
+                ),
+                dbc.Button(
+                    "Calcular Familia",
+                    id="btn-calcular-familia",
+                    color="warning",
+                    size="sm"
+                ),
+                dbc.Button(
+                    "Cargar Cache",
+                    id="btn-cargar-cache-familia",
+                    color="dark",
+                    size="sm"
+                )
+            ])
+        ], width=12)
+    ], className="mb-3")
+
 def crear_campo_nombre_familia(nombre_actual):
     """Crear campo para nombre de familia"""
     return dbc.Row([
@@ -175,11 +265,44 @@ def generar_datos_tabla_familia(familia_actual):
     # Generar filas de tabla
     tabla_data = []
     
+    # Agregar fila TITULO como primera fila
+    fila_titulo = {
+        "categoria": "General",
+        "parametro": "TITULO",
+        "simbolo": "TÍTULO",
+        "unidad": "-",
+        "descripcion": "Título de la estructura",
+        "tipo": "str"
+    }
+    
+    # Agregar valores TITULO de cada estructura
+    for nombre_estr, datos_estr in estructuras.items():
+        fila_titulo[nombre_estr] = datos_estr.get("TITULO", "")
+    
+    tabla_data.append(fila_titulo)
+    
+    # Agregar fila CANTIDAD como segunda fila
+    fila_cantidad = {
+        "categoria": "General",
+        "parametro": "cantidad",
+        "simbolo": "CANT",
+        "unidad": "unidades",
+        "descripcion": "Cantidad de estructuras",
+        "tipo": "int"
+    }
+    
+    # Agregar valores CANTIDAD de cada estructura
+    for nombre_estr, datos_estr in estructuras.items():
+        fila_cantidad[nombre_estr] = datos_estr.get("cantidad", 1)
+    
+    tabla_data.append(fila_cantidad)
+    
     # Agregar todos los parámetros de la tabla base
     for fila_base in tabla_base:
         parametro = fila_base["parametro"]
         
         fila = {
+            "categoria": fila_base["categoria"],
             "parametro": parametro,
             "simbolo": fila_base["simbolo"],
             "unidad": fila_base["unidad"],

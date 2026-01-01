@@ -296,6 +296,42 @@ dbc.Button(
 - `controllers/familia_controller.py` - Unique callback IDs
 - `components/vista_familia_estructuras.py` - Unique component IDs
 
+---
+
+### Family Structures Implementation - Button Controls
+
+**Context**: Adding control buttons (Agregar/Eliminar Estructura, Guardar Familia, Cargar Columna) to family structures view.
+
+**Implementation Pattern**:
+1. **Component Creation**: Add buttons in `crear_botones_control_familia()` function
+2. **Callback Registration**: Add callbacks in `register_callbacks(app)` function in controller
+3. **Dynamic Table Updates**: Use `allow_duplicate=True` for table columns and data outputs
+4. **State Management**: Use table columns and data as State inputs for modifications
+
+**Button Functionality**:
+- **Agregar Estructura**: Adds new column (Estr.N+1), copies values from last existing column
+- **Eliminar Estructura**: Removes highest numbered column, prevents deletion if only one remains
+- **Column Numbering**: Finds next available number, handles gaps in sequence
+- **Data Preservation**: Maintains all parameter values when adding/removing columns
+
+**Key Pattern**:
+```python
+# Component
+dbc.Button("Agregar Estructura", id="btn-agregar-estructura", color="success")
+
+# Controller
+@app.callback(
+    [Output("tabla-familia", "columns", allow_duplicate=True),
+     Output("tabla-familia", "data", allow_duplicate=True)],
+    Input("btn-agregar-estructura", "n_clicks"),
+    [State("tabla-familia", "columns"), State("tabla-familia", "data")]
+)
+```
+
+**Files Modified**:
+- `components/vista_familia_estructuras.py` - Added button controls
+- `controllers/familia_controller.py` - Added button callbacks
+
 ## Lessons Learned
 
 ### Dual Format Storage for Plotly
