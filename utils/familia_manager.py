@@ -29,7 +29,7 @@ class FamiliaManager:
         return cls._crear_familia_nueva()
     
     @classmethod
-    def _crear_familia_nueva(cls) -> Dict:
+    def crear_familia_nueva(cls) -> Dict:
         """Crear nueva familia con plantilla"""
         plantilla = cls._cargar_plantilla()
         
@@ -55,7 +55,7 @@ class FamiliaManager:
             return {}
     
     @classmethod
-    def guardar_familia(cls, familia_data: Dict) -> None:
+    def guardar_familia(cls, familia_data: Dict) -> bool:
         """Guardar familia en archivo"""
         nombre_familia = familia_data["nombre_familia"]
         if not nombre_familia:
@@ -69,11 +69,13 @@ class FamiliaManager:
         familia_data["fecha_modificacion"] = datetime.now().isoformat()
         
         # Guardar archivo
-        with open(archivo_familia, "w", encoding="utf-8") as f:
-            json.dump(familia_data, f, indent=2, ensure_ascii=False)
-        
-        # Guardar como familia actual
-        cls._guardar_familia_actual(nombre_familia)
+        try:
+            with open(archivo_familia, "w", encoding="utf-8") as f:
+                json.dump(familia_data, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            print(f"Error guardando familia {nombre_familia}: {e}")
+            return False
     
     @classmethod
     def _guardar_familia_actual(cls, nombre_familia: str) -> None:
@@ -98,9 +100,6 @@ class FamiliaManager:
         with open(archivo_familia, "r", encoding="utf-8") as f:
             familia_data = json.load(f)
         
-        # Actualizar familia actual
-        cls._guardar_familia_actual(nombre_familia)
-        
         return familia_data
     
     @classmethod
@@ -120,59 +119,47 @@ class FamiliaManager:
         return sorted(familias)
     
     @classmethod
-    def tabla_a_familia(cls, tabla_data: List[Dict], nombre_familia: str) -> Dict:
-        """Convertir datos de tabla a formato familia"""
+    def tabla_a_familia(cls, tabla_data: List[Dict], columnas: List[Dict], nombre_familia: str) -> Dict:
+        """Convierte datos de tabla a formato .familia.json"""
+        from datetime import datetime
         
-        # Obtener columnas de estructuras
-        if not tabla_data:
-            raise ValueError("Datos de tabla vacíos")
+        # Extraer columnas de estructura (Estr.1, Estr.2, etc.)
+        columnas_estructura = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
         
-        primera_fila = tabla_data[0]
-        columnas_estructura = [key for key in primera_fila.keys() 
-                             if key.startswith("Estr.")]
-        
-        if not columnas_estructura:
-            raise ValueError("No se encontraron columnas de estructura")
-        
-        # Construir estructuras
         estructuras = {}
-        
-        for nombre_estr in columnas_estructura:
-            estructura = {}
+        for col_id in columnas_estructura:
+            estructura_data = {}
             
+            # Convertir filas de tabla a estructura
             for fila in tabla_data:
-                parametro = fila["parametro"]
-                valor = fila.get(nombre_estr, "")
+                parametro = fila['parametro']
+                valor = fila.get(col_id, fila.get('valor', ''))
                 
                 # Convertir tipos
-                if parametro in ["cantidad", "TENSION", "CANT_HG", "FORZAR_N_POSTES"]:
+                tipo = fila.get('tipo', 'str')
+                if tipo == 'int':
                     try:
-                        valor = int(valor) if valor != "" else 0
+                        valor = int(valor)
                     except:
                         valor = 0
-                elif parametro in ["L_vano", "alpha", "theta", "Vmax", "Vmed", "Vtormenta", 
-                                 "ALTURA_MINIMA_CABLE", "HADD", "ZOOM_CABEZAL"]:
+                elif tipo == 'float':
                     try:
-                        valor = float(valor) if valor != "" else 0.0
+                        valor = float(valor)
                     except:
                         valor = 0.0
-                elif parametro in ["VANO_DESNIVELADO", "AJUSTAR_POR_ALTURA_MSNM", 
-                                 "HG_CENTRADO", "REEMPLAZAR_TITULO_GRAFICO", "ADC_3D"]:
-                    valor = bool(valor) if valor != "" else False
+                elif tipo == 'bool':
+                    valor = bool(valor) if isinstance(valor, bool) else str(valor).lower() == 'true'
                 
-                estructura[parametro] = valor
+                estructura_data[parametro] = valor
             
-            estructuras[nombre_estr] = estructura
+            estructuras[col_id] = estructura_data
         
-        # Construir familia
-        familia_data = {
+        return {
             "nombre_familia": nombre_familia,
             "fecha_creacion": datetime.now().isoformat(),
             "fecha_modificacion": datetime.now().isoformat(),
             "estructuras": estructuras
         }
-        
-        return familia_data
     
     @classmethod
     def calcular_hash_familia(cls, familia_data: Dict) -> str:
@@ -187,15 +174,20 @@ class FamiliaManager:
         return hashlib.md5(familia_str.encode('utf-8')).hexdigest()
     
     @classmethod
-    def cargar_estructura_individual(cls, nombre_estructura: str) -> Dict:
-        """Cargar estructura individual desde DB"""
-        archivo_estructura = cls.DATA_DIR / f"{nombre_estructura}.estructura.json"
+    def cargar_estructura_individual(cls, titulo_estructura: str) -> Dict:
+        """Cargar estructura individual desde DB por título"""
+        # Buscar archivo por título
+        for archivo in cls.DATA_DIR.glob("*.estructura.json"):
+            if archivo.name != "plantilla.estructura.json":
+                try:
+                    with open(archivo, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        if data.get("TITULO") == titulo_estructura:
+                            return data
+                except:
+                    continue
         
-        if not archivo_estructura.exists():
-            raise FileNotFoundError(f"Estructura '{nombre_estructura}' no encontrada")
-        
-        with open(archivo_estructura, "r", encoding="utf-8") as f:
-            return json.load(f)
+        raise FileNotFoundError(f"Estructura con título '{titulo_estructura}' no encontrada")
     
     @classmethod
     def listar_estructuras_disponibles(cls) -> List[str]:
@@ -213,3 +205,110 @@ class FamiliaManager:
                     continue
         
         return sorted(estructuras)
+    
+    @classmethod
+    def obtener_archivos_familia(cls) -> List[str]:
+        """Obtiene lista de archivos .familia.json disponibles"""
+        try:
+            archivos = list(cls.DATA_DIR.glob("*.familia.json"))
+            return [archivo.stem for archivo in archivos]
+        except:
+            return []
+    
+    @classmethod
+    def tabla_a_familia(cls, tabla_data: List[Dict], columnas: List[Dict], nombre_familia: str) -> Dict:
+        """Convierte datos de tabla a formato .familia.json"""
+        from datetime import datetime
+        
+        # Extraer columnas de estructura (Estr.1, Estr.2, etc.)
+        columnas_estructura = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
+        
+        estructuras = {}
+        for col_id in columnas_estructura:
+            estructura_data = {}
+            
+            # Convertir filas de tabla a estructura
+            for fila in tabla_data:
+                parametro = fila['parametro']
+                valor = fila.get(col_id, fila.get('valor', ''))
+                
+                # Convertir tipos
+                tipo = fila.get('tipo', 'str')
+                if tipo == 'int':
+                    try:
+                        valor = int(valor)
+                    except:
+                        valor = 0
+                elif tipo == 'float':
+                    try:
+                        valor = float(valor)
+                    except:
+                        valor = 0.0
+                elif tipo == 'bool':
+                    valor = bool(valor) if isinstance(valor, bool) else str(valor).lower() == 'true'
+                
+                estructura_data[parametro] = valor
+            
+            estructuras[col_id] = estructura_data
+        
+        return {
+            "nombre_familia": nombre_familia,
+            "fecha_creacion": datetime.now().isoformat(),
+            "fecha_modificacion": datetime.now().isoformat(),
+            "estructuras": estructuras
+        }
+    
+    @classmethod
+    def familia_a_tabla(cls, datos_familia: Dict) -> tuple[List[Dict], List[Dict]]:
+        """Convierte formato .familia.json a datos de tabla"""
+        if not datos_familia or 'estructuras' not in datos_familia:
+            return [], []
+        
+        # Cargar plantilla para obtener estructura base
+        try:
+            with open(cls.DATA_DIR / "plantilla.estructura.json", 'r', encoding='utf-8') as f:
+                plantilla = json.load(f)
+        except:
+            return [], []
+        
+        # Generar tabla usando ParametrosManager
+        from utils.parametros_manager import ParametrosManager
+        tabla_base = ParametrosManager.estructura_a_tabla(plantilla)
+        
+        # Crear columnas base
+        columnas = [
+            {"name": "Parámetro", "id": "parametro", "editable": False},
+            {"name": "Símbolo", "id": "simbolo", "editable": False},
+            {"name": "Unidad", "id": "unidad", "editable": False},
+            {"name": "Descripción", "id": "descripcion", "editable": False}
+        ]
+        
+        # Agregar columnas de estructura
+        estructuras = datos_familia['estructuras']
+        for nombre_estructura in sorted(estructuras.keys()):
+            columnas.append({
+                "name": nombre_estructura,
+                "id": nombre_estructura,
+                "editable": True
+            })
+        
+        # Llenar datos de tabla
+        tabla_data = []
+        for fila_base in tabla_base:
+            fila = {
+                "parametro": fila_base["parametro"],
+                "simbolo": fila_base["simbolo"],
+                "unidad": fila_base["unidad"],
+                "descripcion": fila_base["descripcion"],
+                "tipo": fila_base["tipo"],
+                "categoria": fila_base["categoria"]
+            }
+            
+            # Agregar valores de cada estructura
+            for nombre_estructura, estructura_data in estructuras.items():
+                valor = estructura_data.get(fila_base["parametro"], fila_base["valor"])
+                fila[nombre_estructura] = valor
+            
+            tabla_data.append(fila)
+        
+        return tabla_data, columnas

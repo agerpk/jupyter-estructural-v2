@@ -8,7 +8,9 @@ from typing import Dict, List, Any, Optional
 import json
 import threading
 from pathlib import Path
+from datetime import datetime
 
+from utils.familia_manager import FamiliaManager
 from utils.parametros_manager import ParametrosManager
 from models.app_state import AppState
 from config.app_config import DATA_DIR
@@ -16,141 +18,53 @@ from utils.calculo_cache import CalculoCache
 from utils.view_helpers import ViewHelpers
 
 # ============================================================================
-# UTILIDADES DE ARCHIVO
+# GESTIÓN DE ESTADO FAMILIA ACTIVA (UNIFICADO EN CONTROLLER)
 # ============================================================================
 
-def sanitizar_nombre_archivo(nombre: str) -> str:
-    """Limpia nombre para uso como archivo"""
-    return nombre.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_')
+_familia_activa_nombre = None
 
-def obtener_archivos_familia() -> List[str]:
-    """Obtiene lista de archivos .familia.json disponibles"""
+def set_familia_activa(nombre_familia: str):
+    """Establecer familia activa"""
+    global _familia_activa_nombre
+    _familia_activa_nombre = nombre_familia
+    
+    # Guardar en archivo de estado
     try:
-        archivos = list(DATA_DIR.glob("*.familia.json"))
-        return [archivo.stem for archivo in archivos]
-    except:
-        return []
-
-def cargar_familia_desde_archivo(nombre_familia: str) -> Optional[Dict]:
-    """Carga familia desde archivo .familia.json"""
-    try:
-        archivo = DATA_DIR / f"{sanitizar_nombre_archivo(nombre_familia)}.familia.json"
-        if archivo.exists():
-            with open(archivo, 'r', encoding='utf-8') as f:
-                return json.load(f)
+        estado = {
+            "nombre_familia": nombre_familia,
+            "fecha_acceso": datetime.now().isoformat()
+        }
+        with open(DATA_DIR / "familia_actual.json", "w", encoding="utf-8") as f:
+            json.dump(estado, f, indent=2, ensure_ascii=False)
     except Exception as e:
-        print(f"Error cargando familia {nombre_familia}: {e}")
+        print(f"Error guardando estado familia: {e}")
+
+def get_familia_activa() -> Optional[str]:
+    """Obtener familia activa"""
+    global _familia_activa_nombre
+    
+    if _familia_activa_nombre:
+        return _familia_activa_nombre
+    
+    # Cargar desde archivo
+    try:
+        archivo_estado = DATA_DIR / "familia_actual.json"
+        if archivo_estado.exists():
+            with open(archivo_estado, "r", encoding="utf-8") as f:
+                estado = json.load(f)
+                _familia_activa_nombre = estado.get("nombre_familia")
+                return _familia_activa_nombre
+    except Exception as e:
+        print(f"Error cargando estado familia: {e}")
+    
     return None
 
-def guardar_familia_en_archivo(nombre_familia: str, datos_familia: Dict) -> bool:
-    """Guarda familia en archivo .familia.json"""
-    try:
-        archivo = DATA_DIR / f"{sanitizar_nombre_archivo(nombre_familia)}.familia.json"
-        with open(archivo, 'w', encoding='utf-8') as f:
-            json.dump(datos_familia, f, indent=2, ensure_ascii=False)
-        return True
-    except Exception as e:
-        print(f"Error guardando familia {nombre_familia}: {e}")
-        return False
-
-# ============================================================================
-# CONVERSIÓN TABLA <-> FAMILIA
-# ============================================================================
-
-def tabla_a_familia(tabla_data: List[Dict], columnas: List[Dict], nombre_familia: str) -> Dict:
-    """Convierte datos de tabla a formato .familia.json"""
-    from datetime import datetime
-    
-    # Extraer columnas de estructura (Estr.1, Estr.2, etc.)
-    columnas_estructura = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
-    
-    estructuras = {}
-    for col_id in columnas_estructura:
-        estructura_data = {}
-        
-        # Convertir filas de tabla a estructura
-        for fila in tabla_data:
-            parametro = fila['parametro']
-            valor = fila.get(col_id, fila.get('valor', ''))
-            
-            # Convertir tipos
-            tipo = fila.get('tipo', 'str')
-            if tipo == 'int':
-                try:
-                    valor = int(valor)
-                except:
-                    valor = 0
-            elif tipo == 'float':
-                try:
-                    valor = float(valor)
-                except:
-                    valor = 0.0
-            elif tipo == 'bool':
-                valor = bool(valor) if isinstance(valor, bool) else str(valor).lower() == 'true'
-            
-            estructura_data[parametro] = valor
-        
-        estructuras[col_id] = estructura_data
-    
-    return {
-        "nombre_familia": nombre_familia,
-        "fecha_creacion": datetime.now().isoformat(),
-        "fecha_modificacion": datetime.now().isoformat(),
-        "estructuras": estructuras
-    }
-
-def familia_a_tabla(datos_familia: Dict) -> tuple[List[Dict], List[Dict]]:
-    """Convierte formato .familia.json a datos de tabla"""
-    if not datos_familia or 'estructuras' not in datos_familia:
-        return [], []
-    
-    # Cargar plantilla para obtener estructura base
-    try:
-        with open(DATA_DIR / "plantilla.estructura.json", 'r', encoding='utf-8') as f:
-            plantilla = json.load(f)
-    except:
-        return [], []
-    
-    # Generar tabla usando ParametrosManager
-    tabla_base = ParametrosManager.estructura_a_tabla(plantilla)
-    
-    # Crear columnas base
-    columnas = [
-        {"name": "Parámetro", "id": "parametro", "editable": False},
-        {"name": "Símbolo", "id": "simbolo", "editable": False},
-        {"name": "Unidad", "id": "unidad", "editable": False},
-        {"name": "Descripción", "id": "descripcion", "editable": False}
-    ]
-    
-    # Agregar columnas de estructura
-    estructuras = datos_familia['estructuras']
-    for nombre_estructura in sorted(estructuras.keys()):
-        columnas.append({
-            "name": nombre_estructura,
-            "id": nombre_estructura,
-            "editable": True
-        })
-    
-    # Llenar datos de tabla
-    tabla_data = []
-    for fila_base in tabla_base:
-        fila = {
-            "parametro": fila_base["parametro"],
-            "simbolo": fila_base["simbolo"],
-            "unidad": fila_base["unidad"],
-            "descripcion": fila_base["descripcion"],
-            "tipo": fila_base["tipo"],
-            "categoria": fila_base["categoria"]
-        }
-        
-        # Agregar valores de cada estructura
-        for nombre_estructura, estructura_data in estructuras.items():
-            valor = estructura_data.get(fila_base["parametro"], fila_base["valor"])
-            fila[nombre_estructura] = valor
-        
-        tabla_data.append(fila)
-    
-    return tabla_data, columnas
+def cargar_familia_activa() -> Optional[Dict]:
+    """Cargar datos de familia activa"""
+    nombre_familia = get_familia_activa()
+    if nombre_familia:
+        return FamiliaManager.cargar_familia(nombre_familia)
+    return None
 
 # ============================================================================
 # CALLBACKS PRINCIPALES
@@ -166,16 +80,15 @@ def cargar_opciones_familias(component_id):
     """Carga opciones de familias disponibles"""
     print(f"DEBUG: cargar_opciones_familias ejecutado con component_id: {component_id}")
     try:
-        archivos_familia = list(DATA_DIR.glob("*.familia.json"))
-        print(f"DEBUG: Archivos encontrados: {[str(a) for a in archivos_familia]}")
+        archivos_familia = FamiliaManager.obtener_archivos_familia()
+        print(f"DEBUG: Archivos encontrados: {archivos_familia}")
         
         opciones = []
         for archivo in archivos_familia:
             # Para el label, remover .familia del stem
             # Para el value, usar el stem completo para que coincida con la lógica de carga
-            stem_completo = archivo.stem  # ej: "asdasd.familia"
-            label_limpio = stem_completo.replace(".familia", "")  # ej: "asdasd"
-            opciones.append({"label": label_limpio, "value": stem_completo})
+            label_limpio = archivo.replace(".familia", "")
+            opciones.append({"label": label_limpio, "value": archivo})
         
         print(f"DEBUG: Opciones generadas: {opciones}")
         return opciones, None
@@ -211,14 +124,14 @@ def cargar_familia_seleccionada(nombre_familia):
         print(f"DEBUG: Nombre ya limpio: '{nombre_limpio}'")
     
     print(f"DEBUG: Intentando cargar familia: {nombre_limpio}")
-    datos_familia = cargar_familia_desde_archivo(nombre_limpio)
+    datos_familia = FamiliaManager.cargar_familia(nombre_limpio)
     
     if not datos_familia:
         print(f"DEBUG: No se pudo cargar familia {nombre_limpio}")
         return no_update, no_update, no_update, True, "Error", f"No se pudo cargar la familia '{nombre_limpio}'", "danger"
     
     print(f"DEBUG: Familia cargada exitosamente: {datos_familia.get('nombre_familia')}")
-    tabla_data, columnas = familia_a_tabla(datos_familia)
+    tabla_data, columnas = FamiliaManager.familia_a_tabla(datos_familia)
     print(f"DEBUG: Tabla generada con {len(tabla_data)} filas y {len(columnas)} columnas")
     
     return (tabla_data, columnas, datos_familia.get('nombre_familia', nombre_limpio), 
@@ -338,24 +251,29 @@ def eliminar_estructura(n_clicks, columnas, tabla_data):
 )
 def guardar_familia(n_clicks, nombre_familia, tabla_data, columnas):
     """Guarda familia en archivo"""
-    if not n_clicks or not nombre_familia or not tabla_data:
+    print(f"DEBUG: guardar_familia - n_clicks: {n_clicks}, nombre: {nombre_familia}")
+    
+    if not n_clicks:
         return False, "", "", "info", no_update, no_update
     
+    if not nombre_familia or not nombre_familia.strip():
+        return True, "Error", "Debe ingresar un nombre para la familia", "danger", no_update, no_update
+    
+    if not tabla_data or not columnas:
+        return True, "Error", "No hay datos para guardar", "danger", no_update, no_update
+    
     try:
-        datos_familia = tabla_a_familia(tabla_data, columnas, nombre_familia)
+        datos_familia = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia.strip())
+        print(f"DEBUG: Datos familia generados: {datos_familia.get('nombre_familia')}")
         
-        if guardar_familia_en_archivo(nombre_familia, datos_familia):
+        if FamiliaManager.guardar_familia(datos_familia):
             # Marcar como familia activa
-            try:
-                state = AppState()
-                state.set_familia_activa(sanitizar_nombre_archivo(nombre_familia))
-                print(f"DEBUG: Familia guardada y marcada como activa: {nombre_familia}")
-            except Exception as e:
-                print(f"DEBUG: Error marcando familia activa: {e}")
+            set_familia_activa(nombre_familia.strip())
+            print(f"DEBUG: Familia guardada y marcada como activa: {nombre_familia}")
             
             # Actualizar opciones del dropdown
-            archivos = obtener_archivos_familia()
-            opciones = [{"label": archivo, "value": archivo} for archivo in archivos]
+            archivos = FamiliaManager.obtener_archivos_familia()
+            opciones = [{"label": archivo.replace('.familia', ''), "value": archivo} for archivo in archivos]
             
             return (True, "Éxito", f"Familia '{nombre_familia}' guardada correctamente", "success", 
                    datos_familia, opciones)
@@ -363,7 +281,145 @@ def guardar_familia(n_clicks, nombre_familia, tabla_data, columnas):
             return True, "Error", "No se pudo guardar la familia", "danger", no_update, no_update
     
     except Exception as e:
+        print(f"ERROR: {str(e)}")
         return True, "Error", f"Error al guardar: {str(e)}", "danger", no_update, no_update
+
+@callback(
+    [Output("toast-notificacion", "is_open", allow_duplicate=True),
+     Output("toast-notificacion", "header", allow_duplicate=True),
+     Output("toast-notificacion", "children", allow_duplicate=True),
+     Output("toast-notificacion", "color", allow_duplicate=True),
+     Output("familia-activa-state", "data", allow_duplicate=True),
+     Output("select-familia-existente", "options", allow_duplicate=True),
+     Output("input-nombre-familia", "value", allow_duplicate=True)],
+    Input("btn-guardar-como-familia", "n_clicks"),
+    [State("input-nombre-familia", "value"),
+     State("tabla-familia", "data"),
+     State("tabla-familia", "columns")],
+    prevent_initial_call=True
+)
+def guardar_como_familia(n_clicks, nombre_familia, tabla_data, columnas):
+    """Guarda familia con nuevo nombre"""
+    print(f"DEBUG: guardar_como_familia - n_clicks: {n_clicks}, nombre: {nombre_familia}")
+    
+    if not n_clicks:
+        return False, "", "", "info", no_update, no_update, no_update
+    
+    if not nombre_familia or not nombre_familia.strip():
+        return True, "Error", "Debe ingresar un nombre para la familia", "danger", no_update, no_update, no_update
+    
+    if not tabla_data or not columnas:
+        return True, "Error", "No hay datos para guardar", "danger", no_update, no_update, no_update
+    
+    # Agregar sufijo "_copia" si ya existe
+    nombre_base = nombre_familia.strip()
+    nombre_nuevo = nombre_base
+    contador = 1
+    
+    while True:
+        try:
+            FamiliaManager.cargar_familia(nombre_nuevo)
+            # Si llega aquí, el archivo existe
+            if contador == 1:
+                nombre_nuevo = f"{nombre_base}_copia"
+            else:
+                nombre_nuevo = f"{nombre_base}_copia{contador}"
+            contador += 1
+        except FileNotFoundError:
+            # El archivo no existe, podemos usar este nombre
+            break
+    
+    try:
+        datos_familia = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_nuevo)
+        print(f"DEBUG: Guardando como '{nombre_nuevo}'")
+        
+        if FamiliaManager.guardar_familia(datos_familia):
+            # Marcar como familia activa
+            set_familia_activa(nombre_nuevo)
+            print(f"DEBUG: Familia guardada como '{nombre_nuevo}' y marcada como activa")
+            
+            # Actualizar opciones del dropdown
+            archivos = FamiliaManager.obtener_archivos_familia()
+            opciones = [{"label": archivo.replace('.familia', ''), "value": archivo} for archivo in archivos]
+            
+            return (True, "Éxito", f"Familia guardada como '{nombre_nuevo}'", "success", 
+                   datos_familia, opciones, nombre_nuevo)
+        else:
+            return True, "Error", "No se pudo guardar la familia", "danger", no_update, no_update, no_update
+    
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        return True, "Error", f"Error al guardar: {str(e)}", "danger", no_update, no_update, no_update
+
+@callback(
+    [Output("modal-eliminar-familia", "is_open"),
+     Output("modal-eliminar-familia-nombre", "children")],
+    [Input("btn-eliminar-familia", "n_clicks"),
+     Input("modal-eliminar-confirmar", "n_clicks"),
+     Input("modal-eliminar-cancelar", "n_clicks")],
+    [State("input-nombre-familia", "value"),
+     State("modal-eliminar-familia", "is_open")],
+    prevent_initial_call=True
+)
+def manejar_modal_eliminar_familia(n_eliminar, n_confirmar, n_cancelar, nombre_familia, is_open):
+    """Maneja modal de confirmación para eliminar familia"""
+    if not ctx.triggered:
+        return no_update, no_update
+    
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if trigger_id == "btn-eliminar-familia" and nombre_familia:
+        return True, nombre_familia
+    elif trigger_id in ["modal-eliminar-confirmar", "modal-eliminar-cancelar"]:
+        return False, no_update
+    
+    return no_update, no_update
+
+@callback(
+    [Output("toast-notificacion", "is_open", allow_duplicate=True),
+     Output("toast-notificacion", "header", allow_duplicate=True),
+     Output("toast-notificacion", "children", allow_duplicate=True),
+     Output("toast-notificacion", "color", allow_duplicate=True),
+     Output("select-familia-existente", "options", allow_duplicate=True),
+     Output("input-nombre-familia", "value", allow_duplicate=True),
+     Output("tabla-familia", "data", allow_duplicate=True),
+     Output("tabla-familia", "columns", allow_duplicate=True)],
+    Input("modal-eliminar-confirmar", "n_clicks"),
+    [State("input-nombre-familia", "value")],
+    prevent_initial_call=True
+)
+def eliminar_familia_confirmado(n_clicks, nombre_familia):
+    """Elimina familia después de confirmación"""
+    if not n_clicks or not nombre_familia:
+        return False, "", "", "info", no_update, no_update, no_update, no_update
+    
+    try:
+        # Eliminar archivo
+        nombre_archivo = nombre_familia.replace(" ", "_").replace("/", "_")
+        archivo_familia = DATA_DIR / f"{nombre_archivo}.familia.json"
+        
+        if archivo_familia.exists():
+            archivo_familia.unlink()
+            
+            # Limpiar familia activa si era la eliminada
+            if get_familia_activa() == nombre_familia:
+                set_familia_activa("")
+            
+            # Actualizar opciones del dropdown
+            archivos = FamiliaManager.obtener_archivos_familia()
+            opciones = [{"label": archivo, "value": archivo} for archivo in archivos]
+            
+            # Crear familia nueva vacía
+            familia_nueva = FamiliaManager.crear_familia_nueva()
+            tabla_data, columnas = FamiliaManager.familia_a_tabla(familia_nueva)
+            
+            return (True, "Éxito", f"Familia '{nombre_familia}' eliminada correctamente", "success", 
+                   opciones, "", tabla_data, columnas)
+        else:
+            return True, "Error", f"Familia '{nombre_familia}' no encontrada", "danger", no_update, no_update, no_update, no_update
+    
+    except Exception as e:
+        return True, "Error", f"Error al eliminar: {str(e)}", "danger", no_update, no_update, no_update, no_update
 
 # ============================================================================
 # MODAL DE EDICIÓN DE PARÁMETROS
@@ -500,11 +556,10 @@ def seleccionar_opcion_directa(n_clicks_opciones, n_clicks_bool, celda_info, tab
 )
 def actualizar_badge_familia_activa(familia_data):
     """Actualiza badge con familia activa"""
-    if not familia_data:
-        return "Ninguna"
-    
-    nombre_familia = familia_data.get('nombre_familia', 'Familia')
-    return f"📁 {nombre_familia}"
+    nombre_familia = get_familia_activa()
+    if nombre_familia:
+        return f"📁 {nombre_familia.replace('_', ' ')}"
+    return "Ninguna"
 
 # Agregar callback para confirmar modal de texto
 @callback(
@@ -527,6 +582,87 @@ def confirmar_modal_texto(n_clicks, valor_texto, celda_info, tabla_data):
     tabla_data[fila][columna] = valor_texto
     
     return tabla_data, False
+
+# ============================================================================
+# MODAL CARGAR COLUMNA
+# ============================================================================
+
+@callback(
+    [Output("modal-cargar-columna", "is_open"),
+     Output("select-estructura-cargar-columna", "options"),
+     Output("select-columna-destino", "options")],
+    [Input("btn-cargar-columna", "n_clicks"),
+     Input("modal-cargar-columna-confirmar", "n_clicks"),
+     Input("modal-cargar-columna-cancelar", "n_clicks")],
+    [State("tabla-familia", "columns"),
+     State("modal-cargar-columna", "is_open")],
+    prevent_initial_call=True
+)
+def manejar_modal_cargar_columna(n_abrir, n_confirmar, n_cancelar, columnas, is_open):
+    """Maneja modal de cargar columna"""
+    if not ctx.triggered:
+        return no_update, no_update, no_update
+    
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if trigger_id == "btn-cargar-columna":
+        # Cargar estructuras disponibles
+        estructuras = FamiliaManager.listar_estructuras_disponibles()
+        opciones_estructuras = [{"label": est, "value": est} for est in estructuras]
+        
+        # Cargar columnas disponibles
+        columnas_estructura = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
+        opciones_columnas = [{"label": col, "value": col} for col in columnas_estructura]
+        
+        return True, opciones_estructuras, opciones_columnas
+    
+    elif trigger_id in ["modal-cargar-columna-confirmar", "modal-cargar-columna-cancelar"]:
+        return False, no_update, no_update
+    
+    return no_update, no_update, no_update
+
+@callback(
+    [Output("tabla-familia", "data", allow_duplicate=True),
+     Output("modal-cargar-columna", "is_open", allow_duplicate=True),
+     Output("toast-notificacion", "is_open", allow_duplicate=True),
+     Output("toast-notificacion", "header", allow_duplicate=True),
+     Output("toast-notificacion", "children", allow_duplicate=True),
+     Output("toast-notificacion", "color", allow_duplicate=True)],
+    Input("modal-cargar-columna-confirmar", "n_clicks"),
+    [State("select-estructura-cargar-columna", "value"),
+     State("select-columna-destino", "value"),
+     State("tabla-familia", "data")],
+    prevent_initial_call=True
+)
+def cargar_columna_confirmado(n_clicks, estructura_seleccionada, columna_destino, tabla_data):
+    """Carga datos de estructura en columna seleccionada"""
+    if not n_clicks or not estructura_seleccionada or not columna_destino:
+        return no_update, no_update, False, "", "", "info"
+    
+    try:
+        # Cargar estructura seleccionada
+        estructura_data = FamiliaManager.cargar_estructura_individual(estructura_seleccionada)
+        
+        # Actualizar tabla con datos de la estructura
+        tabla_actualizada = []
+        for fila in tabla_data:
+            nueva_fila = fila.copy()
+            parametro = fila["parametro"]
+            
+            # Obtener valor de la estructura
+            if parametro in estructura_data:
+                nueva_fila[columna_destino] = estructura_data[parametro]
+            elif parametro == "cantidad":
+                nueva_fila[columna_destino] = 1  # Valor por defecto
+            
+            tabla_actualizada.append(nueva_fila)
+        
+        return (tabla_actualizada, False, True, "Éxito", 
+               f"Datos de '{estructura_seleccionada}' cargados en '{columna_destino}'", "success")
+    
+    except Exception as e:
+        return (no_update, False, True, "Error", 
+               f"Error al cargar estructura: {str(e)}", "danger")
 
 def register_callbacks(app):
     """Registra todos los callbacks del controller"""
