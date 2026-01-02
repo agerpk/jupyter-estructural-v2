@@ -14,21 +14,6 @@ class FamiliaManager:
     DATA_DIR = Path("data")
     
     @classmethod
-    def cargar_familia_actual(cls) -> Dict:
-        """Cargar familia actual o crear nueva"""
-        try:
-            # Usar la función del controlador para consistencia
-            from controllers.familia_controller import cargar_familia_actual_state
-            familia_actual = cargar_familia_actual_state()
-            if familia_actual:
-                return familia_actual
-        except:
-            pass
-        
-        # Crear familia nueva con plantilla
-        return cls._crear_familia_nueva()
-    
-    @classmethod
     def crear_familia_nueva(cls) -> Dict:
         """Crear nueva familia con plantilla"""
         plantilla = cls._cargar_plantilla()
@@ -76,17 +61,6 @@ class FamiliaManager:
         except Exception as e:
             print(f"Error guardando familia {nombre_familia}: {e}")
             return False
-    
-    @classmethod
-    def _guardar_familia_actual(cls, nombre_familia: str) -> None:
-        """Guardar referencia a familia actual"""
-        estado = {
-            "nombre_familia": nombre_familia,
-            "fecha_acceso": datetime.now().isoformat()
-        }
-        
-        with open(cls.DATA_DIR / "familia_actual.json", "w", encoding="utf-8") as f:
-            json.dump(estado, f, indent=2, ensure_ascii=False)
     
     @classmethod
     def cargar_familia(cls, nombre_familia: str) -> Dict:
@@ -216,49 +190,6 @@ class FamiliaManager:
             return []
     
     @classmethod
-    def tabla_a_familia(cls, tabla_data: List[Dict], columnas: List[Dict], nombre_familia: str) -> Dict:
-        """Convierte datos de tabla a formato .familia.json"""
-        from datetime import datetime
-        
-        # Extraer columnas de estructura (Estr.1, Estr.2, etc.)
-        columnas_estructura = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
-        
-        estructuras = {}
-        for col_id in columnas_estructura:
-            estructura_data = {}
-            
-            # Convertir filas de tabla a estructura
-            for fila in tabla_data:
-                parametro = fila['parametro']
-                valor = fila.get(col_id, fila.get('valor', ''))
-                
-                # Convertir tipos
-                tipo = fila.get('tipo', 'str')
-                if tipo == 'int':
-                    try:
-                        valor = int(valor)
-                    except:
-                        valor = 0
-                elif tipo == 'float':
-                    try:
-                        valor = float(valor)
-                    except:
-                        valor = 0.0
-                elif tipo == 'bool':
-                    valor = bool(valor) if isinstance(valor, bool) else str(valor).lower() == 'true'
-                
-                estructura_data[parametro] = valor
-            
-            estructuras[col_id] = estructura_data
-        
-        return {
-            "nombre_familia": nombre_familia,
-            "fecha_creacion": datetime.now().isoformat(),
-            "fecha_modificacion": datetime.now().isoformat(),
-            "estructuras": estructuras
-        }
-    
-    @classmethod
     def familia_a_tabla(cls, datos_familia: Dict) -> tuple[List[Dict], List[Dict]]:
         """Convierte formato .familia.json a datos de tabla"""
         if not datos_familia or 'estructuras' not in datos_familia:
@@ -310,5 +241,29 @@ class FamiliaManager:
                 fila[nombre_estructura] = valor
             
             tabla_data.append(fila)
+        
+        # Asegurar que TITULO esté primero y seguir orden de cálculo encadenado
+        # CMC>DGE>DME>ADC>SPH>FUND>COSTEO
+        def sort_key(x):
+            if x["parametro"] == "TITULO":
+                return ("0_TITULO", "0_TITULO")  # TITULO siempre primero
+            
+            # Mapeo de categorías al orden de cálculo encadenado
+            orden_categorias = {
+                "General": "1_General",
+                "Cables": "2_CMC",
+                "Cabezal": "3_DGE", 
+                "Línea": "4_DGE",
+                "Mecánica": "5_DME",
+                "Gráficos": "6_ADC",
+                "Postes": "7_SPH",
+                "Fundación": "8_FUND",
+                "Costeo": "9_COSTEO"
+            }
+            
+            categoria_orden = orden_categorias.get(x["categoria"], "Z_" + x["categoria"])
+            return (categoria_orden, x["parametro"])
+        
+        tabla_data.sort(key=sort_key)
         
         return tabla_data, columnas

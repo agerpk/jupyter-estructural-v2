@@ -185,7 +185,6 @@ def register_callbacks(app):
                     return crear_vista_comparar_cables(None)
             elif ultima_vista == "familia-estructuras":
                 from components.vista_familia_estructuras import crear_vista_familia_estructuras
-                # Cargar familia activa desde AppState
                 familia_actual = state.cargar_familia_activa()
                 return crear_vista_familia_estructuras(familia_actual)
             return crear_vista_home()
@@ -325,7 +324,6 @@ def register_callbacks(app):
         elif trigger_id == "menu-familia-estructuras":
             guardar_navegacion_state("familia-estructuras")
             from components.vista_familia_estructuras import crear_vista_familia_estructuras
-            # Cargar familia activa desde AppState
             familia_actual = state.cargar_familia_activa()
             return crear_vista_familia_estructuras(familia_actual)
         

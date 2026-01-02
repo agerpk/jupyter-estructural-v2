@@ -55,8 +55,7 @@ Sistema completo para manejo de familias de estructuras que permite:
 - [x] Conversión bidireccional tabla ↔ JSON
 - [x] Validación y creación directorio /data
 - [x] Toast notifications para operaciones CRUD
-- [x] Persistencia de familia activa en estado ✅ NUEVO
-- [x] Archivo `familia_actual.json` para estado ✅ NUEVO
+- [x] Persistencia de familia activa en AppState ✅ ACTUALIZADO
 
 #### 1.5 Campos Especiales ✅ COMPLETADO
 - [x] Campo TITULO como primera fila de tabla (editable por columna)
@@ -92,35 +91,41 @@ Sistema completo para manejo de familias de estructuras que permite:
 - [x] Reutilizar lógica de `calcular_todo_controller.py`
 - [x] Ejecutar secuencia CMC>DGE>DME>ADC>SPH>FUNDACIONES>COSTEO
 - [x] Una ejecución por cada columna de estructura
-- [x] Callback `calcular_familia()` implementado
-- [x] Función `ejecutar_calculo_estructura_completa()` implementada
-- [x] Manejo de archivos temporales para cada estructura
+- [x] Callback `calcular_familia_completa()` implementado
+- [x] Función `ejecutar_calculo_familia_completa()` implementada
+- [x] Función `_ejecutar_secuencia_estructura()` con archivos temporales
+- [x] Utilidad `calcular_familia_logica_encadenada.py` creada
+- [x] Integración completa con familia_controller.py
 
 #### 3.2 Presentación de Resultados ✅ COMPLETADO
 - [x] Sistema de pestañas por estructura
 - [x] Mostrar nombre estructura (campo TITULO) en pestaña
 - [x] Output completo similar a Calcular Todo por pestaña
-- [x] Función `crear_vista_resultados_familia()` implementada
-- [x] Función `crear_contenido_estructura()` implementada
-- [x] Callback para manejo de pestañas activas
-- [x] Área de resultados `resultados-familia` en vista
+- [x] Función `generar_vista_resultados_familia()` implementada
+- [x] Función `_crear_contenido_estructura()` implementada
+- [x] Pestaña adicional "Costeo Familia" con gráficos
+- [x] Callback integrado en familia_controller.py
+- [x] Área de resultados `resultados-familia` conectada
 
 #### 3.3 Descarga HTML ❌ PENDIENTE
 - [ ] Botón descargar HTML estructura individual
 - [ ] Botón descargar HTML familia completa
 - [ ] Reutilizar lógica de `descargar_html.py`
 
-### FASE 4: Costeo de Familia ❌ PENDIENTE
+### FASE 4: Costeo de Familia ✅ COMPLETADO
 
-#### 4.1 Cálculos de Costeo ❌ PENDIENTE
-- [ ] Costo individual por estructura
-- [ ] Costo parcial = costo individual × cantidad
-- [ ] Costo global = suma de costos parciales
+#### 4.1 Cálculos de Costeo ✅ COMPLETADO
+- [x] Costo individual por estructura
+- [x] Costo parcial = costo individual × cantidad
+- [x] Costo global = suma de costos parciales
+- [x] Función `_generar_costeo_familia()` implementada
 
-#### 4.2 Gráficos Comparativos ❌ PENDIENTE
-- [ ] Gráfico barras: costos individuales (mayor a menor)
-- [ ] Gráfico torta: costos parciales (individual × cantidad)
-- [ ] Ejes: Estructura (TITULO) vs Costo en UM
+#### 4.2 Gráficos Comparativos ✅ COMPLETADO
+- [x] Gráfico barras: costos individuales (mayor a menor)
+- [x] Gráfico torta: costos parciales (individual × cantidad)
+- [x] Ejes: Estructura (TITULO) vs Costo en UM
+- [x] Función `_generar_graficos_familia()` implementada
+- [x] Pestaña "Costeo Familia" con gráficos interactivos
 
 #### 4.3 Integración HTML ❌ PENDIENTE
 - [ ] Incluir sección costeo en HTML familia
@@ -178,11 +183,12 @@ Sistema completo para manejo de familias de estructuras que permite:
 ## Archivos a Crear/Modificar
 
 ### Nuevos Archivos
-- `components/vista_familia_estructuras.py`
+- `components/vista_familia_estructuras.py` ✅
 - `components/vista_vano_economico.py`
-- `controllers/familia_controller.py`
+- `controllers/familia_controller.py` 🔧
 - `controllers/vano_economico_controller.py`
-- `utils/familia_manager.py`
+- `utils/familia_manager.py` ✅
+- `utils/calcular_familia_logica_encadenada.py` ✅
 
 ### Archivos a Modificar
 - `components/menu.py` - Agregar entrada HERRAMIENTAS > Calcular Familia
@@ -269,7 +275,7 @@ Sistema completo para manejo de familias de estructuras que permite:
 - ✅ FASE 6 actualizada con cache VE
 - ✅ FASE 1.1 y 1.2 implementadas (estructura base y tabla)
 - ✅ FASE 1.3 implementada y testeada (modales con IDs únicos)
-- ✅ FASE 1.4 completada (CRUD + persistencia estado familia actual)
+- ✅ FASE 1.4 completada (CRUD + persistencia estado familia en AppState)
 - ✅ FASE 1.5 implementada (TITULO y cantidad como filas de tabla)
 - ✅ FASE 1.6 completada (CRUD + Eliminar con modal + separación controles)
 - ✅ Menú HERRAMIENTAS > Calcular Familia agregado
@@ -277,30 +283,28 @@ Sistema completo para manejo de familias de estructuras que permite:
 - ✅ Archivo familia de prueba creado: PSJ_Prueba1.familia.json
 - ✅ Cache deletion protege archivos .familia.json
 - ✅ Botón Eliminar Familia con modal de confirmación
-- ✅ Persistencia de familia activa en `familia_actual.json`
+- ✅ Persistencia de familia activa en AppState
 - ✅ Estado sincronizado entre navegación y operaciones CRUD
 - ✅ Controles separados: Tabla (Agregar/Eliminar/Cargar Columna) vs Familia (Guardar/Eliminar/Calcular/Cache)
 - ✅ FASE 2.1 implementada (Modal Cargar Columna funcional)
 - ✅ Botón Cargar Columna con modal de selección estructura/columna
 - ✅ Carga de datos de estructura existente en columna seleccionada
-- ✅ FASE 3.1 y 3.2 implementadas (Calcular Familia con pestañas)
-- ✅ Callback `calcular_familia()` con orquestación completa
-- ✅ Sistema de pestañas con resultados por estructura
-- ✅ Reutilización EXACTA de lógica de `calcular_todo_controller.py`
-- ✅ Área de resultados integrada en vista familia
-- ✅ Manejo correcto de AppState singleton y estructura activa
-- ✅ Creación de archivos `.estructura.json` y `.hipotesismaestro.json` reales
+- ✅ FASE 3.1 implementada (Lógica encadenada en utils/calcular_familia_logica_encadenada.py)
+- ✅ Función `ejecutar_calculo_familia_completa()` con orquestación completa
+- ✅ Función `_ejecutar_secuencia_estructura()` para cada estructura individual
+- ✅ Sistema de pestañas con `generar_vista_resultados_familia()`
+- ✅ Reutilización EXACTA de lógica de controllers individuales
+- ✅ Manejo de archivos temporales para cada estructura
 - ✅ Secuencia completa: CMC>DGE>DME>Árboles>SPH>Fundación>Costeo
-- ✅ Gestión de cache y archivos intermedios idéntica a Calcular Todo
-- ✅ Display correcto de primera pestaña por defecto
-- ✅ Mensajes de error reales sin placeholders ni datos inventados
-- 🔧 Fix aplicado: Corrección de callback de pestañas para evitar error 'dict' object has no attribute 'style'
-- 🔧 Fix aplicado: Agregados parámetros de viento faltantes (Vmax, Vmed, t_hielo, temp_max_zona) para evitar errores CMC
-- 🔧 Fix aplicado: Agregados parámetros adicionales de cálculo (Zco, Zcg, Zca, Zes, Cf_*, PCADENA, etc.) requeridos por Cable_AEA
-- 🔧 Fix aplicado: Reutilización exacta de lógica calcular_todo_controller.py sin imports innecesarios
-- 🔧 Fix aplicado: Corrección crítica en `ejecutar_calculo_como_calcular_todo()` - usar datos directos de familia en lugar de cargar desde archivo
-- 🔧 TESTING PENDIENTE: Usuario debe verificar que cálculos se ejecuten sin errores
-- ❌ FASE 3.3, 4-6 pendientes
+- ✅ Gestión de cache individual por estructura (titulo.calculoCMC.json, etc.)
+- ✅ FASE 4 implementada (Costeo global de familia)
+- ✅ Función `_generar_costeo_familia()` con cálculos de costos
+- ✅ Función `_generar_graficos_familia()` con gráficos Plotly
+- ✅ Pestaña "Costeo Familia" con gráficos de barras y torta
+- ✅ Campo "cantidad" integrado en cálculos (costo_parcial = individual × cantidad)
+- 🔧 TESTING PENDIENTE: Callback `calcular_familia()` en familia_controller.py
+- 🔧 TESTING PENDIENTE: Integración completa con vista familia
+- ❌ FASE 3.3, 5-6 pendientes
 
 ---
 

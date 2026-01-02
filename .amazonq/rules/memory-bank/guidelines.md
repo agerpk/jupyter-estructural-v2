@@ -173,13 +173,97 @@ Frequency: Medium for configuration
 - Separate configuration from calculation logic
 - Cache expensive calculations to avoid redundancy
 
-### Dash Callback Management
-- **CRITICAL**: Avoid adding menu actions (like `menu-guardar-estructura`, `menu-nueva-estructura`) as Inputs to navigation callbacks
-- Navigation callbacks should ONLY respond to explicit navigation actions (menu items that change views)
-- Use `State` instead of `Input` for data stores (`estructura-actual`) to prevent unwanted callback triggers
-- Use `prevent_initial_call=True` on callbacks that update UI elements to avoid initialization cascades
-- Return `dash.no_update` instead of empty components to preserve existing content on error
-- Use `allow_duplicate=True` when multiple callbacks update the same Output
+### Callback Registration Best Practices
+
+#### CRITICAL: Callback Registration Patterns
+
+**ONLY Use Function-Based Registration Pattern:**
+```python
+def register_callbacks(app):
+    """Registrar callbacks del controller"""
+    
+    @app.callback(
+        [Output("component-id", "property")],
+        Input("button-id", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def callback_function(n_clicks):
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        return result
+```
+
+**NEVER Use Decorator-Only Pattern:**
+```python
+# ❌ WRONG - Causes registration conflicts
+@callback(
+    Output("component-id", "property"),
+    Input("button-id", "n_clicks")
+)
+def callback_function(n_clicks):
+    pass
+```
+
+#### Critical Callback Requirements
+
+1. **n_clicks Validation**: Always use `if n_clicks is None:` not `if not n_clicks:`
+   - `not 0` is `True` but `0 is None` is `False`
+   - Use `raise dash.exceptions.PreventUpdate` for None values
+
+2. **Toast Output Consistency**: Match exact output structure across controllers
+   ```python
+   # Standard toast outputs (5 outputs)
+   Output("toast-notificacion", "is_open", allow_duplicate=True),
+   Output("toast-notificacion", "header", allow_duplicate=True), 
+   Output("toast-notificacion", "children", allow_duplicate=True),
+   Output("toast-notificacion", "icon", allow_duplicate=True),
+   Output("toast-notificacion", "color", allow_duplicate=True)
+   ```
+
+3. **Registration in app.py**: All controllers must be registered in `app.py`:
+   ```python
+   controller_name.register_callbacks(app)
+   ```
+
+4. **Import Structure**: Use standard imports in controllers:
+   ```python
+   import dash
+   from dash import Input, Output, State, no_update
+   ```
+
+#### Common Callback Errors and Solutions
+
+**Error**: Callbacks not executing (no debug output)
+**Cause**: Mixed decorator patterns or registration conflicts
+**Solution**: Use only function-based registration pattern
+
+**Error**: "Unexpected keyword argument" in components
+**Cause**: Passing internal config fields to Dash components
+**Solution**: Filter out internal fields before passing to components
+```python
+# Wrong
+dcc.Slider(**config)
+
+# Correct  
+dcc.Slider(**{k: v for k, v in config.items() if k != "tipo"})
+```
+
+**Error**: Toast outputs mismatch
+**Cause**: Different number of outputs between controllers
+**Solution**: Always use exact same toast output structure (5 outputs including "icon")
+
+#### Debugging Callback Issues
+
+1. **Add Debug Prints**: Use distinctive markers
+   ```python
+   print(f"🔵 DEBUG: callback_name EJECUTADO - n_clicks: {n_clicks}")
+   ```
+
+2. **Check Registration**: Verify controller is called in `app.py`
+
+3. **Verify IDs**: Ensure button IDs match between view and controller
+
+4. **Test Incrementally**: Start with minimal callback, add complexity gradually
 
 ### Data Persistence
 - Use JSON for structured configuration and results

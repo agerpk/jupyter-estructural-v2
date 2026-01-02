@@ -932,70 +932,46 @@ if any(abs(val) > 0.01 for val in carga_lista):
 
 ---
 
-### Callback Único Centralizado para Evitar Conflictos de Duplicados
+### Callback Registration Conflicts - Mixed Patterns
 
-**Context**: Implementando sistema de callbacks para familia de estructuras con múltiples acciones (guardar, cargar, guardar como).
+**Context**: Implementing familia_controller.py with callback registration.
 
-**Issue**: Múltiples callbacks intentaban actualizar los mismos outputs (`toast-notificacion`, `familia-activa-state`) causando errores de `DuplicateCallback` y callbacks que no se ejecutaban.
+**Issue**: Callbacks not executing despite correct IDs and component structure.
 
-**Root Cause**: Dash no permite que múltiples callbacks actualicen el mismo Output sin usar `allow_duplicate=True`, pero esto requiere `prevent_initial_call=True` y puede causar problemas de ejecución.
+**Root Cause**: Mixed callback registration patterns in same controller:
+1. Using `@callback` decorators (auto-registration)
+2. Using `register_callbacks(app)` function (manual registration)
+3. Calling `controller.register_callbacks(app)` in `app.py`
 
-**Resolution**: Implementar **Callback Único Centralizado** usando `dash.callback_context`:
-
+**Resolution**: Use ONLY function-based registration pattern:
 ```python
-@app.callback(
-    [Output("toast-notificacion", "is_open"),
-     Output("toast-notificacion", "header"),
-     Output("toast-notificacion", "children"),
-     Output("toast-notificacion", "color"),
-     Output("familia-activa-state", "data"),
-     Output("input-nombre-familia", "value"),
-     Output("tabla-familia", "data"),
-     Output("tabla-familia", "columns")],
-    [Input("btn-guardar-familia", "n_clicks"),
-     Input("btn-guardar-como-familia", "n_clicks"),
-     Input("select-familia-existente", "value")],
-    [State("input-nombre-familia", "value"),
-     State("tabla-familia", "data"),
-     State("tabla-familia", "columns")],
-    prevent_initial_call=True
-)
-def manejar_acciones_familia_centralizado(n_guardar, n_guardar_como, familia_seleccionada, nombre_familia, tabla_data, columnas):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+def register_callbacks(app):
+    """Registra todos los callbacks del controller"""
     
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    
-    if trigger_id == "btn-guardar-familia":
-        # Lógica de guardar familia
-        return guardar_familia_logic(...)
-    elif trigger_id == "btn-guardar-como-familia":
-        # Lógica de guardar como familia
-        return guardar_como_familia_logic(...)
-    elif trigger_id == "select-familia-existente":
-        # Lógica de cargar familia
-        return cargar_familia_logic(...)
+    @app.callback(
+        [Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("btn-guardar-familia", "n_clicks"),
+        [State("input-nombre-familia", "value")],
+        prevent_initial_call=True
+    )
+    def callback_function(n_clicks, param):
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        return results
 ```
 
-**Ventajas del Callback Centralizado**:
-1. **Elimina conflictos de duplicados**: Un solo callback maneja todos los outputs
-2. **Mejor debugging**: Un solo lugar para debug prints y manejo de errores
-3. **Lógica cohesiva**: Todas las acciones relacionadas en un lugar
-4. **Menos complejidad**: No necesita `allow_duplicate=True`
-5. **Mejor performance**: Menos callbacks registrados
-
-**Patrón de Implementación**:
-1. Identificar callbacks que comparten outputs
-2. Combinar todos los Inputs en un solo callback
-3. Usar `dash.callback_context` para identificar qué Input disparó el callback
-4. Implementar lógica condicional basada en `trigger_id`
-5. Retornar `no_update` para outputs que no deben cambiar
-
-**Key Takeaway**: Para evitar conflictos de callbacks duplicados, usar **Callback Único Centralizado** con `callback_context` en lugar de múltiples callbacks con `allow_duplicate=True`.
+**Key Takeaways**:
+- **Never mix patterns**: Use either decorators OR function registration, not both
+- **Function pattern preferred**: Consistent with existing controllers (parametros_controller.py)
+- **Critical validation**: Use `n_clicks is None` not `not n_clicks`
+- **Toast consistency**: Always include "icon" output (5 total outputs)
+- **PreventUpdate**: Use `raise dash.exceptions.PreventUpdate` for None values
 
 **Files Modified**:
-- `controllers/familia_controller.py` - Implementación de callback centralizado
-- `.amazonq/rules/memory-bank/troubleshooting.md` - Documentación del patrón
+- `controllers/familia_controller.py` - Converted from mixed pattern to function-only pattern
 
 ---

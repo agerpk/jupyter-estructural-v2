@@ -19,55 +19,6 @@ from utils.calculo_cache import CalculoCache
 from utils.view_helpers import ViewHelpers
 
 # ============================================================================
-# GESTIÓN DE ESTADO FAMILIA ACTIVA (UNIFICADO EN CONTROLLER)
-# ============================================================================
-
-_familia_activa_nombre = None
-
-def set_familia_activa(nombre_familia: str):
-    """Establecer familia activa"""
-    global _familia_activa_nombre
-    _familia_activa_nombre = nombre_familia
-    
-    # Guardar en archivo de estado
-    try:
-        estado = {
-            "nombre_familia": nombre_familia,
-            "fecha_acceso": datetime.now().isoformat()
-        }
-        with open(DATA_DIR / "familia_actual.json", "w", encoding="utf-8") as f:
-            json.dump(estado, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error guardando estado familia: {e}")
-
-def get_familia_activa() -> Optional[str]:
-    """Obtener familia activa"""
-    global _familia_activa_nombre
-    
-    if _familia_activa_nombre:
-        return _familia_activa_nombre
-    
-    # Cargar desde archivo
-    try:
-        archivo_estado = DATA_DIR / "familia_actual.json"
-        if archivo_estado.exists():
-            with open(archivo_estado, "r", encoding="utf-8") as f:
-                estado = json.load(f)
-                _familia_activa_nombre = estado.get("nombre_familia")
-                return _familia_activa_nombre
-    except Exception as e:
-        print(f"Error cargando estado familia: {e}")
-    
-    return None
-
-def cargar_familia_activa() -> Optional[Dict]:
-    """Cargar datos de familia activa"""
-    nombre_familia = get_familia_activa()
-    if nombre_familia:
-        return FamiliaManager.cargar_familia(nombre_familia)
-    return None
-
-# ============================================================================
 # CALLBACKS PRINCIPALES
 # ============================================================================
 
@@ -156,3 +107,49 @@ def register_callbacks(app):
         print(f"🔵 DEBUG: Guardando como familia '{nombre_familia}'")
         
         return (True, "Éxito", f"Familia guardada como '{nombre_familia}'", "success", "success")
+    
+    @app.callback(
+        [Output("resultados-familia", "children"),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("btn-calcular-familia", "n_clicks"),
+        [State("input-nombre-familia", "value"),
+         State("tabla-familia", "data"),
+         State("tabla-familia", "columns")],
+        prevent_initial_call=True
+    )
+    def calcular_familia_completa(n_clicks, nombre_familia, tabla_data, columnas):
+        """Ejecuta cálculo completo de familia"""
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        print(f"🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
+        
+        try:
+            # Validar datos
+            if not nombre_familia or not tabla_data or not columnas:
+                return (no_update, True, "Error", "Faltan datos para calcular", "danger", "danger")
+            
+            # Convertir tabla a formato familia
+            familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
+            
+            # Ejecutar cálculo usando utilidad
+            from utils.calcular_familia_logica_encadenada import ejecutar_calculo_familia_completa
+            resultados_familia = ejecutar_calculo_familia_completa(familia_data)
+            
+            if not resultados_familia.get("exito"):
+                return (no_update, True, "Error", f"Error en cálculo: {resultados_familia.get('mensaje')}", "danger", "danger")
+            
+            # Generar vista con pestañas
+            from utils.calcular_familia_logica_encadenada import generar_vista_resultados_familia
+            vista_resultados = generar_vista_resultados_familia(resultados_familia)
+            
+            return (vista_resultados, True, "Éxito", "Cálculo de familia completado", "success", "success")
+            
+        except Exception as e:
+            import traceback
+            print(f"❌ ERROR: {traceback.format_exc()}")
+            return (no_update, True, "Error", f"Error: {str(e)}", "danger", "danger")
