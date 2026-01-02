@@ -65,6 +65,16 @@ def crear_vista_familia_estructuras(familia_actual=None):
                 crear_filtros_familia(),
                 html.Hr(),
                 
+                # Estados Climáticos (compartidos por toda la familia)
+                dbc.Card([
+                    dbc.CardHeader(html.H5("Estados Climáticos (Compartidos por toda la familia)")),
+                    dbc.CardBody([
+                        dbc.Button("Modificar Estados Climáticos y Restricciones", 
+                                  id="btn-modificar-estados-familia", 
+                                  color="info", size="sm")
+                    ])
+                ], className="mb-3"),
+                
                 # Tabla de parámetros multi-columna
                 dash_table.DataTable(
                     id="tabla-familia",
@@ -120,7 +130,17 @@ def crear_vista_familia_estructuras(familia_actual=None):
                 ),
                 
                 # Modal para edición
-                crear_modal_familia()
+                crear_modal_familia(),
+                
+                # Modal para estados climáticos
+                dbc.Modal([
+                    dbc.ModalHeader(dbc.ModalTitle("Estados Climáticos y Restricciones")),
+                    dbc.ModalBody(id="modal-estados-body"),
+                    dbc.ModalFooter([
+                        dbc.Button("Cancelar", id="modal-estados-cancelar", color="secondary", className="me-2"),
+                        dbc.Button("Guardar", id="modal-estados-guardar", color="primary")
+                    ])
+                ], id="modal-estados-familia", is_open=False, size="xl")
             ])
         ])
     ])
@@ -331,7 +351,7 @@ def crear_modal_familia():
 # Los callbacks están ahora en familia_controller.py
 
 def generar_datos_tabla_familia(familia_actual):
-    """Generar datos para tabla de familia usando ParametrosManager"""
+    """Generar datos para tabla de familia con TODOS los campos de plantilla"""
     
     print("DEBUG: Iniciando generar_datos_tabla_familia")
     
@@ -348,12 +368,11 @@ def generar_datos_tabla_familia(familia_actual):
     estructuras = familia_actual.get("estructuras", {"Estr.1": plantilla})
     print(f"DEBUG: Estructuras en familia: {list(estructuras.keys())}")
     
-    # Usar ParametrosManager para generar datos completos
+    # Usar ParametrosManager para obtener metadata
     from utils.parametros_manager import ParametrosManager
-    tabla_base = ParametrosManager.estructura_a_tabla(plantilla)
-    print(f"DEBUG: Tabla base generada con {len(tabla_base)} parámetros")
+    metadata_dict = ParametrosManager.PARAMETROS_METADATA
     
-    # Generar filas de tabla
+    # Generar filas de tabla para TODOS los campos de plantilla
     tabla_data = []
     
     # Agregar fila TITULO como primera fila
@@ -365,11 +384,8 @@ def generar_datos_tabla_familia(familia_actual):
         "descripcion": "Título de la estructura",
         "tipo": "str"
     }
-    
-    # Agregar valores TITULO de cada estructura
     for nombre_estr, datos_estr in estructuras.items():
         fila_titulo[nombre_estr] = datos_estr.get("TITULO", "")
-    
     tabla_data.append(fila_titulo)
     
     # Agregar fila CANTIDAD como segunda fila
@@ -381,33 +397,92 @@ def generar_datos_tabla_familia(familia_actual):
         "descripcion": "Cantidad de estructuras",
         "tipo": "int"
     }
-    
-    # Agregar valores CANTIDAD de cada estructura
     for nombre_estr, datos_estr in estructuras.items():
         fila_cantidad[nombre_estr] = datos_estr.get("cantidad", 1)
-    
     tabla_data.append(fila_cantidad)
     
-    # Agregar todos los parámetros de la tabla base
-    for fila_base in tabla_base:
-        parametro = fila_base["parametro"]
+    # Procesar TODOS los campos de la plantilla
+    for parametro, valor_plantilla in plantilla.items():
+        # Saltar campos especiales (pero NO costeo - se procesará expandido)
+        if parametro in ["TITULO", "cantidad", "fecha_creacion", "fecha_modificacion", "version", "nodos_editados", "estados_climaticos"]:
+            continue
         
-        fila = {
-            "categoria": fila_base["categoria"],
-            "parametro": parametro,
-            "simbolo": fila_base["simbolo"],
-            "unidad": fila_base["unidad"],
-            "descripcion": fila_base["descripcion"],
-            "tipo": fila_base["tipo"]
-        }
+        # Expandir campos anidados de costeo
+        if parametro == "costeo" and isinstance(valor_plantilla, dict):
+            for subcampo, subvalor in valor_plantilla.items():
+                if isinstance(subvalor, dict):
+                    # Expandir un nivel más (ej: fundaciones.precio_m3_hormigon)
+                    for subsubcampo, subsubvalor in subvalor.items():
+                        param_completo = f"{parametro}.{subcampo}.{subsubcampo}"
+                        fila = {
+                            "categoria": "Costeo",
+                            "parametro": param_completo,
+                            "simbolo": subsubcampo[:10],
+                            "unidad": "UM" if "precio" in subsubcampo or "costo" in subsubcampo else "-",
+                            "descripcion": subsubcampo.replace("_", " ").title(),
+                            "tipo": "float" if isinstance(subsubvalor, (int, float)) else "str"
+                        }
+                        # Agregar valores de cada estructura
+                        for nombre_estr, datos_estr in estructuras.items():
+                            costeo_estr = datos_estr.get("costeo", {})
+                            subcampo_estr = costeo_estr.get(subcampo, {})
+                            fila[nombre_estr] = subcampo_estr.get(subsubcampo, subsubvalor)
+                        tabla_data.append(fila)
+                else:
+                    # Campo simple dentro de costeo
+                    param_completo = f"{parametro}.{subcampo}"
+                    fila = {
+                        "categoria": "Costeo",
+                        "parametro": param_completo,
+                        "simbolo": subcampo[:10],
+                        "unidad": "UM" if "precio" in subcampo or "costo" in subcampo else "-",
+                        "descripcion": subcampo.replace("_", " ").title(),
+                        "tipo": "float" if isinstance(subvalor, (int, float)) else "str"
+                    }
+                    # Agregar valores de cada estructura
+                    for nombre_estr, datos_estr in estructuras.items():
+                        costeo_estr = datos_estr.get("costeo", {})
+                        fila[nombre_estr] = costeo_estr.get(subcampo, subvalor)
+                    tabla_data.append(fila)
+            continue
+        
+        # Obtener metadata si existe, sino usar valores por defecto
+        if parametro in metadata_dict:
+            metadata = metadata_dict[parametro]
+            fila = {
+                "categoria": metadata["categoria"],
+                "parametro": parametro,
+                "simbolo": metadata["simbolo"],
+                "unidad": metadata["unidad"],
+                "descripcion": metadata["descripcion"],
+                "tipo": metadata["tipo"]
+            }
+        else:
+            # Parámetro sin metadata - inferir tipo
+            tipo_inferido = "str"
+            if isinstance(valor_plantilla, bool):
+                tipo_inferido = "bool"
+            elif isinstance(valor_plantilla, int):
+                tipo_inferido = "int"
+            elif isinstance(valor_plantilla, float):
+                tipo_inferido = "float"
+            
+            fila = {
+                "categoria": "Otros",
+                "parametro": parametro,
+                "simbolo": parametro[:10],
+                "unidad": "-",
+                "descripcion": parametro.replace("_", " ").title(),
+                "tipo": tipo_inferido
+            }
         
         # Agregar valores de cada estructura
         for nombre_estr, datos_estr in estructuras.items():
-            fila[nombre_estr] = datos_estr.get(parametro, fila_base["valor"])
+            fila[nombre_estr] = datos_estr.get(parametro, valor_plantilla)
         
         tabla_data.append(fila)
     
-    print(f"DEBUG: Tabla final generada con {len(tabla_data)} filas")
+    print(f"DEBUG: Tabla final generada con {len(tabla_data)} filas (TODOS los campos)")
     if tabla_data:
         print(f"DEBUG: Primera fila: {tabla_data[0]}")
     
@@ -420,3 +495,68 @@ def cargar_plantilla_estructura():
             return json.load(f)
     except FileNotFoundError:
         return {}
+
+def crear_tabla_estados_climaticos_familia(familia_actual):
+    """Crear tabla editable de estados climáticos para familia"""
+    
+    # Obtener estados de la familia o usar valores por defecto
+    estados_familia = familia_actual.get("estados_climaticos", {
+        "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
+        "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
+        "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "espesor_hielo": 0},
+        "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01},
+        "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
+    })
+    
+    # Restricciones por defecto
+    restricciones_familia = familia_actual.get("restricciones_cables", {
+        "conductor": {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25},
+        "guardia": {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
+    })
+    
+    # Encabezado
+    header = dbc.Row([
+        dbc.Col(html.Strong("Estado"), md=1),
+        dbc.Col(html.Strong("Temp (°C)"), md=1),
+        dbc.Col(html.Strong("Descripción"), md=2),
+        dbc.Col(html.Strong("Viento (m/s)"), md=2),
+        dbc.Col(html.Strong("Hielo (m)"), md=2),
+        dbc.Col(html.Strong("Restricción Conductor (%)"), md=2),
+        dbc.Col(html.Strong("Restricción Guardia (%)"), md=2),
+    ], className="mb-2 fw-bold")
+    
+    filas = [header]
+    for estado_id in ["I", "II", "III", "IV", "V"]:
+        valores = estados_familia.get(estado_id, {})
+        fila = dbc.Row([
+            dbc.Col(html.Strong(estado_id), md=1),
+            dbc.Col(
+                dbc.Input(id={"type": "familia-estado-temp", "index": estado_id}, type="number", 
+                         value=valores.get("temperatura", 0), size="sm"), md=1
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "familia-estado-desc", "index": estado_id}, type="text",
+                         value=valores.get("descripcion", ""), size="sm"), md=2
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "familia-estado-viento", "index": estado_id}, type="number",
+                         value=valores.get("viento_velocidad", 0), size="sm"), md=2
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "familia-estado-hielo", "index": estado_id}, type="number",
+                         value=valores.get("espesor_hielo", 0), size="sm"), md=2
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "familia-restriccion-conductor", "index": estado_id}, type="number",
+                         value=restricciones_familia["conductor"].get(estado_id, 0.25), 
+                         size="sm", step=0.01, min=0, max=1), md=2
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "familia-restriccion-guardia", "index": estado_id}, type="number",
+                         value=restricciones_familia["guardia"].get(estado_id, 0.7), 
+                         size="sm", step=0.01, min=0, max=1), md=2
+            ),
+        ], className="mb-2")
+        filas.append(fila)
+    
+    return html.Div(filas)

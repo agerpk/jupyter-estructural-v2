@@ -1,7 +1,7 @@
 {
   "nombre_familia": "asdasd",
   "fecha_creacion": "2026-01-02T12:44:11.849295",
-  "fecha_modificacion": "2026-01-02T12:44:11.849295",
+  "fecha_modificacion": "2026-01-02T17:31:55.110247",
   "estructuras": {
     "Estr.1": {
       "TITULO": "2x220 DTT SAN JORGE PRUEBAS",
@@ -254,6 +254,54 @@
       "FORZAR_N_POSTES": 1,
       "FORZAR_ORIENTACION": "No",
       "PRIORIDAD_DIMENSIONADO": "altura_libre"
+    }
+  },
+  "estados_climaticos": {
+    "I": {
+      "temperatura": 35,
+      "descripcion": "Tmáx",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0
+    },
+    "II": {
+      "temperatura": -20,
+      "descripcion": "Tmín",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0
+    },
+    "III": {
+      "temperatura": 10,
+      "descripcion": "Vmáx",
+      "viento_velocidad": 38.9,
+      "espesor_hielo": 0
+    },
+    "IV": {
+      "temperatura": -5,
+      "descripcion": "Vmed",
+      "viento_velocidad": 15.56,
+      "espesor_hielo": 0.01
+    },
+    "V": {
+      "temperatura": 8,
+      "descripcion": "TMA",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0
+    }
+  },
+  "restricciones_cables": {
+    "conductor": {
+      "I": 0.25,
+      "II": 0.4,
+      "III": 0.4,
+      "IV": 0.4,
+      "V": 0.25
+    },
+    "guardia": {
+      "I": 0.7,
+      "II": 0.7,
+      "III": 0.7,
+      "IV": 0.7,
+      "V": 0.7
     }
   }
 }

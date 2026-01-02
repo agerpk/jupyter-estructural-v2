@@ -97,6 +97,14 @@ class FamiliaManager:
         """Convierte datos de tabla a formato .familia.json"""
         from datetime import datetime
         
+        # Intentar cargar familia existente para preservar estados_climaticos y restricciones
+        familia_existente = None
+        try:
+            familia_existente = cls.cargar_familia(nombre_familia)
+            print(f"   💾 DEBUG tabla_a_familia: Familia existente cargada con keys: {list(familia_existente.keys())}")
+        except:
+            print(f"   ⚠️ DEBUG tabla_a_familia: No se encontró familia existente, creando nueva")
+        
         # Extraer columnas de estructura (Estr.1, Estr.2, etc.)
         columnas_estructura = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
         
@@ -109,7 +117,52 @@ class FamiliaManager:
                 parametro = fila['parametro']
                 valor = fila.get(col_id, fila.get('valor', ''))
                 
-                # Convertir tipos
+                # Manejar parámetros anidados (ej: costeo.fundaciones.precio_m3_hormigon)
+                if "." in parametro:
+                    partes = parametro.split(".")
+                    if partes[0] == "costeo":
+                        # Inicializar costeo si no existe
+                        if "costeo" not in estructura_data:
+                            estructura_data["costeo"] = {}
+                        
+                        if len(partes) == 3:  # costeo.subcampo.subsubcampo
+                            subcampo, subsubcampo = partes[1], partes[2]
+                            if subcampo not in estructura_data["costeo"]:
+                                estructura_data["costeo"][subcampo] = {}
+                            
+                            # Convertir tipo
+                            tipo = fila.get('tipo', 'str')
+                            if tipo == 'int':
+                                try:
+                                    valor = int(valor)
+                                except:
+                                    valor = 0
+                            elif tipo == 'float':
+                                try:
+                                    valor = float(valor)
+                                except:
+                                    valor = 0.0
+                            
+                            estructura_data["costeo"][subcampo][subsubcampo] = valor
+                        elif len(partes) == 2:  # costeo.subcampo
+                            subcampo = partes[1]
+                            # Convertir tipo
+                            tipo = fila.get('tipo', 'str')
+                            if tipo == 'int':
+                                try:
+                                    valor = int(valor)
+                                except:
+                                    valor = 0
+                            elif tipo == 'float':
+                                try:
+                                    valor = float(valor)
+                                except:
+                                    valor = 0.0
+                            
+                            estructura_data["costeo"][subcampo] = valor
+                    continue
+                
+                # Convertir tipos para parámetros normales
                 tipo = fila.get('tipo', 'str')
                 if tipo == 'int':
                     try:
@@ -128,12 +181,26 @@ class FamiliaManager:
             
             estructuras[col_id] = estructura_data
         
-        return {
+        # Crear familia_data base
+        familia_data = {
             "nombre_familia": nombre_familia,
             "fecha_creacion": datetime.now().isoformat(),
             "fecha_modificacion": datetime.now().isoformat(),
             "estructuras": estructuras
         }
+        
+        # Preservar estados_climaticos y restricciones_cables de familia existente
+        if familia_existente:
+            if "estados_climaticos" in familia_existente:
+                familia_data["estados_climaticos"] = familia_existente["estados_climaticos"]
+                print(f"   ✅ DEBUG tabla_a_familia: estados_climaticos preservados")
+            if "restricciones_cables" in familia_existente:
+                familia_data["restricciones_cables"] = familia_existente["restricciones_cables"]
+                print(f"   ✅ DEBUG tabla_a_familia: restricciones_cables preservadas")
+        
+        print(f"   💾 DEBUG tabla_a_familia: Retornando familia con keys: {list(familia_data.keys())}")
+        
+        return familia_data
     
     @classmethod
     def calcular_hash_familia(cls, familia_data: Dict) -> str:

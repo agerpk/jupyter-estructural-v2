@@ -166,23 +166,24 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
         if not resultado_objetos["exito"]:
             return {"exito": False, "mensaje": resultado_objetos["mensaje"]}
         
-        # Estados climáticos desde estructura o defaults configurables por zona AEA
-        estados_climaticos = estructura_actual.get("estados_climaticos", {
-            "I": {"temperatura": estructura_actual["temp_max_zona"], "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
-            "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
-            "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": estructura_actual["Vmax"], "espesor_hielo": 0},
-            "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": estructura_actual["Vmed"], "espesor_hielo": estructura_actual["t_hielo"]},
-            "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
-        })
+        # Estados climáticos desde estructura - OBLIGATORIOS si no existen
+        if "estados_climaticos" not in estructura_actual:
+            raise KeyError("Debe configurar estados climáticos en la familia antes de calcular (botón 'Modificar Estados Climáticos y Restricciones')")
         
-        # Restricciones por defecto
-        restricciones_dict = {
-            "conductor": {"tension_max_porcentaje": {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}},
-            "guardia": {
-                "tension_max_porcentaje": {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7},
-                "relflecha_max": estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95)
+        estados_climaticos = estructura_actual["estados_climaticos"]
+        
+        # Restricciones desde estructura o error
+        if "restricciones_cables" in estructura_actual:
+            rest_cables = estructura_actual["restricciones_cables"]
+            restricciones_dict = {
+                "conductor": {"tension_max_porcentaje": rest_cables["conductor"]},
+                "guardia": {
+                    "tension_max_porcentaje": rest_cables["guardia"],
+                    "relflecha_max": estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95)
+                }
             }
-        }
+        else:
+            raise KeyError("Debe configurar restricciones de cables en la familia antes de calcular (botón 'Modificar Estados Climáticos y Restricciones')")
         
         # Parámetros de cálculo - SIN valores por defecto, debe fallar si no existen
         params = {

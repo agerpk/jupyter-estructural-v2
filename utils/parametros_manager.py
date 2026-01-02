@@ -85,6 +85,134 @@ class ParametrosManager:
             "categoria": "Cables"
         },
         
+        # PARÁMETROS DE VIENTO Y CARGAS
+        "Vmax": {
+            "simbolo": "Vmax",
+            "unidad": "m/s",
+            "descripcion": "Velocidad máxima del viento",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Vmed": {
+            "simbolo": "Vmed",
+            "unidad": "m/s",
+            "descripcion": "Velocidad media del viento",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Vtormenta": {
+            "simbolo": "Vtor",
+            "unidad": "m/s",
+            "descripcion": "Velocidad de viento en tormenta",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "t_hielo": {
+            "simbolo": "thielo",
+            "unidad": "m",
+            "descripcion": "Espesor de hielo",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Q": {
+            "simbolo": "Q",
+            "unidad": "kN/m²",
+            "descripcion": "Presión dinámica del viento",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Zco": {
+            "simbolo": "Zco",
+            "unidad": "m",
+            "descripcion": "Altura de referencia conductor",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Zcg": {
+            "simbolo": "Zcg",
+            "unidad": "m",
+            "descripcion": "Altura de referencia guardia",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Zca": {
+            "simbolo": "Zca",
+            "unidad": "m",
+            "descripcion": "Altura de referencia cadena",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Zes": {
+            "simbolo": "Zes",
+            "unidad": "m",
+            "descripcion": "Altura de referencia estructura",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Cf_cable": {
+            "simbolo": "Cf_c",
+            "unidad": "-",
+            "descripcion": "Coeficiente de forma cable",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Cf_guardia": {
+            "simbolo": "Cf_g",
+            "unidad": "-",
+            "descripcion": "Coeficiente de forma guardia",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Cf_cadena": {
+            "simbolo": "Cf_cad",
+            "unidad": "-",
+            "descripcion": "Coeficiente de forma cadena",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "Cf_estructura": {
+            "simbolo": "Cf_e",
+            "unidad": "-",
+            "descripcion": "Coeficiente de forma estructura",
+            "tipo": "float",
+            "categoria": "Línea"
+        },
+        "A_cadena": {
+            "simbolo": "Acad",
+            "unidad": "m²",
+            "descripcion": "Área expuesta cadena",
+            "tipo": "float",
+            "categoria": "Mecánica"
+        },
+        "PCADENA": {
+            "simbolo": "Pcad",
+            "unidad": "daN",
+            "descripcion": "Peso de cadena",
+            "tipo": "float",
+            "categoria": "Mecánica"
+        },
+        "PESTRUCTURA": {
+            "simbolo": "Pestr",
+            "unidad": "daN",
+            "descripcion": "Peso de estructura",
+            "tipo": "float",
+            "categoria": "Mecánica"
+        },
+        "A_estr_trans": {
+            "simbolo": "Aet",
+            "unidad": "m²",
+            "descripcion": "Área estructura transversal",
+            "tipo": "float",
+            "categoria": "Mecánica"
+        },
+        "A_estr_long": {
+            "simbolo": "Ael",
+            "unidad": "m²",
+            "descripcion": "Área estructura longitudinal",
+            "tipo": "float",
+            "categoria": "Mecánica"
+        },
+        
         # CONFIGURACIÓN DISEÑO DE CABEZAL
         "TENSION": {
             "simbolo": "U",
@@ -315,6 +443,41 @@ class ParametrosManager:
             "descripcion": "Objetivo guardia",
             "tipo": "select",
             "categoria": "Mecánica"
+        },
+        "SALTO_PORCENTUAL": {
+            "simbolo": "Salto",
+            "unidad": "-",
+            "descripcion": "Salto porcentual optimización",
+            "tipo": "float",
+            "categoria": "Mecánica"
+        },
+        "PASO_AFINADO": {
+            "simbolo": "Paso",
+            "unidad": "-",
+            "descripcion": "Paso afinado optimización",
+            "tipo": "float",
+            "categoria": "Mecánica"
+        },
+        "RELFLECHA_MAX_GUARDIA": {
+            "simbolo": "RFG",
+            "unidad": "-",
+            "descripcion": "Relación flecha máx guardia",
+            "tipo": "float",
+            "categoria": "Mecánica"
+        },
+        "RELFLECHA_SIN_VIENTO": {
+            "simbolo": "RFSV",
+            "unidad": "-",
+            "descripcion": "Relación flecha sin viento",
+            "tipo": "bool",
+            "categoria": "Mecánica"
+        },
+        "Vn": {
+            "simbolo": "Vn",
+            "unidad": "kV",
+            "descripcion": "Tensión nominal línea",
+            "tipo": "float",
+            "categoria": "General"
         },
         
         # CONFIGURACIÓN GRÁFICOS

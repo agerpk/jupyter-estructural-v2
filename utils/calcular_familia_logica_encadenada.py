@@ -18,7 +18,15 @@ def ejecutar_calculo_familia_completa(familia_data: Dict) -> Dict:
     Retorna resultados por estructura y costeo global
     """
     nombre_familia = familia_data.get("nombre_familia", "familia")
-    print(f"🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
+    print(f"\n🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
+    print(f"   Keys en familia_data: {list(familia_data.keys())}")
+    print(f"   Tiene estados_climaticos: {'estados_climaticos' in familia_data}")
+    print(f"   Tiene restricciones_cables: {'restricciones_cables' in familia_data}")
+    
+    if "estados_climaticos" in familia_data:
+        print(f"   Estados climáticos: {list(familia_data['estados_climaticos'].keys())}")
+    if "restricciones_cables" in familia_data:
+        print(f"   Restricciones: {list(familia_data['restricciones_cables'].keys())}")
     
     if not familia_data or "estructuras" not in familia_data:
         return {"exito": False, "mensaje": "Datos de familia inválidos"}
@@ -32,7 +40,21 @@ def ejecutar_calculo_familia_completa(familia_data: Dict) -> Dict:
         titulo = datos_estr.get("TITULO", nombre_estr)
         cantidad = datos_estr.get("cantidad", 1)
         
-        print(f"🔧 Procesando estructura: {titulo}")
+        print(f"\n🔧 Procesando estructura: {titulo}")
+        
+        # Aplicar estados climáticos y restricciones de la familia
+        print(f"   📊 Aplicando estados climáticos de familia...")
+        if "estados_climaticos" in familia_data:
+            datos_estr["estados_climaticos"] = familia_data["estados_climaticos"]
+            print(f"   ✅ Estados climáticos aplicados: {list(datos_estr['estados_climaticos'].keys())}")
+        else:
+            print(f"   ⚠️ NO hay estados_climaticos en familia_data")
+            
+        if "restricciones_cables" in familia_data:
+            datos_estr["restricciones_cables"] = familia_data["restricciones_cables"]
+            print(f"   ✅ Restricciones aplicadas: {list(datos_estr['restricciones_cables'].keys())}")
+        else:
+            print(f"   ⚠️ NO hay restricciones_cables en familia_data")
         
         # Ejecutar secuencia completa para esta estructura
         resultado_estr = _ejecutar_secuencia_estructura(datos_estr, titulo)
@@ -80,13 +102,27 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str) -> Dict:
     para una estructura individual creando archivos temporales completos
     """
     try:
+        # DEBUG: Mostrar datos recibidos
+        print(f"\n📋 DEBUG: Datos recibidos para {titulo}:")
+        print(f"   TITULO: {datos_estructura.get('TITULO')}")
+        print(f"   cable_conductor_id: {datos_estructura.get('cable_conductor_id')}")
+        print(f"   cable_guardia_id: {datos_estructura.get('cable_guardia_id')}")
+        print(f"   L_vano: {datos_estructura.get('L_vano')}")
+        print(f"   Vmax: {datos_estructura.get('Vmax')}")
+        print(f"   Zco: {datos_estructura.get('Zco')}")
+        print(f"   Cf_cable: {datos_estructura.get('Cf_cable')}")
+        print(f"   Total keys: {len(datos_estructura)}")
+        
         # Crear archivos temporales completos
         archivo_estructura = DATA_DIR / f"{titulo}.estructura.json"
         archivo_hipotesis = DATA_DIR / f"{titulo}.hipotesismaestro.json"
         
-        # Guardar archivo .estructura.json temporal
+        # Guardar archivo .estructura.json temporal (con estados climáticos aplicados)
         with open(archivo_estructura, 'w', encoding='utf-8') as f:
             json.dump(datos_estructura, f, indent=2, ensure_ascii=False)
+        
+        print(f"💾 DEBUG: Archivo guardado con estados_climaticos: {'estados_climaticos' in datos_estructura}")
+        print(f"💾 DEBUG: Archivo guardado con restricciones_cables: {'restricciones_cables' in datos_estructura}")
         
         # Crear archivo .hipotesismaestro.json temporal
         from HipotesisMaestro_Especial import hipotesis_maestro
@@ -271,15 +307,11 @@ def generar_vista_resultados_familia(resultados_familia: Dict) -> List:
     if not resultados_familia.get("resultados_estructuras"):
         return [dbc.Alert("No hay resultados para mostrar", color="warning")]
     
-    # Crear pestañas
+    # Crear pestañas con contenido
     pestanas = []
-    contenidos = []
     
     for nombre_estr, datos in resultados_familia["resultados_estructuras"].items():
         titulo = datos["titulo"]
-        
-        # Pestaña
-        pestanas.append(dbc.Tab(label=titulo, tab_id=f"tab-{nombre_estr}"))
         
         # Contenido de pestaña
         if "error" in datos:
@@ -287,24 +319,17 @@ def generar_vista_resultados_familia(resultados_familia: Dict) -> List:
         else:
             contenido = _crear_contenido_estructura(datos)
         
-        contenidos.append(
-            dbc.TabPane(contenido, tab_id=f"tab-{nombre_estr}")
-        )
+        # Pestaña con contenido
+        pestanas.append(dbc.Tab(contenido, label=titulo))
     
     # Agregar pestaña de costeo global
-    pestanas.append(dbc.Tab(label="Costeo Familia", tab_id="tab-costeo-familia"))
-    contenidos.append(
-        dbc.TabPane(
-            _crear_contenido_costeo_familia(resultados_familia.get("costeo_global", {}),
-                                          resultados_familia.get("graficos_familia", {})),
-            tab_id="tab-costeo-familia"
-        )
+    contenido_costeo = _crear_contenido_costeo_familia(
+        resultados_familia.get("costeo_global", {}),
+        resultados_familia.get("graficos_familia", {})
     )
+    pestanas.append(dbc.Tab(contenido_costeo, label="Costeo Familia"))
     
-    return [
-        dbc.Tabs(pestanas, id="tabs-familia", active_tab=pestanas[0].tab_id if pestanas else None),
-        html.Div(contenidos, id="content-familia")
-    ]
+    return [dbc.Tabs(pestanas)]
 
 def _crear_contenido_estructura(datos_estructura: Dict):
     """Crear contenido para pestaña de estructura individual"""
