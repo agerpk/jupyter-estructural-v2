@@ -1,14 +1,8 @@
 """
-Controlador para gestión de Familias de Estructuras - DESACTIVADO TEMPORALMENTE
+BACKUP del controller familia original - Guardado antes de reemplazo
+Fecha: 2025-01-02
+Razón: Reemplazando con versión limpia y escalable
 """
 
-from dash import callback, Input, Output, State, ctx, no_update
-import dash_bootstrap_components as dbc
-from dash import html
-import json
-from pathlib import Path
-from datetime import datetime
-
-def register_callbacks(app):
-    """Registrar callbacks de familia"""
-    pass  # Callbacks desactivados temporalmente para restaurar funcionalidad básica
+# Este archivo contiene el backup completo del controller original
+# Se mantiene para referencia en caso de necesitar recuperar funcionalidad específica

@@ -156,8 +156,11 @@ def ejecutar_calculo_dge(estructura_actual, state):
 
 
 def ejecutar_calculo_cmc_automatico(estructura_actual, state):
-    """Ejecuta cálculo CMC automáticamente con parámetros de estructura"""
+    """Ejecuta cálculo CMC automáticamente con parámetros de estructura o familia"""
     try:
+        # Si estructura_actual es de familia, usar datos directamente
+        # Si es estructura individual, usar como antes
+        
         # Crear objetos
         resultado_objetos = state.calculo_objetos.crear_todos_objetos(estructura_actual)
         if not resultado_objetos["exito"]:
@@ -165,11 +168,10 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
         
         # Estados climáticos desde estructura o defaults configurables por zona AEA
         estados_climaticos = estructura_actual.get("estados_climaticos", {
-            # Defaults para zona D (AEA 95301) - configurable por estructura
-            "I": {"temperatura": estructura_actual.get("temp_max_zona", 40), "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
+            "I": {"temperatura": estructura_actual["temp_max_zona"], "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
             "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
-            "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": estructura_actual.get("Vmax", 38.9), "espesor_hielo": 0},
-            "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": estructura_actual.get("Vmed", 15.56), "espesor_hielo": estructura_actual.get("t_hielo", 0.01)},
+            "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": estructura_actual["Vmax"], "espesor_hielo": 0},
+            "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": estructura_actual["Vmed"], "espesor_hielo": estructura_actual["t_hielo"]},
             "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
         })
         
@@ -182,31 +184,31 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
             }
         }
         
-        # Parámetros de cálculo
+        # Parámetros de cálculo - SIN valores por defecto, debe fallar si no existen
         params = {
-            "L_vano": estructura_actual.get("L_vano", 400),
-            "alpha": estructura_actual.get("alpha", 0),
-            "theta": estructura_actual.get("theta", 45),
-            "Vmax": estructura_actual.get("Vmax", 38.9),
-            "Vmed": estructura_actual.get("Vmed", 15.56),
-            "t_hielo": estructura_actual.get("t_hielo", 0.01),
-            "exposicion": estructura_actual.get("exposicion", "C"),
-            "clase": estructura_actual.get("clase", "C"),
-            "Zco": estructura_actual.get("Zco", 13.0),
-            "Zcg": estructura_actual.get("Zcg", 13.0),
-            "Zca": estructura_actual.get("Zca", 13.0),
-            "Zes": estructura_actual.get("Zes", 10.0),
-            "Cf_cable": estructura_actual.get("Cf_cable", 1.0),
-            "Cf_guardia": estructura_actual.get("Cf_guardia", 1.0),
-            "Cf_cadena": estructura_actual.get("Cf_cadena", 0.9),
-            "Cf_estructura": estructura_actual.get("Cf_estructura", 0.9),
-            "PCADENA": estructura_actual.get("PCADENA", 10.5),
-            "SALTO_PORCENTUAL": estructura_actual.get("SALTO_PORCENTUAL", 0.05),
-            "PASO_AFINADO": estructura_actual.get("PASO_AFINADO", 0.005),
-            "OBJ_CONDUCTOR": estructura_actual.get("OBJ_CONDUCTOR", "FlechaMin"),
-            "OBJ_GUARDIA": estructura_actual.get("OBJ_GUARDIA", "TiroMin"),
-            "RELFLECHA_MAX_GUARDIA": estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95),
-            "RELFLECHA_SIN_VIENTO": estructura_actual.get("RELFLECHA_SIN_VIENTO", True)
+            "L_vano": estructura_actual["L_vano"],
+            "alpha": estructura_actual["alpha"],
+            "theta": estructura_actual["theta"],
+            "Vmax": estructura_actual["Vmax"],
+            "Vmed": estructura_actual["Vmed"],
+            "t_hielo": estructura_actual["t_hielo"],
+            "exposicion": estructura_actual["exposicion"],
+            "clase": estructura_actual["clase"],
+            "Zco": estructura_actual["Zco"],
+            "Zcg": estructura_actual["Zcg"],
+            "Zca": estructura_actual["Zca"],
+            "Zes": estructura_actual["Zes"],
+            "Cf_cable": estructura_actual["Cf_cable"],
+            "Cf_guardia": estructura_actual["Cf_guardia"],
+            "Cf_cadena": estructura_actual["Cf_cadena"],
+            "Cf_estructura": estructura_actual["Cf_estructura"],
+            "PCADENA": estructura_actual["PCADENA"],
+            "SALTO_PORCENTUAL": estructura_actual["SALTO_PORCENTUAL"],
+            "PASO_AFINADO": estructura_actual["PASO_AFINADO"],
+            "OBJ_CONDUCTOR": estructura_actual["OBJ_CONDUCTOR"],
+            "OBJ_GUARDIA": estructura_actual["OBJ_GUARDIA"],
+            "RELFLECHA_MAX_GUARDIA": estructura_actual["RELFLECHA_MAX_GUARDIA"],
+            "RELFLECHA_SIN_VIENTO": estructura_actual["RELFLECHA_SIN_VIENTO"]
         }
         
         # Capturar output de consola

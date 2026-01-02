@@ -29,6 +29,7 @@ class AppState:
         self.calculo_mecanico = CalculoMecanicoCables(self.calculo_objetos)
         self.cargado_desde_cache = False  # Flag para controlar mensajes de cache
         self._estructura_actual_titulo = None  # Título de la estructura actual
+        self._familia_activa_nombre = None  # Nombre de la familia activa
         
         self._initialized = True
     
@@ -76,6 +77,27 @@ class AppState:
             
             print(f"✅ Estructura activa: {titulo}")
     
-    def get_estructura_actual_titulo(self):
-        """Obtener el título de la estructura actual"""
-        return self._estructura_actual_titulo or 'estructura'
+    def set_familia_activa(self, nombre_familia):
+        """Establecer la familia activa"""
+        self._familia_activa_nombre = nombre_familia
+        print(f"Familia activa: {nombre_familia}")
+    
+    def get_familia_activa(self):
+        """Obtener el nombre de la familia activa"""
+        return self._familia_activa_nombre
+    
+    def cargar_familia_activa(self):
+        """Cargar datos de la familia activa"""
+        if not self._familia_activa_nombre:
+            return None
+        
+        try:
+            from pathlib import Path
+            import json
+            archivo_familia = DATA_DIR / f"{self._familia_activa_nombre}.familia.json"
+            if archivo_familia.exists():
+                with open(archivo_familia, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"Error cargando familia activa: {str(e)}")
+        return None

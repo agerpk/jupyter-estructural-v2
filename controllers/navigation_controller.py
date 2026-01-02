@@ -57,19 +57,17 @@ def register_callbacks(app):
     # Badge para familia actual
     @app.callback(
         Output("badge-familia-actual", "children"),
-        Input("contenido-principal", "children"),
-        prevent_initial_call=True
+        [Input("contenido-principal", "children"),
+         Input("familia-actual-state", "data")],
+        prevent_initial_call=False
     )
-    def actualizar_badge_familia(contenido):
-        """Actualizar badge de familia cuando se navega a vista familia"""
+    def actualizar_badge_familia(contenido, familia_state_data):
+        """Actualizar badge de familia desde AppState"""
         try:
-            ultima_vista = cargar_navegacion_state()
-            if ultima_vista == "familia-estructuras":
-                from utils.familia_manager import FamiliaManager
-                familia_actual = FamiliaManager.cargar_familia_actual()
-                if familia_actual and familia_actual.get("nombre_familia"):
-                    return f"Familia: {familia_actual['nombre_familia']}"
-                return "Sin familia"
+            # Obtener familia activa desde AppState
+            familia_activa = state.get_familia_activa()
+            if familia_activa:
+                return f"Familia: {familia_activa.replace('_', ' ')}"
             return "Sin familia"
         except:
             return "Sin familia"
@@ -187,8 +185,8 @@ def register_callbacks(app):
                     return crear_vista_comparar_cables(None)
             elif ultima_vista == "familia-estructuras":
                 from components.vista_familia_estructuras import crear_vista_familia_estructuras
-                from utils.familia_manager import FamiliaManager
-                familia_actual = FamiliaManager.cargar_familia_actual()
+                # Cargar familia activa desde AppState
+                familia_actual = state.cargar_familia_activa()
                 return crear_vista_familia_estructuras(familia_actual)
             return crear_vista_home()
         
@@ -327,8 +325,8 @@ def register_callbacks(app):
         elif trigger_id == "menu-familia-estructuras":
             guardar_navegacion_state("familia-estructuras")
             from components.vista_familia_estructuras import crear_vista_familia_estructuras
-            from utils.familia_manager import FamiliaManager
-            familia_actual = FamiliaManager.cargar_familia_actual()
+            # Cargar familia activa desde AppState
+            familia_actual = state.cargar_familia_activa()
             return crear_vista_familia_estructuras(familia_actual)
         
         elif "btn-volver" in trigger_id:

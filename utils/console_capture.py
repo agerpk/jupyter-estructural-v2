@@ -17,7 +17,7 @@ class ConsoleCapture:
         """Iniciar captura de consola"""
         sys.stdout = self
         sys.stderr = self
-        print("🟢 Captura de consola iniciada")
+        print("Captura de consola iniciada")
         
     def write(self, text):
         """Capturar texto (llamado por print())"""
@@ -54,7 +54,7 @@ class ConsoleCapture:
         """Limpiar buffer"""
         with self.lock:
             self.buffer = []
-            print("🗑️  Buffer de consola limpiado")
+            print("Buffer de consola limpiado")
 
 # Instancia global única
 _console_capture = ConsoleCapture()

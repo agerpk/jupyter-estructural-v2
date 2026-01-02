@@ -932,47 +932,70 @@ if any(abs(val) > 0.01 for val in carga_lista):
 
 ---
 
-### Calcular Todo Vista No Muestra Componentes
+### Callback Único Centralizado para Evitar Conflictos de Duplicados
 
-**Context**: Vista "Calcular Todo" carga cache exitosamente (50 componentes) pero no muestra nada en la UI.
+**Context**: Implementando sistema de callbacks para familia de estructuras con múltiples acciones (guardar, cargar, guardar como).
 
-**Issue**: Cache se carga correctamente, componentes se crean exitosamente, pero la vista permanece vacía.
+**Issue**: Múltiples callbacks intentaban actualizar los mismos outputs (`toast-notificacion`, `familia-activa-state`) causando errores de `DuplicateCallback` y callbacks que no se ejecutaban.
 
-**Root Cause**: Función `_crear_area_resultados()` de SPH retornaba una `list` pero se trataba como componente único con `componentes.append(resultado_sph)`. Esto agregaba la lista completa como un solo elemento, causando que Dash no pudiera renderizar la estructura.
+**Root Cause**: Dash no permite que múltiples callbacks actualicen el mismo Output sin usar `allow_duplicate=True`, pero esto requiere `prevent_initial_call=True` y puede causar problemas de ejecución.
 
-**Resolution**:
+**Resolution**: Implementar **Callback Único Centralizado** usando `dash.callback_context`:
+
 ```python
-# Incorrecto - agrega lista como elemento único
-componentes.append(resultado_sph)  # Si resultado_sph es [comp1, comp2, comp3]
-
-# Correcto - verificar tipo y manejar apropiadamente
-if isinstance(resultado_sph, list):
-    componentes.extend(resultado_sph)  # Agrega comp1, comp2, comp3 individualmente
-else:
-    componentes.append(resultado_sph)  # Agrega componente único
+@app.callback(
+    [Output("toast-notificacion", "is_open"),
+     Output("toast-notificacion", "header"),
+     Output("toast-notificacion", "children"),
+     Output("toast-notificacion", "color"),
+     Output("familia-activa-state", "data"),
+     Output("input-nombre-familia", "value"),
+     Output("tabla-familia", "data"),
+     Output("tabla-familia", "columns")],
+    [Input("btn-guardar-familia", "n_clicks"),
+     Input("btn-guardar-como-familia", "n_clicks"),
+     Input("select-familia-existente", "value")],
+    [State("input-nombre-familia", "value"),
+     State("tabla-familia", "data"),
+     State("tabla-familia", "columns")],
+    prevent_initial_call=True
+)
+def manejar_acciones_familia_centralizado(n_guardar, n_guardar_como, familia_seleccionada, nombre_familia, tabla_data, columnas):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+    
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if trigger_id == "btn-guardar-familia":
+        # Lógica de guardar familia
+        return guardar_familia_logic(...)
+    elif trigger_id == "btn-guardar-como-familia":
+        # Lógica de guardar como familia
+        return guardar_como_familia_logic(...)
+    elif trigger_id == "select-familia-existente":
+        # Lógica de cargar familia
+        return cargar_familia_logic(...)
 ```
 
-**Key Takeaway**:
-- **Siempre verificar tipo de retorno**: Funciones pueden retornar `list` o componente único
-- **Usar extend() para listas**: `extend()` agrega elementos individuales, `append()` agrega la lista completa
-- **Dash no renderiza listas anidadas**: Estructura debe ser plana de componentes válidos
-- **Debug con tipos**: Usar `type(component).__name__` para identificar problemas de estructura
+**Ventajas del Callback Centralizado**:
+1. **Elimina conflictos de duplicados**: Un solo callback maneja todos los outputs
+2. **Mejor debugging**: Un solo lugar para debug prints y manejo de errores
+3. **Lógica cohesiva**: Todas las acciones relacionadas en un lugar
+4. **Menos complejidad**: No necesita `allow_duplicate=True`
+5. **Mejor performance**: Menos callbacks registrados
 
-**Debugging Pattern**:
-```python
-print(f"🔍 DEBUG: Tipo de resultado: {type(resultado).__name__}")
-if isinstance(resultado, list):
-    print(f"   Es lista con {len(resultado)} elementos")
-    componentes.extend(resultado)
-else:
-    print(f"   Es {type(resultado).__name__}")
-    componentes.append(resultado)
-```
+**Patrón de Implementación**:
+1. Identificar callbacks que comparten outputs
+2. Combinar todos los Inputs en un solo callback
+3. Usar `dash.callback_context` para identificar qué Input disparó el callback
+4. Implementar lógica condicional basada en `trigger_id`
+5. Retornar `no_update` para outputs que no deben cambiar
+
+**Key Takeaway**: Para evitar conflictos de callbacks duplicados, usar **Callback Único Centralizado** con `callback_context` en lugar de múltiples callbacks con `allow_duplicate=True`.
 
 **Files Modified**:
-- `components/vista_calcular_todo.py` - Manejo correcto de tipos de retorno en `cargar_resultados_modulares()`
+- `controllers/familia_controller.py` - Implementación de callback centralizado
+- `.amazonq/rules/memory-bank/troubleshooting.md` - Documentación del patrón
 
-**Verification**:
-1. Ejecutar "Calcular Todo" → Verificar que aparecen todas las secciones (CMC, DGE, DME, Árboles, SPH)
-2. Verificar que gráficos interactivos funcionan correctamente
-3. Verificar que tablas y texto se muestran apropiadamente
+---
