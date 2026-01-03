@@ -323,21 +323,30 @@ def generar_vista_resultados_familia(resultados_familia: Dict) -> List:
         
         # Contenido de pestaña
         if "error" in datos:
-            contenido = dbc.Alert(f"Error: {datos['error']}", color="danger")
+            contenido = html.Div([
+                dbc.Alert(f"Error: {datos['error']}", color="danger")
+            ], style={"padding": "20px"})
         else:
             contenido = _crear_contenido_estructura(datos)
         
-        # Pestaña con contenido
-        pestanas.append(dbc.Tab(contenido, label=titulo))
+        # Pestaña con contenido envuelto en Container
+        pestanas.append(dbc.Tab(
+            dbc.Container(contenido, fluid=True, style={"padding": "20px"}),
+            label=titulo
+        ))
     
     # Agregar pestaña de costeo global
     contenido_costeo = _crear_contenido_costeo_familia(
         resultados_familia.get("costeo_global", {}),
-        resultados_familia.get("graficos_familia", {})
+        resultados_familia.get("graficos_familia", {}),
+        resultados_familia.get("resultados_estructuras", {})
     )
-    pestanas.append(dbc.Tab(contenido_costeo, label="Costeo Familia"))
+    pestanas.append(dbc.Tab(
+        dbc.Container(contenido_costeo, fluid=True, style={"padding": "20px"}),
+        label="Costeo Familia"
+    ))
     
-    return [dbc.Tabs(pestanas)]
+    return [dbc.Tabs(pestanas, style={"marginTop": "20px"})]
 
 def _crear_contenido_estructura(datos_estructura: Dict):
     """Crear contenido para pestaña de estructura individual"""
@@ -349,14 +358,14 @@ def _crear_contenido_estructura(datos_estructura: Dict):
     
     if "error" in datos_estructura:
         print(f"   ❌ Error encontrado: {datos_estructura['error']}")
-        return dbc.Alert(f"Error: {datos_estructura['error']}", color="danger")
+        return [dbc.Alert(f"Error: {datos_estructura['error']}", color="danger")]
     
     resultados = datos_estructura.get("resultados", {})
     print(f"   Keys en resultados: {list(resultados.keys())}")
     
     if not resultados:
         print(f"   ⚠️ No hay resultados")
-        return dbc.Alert("No hay resultados disponibles", color="warning")
+        return [dbc.Alert("No hay resultados disponibles", color="warning")]
     
     componentes = []
     
@@ -367,9 +376,19 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             from components.vista_calculo_mecanico import generar_resultados_cmc
             componentes.append(html.H4("1. Cálculo Mecánico de Cables"))
             componentes.append(html.Hr())
-            cmc_content = generar_resultados_cmc(resultados["cmc"], {})
-            componentes.append(cmc_content)
-            print(f"   ✅ CMC agregado")
+            try:
+                cmc_content = generar_resultados_cmc(resultados["cmc"], {})
+                if cmc_content:
+                    if isinstance(cmc_content, list):
+                        componentes.extend(cmc_content)
+                    else:
+                        componentes.append(cmc_content)
+                    print(f"   ✅ CMC agregado")
+                else:
+                    print(f"   ⚠️ CMC retornó None")
+            except Exception as e:
+                print(f"   ❌ Error en CMC: {e}")
+                componentes.append(dbc.Alert(f"Error en CMC: {e}", color="warning"))
         
         # DGE
         if "dge" in resultados and resultados["dge"]:
@@ -377,9 +396,19 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             from components.vista_diseno_geometrico import generar_resultados_dge
             componentes.append(html.H4("2. Diseño Geométrico"))
             componentes.append(html.Hr())
-            dge_content = generar_resultados_dge(resultados["dge"], {})
-            componentes.append(dge_content)
-            print(f"   ✅ DGE agregado")
+            try:
+                dge_content = generar_resultados_dge(resultados["dge"], {})
+                if dge_content:
+                    if isinstance(dge_content, list):
+                        componentes.extend(dge_content)
+                    else:
+                        componentes.append(dge_content)
+                    print(f"   ✅ DGE agregado")
+                else:
+                    print(f"   ⚠️ DGE retornó None")
+            except Exception as e:
+                print(f"   ❌ Error en DGE: {e}")
+                componentes.append(dbc.Alert(f"Error en DGE: {e}", color="warning"))
         
         # DME
         if "dme" in resultados and resultados["dme"]:
@@ -387,9 +416,19 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             from components.vista_diseno_mecanico import generar_resultados_dme
             componentes.append(html.H4("3. Diseño Mecánico"))
             componentes.append(html.Hr())
-            dme_content = generar_resultados_dme(resultados["dme"], {})
-            componentes.append(dme_content)
-            print(f"   ✅ DME agregado")
+            try:
+                dme_content = generar_resultados_dme(resultados["dme"], {})
+                if dme_content:
+                    if isinstance(dme_content, list):
+                        componentes.extend(dme_content)
+                    else:
+                        componentes.append(dme_content)
+                    print(f"   ✅ DME agregado")
+                else:
+                    print(f"   ⚠️ DME retornó None")
+            except Exception as e:
+                print(f"   ❌ Error en DME: {e}")
+                componentes.append(dbc.Alert(f"Error en DME: {e}", color="warning"))
         
         # Árboles
         if "arboles" in resultados and resultados["arboles"]:
@@ -397,9 +436,19 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             from components.vista_arboles_carga import generar_resultados_arboles
             componentes.append(html.H4("4. Árboles de Carga"))
             componentes.append(html.Hr())
-            arboles_content = generar_resultados_arboles(resultados["arboles"], {})
-            componentes.append(arboles_content)
-            print(f"   ✅ Árboles agregado")
+            try:
+                arboles_content = generar_resultados_arboles(resultados["arboles"], {})
+                if arboles_content:
+                    if isinstance(arboles_content, list):
+                        componentes.extend(arboles_content)
+                    else:
+                        componentes.append(arboles_content)
+                    print(f"   ✅ Árboles agregado")
+                else:
+                    print(f"   ⚠️ Árboles retornó None")
+            except Exception as e:
+                print(f"   ❌ Error en Árboles: {e}")
+                componentes.append(dbc.Alert(f"Error en Árboles: {e}", color="warning"))
         
         # SPH
         if "sph" in resultados and resultados["sph"]:
@@ -407,9 +456,19 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             from components.vista_seleccion_poste import _crear_area_resultados
             componentes.append(html.H4("5. Selección de Poste"))
             componentes.append(html.Hr())
-            sph_content = _crear_area_resultados(resultados["sph"], {})
-            componentes.append(sph_content)
-            print(f"   ✅ SPH agregado")
+            try:
+                sph_content = _crear_area_resultados(resultados["sph"], {})
+                if sph_content:
+                    if isinstance(sph_content, list):
+                        componentes.extend(sph_content)
+                    else:
+                        componentes.append(sph_content)
+                    print(f"   ✅ SPH agregado")
+                else:
+                    print(f"   ⚠️ SPH retornó None")
+            except Exception as e:
+                print(f"   ❌ Error en SPH: {e}")
+                componentes.append(dbc.Alert(f"Error en SPH: {e}", color="warning"))
         
         # Fundación
         if "fundacion" in resultados and resultados["fundacion"]:
@@ -417,13 +476,19 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             from components.vista_fundacion import generar_resultados_fundacion
             componentes.append(html.H4("6. Fundación"))
             componentes.append(html.Hr())
-            fund_content = generar_resultados_fundacion(resultados["fundacion"], {})
-            # generar_resultados_fundacion puede retornar lista o componente
-            if isinstance(fund_content, list):
-                componentes.extend(fund_content)
-            else:
-                componentes.append(fund_content)
-            print(f"   ✅ Fundación agregado")
+            try:
+                fund_content = generar_resultados_fundacion(resultados["fundacion"], {})
+                if fund_content:
+                    if isinstance(fund_content, list):
+                        componentes.extend(fund_content)
+                    else:
+                        componentes.append(fund_content)
+                    print(f"   ✅ Fundación agregado")
+                else:
+                    print(f"   ⚠️ Fundación retornó None")
+            except Exception as e:
+                print(f"   ❌ Error en Fundación: {e}")
+                componentes.append(dbc.Alert(f"Error en Fundación: {e}", color="warning"))
         
         # Costeo
         if "costeo" in resultados and resultados["costeo"]:
@@ -431,16 +496,26 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             from components.vista_costeo import generar_resultados_costeo
             componentes.append(html.H4("7. Costeo"))
             componentes.append(html.Hr())
-            cost_content = generar_resultados_costeo(resultados["costeo"], {})
-            componentes.append(cost_content)
-            print(f"   ✅ Costeo agregado")
+            try:
+                cost_content = generar_resultados_costeo(resultados["costeo"], {})
+                if cost_content:
+                    if isinstance(cost_content, list):
+                        componentes.extend(cost_content)
+                    else:
+                        componentes.append(cost_content)
+                    print(f"   ✅ Costeo agregado")
+                else:
+                    print(f"   ⚠️ Costeo retornó None")
+            except Exception as e:
+                print(f"   ❌ Error en Costeo: {e}")
+                componentes.append(dbc.Alert(f"Error en Costeo: {e}", color="warning"))
         
         print(f"   📊 Total componentes generados: {len(componentes)}")
         
         if not componentes:
-            return dbc.Alert("No se generaron componentes de resultados", color="warning")
+            return [dbc.Alert("No se generaron componentes de resultados", color="warning")]
         
-        return html.Div(componentes, style={"padding": "20px"})
+        return componentes
         
     except Exception as e:
         import traceback
@@ -448,7 +523,7 @@ def _crear_contenido_estructura(datos_estructura: Dict):
         print(f"   ❌ {error_msg}")
         return dbc.Alert(error_msg, color="danger")
 
-def _crear_contenido_costeo_familia(costeo_global: Dict, graficos_familia: Dict):
+def _crear_contenido_costeo_familia(costeo_global: Dict, graficos_familia: Dict, resultados_estructuras: Dict = None):
     """Crear contenido para pestaña de costeo global de familia"""
     from dash import html, dcc
     import dash_bootstrap_components as dbc
@@ -466,6 +541,14 @@ def _crear_contenido_costeo_familia(costeo_global: Dict, graficos_familia: Dict)
     print(f"💰 DEBUG: Costo global = {costo_global_valor}")
     print(f"💰 DEBUG: Costos individuales = {costos_individuales}")
     print(f"💰 DEBUG: Costos parciales = {costos_parciales}")
+    
+    # Extraer cantidades desde resultados_estructuras
+    cantidades_por_titulo = {}
+    if resultados_estructuras:
+        for nombre_estr, datos in resultados_estructuras.items():
+            titulo = datos.get("titulo", nombre_estr)
+            cantidad = datos.get("cantidad", 1)
+            cantidades_por_titulo[titulo] = cantidad
     
     componentes = [
         html.H4("Costeo Global de Familia"),
@@ -496,7 +579,7 @@ def _crear_contenido_costeo_familia(costeo_global: Dict, graficos_familia: Dict)
                 html.Tr([
                     html.Td(titulo),
                     html.Td(f"{costos_individuales.get(titulo, 0):,.2f}"),
-                    html.Td("1"),  # TODO: Obtener cantidad real
+                    html.Td(str(cantidades_por_titulo.get(titulo, 1))),
                     html.Td(f"{costos_parciales.get(titulo, 0):,.2f}")
                 ]) for titulo in costos_individuales.keys()
             ])

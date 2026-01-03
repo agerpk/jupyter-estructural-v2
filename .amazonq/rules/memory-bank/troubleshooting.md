@@ -975,3 +975,89 @@ def register_callbacks(app):
 - `controllers/familia_controller.py` - Converted from mixed pattern to function-only pattern
 
 ---
+
+### Familia de Estructuras - Generación de Contenido en Pestañas
+
+**Context**: Implementando vista de resultados de familia con pestañas por estructura.
+
+**Issue**: Componentes se generaban correctamente (30 componentes) pero no aparecían en las pestañas de la UI.
+
+**Root Cause**: Inconsistencia en el tipo de retorno de `_crear_contenido_estructura()`. Retornaba `html.Div(componentes)` en lugar de lista directa, y no manejaba correctamente cuando las funciones de generación retornaban listas vs componentes únicos.
+
+**Resolution**:
+1. **Siempre retornar lista**: `_crear_contenido_estructura()` debe retornar lista de componentes, nunca `html.Div`
+2. **Verificar tipo con isinstance()**: Usar `isinstance(content, list)` para cada sección
+3. **Usar .extend() para listas**: Si el contenido es lista, usar `.extend()`
+4. **Usar .append() para componentes**: Si es componente único, usar `.append()`
+5. **Patrón de vista_calcular_todo.py**: Seguir exactamente el mismo patrón que `cargar_resultados_modulares()`
+
+**Patrón Correcto**:
+```python
+def _crear_contenido_estructura(datos_estructura: Dict):
+    componentes = []
+    
+    # Para cada sección
+    if "cmc" in resultados:
+        from components.vista_calculo_mecanico import generar_resultados_cmc
+        componentes.append(html.H4("1. CMC"))
+        cmc_content = generar_resultados_cmc(resultados["cmc"], {})
+        if cmc_content:
+            if isinstance(cmc_content, list):
+                componentes.extend(cmc_content)  # Lista
+            else:
+                componentes.append(cmc_content)  # Componente único
+    
+    return componentes  # Siempre lista
+```
+
+**Envoltorio en Pestañas**:
+```python
+def generar_vista_resultados_familia(resultados_familia: Dict):
+    pestanas = []
+    for nombre_estr, datos in resultados_familia["resultados_estructuras"].items():
+        contenido = _crear_contenido_estructura(datos)  # Lista
+        pestanas.append(dbc.Tab(
+            dbc.Container(contenido, fluid=True, style={"padding": "20px"}),
+            label=titulo
+        ))
+    return [dbc.Tabs(pestanas)]
+```
+
+**Key Takeaway**: 
+- Funciones de generación de contenido deben retornar listas de componentes
+- Usar `isinstance()` para verificar tipo antes de agregar
+- `.extend()` para listas, `.append()` para componentes únicos
+- El envoltorio (`dbc.Container`, `html.Div`) se hace en la función que crea las pestañas, no en la que genera el contenido
+- Seguir patrones existentes como `vista_calcular_todo.py` para consistencia
+
+**Files Modified**:
+- `utils/calcular_familia_logica_encadenada.py` - Corregido `_crear_contenido_estructura()` y `generar_vista_resultados_familia()`
+
+---
+
+### Extracción de Peso desde SPH para Costeo
+
+**Context**: Implementando cálculo de costeo para familia de estructuras.
+
+**Issue**: Error "No se pudo extraer peso estimado desde SPH" porque el código buscaba "Peso estimado:" pero el texto real decía "Peso = 5982 kg".
+
+**Root Cause**: Patrón de búsqueda hardcodeado no coincidía con el formato real del texto en `desarrollo_texto` del cache SPH.
+
+**Resolution**:
+```python
+# Buscar ambos patrones
+for linea in desarrollo.split('\n'):
+    if 'Peso =' in linea or 'Peso estimado:' in linea:
+        import re
+        numeros = re.findall(r'\d+', linea)
+        if numeros:
+            peso_total_kg = int(numeros[0])
+            break
+```
+
+**Key Takeaway**: Al extraer datos de texto generado, usar patrones flexibles que cubran variaciones. Buscar múltiples formatos posibles en lugar de un único patrón hardcodeado.
+
+**Files Modified**:
+- `utils/calculo_costeo.py` - Corregida búsqueda de peso en línea 105-116
+
+---
