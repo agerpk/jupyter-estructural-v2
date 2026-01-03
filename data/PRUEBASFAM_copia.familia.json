@@ -1,10 +1,11 @@
 {
   "nombre_familia": "PRUEBASFAM_copia",
-  "fecha_creacion": "2026-01-03T00:03:39.383161",
-  "fecha_modificacion": "2026-01-03T00:03:39.383949",
+  "fecha_creacion": "2026-01-03T00:49:41.615696",
+  "fecha_modificacion": "2026-01-03T00:49:41.615696",
   "estructuras": {
     "Estr.1": {
       "TITULO": "TECPETROL_Edt_mas2",
+      "cantidad": 5,
       "TIPO_ESTRUCTURA": "Terminal",
       "Vn": 220.0,
       "Zona_climatica": "D",
@@ -121,6 +122,7 @@
     },
     "Estr.2": {
       "TITULO": "TECPETROL_Sdt_mas3",
+      "cantidad": 50,
       "TIPO_ESTRUCTURA": "Suspensión Recta",
       "Vn": 220.0,
       "Zona_climatica": "D",

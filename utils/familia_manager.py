@@ -308,7 +308,26 @@ class FamiliaManager:
         
         # Llenar datos de tabla
         tabla_data = []
+        
+        # Agregar fila CANTIDAD primero (después de TITULO que ya está en tabla_base)
+        fila_cantidad = {
+            "parametro": "cantidad",
+            "simbolo": "CANT",
+            "unidad": "unidades",
+            "descripcion": "Cantidad de estructuras",
+            "tipo": "int",
+            "categoria": "General"
+        }
+        for nombre_estructura, estructura_data in estructuras.items():
+            fila_cantidad[nombre_estructura] = estructura_data.get("cantidad", 1)
+        tabla_data.append(fila_cantidad)
+        
+        # Agregar resto de filas
         for fila_base in tabla_base:
+            # Saltar cantidad si ya está en tabla_base (evitar duplicados)
+            if fila_base["parametro"] == "cantidad":
+                continue
+                
             fila = {
                 "parametro": fila_base["parametro"],
                 "simbolo": fila_base["simbolo"],
@@ -325,11 +344,13 @@ class FamiliaManager:
             
             tabla_data.append(fila)
         
-        # Asegurar que TITULO esté primero y seguir orden de cálculo encadenado
+        # Asegurar que TITULO y cantidad estén primero y seguir orden de cálculo encadenado
         # CMC>DGE>DME>ADC>SPH>FUND>COSTEO
         def sort_key(x):
             if x["parametro"] == "TITULO":
                 return ("0_TITULO", "0_TITULO")  # TITULO siempre primero
+            if x["parametro"] == "cantidad":
+                return ("0_TITULO", "1_cantidad")  # cantidad segundo
             
             # Mapeo de categorías al orden de cálculo encadenado
             orden_categorias = {
