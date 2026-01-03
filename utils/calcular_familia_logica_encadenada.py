@@ -257,6 +257,27 @@ def _generar_costeo_familia(resultados_familia: Dict) -> Dict:
         "costos_parciales": costos_parciales
     }
 
+def _generar_colores_circulo_cromatico(n: int) -> List[str]:
+    """Generar n colores equidistantes en el círculo cromático HSL"""
+    import colorsys
+    
+    colores = []
+    for i in range(n):
+        # Calcular hue (matiz) equidistante en el círculo (0-360 grados)
+        hue = i / n
+        # Saturación y luminosidad fijas para colores vibrantes
+        saturation = 0.7
+        lightness = 0.5
+        
+        # Convertir HSL a RGB
+        r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
+        
+        # Convertir a formato rgb(r, g, b)
+        color_rgb = f"rgb({int(r*255)}, {int(g*255)}, {int(b*255)})"
+        colores.append(color_rgb)
+    
+    return colores
+
 def _generar_graficos_familia(resultados_familia: Dict) -> Dict:
     """Generar gráficos de barras y torta para familia"""
     costos_individuales = {}
@@ -277,11 +298,15 @@ def _generar_graficos_familia(resultados_familia: Dict) -> Dict:
     titulos_ordenados = sorted(costos_individuales.keys(), 
                               key=lambda x: costos_individuales[x], reverse=True)
     
+    # Generar colores distintos para cada estructura
+    colores = _generar_colores_circulo_cromatico(len(titulos_ordenados))
+    
     fig_barras = go.Figure(data=[
         go.Bar(
             x=titulos_ordenados,
             y=[costos_individuales[t] for t in titulos_ordenados],
-            name="Costo Individual"
+            name="Costo Individual",
+            marker=dict(color=colores)
         )
     ])
     fig_barras.update_layout(
@@ -377,7 +402,8 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             componentes.append(html.H4("1. Cálculo Mecánico de Cables"))
             componentes.append(html.Hr())
             try:
-                cmc_content = generar_resultados_cmc(resultados["cmc"], {})
+                # Omitir verificación de vigencia en contexto de familia
+                cmc_content = generar_resultados_cmc(resultados["cmc"], {}, omitir_vigencia=True)
                 if cmc_content:
                     if isinstance(cmc_content, list):
                         componentes.extend(cmc_content)
@@ -477,7 +503,8 @@ def _crear_contenido_estructura(datos_estructura: Dict):
             componentes.append(html.H4("6. Fundación"))
             componentes.append(html.Hr())
             try:
-                fund_content = generar_resultados_fundacion(resultados["fundacion"], {})
+                # Omitir verificación de vigencia en contexto de familia
+                fund_content = generar_resultados_fundacion(resultados["fundacion"], {}, omitir_vigencia=True)
                 if fund_content:
                     if isinstance(fund_content, list):
                         componentes.extend(fund_content)

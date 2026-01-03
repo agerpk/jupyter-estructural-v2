@@ -170,18 +170,19 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
     ])
 
 
-def generar_resultados_cmc(calculo_guardado, estructura_actual):
+def generar_resultados_cmc(calculo_guardado, estructura_actual, omitir_vigencia=False):
     """Generar HTML de resultados desde cálculo guardado"""
     try:
         from utils.format_helpers import formatear_resultados_cmc, formatear_dataframe_cmc
         
-        # Verificar vigencia
-        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+        resultados_html = []
         
-        resultados_html = [
-            ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente),
-            html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"),
-        ]
+        # Verificar vigencia solo si no se omite
+        if not omitir_vigencia:
+            vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+            resultados_html.append(ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente))
+        
+        resultados_html.append(html.H4("Resultados del Cálculo Mecánico", className="mt-4 mb-3"))
         
         # Conductor - guardar y cargar DataFrames completos
         if calculo_guardado.get('df_conductor_html'):

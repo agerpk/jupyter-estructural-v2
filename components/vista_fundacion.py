@@ -228,7 +228,7 @@ def crear_vista_fundacion(estructura_actual, calculo_guardado=None):
         toast
     ])
 
-def generar_resultados_fundacion(calculo_guardado, estructura_actual):
+def generar_resultados_fundacion(calculo_guardado, estructura_actual, omitir_vigencia=False):
     """Generar componentes de resultados desde cache - retorna lista de componentes"""
     print(f"🔍 DEBUG: Iniciando generar_resultados_fundacion")
     
@@ -241,16 +241,17 @@ def generar_resultados_fundacion(calculo_guardado, estructura_actual):
     
     print(f"📋 DEBUG: Resultados keys: {list(resultados.keys())}")
     
-    # Verificar vigencia
-    from utils.calculo_cache import CalculoCache
-    vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
-    
     output = []
     
-    # Alerta de cache
-    alerta = ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente)
-    if alerta:
-        output.append(alerta)
+    # Verificar vigencia solo si no se omite
+    if not omitir_vigencia:
+        from utils.calculo_cache import CalculoCache
+        vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+        
+        # Alerta de cache
+        alerta = ViewHelpers.crear_alerta_cache(mostrar_vigencia=True, vigente=vigente)
+        if alerta:
+            output.append(alerta)
     
     output.append(dbc.Alert("Resultados cargados desde cache", color="info", className="mb-3"))
     
