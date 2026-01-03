@@ -73,11 +73,12 @@ def register_callbacks(app):
     @app.callback(
         Output("tabla-familia-original", "data", allow_duplicate=True),
         [Input("btn-agregar-estructura", "n_clicks"),
+         Input("btn-eliminar-estructura", "n_clicks"),
          Input("select-familia-existente", "value")],
         State("tabla-familia", "data"),
         prevent_initial_call=True
     )
-    def actualizar_tabla_original_estructura(n_agregar, familia_cargada, tabla_actual):
+    def actualizar_tabla_original_estructura(n_agregar, n_eliminar, familia_cargada, tabla_actual):
         """Actualizar tabla original cuando cambia estructura de datos"""
         print(f"\n💾 DEBUG: Actualizando tabla-familia-original con {len(tabla_actual) if tabla_actual else 0} filas")
         if not tabla_actual:
@@ -101,44 +102,84 @@ def register_callbacks(app):
     
     @app.callback(
         [Output("tabla-familia", "columns", allow_duplicate=True),
-         Output("tabla-familia", "data", allow_duplicate=True)],
-        Input("btn-agregar-estructura", "n_clicks"),
+         Output("tabla-familia", "data", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        [Input("btn-agregar-estructura", "n_clicks"),
+         Input("btn-eliminar-estructura", "n_clicks")],
         [State("tabla-familia", "columns"),
          State("tabla-familia", "data")],
         prevent_initial_call=True
     )
-    def agregar_estructura(n_clicks, columnas, tabla_data):
-        """Agregar nueva columna de estructura"""
-        if n_clicks is None:
+    def modificar_estructura_tabla(n_agregar, n_eliminar, columnas, tabla_data):
+        """Agregar o eliminar columna de estructura"""
+        ctx = dash.callback_context
+        if not ctx.triggered:
             raise dash.exceptions.PreventUpdate
         
-        # Encontrar última columna Estr.N
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        # Encontrar columnas Estr.N
         cols_estr = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
-        if not cols_estr:
-            nuevo_num = 1
-        else:
-            numeros = [int(col.replace('Estr.', '')) for col in cols_estr]
-            nuevo_num = max(numeros) + 1
         
-        nuevo_col_id = f"Estr.{nuevo_num}"
-        ultima_col = cols_estr[-1] if cols_estr else None
-        
-        # Agregar nueva columna
-        columnas.append({
-            "name": nuevo_col_id,
-            "id": nuevo_col_id,
-            "editable": False,
-            "type": "any"
-        })
-        
-        # Copiar valores de última columna
-        for fila in tabla_data:
-            if ultima_col:
-                fila[nuevo_col_id] = fila.get(ultima_col, "")
+        if trigger_id == "btn-agregar-estructura":
+            if n_agregar is None:
+                raise dash.exceptions.PreventUpdate
+            
+            # Encontrar siguiente número
+            if not cols_estr:
+                nuevo_num = 1
             else:
-                fila[nuevo_col_id] = fila.get("valor", "")
+                numeros = [int(col.replace('Estr.', '')) for col in cols_estr]
+                nuevo_num = max(numeros) + 1
+            
+            nuevo_col_id = f"Estr.{nuevo_num}"
+            ultima_col = cols_estr[-1] if cols_estr else None
+            
+            # Agregar nueva columna
+            columnas.append({
+                "name": nuevo_col_id,
+                "id": nuevo_col_id,
+                "editable": False,
+                "type": "any"
+            })
+            
+            # Copiar valores de última columna
+            for fila in tabla_data:
+                if ultima_col:
+                    fila[nuevo_col_id] = fila.get(ultima_col, "")
+                else:
+                    fila[nuevo_col_id] = fila.get("valor", "")
+            
+            return columnas, tabla_data, True, "Éxito", f"Estructura {nuevo_col_id} agregada", "success", "success"
         
-        return columnas, tabla_data
+        elif trigger_id == "btn-eliminar-estructura":
+            if n_eliminar is None:
+                raise dash.exceptions.PreventUpdate
+            
+            # Validar que hay al menos 2 estructuras
+            if len(cols_estr) <= 1:
+                return no_update, no_update, True, "Advertencia", "Debe mantener al menos una estructura", "warning", "warning"
+            
+            # Encontrar última columna
+            numeros = [int(col.replace('Estr.', '')) for col in cols_estr]
+            ultimo_num = max(numeros)
+            col_eliminar = f"Estr.{ultimo_num}"
+            
+            # Eliminar columna
+            columnas = [col for col in columnas if col['id'] != col_eliminar]
+            
+            # Eliminar datos de esa columna
+            for fila in tabla_data:
+                if col_eliminar in fila:
+                    del fila[col_eliminar]
+            
+            return columnas, tabla_data, True, "Éxito", f"Estructura {col_eliminar} eliminada", "success", "success"
+        
+        raise dash.exceptions.PreventUpdate
     
     @app.callback(
         [Output("select-familia-existente", "options"),
@@ -324,42 +365,249 @@ def register_callbacks(app):
          Output("toast-notificacion", "header", allow_duplicate=True),
          Output("toast-notificacion", "children", allow_duplicate=True),
          Output("toast-notificacion", "icon", allow_duplicate=True),
-         Output("toast-notificacion", "color", allow_duplicate=True)],
+         Output("toast-notificacion", "color", allow_duplicate=True),
+         Output("select-familia-existente", "options", allow_duplicate=True)],
         Input("btn-guardar-familia", "n_clicks"),
-        [State("input-nombre-familia", "value")],
+        [State("input-nombre-familia", "value"),
+         State("tabla-familia", "data"),
+         State("tabla-familia", "columns")],
         prevent_initial_call=True
     )
-    def guardar_familia_simple(n_clicks, nombre_familia):
-        """Guarda familia - versión simplificada"""
-        print(f"🔵 DEBUG: guardar_familia_simple EJECUTADO - n_clicks: {n_clicks}, nombre: {nombre_familia}")
-        
+    def guardar_familia(n_clicks, nombre_familia, tabla_data, columnas):
+        """Guarda familia con datos actuales de tabla"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
-        print(f"🔵 DEBUG: Guardando familia '{nombre_familia}'")
+        if not nombre_familia:
+            return True, "Error", "Debe especificar un nombre de familia", "danger", "danger", no_update
         
-        return (True, "Éxito", f"Familia '{nombre_familia}' guardada", "success", "success")
+        try:
+            # Convertir tabla a formato familia
+            familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
+            
+            # Guardar
+            FamiliaManager.guardar_familia(familia_data)
+            
+            # Actualizar opciones dropdown
+            archivos_familia = FamiliaManager.obtener_archivos_familia()
+            opciones = [{"label": archivo.replace(".familia", ""), "value": archivo} for archivo in archivos_familia]
+            
+            return True, "Éxito", f"Familia '{nombre_familia}' guardada", "success", "success", opciones
+            
+        except Exception as e:
+            return True, "Error", f"Error guardando: {str(e)}", "danger", "danger", no_update
     
     @app.callback(
         [Output("toast-notificacion", "is_open", allow_duplicate=True),
          Output("toast-notificacion", "header", allow_duplicate=True),
          Output("toast-notificacion", "children", allow_duplicate=True),
          Output("toast-notificacion", "icon", allow_duplicate=True),
-         Output("toast-notificacion", "color", allow_duplicate=True)],
+         Output("toast-notificacion", "color", allow_duplicate=True),
+         Output("select-familia-existente", "options", allow_duplicate=True)],
         Input("btn-guardar-como-familia", "n_clicks"),
-        [State("input-nombre-familia", "value")],
+        [State("input-nombre-familia", "value"),
+         State("tabla-familia", "data"),
+         State("tabla-familia", "columns")],
         prevent_initial_call=True
     )
-    def guardar_como_familia_simple(n_clicks, nombre_familia):
-        """Guarda como familia - versión simplificada"""
-        print(f"🔵 DEBUG: guardar_como_familia_simple EJECUTADO - n_clicks: {n_clicks}, nombre: {nombre_familia}")
-        
+    def guardar_como_familia(n_clicks, nombre_familia, tabla_data, columnas):
+        """Guarda como nueva familia con datos actuales de tabla"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
-        print(f"🔵 DEBUG: Guardando como familia '{nombre_familia}'")
+        if not nombre_familia:
+            return True, "Error", "Debe especificar un nombre de familia", "danger", "danger", no_update
         
-        return (True, "Éxito", f"Familia guardada como '{nombre_familia}'", "success", "success")
+        try:
+            # Convertir tabla a formato familia con nombre exacto
+            familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
+            
+            # Guardar con nombre exacto
+            FamiliaManager.guardar_familia(familia_data)
+            
+            # Actualizar opciones dropdown
+            archivos_familia = FamiliaManager.obtener_archivos_familia()
+            opciones = [{"label": archivo.replace(".familia", ""), "value": archivo} for archivo in archivos_familia]
+            
+            return True, "Éxito", f"Familia guardada como '{nombre_familia}'", "success", "success", opciones
+            
+        except Exception as e:
+            return True, "Error", f"Error guardando: {str(e)}", "danger", "danger", no_update
+    
+    @app.callback(
+        [Output("modal-eliminar-familia", "is_open"),
+         Output("modal-eliminar-familia-nombre", "children")],
+        [Input("btn-eliminar-familia", "n_clicks"),
+         Input("modal-eliminar-cancelar", "n_clicks"),
+         Input("modal-eliminar-confirmar", "n_clicks")],
+        [State("modal-eliminar-familia", "is_open"),
+         State("input-nombre-familia", "value")],
+        prevent_initial_call=True
+    )
+    def toggle_modal_eliminar_familia(n_abrir, n_cancelar, n_confirmar, is_open, nombre_familia):
+        """Abrir/cerrar modal de eliminar familia"""
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "btn-eliminar-familia":
+            if n_abrir is None or not nombre_familia:
+                raise dash.exceptions.PreventUpdate
+            return True, nombre_familia
+        
+        elif trigger_id in ["modal-eliminar-cancelar", "modal-eliminar-confirmar"]:
+            return False, no_update
+        
+        raise dash.exceptions.PreventUpdate
+    
+    @app.callback(
+        [Output("input-nombre-familia", "value", allow_duplicate=True),
+         Output("tabla-familia", "data", allow_duplicate=True),
+         Output("tabla-familia", "columns", allow_duplicate=True),
+         Output("select-familia-existente", "options", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("modal-eliminar-confirmar", "n_clicks"),
+        State("input-nombre-familia", "value"),
+        prevent_initial_call=True
+    )
+    def eliminar_familia_confirmado(n_clicks, nombre_familia):
+        """Eliminar familia tras confirmación"""
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        if not nombre_familia:
+            return no_update, no_update, no_update, no_update, True, "Error", "No hay familia seleccionada", "danger", "danger"
+        
+        try:
+            # Eliminar familia
+            exito = FamiliaManager.eliminar_familia(nombre_familia)
+            
+            if not exito:
+                return no_update, no_update, no_update, no_update, True, "Error", f"No se pudo eliminar familia '{nombre_familia}'", "danger", "danger"
+            
+            # Crear familia nueva vacía
+            familia_nueva = FamiliaManager.crear_familia_nueva()
+            from components.vista_familia_estructuras import generar_datos_tabla_familia
+            tabla_data = generar_datos_tabla_familia(familia_nueva)
+            
+            # Columnas base
+            columnas = [
+                {"name": "Categoría", "id": "categoria", "editable": False},
+                {"name": "Parámetro", "id": "parametro", "editable": False},
+                {"name": "Símbolo", "id": "simbolo", "editable": False},
+                {"name": "Unidad", "id": "unidad", "editable": False},
+                {"name": "Descripción", "id": "descripcion", "editable": False},
+                {"name": "Estr.1", "id": "Estr.1", "editable": False}
+            ]
+            
+            # Actualizar opciones de familias
+            archivos_familia = FamiliaManager.obtener_archivos_familia()
+            opciones = [{"label": archivo.replace(".familia", ""), "value": archivo} for archivo in archivos_familia]
+            
+            return "", tabla_data, columnas, opciones, True, "Éxito", f"Familia '{nombre_familia}' eliminada", "success", "success"
+            
+        except Exception as e:
+            return no_update, no_update, no_update, no_update, True, "Error", f"Error: {str(e)}", "danger", "danger"
+    
+    @app.callback(
+        [Output("modal-cargar-columna", "is_open"),
+         Output("select-estructura-cargar-columna", "options"),
+         Output("select-columna-destino", "options")],
+        [Input("btn-cargar-columna", "n_clicks"),
+         Input("modal-cargar-columna-cancelar", "n_clicks"),
+         Input("modal-cargar-columna-confirmar", "n_clicks")],
+        [State("modal-cargar-columna", "is_open"),
+         State("tabla-familia", "columns")],
+        prevent_initial_call=True
+    )
+    def toggle_modal_cargar_columna(n_abrir, n_cancelar, n_confirmar, is_open, columnas):
+        """Abrir/cerrar modal de cargar columna"""
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "btn-cargar-columna":
+            if n_abrir is None:
+                raise dash.exceptions.PreventUpdate
+            
+            # Obtener lista de estructuras
+            state = AppState()
+            estructuras_disponibles = state.estructura_manager.listar_estructuras()
+            opciones_estructuras = [{"label": e.replace(".estructura.json", ""), "value": e} for e in estructuras_disponibles]
+            
+            # Obtener columnas Estr.N
+            cols_estr = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
+            opciones_columnas = [{"label": col, "value": col} for col in cols_estr]
+            
+            return True, opciones_estructuras, opciones_columnas
+        
+        elif trigger_id in ["modal-cargar-columna-cancelar", "modal-cargar-columna-confirmar"]:
+            return False, no_update, no_update
+        
+        raise dash.exceptions.PreventUpdate
+    
+    @app.callback(
+        [Output("tabla-familia", "data", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("modal-cargar-columna-confirmar", "n_clicks"),
+        [State("select-estructura-cargar-columna", "value"),
+         State("select-columna-destino", "value"),
+         State("tabla-familia", "data")],
+        prevent_initial_call=True
+    )
+    def cargar_estructura_en_columna(n_clicks, estructura_archivo, columna_destino, tabla_data):
+        """Cargar estructura existente en columna seleccionada"""
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        if not estructura_archivo or not columna_destino:
+            return no_update, True, "Error", "Debe seleccionar estructura y columna", "danger", "danger"
+        
+        try:
+            # Cargar estructura
+            state = AppState()
+            estructura_path = DATA_DIR / estructura_archivo
+            estructura_data = state.estructura_manager.cargar_estructura(estructura_path)
+            
+            # Actualizar valores en tabla
+            for fila in tabla_data:
+                parametro = fila.get("parametro")
+                
+                # Manejar campos anidados de costeo
+                if parametro and "." in parametro:
+                    partes = parametro.split(".")
+                    if partes[0] == "costeo":
+                        costeo_data = estructura_data.get("costeo", {})
+                        if len(partes) == 3:
+                            # costeo.subcampo.subsubcampo
+                            subcampo_data = costeo_data.get(partes[1], {})
+                            valor = subcampo_data.get(partes[2], fila.get(columna_destino, ""))
+                        else:
+                            # costeo.subcampo
+                            valor = costeo_data.get(partes[1], fila.get(columna_destino, ""))
+                        fila[columna_destino] = valor
+                else:
+                    # Campo simple
+                    valor = estructura_data.get(parametro, fila.get(columna_destino, ""))
+                    fila[columna_destino] = valor
+            
+            nombre_estructura = estructura_data.get("TITULO", estructura_archivo)
+            return tabla_data, True, "Éxito", f"Estructura '{nombre_estructura}' cargada en {columna_destino}", "success", "success"
+            
+        except Exception as e:
+            return no_update, True, "Error", f"Error cargando estructura: {str(e)}", "danger", "danger"
     
     @app.callback(
         [Output("resultados-familia", "children"),

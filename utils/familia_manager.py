@@ -257,6 +257,22 @@ class FamiliaManager:
             return []
     
     @classmethod
+    def eliminar_familia(cls, nombre_familia: str) -> bool:
+        """Eliminar familia por nombre"""
+        nombre_archivo = nombre_familia.replace(" ", "_").replace("/", "_")
+        archivo_familia = cls.DATA_DIR / f"{nombre_archivo}.familia.json"
+        
+        if not archivo_familia.exists():
+            return False
+        
+        try:
+            archivo_familia.unlink()
+            return True
+        except Exception as e:
+            print(f"Error eliminando familia {nombre_familia}: {e}")
+            return False
+    
+    @classmethod
     def familia_a_tabla(cls, datos_familia: Dict) -> tuple[List[Dict], List[Dict]]:
         """Convierte formato .familia.json a datos de tabla"""
         if not datos_familia or 'estructuras' not in datos_familia:
