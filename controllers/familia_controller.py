@@ -356,6 +356,10 @@ def register_callbacks(app):
         if not datos_familia:
             return no_update, no_update, no_update, True, "Error", f"No se pudo cargar la familia '{nombre_limpio}'", "danger"
         
+        # Establecer familia activa en AppState
+        state = AppState()
+        state.set_familia_activa(nombre_limpio)
+        
         tabla_data, columnas = FamiliaManager.familia_a_tabla(datos_familia)
         return (tabla_data, columnas, datos_familia.get('nombre_familia', nombre_limpio), 
                 True, "Éxito", f"Familia '{nombre_limpio}' cargada correctamente", "success")
@@ -387,6 +391,10 @@ def register_callbacks(app):
             
             # Guardar
             FamiliaManager.guardar_familia(familia_data)
+            
+            # Establecer como familia activa
+            state = AppState()
+            state.set_familia_activa(nombre_familia)
             
             # Actualizar opciones dropdown
             archivos_familia = FamiliaManager.obtener_archivos_familia()
@@ -424,6 +432,10 @@ def register_callbacks(app):
             
             # Guardar con nombre exacto
             FamiliaManager.guardar_familia(familia_data)
+            
+            # Establecer como familia activa
+            state = AppState()
+            state.set_familia_activa(nombre_familia)
             
             # Actualizar opciones dropdown
             archivos_familia = FamiliaManager.obtener_archivos_familia()

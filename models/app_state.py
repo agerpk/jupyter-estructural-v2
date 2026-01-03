@@ -5,7 +5,8 @@ from utils.estructura_manager import EstructuraManager
 from utils.cable_manager import CableManager
 from utils.calculo_objetos import CalculoObjetosAEA
 from utils.calculo_mecanico_cables import CalculoMecanicoCables
-from config.app_config import DATA_DIR, CABLES_PATH
+from config.app_config import DATA_DIR, CABLES_PATH, FAMILIA_STATE_FILE
+import json
 
 
 class AppState:
@@ -29,7 +30,7 @@ class AppState:
         self.calculo_mecanico = CalculoMecanicoCables(self.calculo_objetos)
         self.cargado_desde_cache = False  # Flag para controlar mensajes de cache
         self._estructura_actual_titulo = None  # Título de la estructura actual
-        self._familia_activa_nombre = None  # Nombre de la familia activa
+        self._familia_activa_nombre = self._cargar_familia_activa_persistente()  # Cargar familia persistente
         
         self._initialized = True
     
@@ -78,9 +79,10 @@ class AppState:
             print(f"✅ Estructura activa: {titulo}")
     
     def set_familia_activa(self, nombre_familia):
-        """Establecer la familia activa"""
+        """Establecer la familia activa y persistir"""
         self._familia_activa_nombre = nombre_familia
-        print(f"Familia activa: {nombre_familia}")
+        self._guardar_familia_activa_persistente(nombre_familia)
+        print(f"✅ Familia activa: {nombre_familia}")
     
     def get_familia_activa(self):
         """Obtener el nombre de la familia activa"""
@@ -101,3 +103,27 @@ class AppState:
         except Exception as e:
             print(f"Error cargando familia activa: {str(e)}")
         return None
+    
+    def _cargar_familia_activa_persistente(self):
+        """Cargar familia activa desde archivo de persistencia"""
+        try:
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state = json.load(f)
+                    nombre_familia = state.get('familia_activa')
+                    if nombre_familia:
+                        print(f"📂 Familia activa cargada desde persistencia: {nombre_familia}")
+                        return nombre_familia
+        except Exception as e:
+            print(f"⚠️ Error cargando familia activa persistente: {e}")
+        return None
+    
+    def _guardar_familia_activa_persistente(self, nombre_familia):
+        """Guardar familia activa en archivo de persistencia"""
+        try:
+            state = {'familia_activa': nombre_familia}
+            with open(FAMILIA_STATE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(state, f, indent=2, ensure_ascii=False)
+            print(f"💾 Familia activa guardada en persistencia: {nombre_familia}")
+        except Exception as e:
+            print(f"⚠️ Error guardando familia activa persistente: {e}")

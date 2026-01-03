@@ -10,7 +10,22 @@ import json
 def crear_vista_familia_estructuras(familia_actual=None):
     """Crear vista principal de Familias de Estructuras"""
     
-    print("DEBUG: Iniciando crear_vista_familia_estructuras")
+    print("🔵 DEBUG: Iniciando crear_vista_familia_estructuras")
+    
+    # Intentar cargar familia activa desde AppState si no se proporciona
+    if familia_actual is None:
+        from models.app_state import AppState
+        state = AppState()
+        nombre_familia_activa = state.get_familia_activa()
+        
+        if nombre_familia_activa:
+            try:
+                from utils.familia_manager import FamiliaManager
+                familia_actual = FamiliaManager.cargar_familia(nombre_familia_activa)
+                print(f"✅ DEBUG: Familia activa cargada: {nombre_familia_activa}")
+            except Exception as e:
+                print(f"⚠️ DEBUG: Error cargando familia activa: {e}")
+                familia_actual = None
     
     if familia_actual is None:
         familia_actual = {
@@ -19,13 +34,13 @@ def crear_vista_familia_estructuras(familia_actual=None):
                 "Estr.1": cargar_plantilla_estructura()
             }
         }
-        print("DEBUG: Familia actual creada por defecto")
+        print("🔵 DEBUG: Familia actual creada por defecto")
     else:
-        print(f"DEBUG: Familia actual recibida: {familia_actual.get('nombre_familia', 'Sin nombre')}")
+        print(f"✅ DEBUG: Familia actual recibida: {familia_actual.get('nombre_familia', 'Sin nombre')}")
     
     # Generar datos de tabla
     tabla_data = generar_datos_tabla_familia(familia_actual)
-    print(f"DEBUG: Tabla generada con {len(tabla_data)} filas")
+    print(f"✅ DEBUG: Tabla generada con {len(tabla_data)} filas")
     
     # Configurar columnas dinámicamente
     columnas = [
@@ -46,7 +61,7 @@ def crear_vista_familia_estructuras(familia_actual=None):
             "type": "any"
         })
     
-    print(f"DEBUG: Columnas configuradas: {[col['id'] for col in columnas]}")
+    print(f"✅ DEBUG: Columnas configuradas: {[col['id'] for col in columnas]}")
     
     return html.Div([
         dbc.Card([
