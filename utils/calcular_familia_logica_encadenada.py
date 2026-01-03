@@ -60,14 +60,16 @@ def ejecutar_calculo_familia_completa(familia_data: Dict) -> Dict:
         resultado_estr = _ejecutar_secuencia_estructura(datos_estr, titulo)
         
         if resultado_estr["exito"]:
+            costo_individual = resultado_estr.get("costo_total", 0)
+            print(f"✅ {titulo}: Costo individual = {costo_individual} UM")
+            
             resultados_familia[nombre_estr] = {
                 "titulo": titulo,
                 "cantidad": cantidad,
                 "resultados": resultado_estr["resultados"],
-                "costo_individual": resultado_estr.get("costo_total", 0)
+                "costo_individual": costo_individual
             }
-            costos_individuales[titulo] = resultado_estr.get("costo_total", 0)
-            print(f"✅ {titulo}: Costo individual = {resultado_estr.get('costo_total', 0)}")
+            costos_individuales[titulo] = costo_individual
         else:
             print(f"❌ {titulo}: {resultado_estr['mensaje']}")
             resultados_familia[nombre_estr] = {
@@ -194,14 +196,20 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str) -> Dict:
             # 7. Costeo
             from controllers.ejecutar_calculos import ejecutar_calculo_costeo
             resultado_costeo = ejecutar_calculo_costeo(datos_estructura, state)
+            
             if resultado_costeo.get('exito'):
                 calculo_costeo = CalculoCache.cargar_calculo_costeo(titulo)
                 resultados["costeo"] = calculo_costeo
-                # Extraer costo total
-                if calculo_costeo and "resultados" in calculo_costeo:
-                    costo_total = calculo_costeo["resultados"].get("costo_total", 0)
-                print(f"✅ Costeo completado para {titulo}: {costo_total}")
+                
+                # Extraer costo total desde resultado_costeo (tiene el valor correcto)
+                if resultado_costeo.get('resultados') and 'resumen_costos' in resultado_costeo['resultados']:
+                    costo_total = float(resultado_costeo['resultados']['resumen_costos'].get('costo_total', 0))
+                    print(f"   ✅ Costeo completado para {titulo}: {costo_total:.2f} UM")
+                else:
+                    costo_total = 0
+                    print(f"   ⚠️ Costeo sin resumen_costos para {titulo}")
             else:
+                print(f"   ❌ Error Costeo para {titulo}: {resultado_costeo.get('mensaje')}")
                 return {"exito": False, "mensaje": f"Error Costeo: {resultado_costeo.get('mensaje')}"}
             
             return {
@@ -334,71 +342,130 @@ def generar_vista_resultados_familia(resultados_familia: Dict) -> List:
 def _crear_contenido_estructura(datos_estructura: Dict):
     """Crear contenido para pestaña de estructura individual"""
     from dash import html
-    from components.vista_calcular_todo import generar_resultados_cmc_lista
-    from components.vista_diseno_geometrico import generar_resultados_dge
-    from components.vista_diseno_mecanico import generar_resultados_dme
-    from components.vista_arboles_carga import generar_resultados_arboles
-    from components.vista_seleccion_poste import _crear_area_resultados
-    from components.vista_fundacion import generar_resultados_fundacion
-    from components.vista_costeo import generar_resultados_costeo
-    from dash import html
+    import dash_bootstrap_components as dbc
     
-    resultados = datos_estructura["resultados"]
+    print(f"\n🔍 DEBUG _crear_contenido_estructura:")
+    print(f"   Keys en datos_estructura: {list(datos_estructura.keys())}")
+    
+    if "error" in datos_estructura:
+        print(f"   ❌ Error encontrado: {datos_estructura['error']}")
+        return dbc.Alert(f"Error: {datos_estructura['error']}", color="danger")
+    
+    resultados = datos_estructura.get("resultados", {})
+    print(f"   Keys en resultados: {list(resultados.keys())}")
+    
+    if not resultados:
+        print(f"   ⚠️ No hay resultados")
+        return dbc.Alert("No hay resultados disponibles", color="warning")
+    
     componentes = []
     
-    # CMC
-    if "cmc" in resultados and resultados["cmc"]:
-        componentes.append(html.H4("Cálculo Mecánico de Cables"))
-        cmc_lista = generar_resultados_cmc_lista(resultados["cmc"], {}, mostrar_alerta_cache=False)
-        componentes.extend(cmc_lista)
-    
-    # DGE
-    if "dge" in resultados and resultados["dge"]:
-        componentes.append(html.H4("Diseño Geométrico"))
-        componentes.append(generar_resultados_dge(resultados["dge"], {}, mostrar_alerta_cache=False))
-    
-    # DME
-    if "dme" in resultados and resultados["dme"]:
-        componentes.append(html.H4("Diseño Mecánico"))
-        componentes.append(generar_resultados_dme(resultados["dme"], {}, mostrar_alerta_cache=False))
-    
-    # Árboles
-    if "arboles" in resultados and resultados["arboles"]:
-        componentes.append(html.H4("Árboles de Carga"))
-        componentes.append(html.Div(generar_resultados_arboles(resultados["arboles"], {}, mostrar_alerta_cache=False)))
-    
-    # SPH
-    if "sph" in resultados and resultados["sph"]:
-        componentes.append(html.H4("Selección de Poste"))
-        componentes.append(html.Div(_crear_area_resultados(resultados["sph"], {})))
-    
-    # Fundación
-    if "fundacion" in resultados and resultados["fundacion"]:
-        componentes.append(html.H4("Fundación"))
-        fund_result = generar_resultados_fundacion(resultados["fundacion"], {})
-        if isinstance(fund_result, list):
-            componentes.extend(fund_result)
-        else:
-            componentes.append(fund_result)
-    
-    # Costeo
-    if "costeo" in resultados and resultados["costeo"]:
-        componentes.append(html.H4("Costeo"))
-        cost_result = generar_resultados_costeo(resultados["costeo"], {})
-        if isinstance(cost_result, list):
-            componentes.extend(cost_result)
-        else:
-            componentes.append(cost_result)
-    
-    return html.Div(componentes)
+    try:
+        # CMC
+        if "cmc" in resultados and resultados["cmc"]:
+            print(f"   ✅ Generando CMC...")
+            from components.vista_calculo_mecanico import generar_resultados_cmc
+            componentes.append(html.H4("1. Cálculo Mecánico de Cables"))
+            componentes.append(html.Hr())
+            cmc_content = generar_resultados_cmc(resultados["cmc"], {})
+            componentes.append(cmc_content)
+            print(f"   ✅ CMC agregado")
+        
+        # DGE
+        if "dge" in resultados and resultados["dge"]:
+            print(f"   ✅ Generando DGE...")
+            from components.vista_diseno_geometrico import generar_resultados_dge
+            componentes.append(html.H4("2. Diseño Geométrico"))
+            componentes.append(html.Hr())
+            dge_content = generar_resultados_dge(resultados["dge"], {})
+            componentes.append(dge_content)
+            print(f"   ✅ DGE agregado")
+        
+        # DME
+        if "dme" in resultados and resultados["dme"]:
+            print(f"   ✅ Generando DME...")
+            from components.vista_diseno_mecanico import generar_resultados_dme
+            componentes.append(html.H4("3. Diseño Mecánico"))
+            componentes.append(html.Hr())
+            dme_content = generar_resultados_dme(resultados["dme"], {})
+            componentes.append(dme_content)
+            print(f"   ✅ DME agregado")
+        
+        # Árboles
+        if "arboles" in resultados and resultados["arboles"]:
+            print(f"   ✅ Generando Árboles...")
+            from components.vista_arboles_carga import generar_resultados_arboles
+            componentes.append(html.H4("4. Árboles de Carga"))
+            componentes.append(html.Hr())
+            arboles_content = generar_resultados_arboles(resultados["arboles"], {})
+            componentes.append(arboles_content)
+            print(f"   ✅ Árboles agregado")
+        
+        # SPH
+        if "sph" in resultados and resultados["sph"]:
+            print(f"   ✅ Generando SPH...")
+            from components.vista_seleccion_poste import _crear_area_resultados
+            componentes.append(html.H4("5. Selección de Poste"))
+            componentes.append(html.Hr())
+            sph_content = _crear_area_resultados(resultados["sph"], {})
+            componentes.append(sph_content)
+            print(f"   ✅ SPH agregado")
+        
+        # Fundación
+        if "fundacion" in resultados and resultados["fundacion"]:
+            print(f"   ✅ Generando Fundación...")
+            from components.vista_fundacion import generar_resultados_fundacion
+            componentes.append(html.H4("6. Fundación"))
+            componentes.append(html.Hr())
+            fund_content = generar_resultados_fundacion(resultados["fundacion"], {})
+            # generar_resultados_fundacion puede retornar lista o componente
+            if isinstance(fund_content, list):
+                componentes.extend(fund_content)
+            else:
+                componentes.append(fund_content)
+            print(f"   ✅ Fundación agregado")
+        
+        # Costeo
+        if "costeo" in resultados and resultados["costeo"]:
+            print(f"   ✅ Generando Costeo...")
+            from components.vista_costeo import generar_resultados_costeo
+            componentes.append(html.H4("7. Costeo"))
+            componentes.append(html.Hr())
+            cost_content = generar_resultados_costeo(resultados["costeo"], {})
+            componentes.append(cost_content)
+            print(f"   ✅ Costeo agregado")
+        
+        print(f"   📊 Total componentes generados: {len(componentes)}")
+        
+        if not componentes:
+            return dbc.Alert("No se generaron componentes de resultados", color="warning")
+        
+        return html.Div(componentes, style={"padding": "20px"})
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Error generando contenido: {str(e)}\n{traceback.format_exc()}"
+        print(f"   ❌ {error_msg}")
+        return dbc.Alert(error_msg, color="danger")
 
 def _crear_contenido_costeo_familia(costeo_global: Dict, graficos_familia: Dict):
     """Crear contenido para pestaña de costeo global de familia"""
     from dash import html, dcc
     import dash_bootstrap_components as dbc
     
+    print(f"📊 DEBUG costeo_global: {costeo_global}")
+    print(f"📊 DEBUG graficos_familia keys: {list(graficos_familia.keys()) if graficos_familia else 'None'}")
+    
     if not costeo_global:
         return dbc.Alert("No hay datos de costeo disponibles", color="warning")
+    
+    costo_global_valor = costeo_global.get('costo_global', 0)
+    costos_individuales = costeo_global.get('costos_individuales', {})
+    costos_parciales = costeo_global.get('costos_parciales', {})
+    
+    print(f"💰 DEBUG: Costo global = {costo_global_valor}")
+    print(f"💰 DEBUG: Costos individuales = {costos_individuales}")
+    print(f"💰 DEBUG: Costos parciales = {costos_parciales}")
     
     componentes = [
         html.H4("Costeo Global de Familia"),
@@ -410,12 +477,30 @@ def _crear_contenido_costeo_familia(costeo_global: Dict, graficos_familia: Dict)
                 dbc.Card([
                     dbc.CardBody([
                         html.H5("Costo Global de Familia", className="card-title"),
-                        html.H3(f"{costeo_global.get('costo_global', 0):,.2f} UM", 
-                               className="text-primary")
+                        html.H3(f"{costo_global_valor:,.2f} UM", className="text-primary")
                     ])
                 ])
             ], width=12)
         ], className="mb-4"),
+        
+        # Tabla de costos
+        html.H5("Detalle de Costos por Estructura"),
+        dbc.Table([
+            html.Thead(html.Tr([
+                html.Th("Estructura"),
+                html.Th("Costo Individual [UM]"),
+                html.Th("Cantidad"),
+                html.Th("Costo Parcial [UM]")
+            ])),
+            html.Tbody([
+                html.Tr([
+                    html.Td(titulo),
+                    html.Td(f"{costos_individuales.get(titulo, 0):,.2f}"),
+                    html.Td("1"),  # TODO: Obtener cantidad real
+                    html.Td(f"{costos_parciales.get(titulo, 0):,.2f}")
+                ]) for titulo in costos_individuales.keys()
+            ])
+        ], bordered=True, hover=True, className="mb-4"),
         
         # Gráficos
         html.H5("Análisis Comparativo"),

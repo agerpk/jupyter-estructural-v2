@@ -101,11 +101,11 @@ def extraer_datos_para_costeo(nombre_estructura):
     if altura_total_m is None:
         raise ValueError("SPH no contiene Ht_comercial en dimensiones")
     
-    # Extraer peso estimado desde desarrollo_texto
+    # Extraer peso desde desarrollo_texto
     desarrollo = calculo_sph.get('desarrollo_texto', '')
     peso_total_kg = None
     for linea in desarrollo.split('\n'):
-        if 'Peso estimado:' in linea:
+        if 'Peso =' in linea or 'Peso estimado:' in linea:
             import re
             numeros = re.findall(r'\d+', linea)
             if numeros:
@@ -113,7 +113,7 @@ def extraer_datos_para_costeo(nombre_estructura):
                 break
     
     if peso_total_kg is None:
-        raise ValueError("No se pudo extraer peso estimado desde SPH")
+        raise ValueError("No se pudo extraer peso desde SPH")
     
     # Extraer cantidades de vínculos desde SPH
     cantidad_vinculos = 0
