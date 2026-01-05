@@ -2,7 +2,8 @@
 Vista para gestión de Familias de Estructuras
 """
 
-from dash import html, dcc, dash_table
+from dash import html, dcc
+from dash.dash_table import DataTable
 import dash_bootstrap_components as dbc
 from typing import Dict, List, Any
 import json
@@ -91,76 +92,22 @@ def crear_vista_familia_estructuras(familia_actual=None):
                 ], className="mb-3"),
                 
                 # Tabla de parámetros multi-columna
-                dash_table.DataTable(
-                    id="tabla-familia",
-                    data=tabla_data,
-                    columns=columnas,
-                    editable=True,
-                    row_deletable=False,
-                    sort_action="native",
-                    filter_action="native",
-                    page_action="none",
-                    
-                    style_cell={
-                        'textAlign': 'right',
-                        'padding': '8px',
-                        'fontFamily': 'Arial, sans-serif',
-                        'fontSize': '14px',
-                        'color': '#000000',
-                        'backgroundColor': '#ffffff',
-                        'width': 'auto',
-                        'minWidth': '100px',
-                        'maxWidth': '300px'
-                    },
-                    style_data_conditional=[
-                        {
-                            'if': {'column_id': 'parametro'},
-                            'fontWeight': 'bold',
-                            'color': '#000000',
-                            'textAlign': 'left'
-                        }
-                    ] + [
-                        {
-                            'if': {'column_id': nombre_estr},
-                            'backgroundColor': '#f8f9fa',
-                            'color': '#000000'
-                        }
-                        for nombre_estr in estructuras.keys()
-                    ],
-                    
-                    style_filter={
-                        'backgroundColor': '#e9ecef',
-                        'color': '#000000'
-                    },
-                    
-                    css=[{
-                        'selector': '.dash-table-container td.cell--selected, .dash-table-container td.focused, .dash-table-container .cell--selected, .dash-table-container .focused',
-                        'rule': 'background-color: #e3f2fd !important; color: #000000 !important; border: 1px solid #90caf9 !important;'
-                    }, {
-                        'selector': '.dash-table-container input.dash-cell-value, .dash-table-container input',
-                        'rule': 'background-color: #e3f2fd !important; color: #000000 !important; text-align: right !important;'
-                    }, {
-                        'selector': '.dash-table-container .cell:hover, .dash-table-container td:hover',
-                        'rule': 'background-color: #f0f8ff !important; color: #000000 !important;'
-                    }, {
-                        'selector': '.dash-table-container .cell.editing, .dash-table-container td.editing',
-                        'rule': 'background-color: #e3f2fd !important; color: #000000 !important;'
-                    }],
-                    style_header={
-                        'backgroundColor': '#007bff',
-                        'color': '#ffffff',
-                        'fontWeight': 'bold',
-                        'border': '1px solid #dee2e6',
-                        'textAlign': 'center'
-                    },
-                    style_data={
-                        'border': '1px solid #dee2e6',
-                        'whiteSpace': 'normal',
-                        'height': 'auto',
-                        'color': '#000000',
-                        'backgroundColor': '#ffffff'
-                    }
-                ),
+                html.Div([
+                    DataTable(
+                        id="tabla-familia",
+                        data=tabla_data,
+                        columns=columnas,
+                        editable=True,
+                        row_deletable=False,
+                        sort_action="native",
+                        filter_action="native",
+                        page_action="none",
+                        style_cell={'textAlign': 'left', 'padding': '8px', 'minWidth': '100px'},
+                        style_table={'overflowX': 'auto', 'overflowY': 'auto', 'maxHeight': '600px', 'minHeight': '400px'},
+                        style_header={'backgroundColor': '#007bff', 'color': '#ffffff', 'fontWeight': 'bold'},
+                        style_data={'border': '1px solid #dee2e6'}
+                    )
+                ], style={'width': '100%', 'overflowX': 'auto'}),
                 
                 # Modal para edición
                 crear_modal_familia(),

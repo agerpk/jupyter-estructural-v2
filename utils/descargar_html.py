@@ -9,6 +9,9 @@ from pathlib import Path
 from config.app_config import CACHE_DIR
 from utils.calculo_cache import CalculoCache
 from utils.view_helpers import ViewHelpers
+from utils.descargar_html_familia_fix import generar_indice_familia, generar_seccion_costeo_estructura
+from utils.descargar_html_familia_completo import (generar_html_familia, generar_seccion_resumen_familia, 
+                                                     generar_seccion_estructura_familia, generar_seccion_costeo_familia)
 
 
 def generar_html_completo(estructura_actual):

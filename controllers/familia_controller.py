@@ -26,7 +26,7 @@ def register_callbacks(app):
     """Registra todos los callbacks del controller"""
     
     @app.callback(
-        [Output("tabla-familia", "data", allow_duplicate=True)],
+        Output("tabla-familia", "data", allow_duplicate=True),
         [Input("filtro-categoria-familia", "value"),
          Input("buscar-parametro-familia", "value")],
         [State("tabla-familia-original", "data")],
@@ -48,7 +48,7 @@ def register_callbacks(app):
         
         if sin_categoria and sin_busqueda:
             print(f"   ✅ Retornando tabla completa: {len(tabla_original)} filas")
-            return [tabla_original]
+            return tabla_original
         
         tabla_filtrada = list(tabla_original)  # Crear copia
         
@@ -68,7 +68,7 @@ def register_callbacks(app):
             ]
             print(f"   Después de filtrar por búsqueda '{busqueda}': {len(tabla_filtrada)} filas")
         
-        return [tabla_filtrada]
+        return tabla_filtrada
     
     @app.callback(
         Output("tabla-familia-original", "data", allow_duplicate=True),
@@ -678,12 +678,12 @@ def register_callbacks(app):
     @app.callback(
         Output("btn-descargar-html-familia", "style"),
         Input("resultados-familia", "children"),
-        prevent_initial_call=True
+        prevent_initial_call=False
     )
     def mostrar_boton_descargar(resultados):
         """Mostrar botón descargar cuando hay resultados"""
-        if resultados:
-            return {"display": "block"}
+        if resultados and len(resultados) > 0:
+            return {"display": "block", "margin-top": "20px"}
         return {"display": "none"}
     
     @app.callback(
