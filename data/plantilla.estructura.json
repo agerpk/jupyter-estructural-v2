@@ -73,6 +73,10 @@
     "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01},
     "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
   },
+  "restricciones_cables": {
+    "conductor": {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25},
+    "guardia": {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
+  },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
   "fecha_modificacion": "2024-01-01",

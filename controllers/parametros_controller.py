@@ -81,10 +81,19 @@ def register_callbacks(app):
         Input("guardar-parametros", "n_clicks"),
         State({"type": "param-input", "index": ALL}, "id"),
         State({"type": "param-input", "index": ALL}, "value"),
+        State({"type": "estado-temp-ajuste", "index": ALL}, "value"),
+        State({"type": "estado-viento-ajuste", "index": ALL}, "value"),
+        State({"type": "estado-hielo-ajuste", "index": ALL}, "value"),
+        State({"type": "restriccion-conductor-ajuste", "index": ALL}, "value"),
+        State({"type": "restriccion-guardia-ajuste", "index": ALL}, "value"),
+        State({"type": "estado-temp-ajuste", "index": ALL}, "id"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def guardar_parametros_ajustados(n_clicks, param_ids, param_values, estructura_actual):
+    def guardar_parametros_ajustados(n_clicks, param_ids, param_values, 
+                                     estado_temps, estado_vientos, estado_hielos,
+                                     restriccion_conductores, restriccion_guardias,
+                                     estado_ids, estructura_actual):
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
@@ -159,6 +168,39 @@ def register_callbacks(app):
                             estructura_actualizada[param_key] = param_value
                     else:
                         estructura_actualizada[param_key] = param_value
+            
+            # Guardar estados climáticos si existen
+            if estado_ids and estado_temps:
+                estados_climaticos = {}
+                descripciones = {"I": "Tmáx", "II": "Tmín", "III": "Vmáx", "IV": "Vmed", "V": "TMA"}
+                
+                for i, estado_id_dict in enumerate(estado_ids):
+                    estado_id = estado_id_dict["index"]
+                    estados_climaticos[estado_id] = {
+                        "temperatura": float(estado_temps[i]) if estado_temps[i] is not None else 0,
+                        "descripcion": descripciones.get(estado_id, ""),
+                        "viento_velocidad": float(estado_vientos[i]) if estado_vientos[i] is not None else 0,
+                        "espesor_hielo": float(estado_hielos[i]) if estado_hielos[i] is not None else 0
+                    }
+                
+                estructura_actualizada["estados_climaticos"] = estados_climaticos
+                
+                # Guardar restricciones
+                if restriccion_conductores and restriccion_guardias:
+                    estructura_actualizada["restricciones_cables"] = {
+                        "conductor": {
+                            "tension_max_porcentaje": {
+                                estado_id_dict["index"]: float(restriccion_conductores[i]) if restriccion_conductores[i] is not None else 0.25
+                                for i, estado_id_dict in enumerate(estado_ids)
+                            }
+                        },
+                        "guardia": {
+                            "tension_max_porcentaje": {
+                                estado_id_dict["index"]: float(restriccion_guardias[i]) if restriccion_guardias[i] is not None else 0.7
+                                for i, estado_id_dict in enumerate(estado_ids)
+                            }
+                        }
+                    }
             
             # Guardar en el archivo de la estructura actual (unificado)
             state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_actual)

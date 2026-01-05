@@ -11,6 +11,17 @@ from utils.parametros_manager import ParametrosManager
 from utils.validadores_parametros import ValidadoresParametros
 from components.tabla_parametros import validar_tabla_parametros
 from models.app_state import AppState
+from components.pestanas_parametros import crear_tabla_estados_climaticos_ajuste
+
+# Modal para estados climáticos (compartido entre tabla y panel)
+modal_estados_panel = dbc.Modal([
+    dbc.ModalHeader(dbc.ModalTitle("Estados Climáticos y Restricciones")),
+    dbc.ModalBody(id="modal-estados-panel-body"),
+    dbc.ModalFooter([
+        dbc.Button("Cancelar", id="modal-estados-panel-cancelar", color="secondary", className="me-2"),
+        dbc.Button("Guardar", id="modal-estados-panel-guardar", color="primary")
+    ])
+], id="modal-estados-panel", is_open=False, size="xl")
 
 @callback(
     [Output("contenido-pestana-parametros", "children"),
@@ -24,7 +35,10 @@ from models.app_state import AppState
 def cambiar_pestana_parametros(tab_activo, estructura_actual):
     """Cambia contenido según pestaña activa"""
     
-    if not estructura_actual or not tab_activo:
+    if not tab_activo:
+        tab_activo = "tabla"
+    
+    if not estructura_actual:
         return "No hay estructura cargada", False, "", "warning"
     
     try:
@@ -48,7 +62,10 @@ def cambiar_pestana_parametros(tab_activo, estructura_actual):
         elif tab_activo == "panel":
             from components.vista_ajuste_parametros import crear_vista_ajuste_parametros
             
-            contenido = crear_vista_ajuste_parametros(estructura_actual, cables_disponibles)
+            contenido = html.Div([
+                crear_vista_ajuste_parametros(estructura_actual, cables_disponibles),
+                modal_estados_panel
+            ])
         
         else:
             return "Pestaña no válida", False, "", "warning"
@@ -333,3 +350,47 @@ def seleccionar_opcion_directa(n_clicks_opciones, n_clicks_bool, celda_info, tab
     
     # Cerrar modal y actualizar tabla
     return tabla_data, False
+
+@callback(
+    [Output("modal-estados-tabla", "is_open"),
+     Output("modal-estados-tabla-body", "children")],
+    [Input("btn-modificar-estados-tabla", "n_clicks"),
+     Input("modal-estados-tabla-cancelar", "n_clicks"),
+     Input("modal-estados-tabla-guardar", "n_clicks")],
+    State("estructura-actual", "data"),
+    prevent_initial_call=True
+)
+def manejar_modal_estados_tabla(n_abrir, n_cancelar, n_guardar, estructura_actual):
+    """Maneja apertura/cierre del modal de estados climáticos"""
+    if not ctx.triggered:
+        return no_update, no_update
+    
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if trigger_id == "btn-modificar-estados-tabla":
+        tabla = crear_tabla_estados_climaticos_ajuste(estructura_actual)
+        return True, tabla
+    
+    return False, no_update
+
+@callback(
+    [Output("modal-estados-panel", "is_open"),
+     Output("modal-estados-panel-body", "children")],
+    [Input("btn-modificar-estados-panel", "n_clicks"),
+     Input("modal-estados-panel-cancelar", "n_clicks"),
+     Input("modal-estados-panel-guardar", "n_clicks")],
+    State("estructura-actual", "data"),
+    prevent_initial_call=True
+)
+def manejar_modal_estados_panel(n_abrir, n_cancelar, n_guardar, estructura_actual):
+    """Maneja apertura/cierre del modal de estados climáticos en panel"""
+    if not ctx.triggered:
+        return no_update, no_update
+    
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if trigger_id == "btn-modificar-estados-panel":
+        tabla = crear_tabla_estados_climaticos_ajuste(estructura_actual)
+        return True, tabla
+    
+    return False, no_update

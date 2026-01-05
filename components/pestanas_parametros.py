@@ -5,6 +5,73 @@ Sistema de pestañas para alternar entre Modo Tabla y Modo Panel.
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
+
+def crear_tabla_estados_climaticos_ajuste(estructura_actual):
+    """Crear tabla editable de estados climáticos con restricciones para vista ajuste parámetros"""
+    
+    # Valores por defecto
+    estados_default = {
+        "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
+        "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
+        "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": estructura_actual.get("Vmax", 38.9), "espesor_hielo": 0},
+        "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": estructura_actual.get("Vmed", 15.56), "espesor_hielo": estructura_actual.get("t_hielo", 0.01)},
+        "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
+    }
+    
+    # Restricciones por defecto
+    restricciones_conductor = {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}
+    restricciones_guardia = {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
+    
+    # Obtener valores actuales si existen
+    estados_actuales = estructura_actual.get("estados_climaticos", estados_default)
+    
+    # Encabezado
+    header = dbc.Row([
+        dbc.Col(html.Strong("Estado"), md=1),
+        dbc.Col(html.Strong("Temp (°C)"), md=1),
+        dbc.Col(html.Strong("Descripción"), md=2),
+        dbc.Col(html.Strong("Viento (m/s)"), md=2),
+        dbc.Col(html.Strong("Hielo (m)"), md=2),
+        dbc.Col(html.Strong("Restricción Conductor (%)"), md=2),
+        dbc.Col(html.Strong("Restricción Guardia (%)"), md=2),
+    ], className="mb-2 fw-bold")
+    
+    filas = [header]
+    for estado_id, valores in estados_default.items():
+        # Usar valores actuales si existen, sino usar defaults
+        valores_actuales = estados_actuales.get(estado_id, valores)
+        
+        fila = dbc.Row([
+            dbc.Col(html.Strong(estado_id), md=1),
+            dbc.Col(
+                dbc.Input(id={"type": "estado-temp-ajuste", "index": estado_id}, type="number", 
+                         value=valores_actuales.get("temperatura", valores["temperatura"]), size="sm"), md=1
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "estado-desc-ajuste", "index": estado_id}, type="text",
+                         value=valores_actuales.get("descripcion", valores["descripcion"]), size="sm", disabled=True), md=2
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "estado-viento-ajuste", "index": estado_id}, type="number",
+                         value=valores_actuales.get("viento_velocidad", valores["viento_velocidad"]), size="sm"), md=2
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "estado-hielo-ajuste", "index": estado_id}, type="number",
+                         value=valores_actuales.get("espesor_hielo", valores["espesor_hielo"]), size="sm"), md=2
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "restriccion-conductor-ajuste", "index": estado_id}, type="number",
+                         value=restricciones_conductor[estado_id], size="sm", step=0.01, min=0, max=1), md=2
+            ),
+            dbc.Col(
+                dbc.Input(id={"type": "restriccion-guardia-ajuste", "index": estado_id}, type="number",
+                         value=restricciones_guardia[estado_id], size="sm", step=0.01, min=0, max=1), md=2
+            ),
+        ], className="mb-2")
+        filas.append(fila)
+    
+    return html.Div(filas)
+
 def crear_pestanas_parametros() -> html.Div:
     """Crea pestañas para Modo Tabla y Modo Panel"""
     

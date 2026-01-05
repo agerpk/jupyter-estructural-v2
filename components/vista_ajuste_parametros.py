@@ -411,6 +411,16 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         dbc.Card([
             dbc.CardHeader(html.H4("Ajustar Parámetros de Estructura", className="mb-0")),
             dbc.CardBody([
+                # Botón para modificar estados climáticos
+                dbc.Card([
+                    dbc.CardHeader(html.H6("Estados Climáticos y Restricciones")),
+                    dbc.CardBody([
+                        dbc.Button("Modificar Estados Climáticos y Restricciones", 
+                                  id="btn-modificar-estados-panel", 
+                                  color="info", size="sm")
+                    ])
+                ], className="mb-3"),
+                
                 html.Div(bloques),
                 dbc.Row([
                     dbc.Col(
