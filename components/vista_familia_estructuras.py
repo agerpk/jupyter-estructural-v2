@@ -100,19 +100,21 @@ def crear_vista_familia_estructuras(familia_actual=None):
                         columns=columnas,
                         editable=True,
                         row_deletable=False,
-                        page_size=50,
+                        page_action='native',
+                        page_current=0,
+                        page_size=60,
                         sort_action="native",
                         filter_action="native",
-                        style_cell={'textAlign': 'left', 'padding': '8px', 'color': 'black', 'fontSize': '14px'},
-                        style_header={'backgroundColor': '#d0e8f2', 'color': 'black', 'fontWeight': 'bold', 'textAlign': 'center'},
-                        style_data={'backgroundColor': 'white', 'color': 'black'},
-                        style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': '#e8f5e9'}],
+                        style_cell={'textAlign': 'left', 'padding': '8px', 'color': '#000000', 'fontSize': '14px', 'backgroundColor': '#ffffff'},
+                        style_header={'backgroundColor': '#d0e8f2', 'color': '#000000', 'fontWeight': 'bold', 'textAlign': 'center'},
+                        style_data={'backgroundColor': '#ffffff', 'color': '#000000'},
+                        style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': '#f8f9fa', 'color': '#000000'}],
                         css=[{
                             'selector': '.dash-spreadsheet td.focused',
-                            'rule': 'background-color: #e3f2fd !important;'
+                            'rule': 'background-color: #e3f2fd !important; color: #000000 !important;'
                         }, {
                             'selector': '.dash-spreadsheet td.active',
-                            'rule': 'background-color: #bbdefb !important;'
+                            'rule': 'background-color: #bbdefb !important; color: #000000 !important;'
                         }]
                     )
                 ], style={'width': '100%', 'marginTop': '20px'}),

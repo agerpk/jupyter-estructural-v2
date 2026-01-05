@@ -81,7 +81,10 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def generar_arboles_callback(n_clicks, zoom, escala, grosor, fontsize_nodos, fontsize_flechas, mostrar_nodos, mostrar_sismo, adc_3d, estructura_actual):
-        if not n_clicks:
+        print(f"🔵 DEBUG: Botón 'Generar Árboles' presionado - n_clicks: {n_clicks}")
+        
+        if n_clicks is None:
+            print("⚠️  DEBUG: n_clicks es None, PreventUpdate")
             raise dash.exceptions.PreventUpdate
         
         try:
