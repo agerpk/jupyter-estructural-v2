@@ -86,7 +86,14 @@ class EstructuraAEA_Geometria:
         self.disposicion = disposicion.lower()
         self.terna = terna
         self.cant_hg = cant_hg
-        self.alpha_quiebre = alpha_quiebre
+        
+        # OVERRIDE: Terminal siempre tiene alpha=0
+        if "terminal" in tipo_estructura.lower():
+            if alpha_quiebre != 0.0:
+                print(f"⚠️  ADVERTENCIA: Estructura Terminal forzada a alpha=0° (se ignoró alpha={alpha_quiebre}°)")
+            self.alpha_quiebre = 0.0
+        else:
+            self.alpha_quiebre = alpha_quiebre
         self.altura_minima_cable = altura_minima_cable
         self.long_mensula_min_conductor = long_mensula_min_conductor
         self.long_mensula_min_guardia = long_mensula_min_guardia

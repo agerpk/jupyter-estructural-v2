@@ -768,7 +768,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def manejar_modal_familia(active_cell, n_confirm, n_cancel, is_open, tabla_data):
-        """Maneja edición de celdas mediante modal (reutiliza modal de tabla_parametros)"""
+        """Maneja edición de celdas mediante modal"""
         ctx = dash.callback_context
         if not ctx.triggered:
             raise dash.exceptions.PreventUpdate
@@ -794,50 +794,41 @@ def register_callbacks(app):
             
             from utils.parametros_manager import ParametrosManager
             
+            # Buscar opciones para el parámetro
+            opciones = None
             if parametro in ["cable_conductor_id", "cable_guardia_id", "cable_guardia2_id"]:
                 try:
                     with open("data/cables.json", "r", encoding="utf-8") as f:
                         cables_data = json.load(f)
                         opciones = list(cables_data.keys())
                 except:
-                    opciones = []
+                    opciones = None
             else:
                 opciones = ParametrosManager.obtener_opciones_parametro(parametro)
             
+            # Si tiene opciones, mostrar botones
             if opciones:
-                botones = []
-                for opcion in opciones:
-                    color = "primary" if opcion == valor_actual else "outline-secondary"
-                    botones.append(
-                        dbc.Button(
-                            opcion,
-                            id={"type": "familia-opcion-btn", "value": opcion},
-                            color=color,
-                            className="me-2 mb-2",
-                            size="sm"
-                        )
-                    )
                 contenido = html.Div([
                     html.P(f"Seleccione valor para {parametro}:"),
-                    html.Div(botones)
+                    dcc.Dropdown(
+                        id="dropdown-familia-opciones",
+                        options=[{"label": op, "value": op} for op in opciones],
+                        value=valor_actual,
+                        clearable=False
+                    )
                 ])
             elif tipo == "bool":
                 contenido = html.Div([
                     html.P(f"Seleccione valor para {parametro}:"),
-                    dbc.ButtonGroup([
-                        dbc.Button(
-                            "Verdadero",
-                            id={"type": "familia-bool-btn", "value": True},
-                            color="success" if valor_actual else "outline-success"
-                        ),
-                        dbc.Button(
-                            "Falso",
-                            id={"type": "familia-bool-btn", "value": False},
-                            color="danger" if not valor_actual else "outline-danger"
-                        )
-                    ])
+                    dcc.Dropdown(
+                        id="dropdown-familia-opciones",
+                        options=[{"label": "Verdadero", "value": True}, {"label": "Falso", "value": False}],
+                        value=valor_actual,
+                        clearable=False
+                    )
                 ])
             else:
+                # Input de texto para campos sin opciones
                 contenido = html.Div([
                     html.P(f"Ingrese valor para {parametro}:"),
                     dbc.Input(
@@ -855,28 +846,47 @@ def register_callbacks(app):
     @app.callback(
         [Output("tabla-familia", "data", allow_duplicate=True),
          Output("modal-familia-parametro", "is_open", allow_duplicate=True)],
-        [Input({"type": "familia-opcion-btn", "value": ALL}, "n_clicks"),
-         Input({"type": "familia-bool-btn", "value": ALL}, "n_clicks")],
+        Input("modal-familia-confirmar", "n_clicks"),
         [State("modal-familia-celda-info", "data"),
-         State("tabla-familia", "data")],
+         State("tabla-familia", "data"),
+         State("modal-familia-body-parametro", "children")],
         prevent_initial_call=True
     )
-    def seleccionar_opcion_familia(n_clicks_opciones, n_clicks_bool, celda_info, tabla_data):
-        """Actualiza tabla directamente al seleccionar opción y cierra modal"""
-        ctx = dash.callback_context
-        if not ctx.triggered or not celda_info:
+    def seleccionar_opcion_familia(n_confirmar, celda_info, tabla_data, modal_body):
+        """Actualiza tabla al confirmar modal"""
+        if n_confirmar is None or not celda_info:
             return no_update, no_update
         
-        trigger = ctx.triggered[0]
-        if trigger["value"] is None:
-            return no_update, no_update
+        print(f"🔵 DEBUG: Confirmar presionado - celda_info: {celda_info}")
         
-        component_id = trigger["prop_id"].split(".")[0]
-        component_data = json.loads(component_id)
-        valor_seleccionado = component_data["value"]
+        # Extraer valor del componente que existe en el modal
+        valor_seleccionado = None
+        try:
+            # Buscar dropdown o input en el modal_body
+            if modal_body and 'props' in modal_body:
+                children = modal_body['props'].get('children', [])
+                for child in children:
+                    if isinstance(child, dict) and 'props' in child:
+                        # Buscar dropdown
+                        if child.get('type') == 'Dropdown':
+                            valor_seleccionado = child['props'].get('value')
+                            print(f"✅ DEBUG: Valor de dropdown: {valor_seleccionado}")
+                            break
+                        # Buscar input
+                        elif child.get('type') == 'Input':
+                            valor_seleccionado = child['props'].get('value')
+                            print(f"✅ DEBUG: Valor de input: {valor_seleccionado}")
+                            break
+        except Exception as e:
+            print(f"⚠️ DEBUG: Error extrayendo valor: {e}")
+        
+        if valor_seleccionado is None:
+            print("❌ DEBUG: No se pudo extraer valor del modal")
+            return no_update, False
         
         fila = celda_info["fila"]
         columna = celda_info["columna"]
         tabla_data[fila][columna] = valor_seleccionado
         
+        print(f"✅ DEBUG: Tabla actualizada - fila {fila}, col {columna}, valor: {valor_seleccionado}")
         return tabla_data, False
