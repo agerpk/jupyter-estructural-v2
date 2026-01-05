@@ -63,6 +63,7 @@ def crear_vista_familia_estructuras(familia_actual=None):
         })
     
     print(f"✅ DEBUG: Columnas configuradas: {[col['id'] for col in columnas]}")
+    print(f"🔍 DEBUG: Retornando vista con DataTable - data={len(tabla_data)} filas, columns={len(columnas)} cols")
     
     return html.Div([
         dbc.Card([
@@ -99,15 +100,22 @@ def crear_vista_familia_estructuras(familia_actual=None):
                         columns=columnas,
                         editable=True,
                         row_deletable=False,
+                        page_size=50,
                         sort_action="native",
                         filter_action="native",
-                        page_action="none",
-                        style_cell={'textAlign': 'left', 'padding': '8px', 'minWidth': '100px'},
-                        style_table={'overflowX': 'auto', 'overflowY': 'auto', 'maxHeight': '600px', 'minHeight': '400px'},
-                        style_header={'backgroundColor': '#007bff', 'color': '#ffffff', 'fontWeight': 'bold'},
-                        style_data={'border': '1px solid #dee2e6'}
+                        style_cell={'textAlign': 'left', 'padding': '8px', 'color': 'black', 'fontSize': '14px'},
+                        style_header={'backgroundColor': '#d0e8f2', 'color': 'black', 'fontWeight': 'bold', 'textAlign': 'center'},
+                        style_data={'backgroundColor': 'white', 'color': 'black'},
+                        style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': '#e8f5e9'}],
+                        css=[{
+                            'selector': '.dash-spreadsheet td.focused',
+                            'rule': 'background-color: #e3f2fd !important;'
+                        }, {
+                            'selector': '.dash-spreadsheet td.active',
+                            'rule': 'background-color: #bbdefb !important;'
+                        }]
                     )
-                ], style={'width': '100%', 'overflowX': 'auto'}),
+                ], style={'width': '100%', 'marginTop': '20px'}),
                 
                 # Modal para edición
                 crear_modal_familia(),
