@@ -143,7 +143,7 @@ def register_callbacks(app):
             columnas.append({
                 "name": nuevo_col_id,
                 "id": nuevo_col_id,
-                "editable": False,
+                "editable": True,
                 "type": "any"
             })
             
@@ -515,7 +515,7 @@ def register_callbacks(app):
                 {"name": "Símbolo", "id": "simbolo", "editable": False},
                 {"name": "Unidad", "id": "unidad", "editable": False},
                 {"name": "Descripción", "id": "descripcion", "editable": False},
-                {"name": "Estr.1", "id": "Estr.1", "editable": False}
+                {"name": "Estr.1", "id": "Estr.1", "editable": True} # SIEMPRE EDITABLES
             ]
             
             # Actualizar opciones de familias
@@ -764,3 +764,129 @@ def register_callbacks(app):
         except Exception as e:
             print(f"Error generando HTML: {e}")
             return no_update
+
+    
+    @app.callback(
+        [Output("modal-familia-parametro", "is_open"),
+         Output("modal-familia-body-parametro", "children"),
+         Output("modal-familia-celda-info", "data")],
+        [Input("tabla-familia", "active_cell"),
+         Input("modal-familia-confirmar", "n_clicks"),
+         Input("modal-familia-cancelar", "n_clicks")],
+        [State("modal-familia-parametro", "is_open"),
+         State("tabla-familia", "data")],
+        prevent_initial_call=True
+    )
+    def manejar_modal_familia(active_cell, n_confirm, n_cancel, is_open, tabla_data):
+        """Maneja edición de celdas mediante modal (reutiliza modal de tabla_parametros)"""
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id in ["modal-familia-confirmar", "modal-familia-cancelar"]:
+            return False, no_update, no_update
+        
+        if trigger_id == "tabla-familia" and active_cell:
+            col_id = active_cell["column_id"]
+            if not col_id.startswith("Estr."):
+                raise dash.exceptions.PreventUpdate
+            
+            fila = active_cell["row"]
+            tipo = tabla_data[fila].get("tipo", "str")
+            valor_actual = tabla_data[fila].get(col_id, "")
+            parametro = tabla_data[fila].get("parametro", "")
+            
+            # Tipos numéricos se editan directamente en celda, NO abrir modal
+            if tipo in ["int", "float"]:
+                raise dash.exceptions.PreventUpdate
+            
+            from utils.parametros_manager import ParametrosManager
+            
+            if parametro in ["cable_conductor_id", "cable_guardia_id", "cable_guardia2_id"]:
+                try:
+                    with open("data/cables.json", "r", encoding="utf-8") as f:
+                        cables_data = json.load(f)
+                        opciones = list(cables_data.keys())
+                except:
+                    opciones = []
+            else:
+                opciones = ParametrosManager.obtener_opciones_parametro(parametro)
+            
+            if opciones:
+                botones = []
+                for opcion in opciones:
+                    color = "primary" if opcion == valor_actual else "outline-secondary"
+                    botones.append(
+                        dbc.Button(
+                            opcion,
+                            id={"type": "familia-opcion-btn", "value": opcion},
+                            color=color,
+                            className="me-2 mb-2",
+                            size="sm"
+                        )
+                    )
+                contenido = html.Div([
+                    html.P(f"Seleccione valor para {parametro}:"),
+                    html.Div(botones)
+                ])
+            elif tipo == "bool":
+                contenido = html.Div([
+                    html.P(f"Seleccione valor para {parametro}:"),
+                    dbc.ButtonGroup([
+                        dbc.Button(
+                            "Verdadero",
+                            id={"type": "familia-bool-btn", "value": True},
+                            color="success" if valor_actual else "outline-success"
+                        ),
+                        dbc.Button(
+                            "Falso",
+                            id={"type": "familia-bool-btn", "value": False},
+                            color="danger" if not valor_actual else "outline-danger"
+                        )
+                    ])
+                ])
+            else:
+                contenido = html.Div([
+                    html.P(f"Ingrese valor para {parametro}:"),
+                    dbc.Input(
+                        id="input-valor",
+                        type="text",
+                        value=valor_actual
+                    )
+                ])
+            
+            celda_info = {"fila": fila, "columna": col_id, "parametro": parametro, "tipo": tipo}
+            return True, contenido, celda_info
+        
+        raise dash.exceptions.PreventUpdate
+    
+    @app.callback(
+        [Output("tabla-familia", "data", allow_duplicate=True),
+         Output("modal-familia-parametro", "is_open", allow_duplicate=True)],
+        [Input({"type": "familia-opcion-btn", "value": ALL}, "n_clicks"),
+         Input({"type": "familia-bool-btn", "value": ALL}, "n_clicks")],
+        [State("modal-familia-celda-info", "data"),
+         State("tabla-familia", "data")],
+        prevent_initial_call=True
+    )
+    def seleccionar_opcion_familia(n_clicks_opciones, n_clicks_bool, celda_info, tabla_data):
+        """Actualiza tabla directamente al seleccionar opción y cierra modal"""
+        ctx = dash.callback_context
+        if not ctx.triggered or not celda_info:
+            return no_update, no_update
+        
+        trigger = ctx.triggered[0]
+        if trigger["value"] is None:
+            return no_update, no_update
+        
+        component_id = trigger["prop_id"].split(".")[0]
+        component_data = json.loads(component_id)
+        valor_seleccionado = component_data["value"]
+        
+        fila = celda_info["fila"]
+        columna = celda_info["columna"]
+        tabla_data[fila][columna] = valor_seleccionado
+        
+        return tabla_data, False

@@ -51,13 +51,13 @@ def crear_vista_familia_estructuras(familia_actual=None):
         {"name": "Descripción", "id": "descripcion", "editable": False, "type": "text"}
     ]
     
-    # Agregar columnas de estructuras
+    # Agregar columnas de estructuras - TODAS EDITABLES
     estructuras = familia_actual.get("estructuras", {})
     for nombre_estr in sorted(estructuras.keys()):
         columnas.append({
             "name": nombre_estr,
             "id": nombre_estr,
-            "editable": False,  # Usar modal
+            "editable": True,
             "type": "any"
         })
     
@@ -95,7 +95,7 @@ def crear_vista_familia_estructuras(familia_actual=None):
                     id="tabla-familia",
                     data=tabla_data,
                     columns=columnas,
-                    editable=True,  # Enable direct editing for numeric values
+                    editable=True,
                     row_deletable=False,
                     sort_action="native",
                     filter_action="native",
@@ -109,25 +109,43 @@ def crear_vista_familia_estructuras(familia_actual=None):
                         'color': '#000000',
                         'backgroundColor': '#ffffff',
                         'width': 'auto',
-                        'minWidth': '80px',
-                        'maxWidth': '200px',
-                        'cursor': 'pointer'
+                        'minWidth': '100px',
+                        'maxWidth': '300px'
                     },
-                    style_cell_conditional=[
+                    style_data_conditional=[
                         {
                             'if': {'column_id': 'parametro'},
-                            'width': '150px',
+                            'fontWeight': 'bold',
+                            'color': '#000000',
                             'textAlign': 'left'
                         }
                     ] + [
                         {
                             'if': {'column_id': nombre_estr},
-                            'backgroundColor': '#f0f8ff',
-                            'color': '#000000',
-                            'cursor': 'pointer'
+                            'backgroundColor': '#f8f9fa',
+                            'color': '#000000'
                         }
                         for nombre_estr in estructuras.keys()
                     ],
+                    
+                    style_filter={
+                        'backgroundColor': '#e9ecef',
+                        'color': '#000000'
+                    },
+                    
+                    css=[{
+                        'selector': '.dash-table-container td.cell--selected, .dash-table-container td.focused, .dash-table-container .cell--selected, .dash-table-container .focused',
+                        'rule': 'background-color: #e3f2fd !important; color: #000000 !important; border: 1px solid #90caf9 !important;'
+                    }, {
+                        'selector': '.dash-table-container input.dash-cell-value, .dash-table-container input',
+                        'rule': 'background-color: #e3f2fd !important; color: #000000 !important; text-align: right !important;'
+                    }, {
+                        'selector': '.dash-table-container .cell:hover, .dash-table-container td:hover',
+                        'rule': 'background-color: #f0f8ff !important; color: #000000 !important;'
+                    }, {
+                        'selector': '.dash-table-container .cell.editing, .dash-table-container td.editing',
+                        'rule': 'background-color: #e3f2fd !important; color: #000000 !important;'
+                    }],
                     style_header={
                         'backgroundColor': '#007bff',
                         'color': '#ffffff',
