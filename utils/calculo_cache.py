@@ -514,3 +514,106 @@ class CalculoCache:
         if eliminados:
             print(f"✅ Cache eliminado: {', '.join(eliminados)}")
         return eliminados
+    
+    @staticmethod
+    def calcular_hash_familia(familia_data):
+        """Calcula hash MD5 de familia para validación de cache"""
+        familia_hash = {k: v for k, v in familia_data.items() 
+                        if k not in ['fecha_creacion', 'fecha_modificacion']}
+        data_str = json.dumps(familia_hash, sort_keys=True, ensure_ascii=False)
+        return hashlib.md5(data_str.encode('utf-8')).hexdigest()
+    
+    @staticmethod
+    def guardar_calculo_familia(nombre_familia, familia_data, resultados_familia):
+        """Guarda referencias a caches individuales de cada estructura"""
+        nombre_familia = nombre_familia.replace(' ', '_')
+        hash_params = CalculoCache.calcular_hash_familia(familia_data)
+        
+        # Solo guardar referencias a caches individuales, no duplicar datos
+        referencias_estructuras = {}
+        for nombre_estr, datos in resultados_familia.get("resultados_estructuras", {}).items():
+            titulo = datos.get("titulo", nombre_estr)
+            referencias_estructuras[nombre_estr] = {
+                "titulo": titulo,
+                "cantidad": datos.get("cantidad", 1),
+                "costo_individual": datos.get("costo_individual", 0),
+                # Referencias a caches individuales existentes
+                "cache_refs": {
+                    "cmc": f"{titulo}.calculoCMC.json",
+                    "dge": f"{titulo}.calculoDGE.json",
+                    "dme": f"{titulo}.calculoDME.json",
+                    "arboles": f"{titulo}.calculoARBOLES.json",
+                    "sph": f"{titulo}.calculoSPH.json",
+                    "fundacion": f"{titulo}.calculoFUND.json",
+                    "costeo": f"{titulo}.calculoCOSTEO.json"
+                }
+            }
+        
+        calculo_data = {
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "estructuras": referencias_estructuras,
+            "costeo_global": resultados_familia.get("costeo_global", {})
+        }
+        
+        archivo = CACHE_DIR / f"{nombre_familia}.calculoFAMILIA.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"✅ Cache familia guardado: {archivo.name}")
+        return hash_params
+    
+    @staticmethod
+    def cargar_calculo_familia(nombre_familia):
+        """Carga cache de familia y reconstruye desde caches individuales"""
+        nombre_familia = nombre_familia.replace(' ', '_')
+        archivo = CACHE_DIR / f"{nombre_familia}.calculoFAMILIA.json"
+        
+        if not archivo.exists():
+            return None
+        
+        cache_familia = json.loads(archivo.read_text(encoding="utf-8"))
+        
+        # Reconstruir resultados desde caches individuales
+        resultados_estructuras = {}
+        for nombre_estr, datos in cache_familia.get("estructuras", {}).items():
+            titulo = datos["titulo"]
+            
+            # Cargar caches individuales
+            resultados = {}
+            for tipo, archivo_ref in datos.get("cache_refs", {}).items():
+                archivo_cache = CACHE_DIR / archivo_ref
+                if archivo_cache.exists():
+                    try:
+                        resultados[tipo] = json.loads(archivo_cache.read_text(encoding="utf-8"))
+                    except:
+                        pass
+            
+            resultados_estructuras[nombre_estr] = {
+                "titulo": titulo,
+                "cantidad": datos.get("cantidad", 1),
+                "costo_individual": datos.get("costo_individual", 0),
+                "resultados": resultados
+            }
+        
+        return {
+            "hash_parametros": cache_familia.get("hash_parametros"),
+            "fecha_calculo": cache_familia.get("fecha_calculo"),
+            "resultados": {
+                "exito": True,
+                "resultados_estructuras": resultados_estructuras,
+                "costeo_global": cache_familia.get("costeo_global", {})
+            }
+        }
+    
+    @staticmethod
+    def verificar_vigencia_familia(calculo_guardado, familia_actual):
+        """Verifica si el cache de familia sigue vigente"""
+        if not calculo_guardado:
+            return False, "Cache no disponible"
+        
+        hash_actual = CalculoCache.calcular_hash_familia(familia_actual)
+        hash_guardado = calculo_guardado.get("hash_parametros")
+        
+        if hash_actual == hash_guardado:
+            return True, "Cache vigente"
+        else:
+            return False, "Hash no coincide, recalcular"

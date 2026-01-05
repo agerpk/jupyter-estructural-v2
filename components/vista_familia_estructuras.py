@@ -352,6 +352,19 @@ def crear_modal_familia():
         # Área de resultados
         html.Div(id="resultados-familia", className="mt-4"),
         
+        # Botón descargar HTML familia
+        html.Div([
+            dbc.Button(
+                "Descargar HTML Familia Completa",
+                id="btn-descargar-html-familia",
+                color="success",
+                size="lg",
+                className="mt-3",
+                style={"display": "none"}  # Oculto por defecto
+            ),
+            dcc.Download(id="download-html-familia")
+        ], id="container-descargar-html"),
+        
         # Toast para notificaciones
         dbc.Toast(
             id="toast-notificacion",

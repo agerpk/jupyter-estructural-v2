@@ -107,10 +107,12 @@ Sistema completo para manejo de familias de estructuras que permite:
 - [x] Callback integrado en familia_controller.py
 - [x] Área de resultados `resultados-familia` conectada
 
-#### 3.3 Descarga HTML ❌ PENDIENTE
-- [ ] Botón descargar HTML estructura individual
-- [ ] Botón descargar HTML familia completa
-- [ ] Reutilizar lógica de `descargar_html.py`
+#### 3.3 Descarga HTML ✅ COMPLETADO
+- [x] Botón descargar HTML familia completa
+- [x] Función `generar_html_familia()` en descargar_html.py
+- [x] Incluye resumen, todas las estructuras y costeo global
+- [x] Callback en familia_controller.py
+- [x] Botón se muestra solo cuando hay resultados
 
 ### FASE 4: Costeo de Familia ✅ COMPLETADO
 
@@ -131,17 +133,20 @@ Sistema completo para manejo de familias de estructuras que permite:
 - [ ] Incluir sección costeo en HTML familia
 - [ ] NO incluir en HTML individual
 
-### FASE 5: Sistema de Cache ❌ PENDIENTE
+### FASE 5: Sistema de Cache ✅ COMPLETADO
 
-#### 5.1 Cache de Familia ❌ PENDIENTE
-- [ ] Extender `calculo_cache.py` para familias
-- [ ] Archivo único con todos los datos de familia
-- [ ] Hash de `familia.json` para validación
+#### 5.1 Cache de Familia ✅ COMPLETADO
+- [x] Extender `calculo_cache.py` para familias
+- [x] Sistema de referencias a caches individuales (no duplica datos)
+- [x] Hash de `familia.json` para validación
+- [x] Métodos: `calcular_hash_familia()`, `guardar_calculo_familia()`, `cargar_calculo_familia()`, `verificar_vigencia_familia()`
+- [x] Guardado automático en background después de calcular
 
-#### 5.2 Carga de Cache ❌ PENDIENTE
-- [ ] Botón cargar cache familia
-- [ ] Verificación hash familia vs cache
-- [ ] Toast "cache no disponible" / "Hash no coincide, recalcular"
+#### 5.2 Carga de Cache ✅ COMPLETADO
+- [x] Botón cargar cache familia
+- [x] Verificación hash familia vs cache
+- [x] Toast "cache no disponible" / "Hash no coincide, recalcular"
+- [x] Reconstrucción desde caches individuales existentes
 
 ### FASE 6: Vano Económico ❌ PENDIENTE
 **⚠️ SOLO IMPLEMENTAR CUANDO FASE 1-5 ESTÉN COMPLETAS Y FUNCIONALES**
@@ -260,10 +265,8 @@ Sistema completo para manejo de familias de estructuras que permite:
 
 ## Próximos Pasos
 
-1. **INMEDIATO**: Implementar FASE 4 - Costeo de Familia (gráficos comparativos)
-2. **SIGUIENTE**: Implementar FASE 5 - Sistema de Cache
-3. **LUEGO**: Completar FASE 3.3 - Descarga HTML
-4. **FINAL**: Implementar FASE 6 - Vano Económico (solo cuando FASE 1-5 estén OK)
+1. **INMEDIATO**: Testing FASE 3.3 y FASE 5 (Cache + HTML)
+2. **FINAL**: Implementar FASE 6 - Vano Económico (solo cuando FASE 1-5 estén OK)
 
 ---
 
@@ -302,9 +305,21 @@ Sistema completo para manejo de familias de estructuras que permite:
 - ✅ Función `_generar_graficos_familia()` con gráficos Plotly
 - ✅ Pestaña "Costeo Familia" con gráficos de barras y torta
 - ✅ Campo "cantidad" integrado en cálculos (costo_parcial = individual × cantidad)
-- 🔧 TESTING PENDIENTE: Callback `calcular_familia()` en familia_controller.py
-- 🔧 TESTING PENDIENTE: Integración completa con vista familia
-- ❌ FASE 3.3, 5-6 pendientes
+### 2026.01.02
+- ✅ FASE 5 implementada (Sistema de Cache para Familias)
+- ✅ Métodos de cache agregados a `calculo_cache.py`
+- ✅ Sistema de referencias a caches individuales (no duplica datos gigantes)
+- ✅ Callback `cargar_cache_familia()` implementado
+- ✅ Guardado automático de cache en background después de calcular
+- ✅ Validación de hash para verificar vigencia
+- ✅ Toast notifications para todos los estados de cache
+- ✅ Reconstrucción eficiente desde caches parciales existentes
+- ✅ FASE 3.3 implementada (Descarga HTML)
+- ✅ Función `generar_html_familia()` con resumen, estructuras y costeo
+- ✅ Botón descarga HTML familia completa
+- ✅ Callback para mostrar botón solo cuando hay resultados
+- 🔧 TESTING PENDIENTE: Probar descarga HTML
+- ❌ FASE 6 pendiente (Vano Económico)
 
 ---
 

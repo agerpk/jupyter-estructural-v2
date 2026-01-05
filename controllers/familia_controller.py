@@ -635,28 +635,36 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def calcular_familia_completa(n_clicks, nombre_familia, tabla_data, columnas):
-        """Ejecuta cálculo completo de familia"""
+        """Ejecuta cálculo completo de familia y guarda cache"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
         print(f"🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
         
         try:
-            # Validar datos
             if not nombre_familia or not tabla_data or not columnas:
                 return (no_update, True, "Error", "Faltan datos para calcular", "danger", "danger")
             
             # Convertir tabla a formato familia
             familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
             
-            # Ejecutar cálculo usando utilidad
+            # Ejecutar cálculo
             from utils.calcular_familia_logica_encadenada import ejecutar_calculo_familia_completa
             resultados_familia = ejecutar_calculo_familia_completa(familia_data)
             
             if not resultados_familia.get("exito"):
                 return (no_update, True, "Error", f"Error en cálculo: {resultados_familia.get('mensaje')}", "danger", "danger")
             
-            # Generar vista con pestañas
+            # Guardar cache en background
+            def guardar_cache_async():
+                try:
+                    CalculoCache.guardar_calculo_familia(nombre_familia, familia_data, resultados_familia)
+                except Exception as e:
+                    print(f"⚠️ Error guardando cache: {e}")
+            
+            threading.Thread(target=guardar_cache_async, daemon=True).start()
+            
+            # Generar vista
             from utils.calcular_familia_logica_encadenada import generar_vista_resultados_familia
             vista_resultados = generar_vista_resultados_familia(resultados_familia)
             
@@ -666,3 +674,93 @@ def register_callbacks(app):
             import traceback
             print(f"❌ ERROR: {traceback.format_exc()}")
             return (no_update, True, "Error", f"Error: {str(e)}", "danger", "danger")
+    
+    @app.callback(
+        Output("btn-descargar-html-familia", "style"),
+        Input("resultados-familia", "children"),
+        prevent_initial_call=True
+    )
+    def mostrar_boton_descargar(resultados):
+        """Mostrar botón descargar cuando hay resultados"""
+        if resultados:
+            return {"display": "block"}
+        return {"display": "none"}
+    
+    @app.callback(
+        [Output("resultados-familia", "children", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("btn-cargar-cache-familia", "n_clicks"),
+        [State("input-nombre-familia", "value"),
+         State("tabla-familia", "data"),
+         State("tabla-familia", "columns")],
+        prevent_initial_call=True
+    )
+    def cargar_cache_familia(n_clicks, nombre_familia, tabla_data, columnas):
+        """Carga resultados desde cache si existe y es válido"""
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        print(f"📂 CARGANDO CACHE FAMILIA: {nombre_familia}")
+        
+        try:
+            if not nombre_familia:
+                return (no_update, True, "Error", "Debe especificar nombre de familia", "danger", "danger")
+            
+            # Cargar cache
+            calculo_guardado = CalculoCache.cargar_calculo_familia(nombre_familia)
+            
+            if not calculo_guardado:
+                return (no_update, True, "Advertencia", "Cache no disponible", "warning", "warning")
+            
+            # Verificar vigencia
+            familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
+            vigente, mensaje = CalculoCache.verificar_vigencia_familia(calculo_guardado, familia_data)
+            
+            if not vigente:
+                return (no_update, True, "Advertencia", mensaje, "warning", "warning")
+            
+            # Generar vista desde cache
+            from utils.calcular_familia_logica_encadenada import generar_vista_resultados_familia
+            vista_resultados = generar_vista_resultados_familia(calculo_guardado["resultados"])
+            
+            return (vista_resultados, True, "Éxito", "Cache cargado correctamente", "success", "success")
+            
+        except Exception as e:
+            import traceback
+            print(f"❌ ERROR: {traceback.format_exc()}")
+            return (no_update, True, "Error", f"Error: {str(e)}", "danger", "danger")
+
+    
+    @app.callback(
+        Output("download-html-familia", "data"),
+        Input("btn-descargar-html-familia", "n_clicks"),
+        [State("input-nombre-familia", "value"),
+         State("resultados-familia", "children")],
+        prevent_initial_call=True
+    )
+    def descargar_html_familia(n_clicks, nombre_familia, resultados):
+        """Descargar HTML completo de familia"""
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        try:
+            # Cargar cache de familia
+            calculo_guardado = CalculoCache.cargar_calculo_familia(nombre_familia)
+            
+            if not calculo_guardado:
+                return no_update
+            
+            # Generar HTML
+            from utils.descargar_html import generar_html_familia
+            html_content = generar_html_familia(nombre_familia, calculo_guardado["resultados"])
+            
+            # Retornar para descarga
+            return dict(content=html_content, filename=f"{nombre_familia}_familia.html")
+            
+        except Exception as e:
+            print(f"Error generando HTML: {e}")
+            return no_update
