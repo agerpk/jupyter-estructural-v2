@@ -26,7 +26,8 @@ def register_callbacks(app):
     """Registra todos los callbacks del controller"""
     
     @app.callback(
-        Output("tabla-familia", "data", allow_duplicate=True),
+        [Output("tabla-familia", "data", allow_duplicate=True),
+         Output("tabla-familia", "page_current", allow_duplicate=True)],
         [Input("filtro-categoria-familia", "value"),
          Input("buscar-parametro-familia", "value")],
         [State("tabla-familia-original", "data")],
@@ -34,30 +35,20 @@ def register_callbacks(app):
     )
     def filtrar_tabla_familia(categoria, busqueda, tabla_original):
         """Filtrar tabla por categoría y búsqueda"""
-        print(f"\n🔍 DEBUG FILTRO: categoria={categoria}, busqueda='{busqueda}'")
-        print(f"   tabla_original tiene {len(tabla_original) if tabla_original else 0} filas")
-        
         if not tabla_original:
             raise dash.exceptions.PreventUpdate
         
-        # Si no hay filtros activos, retornar tabla completa
         sin_categoria = not categoria or categoria == "todas" or categoria == ""
         sin_busqueda = not busqueda or (isinstance(busqueda, str) and busqueda.strip() == "")
         
-        print(f"   sin_categoria={sin_categoria}, sin_busqueda={sin_busqueda}")
-        
         if sin_categoria and sin_busqueda:
-            print(f"   ✅ Retornando tabla completa: {len(tabla_original)} filas")
-            return tabla_original
+            return tabla_original, 0
         
-        tabla_filtrada = list(tabla_original)  # Crear copia
+        tabla_filtrada = list(tabla_original)
         
-        # Filtrar por categoría
         if not sin_categoria:
             tabla_filtrada = [fila for fila in tabla_filtrada if fila.get("categoria") == categoria]
-            print(f"   Después de filtrar por categoría '{categoria}': {len(tabla_filtrada)} filas")
         
-        # Filtrar por búsqueda
         if not sin_busqueda:
             busqueda_lower = busqueda.lower().strip()
             tabla_filtrada = [
@@ -66,9 +57,8 @@ def register_callbacks(app):
                    busqueda_lower in str(fila.get("descripcion", "")).lower() or
                    busqueda_lower in str(fila.get("simbolo", "")).lower()
             ]
-            print(f"   Después de filtrar por búsqueda '{busqueda}': {len(tabla_filtrada)} filas")
         
-        return tabla_filtrada
+        return tabla_filtrada, 0
     
     @app.callback(
         Output("tabla-familia-original", "data", allow_duplicate=True),

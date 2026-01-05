@@ -101,7 +101,6 @@ def crear_vista_familia_estructuras(familia_actual=None):
                         editable=True,
                         row_deletable=False,
                         page_action='native',
-                        page_current=0,
                         page_size=60,
                         sort_action="native",
                         filter_action="native",
