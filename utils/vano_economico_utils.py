@@ -167,7 +167,8 @@ def calcular_vano_economico_iterativo(nombre_familia: str,
             resultados_por_vano[vano] = {
                 "costo_global": costo_global,
                 "costeo_detalle": resultado["costeo_global"],
-                "cantidades": cantidades
+                "cantidades": cantidades,
+                "familia_modificada": familia_modificada  # Guardar familia para obtener alpha
             }
             print(f"✅ Vano {vano}m: {costo_global:.2f} UM")
         else:
@@ -257,6 +258,84 @@ def generar_grafico_barras_apiladas(resultados: Dict) -> go.Figure:
     
     return fig
 
+def _calcular_costo_tipo(resultado_vano: Dict, tipo: str) -> float:
+    """Calcular costo parcial por tipo de estructura (costo individual * cantidad)"""
+    costos_parciales = resultado_vano["costeo_detalle"]["costos_parciales"]
+    familia = resultado_vano["familia_modificada"]["estructuras"]
+    
+    # Crear mapeo de TITULO a clave de estructura
+    titulo_a_clave = {}
+    for clave, datos in familia.items():
+        titulo = datos.get("TITULO", "")
+        if titulo:
+            titulo_a_clave[titulo] = clave
+    
+    costo_total = 0.0
+    for nombre_estr, costo in costos_parciales.items():
+        # Buscar clave real usando TITULO
+        clave_real = titulo_a_clave.get(nombre_estr, nombre_estr)
+        
+        if clave_real not in familia:
+            continue
+            
+        tipo_estr = familia[clave_real].get("TIPO_ESTRUCTURA", "")
+        alpha = familia[clave_real].get("alpha", 0)
+        
+        if tipo == "S" and "Suspensi" in tipo_estr:
+            costo_total += costo
+        elif tipo == "RR" and "Retenci" in tipo_estr and alpha == 0:
+            costo_total += costo
+        elif tipo == "RA" and ("Retenci" in tipo_estr or "Angular" in tipo_estr) and alpha > 0:
+            costo_total += costo
+        elif tipo == "T" and "Terminal" in tipo_estr:
+            costo_total += costo
+    
+    return costo_total
+
+def _calcular_costo_individual(resultado_vano: Dict, tipo: str) -> float:
+    """Calcular costo individual (unitario) por tipo de estructura"""
+    costos_parciales = resultado_vano["costeo_detalle"]["costos_parciales"]
+    familia = resultado_vano["familia_modificada"]["estructuras"]
+    
+    # Crear mapeo de TITULO a clave de estructura
+    titulo_a_clave = {}
+    for clave, datos in familia.items():
+        titulo = datos.get("TITULO", "")
+        if titulo:
+            titulo_a_clave[titulo] = clave
+    
+    costo_individual = 0.0
+    for nombre_estr, costo in costos_parciales.items():
+        # Buscar clave real usando TITULO
+        clave_real = titulo_a_clave.get(nombre_estr, nombre_estr)
+        
+        if clave_real not in familia:
+            continue
+            
+        tipo_estr = familia[clave_real].get("TIPO_ESTRUCTURA", "")
+        alpha = familia[clave_real].get("alpha", 0)
+        cantidad = familia[clave_real].get("Cantidad", 1)
+        
+        if cantidad > 0:
+            costo_unit = costo / cantidad
+        else:
+            costo_unit = 0.0
+        
+        if tipo == "S" and "Suspensi" in tipo_estr:
+            costo_individual = costo_unit
+            break
+        elif tipo == "RR" and "Retenci" in tipo_estr and alpha == 0:
+            costo_individual = costo_unit
+            break
+        elif tipo == "RA" and ("Retenci" in tipo_estr or "Angular" in tipo_estr) and alpha > 0:
+            costo_individual = costo_unit
+            break
+        elif tipo == "T" and "Terminal" in tipo_estr:
+            costo_individual = costo_unit
+            break
+    
+    return costo_individual
+
 def generar_vista_resultados_vano_economico(resultados: Dict) -> html.Div:
     """Generar vista de resultados de vano económico"""
     
@@ -316,6 +395,14 @@ def generar_vista_resultados_vano_economico(resultados: Dict) -> html.Div:
                 html.Th("Vano [m]"),
                 html.Th("Cant. S"),
                 html.Th("Cant. RR"),
+                html.Th("Costo Ind. S [UM]"),
+                html.Th("Costo Ind. RR [UM]"),
+                html.Th("Costo Ind. RA [UM]"),
+                html.Th("Costo Ind. T [UM]"),
+                html.Th("Costo S [UM]"),
+                html.Th("Costo RR [UM]"),
+                html.Th("Costo RA [UM]"),
+                html.Th("Costo T [UM]"),
                 html.Th("Costo Total [UM]"),
                 html.Th("Diferencia vs Óptimo [%]")
             ])),
@@ -324,6 +411,14 @@ def generar_vista_resultados_vano_economico(resultados: Dict) -> html.Div:
                     html.Td(f"{vano:.0f}", style={"fontWeight": "bold"} if vano == vano_optimo else {}),
                     html.Td(f"{resultados['resultados'][vano]['cantidades']['cant_S']}"),
                     html.Td(f"{resultados['resultados'][vano]['cantidades']['cant_RR']}"),
+                    html.Td(f"{_calcular_costo_individual(resultados['resultados'][vano], 'S'):,.2f}"),
+                    html.Td(f"{_calcular_costo_individual(resultados['resultados'][vano], 'RR'):,.2f}"),
+                    html.Td(f"{_calcular_costo_individual(resultados['resultados'][vano], 'RA'):,.2f}"),
+                    html.Td(f"{_calcular_costo_individual(resultados['resultados'][vano], 'T'):,.2f}"),
+                    html.Td(f"{_calcular_costo_tipo(resultados['resultados'][vano], 'S'):,.2f}"),
+                    html.Td(f"{_calcular_costo_tipo(resultados['resultados'][vano], 'RR'):,.2f}"),
+                    html.Td(f"{_calcular_costo_tipo(resultados['resultados'][vano], 'RA'):,.2f}"),
+                    html.Td(f"{_calcular_costo_tipo(resultados['resultados'][vano], 'T'):,.2f}"),
                     html.Td(f"{resultados['resultados'][vano]['costo_global']:,.2f}",
                            style={"color": "green", "fontWeight": "bold"} if vano == vano_optimo else {}),
                     html.Td(f"{((resultados['resultados'][vano]['costo_global'] - costo_optimo) / costo_optimo * 100):+.2f}%")

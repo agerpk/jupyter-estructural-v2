@@ -97,7 +97,7 @@ class FamiliaManager:
         """Convierte datos de tabla a formato .familia.json"""
         from datetime import datetime
         
-        # Intentar cargar familia existente para preservar estados_climaticos y restricciones
+        # Intentar cargar familia existente para preservar TODA la estructura
         familia_existente = None
         try:
             familia_existente = cls.cargar_familia(nombre_familia)
@@ -110,9 +110,15 @@ class FamiliaManager:
         
         estructuras = {}
         for col_id in columnas_estructura:
-            estructura_data = {}
+            # CRÍTICO: Partir de estructura existente si existe, sino de plantilla
+            if familia_existente and col_id in familia_existente.get("estructuras", {}):
+                estructura_data = familia_existente["estructuras"][col_id].copy()
+                print(f"   ✅ DEBUG: Preservando estructura existente {col_id}")
+            else:
+                estructura_data = cls._cargar_plantilla().copy()
+                print(f"   ⚠️ DEBUG: Creando nueva estructura {col_id} desde plantilla")
             
-            # Convertir filas de tabla a estructura
+            # Actualizar SOLO los campos que están en la tabla
             for fila in tabla_data:
                 parametro = fila['parametro']
                 valor = fila.get(col_id, fila.get('valor', ''))
@@ -182,21 +188,21 @@ class FamiliaManager:
             estructuras[col_id] = estructura_data
         
         # Crear familia_data base
-        familia_data = {
-            "nombre_familia": nombre_familia,
-            "fecha_creacion": datetime.now().isoformat(),
-            "fecha_modificacion": datetime.now().isoformat(),
-            "estructuras": estructuras
-        }
-        
-        # Preservar estados_climaticos y restricciones_cables de familia existente
         if familia_existente:
-            if "estados_climaticos" in familia_existente:
-                familia_data["estados_climaticos"] = familia_existente["estados_climaticos"]
-                print(f"   ✅ DEBUG tabla_a_familia: estados_climaticos preservados")
-            if "restricciones_cables" in familia_existente:
-                familia_data["restricciones_cables"] = familia_existente["restricciones_cables"]
-                print(f"   ✅ DEBUG tabla_a_familia: restricciones_cables preservadas")
+            # Preservar TODA la familia existente y solo actualizar estructuras
+            familia_data = familia_existente.copy()
+            familia_data["estructuras"] = estructuras
+            familia_data["fecha_modificacion"] = datetime.now().isoformat()
+            print(f"   ✅ DEBUG tabla_a_familia: Familia existente preservada completamente")
+        else:
+            # Nueva familia - crear desde cero
+            familia_data = {
+                "nombre_familia": nombre_familia,
+                "fecha_creacion": datetime.now().isoformat(),
+                "fecha_modificacion": datetime.now().isoformat(),
+                "estructuras": estructuras
+            }
+            print(f"   ⚠️ DEBUG tabla_a_familia: Nueva familia creada")
         
         print(f"   💾 DEBUG tabla_a_familia: Retornando familia con keys: {list(familia_data.keys())}")
         
@@ -249,10 +255,11 @@ class FamiliaManager:
     
     @classmethod
     def obtener_archivos_familia(cls) -> List[str]:
-        """Obtiene lista de archivos .familia.json disponibles"""
+        """Obtiene lista de nombres de familias disponibles"""
         try:
             archivos = list(cls.DATA_DIR.glob("*.familia.json"))
-            return [archivo.stem for archivo in archivos]
+            # Retornar nombre sin .familia.json
+            return [archivo.stem.replace(".familia", "") for archivo in archivos]
         except:
             return []
     
