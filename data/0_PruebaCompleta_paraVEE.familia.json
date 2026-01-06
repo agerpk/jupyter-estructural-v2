@@ -1,7 +1,7 @@
 {
   "nombre_familia": "0_PruebaCompleta_paraVEE",
   "fecha_creacion": "2026-01-06T10:18:43.974169",
-  "fecha_modificacion": "2026-01-06T10:39:19.430048",
+  "fecha_modificacion": "2026-01-06T15:09:56.803477",
   "estructuras": {
     "Estr.1": {
       "TIPO_ESTRUCTURA": "Terminal",
@@ -149,9 +149,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,
@@ -316,9 +316,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,
@@ -483,9 +483,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,
@@ -650,9 +650,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,

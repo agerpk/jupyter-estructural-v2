@@ -2,8 +2,8 @@
   "familia_activa": "0_PruebaCompleta_paraVEE",
   "vano_economico_ajustes": {
     "vano_min": 100,
-    "vano_max": 2000,
-    "salto": 50,
+    "vano_max": 900,
+    "salto": 30,
     "longtraza": 30000,
     "criterio_rr": "Suspensiones",
     "rr_cada_x_m": 2000,

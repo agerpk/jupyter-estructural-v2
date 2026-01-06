@@ -114,9 +114,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,
@@ -282,9 +282,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,
@@ -449,9 +449,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,
@@ -616,9 +616,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,
@@ -748,9 +748,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,
@@ -881,9 +881,9 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 127.384729,
-          "coef_b": 1.543826,
-          "coef_c": -631.847156
+          "coef_a": 267.9232,
+          "coef_b": 1.5149,
+          "coef_c": -2662.3376
         },
         "accesorios": {
           "vinculos": 320.0,

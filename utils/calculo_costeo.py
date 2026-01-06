@@ -235,10 +235,10 @@ def calcular_costeo_completo(datos_estructura, parametros_precios, tension_kv=22
     montaje = parametros_precios.get('montaje', {})
     adicional = parametros_precios.get('adicional_estructura', 0)
     
-    # 1. Costo Postes (coeficientes interpolados R²=0.989)
-    coef_a = postes.get('coef_a', 127.384729)
-    coef_b = postes.get('coef_b', 1.543826)
-    coef_c = postes.get('coef_c', -631.847156)
+    # 1. Costo Postes (coeficientes ajustados R²=0.9198)
+    coef_a = postes.get('coef_a', 267.9232)
+    coef_b = postes.get('coef_b', 1.5149)
+    coef_c = postes.get('coef_c', -2662.3376)
     
     costo_unitario_poste = coef_a * datos_estructura['longitud_total_m'] + coef_b * datos_estructura['resistencia_dan'] + coef_c
     costo_postes = datos_estructura['n_postes'] * costo_unitario_poste

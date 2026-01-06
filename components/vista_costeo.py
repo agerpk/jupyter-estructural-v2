@@ -16,10 +16,10 @@ def crear_vista_costeo(estructura_actual, calculo_guardado=None):
     # Obtener parámetros de costeo desde estructura o usar defaults
     params_costeo = estructura_actual.get('costeo', {}) if estructura_actual else {}
     
-    # Valores por defecto actualizados para nueva fórmula (interpolados R²=0.989)
-    default_coef_a = 127.384729  # por metro de longitud
-    default_coef_b = 1.543826    # por daN de resistencia
-    default_coef_c = -631.847156 # fijo
+    # Valores por defecto actualizados para nueva fórmula (R²=0.9198)
+    default_coef_a = 267.9232  # por metro de longitud
+    default_coef_b = 1.5149    # por daN de resistencia
+    default_coef_c = -2662.3376 # fijo
     
     # Formulario de parámetros
     formulario = dbc.Card([
@@ -34,15 +34,15 @@ def crear_vista_costeo(estructura_actual, calculo_guardado=None):
             dbc.Row([
                 dbc.Col([
                     dbc.Label("Coeficiente A (por m longitud)"),
-                    dbc.Input(id="input-coef-a", type="number", value=params_costeo.get('postes', {}).get('coef_a', 127.384729), step=1.0)
+                    dbc.Input(id="input-coef-a", type="number", value=params_costeo.get('postes', {}).get('coef_a', 267.9232), step=1.0)
                 ], width=3),
                 dbc.Col([
                     dbc.Label("Coeficiente B (por daN resistencia)"),
-                    dbc.Input(id="input-coef-b", type="number", value=params_costeo.get('postes', {}).get('coef_b', 1.543826), step=0.01)
+                    dbc.Input(id="input-coef-b", type="number", value=params_costeo.get('postes', {}).get('coef_b', 1.5149), step=0.01)
                 ], width=3),
                 dbc.Col([
                     dbc.Label("Coeficiente C (fijo)"),
-                    dbc.Input(id="input-coef-c", type="number", value=params_costeo.get('postes', {}).get('coef_c', -631.847156), step=10.0)
+                    dbc.Input(id="input-coef-c", type="number", value=params_costeo.get('postes', {}).get('coef_c', -2662.3376), step=10.0)
                 ], width=3)
             ], className="mb-3"),
             

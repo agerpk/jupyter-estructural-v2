@@ -233,35 +233,50 @@ def generar_grafico_curva_vano_economico(resultados: Dict) -> go.Figure:
     return fig
 
 def generar_grafico_barras_apiladas(resultados: Dict) -> go.Figure:
-    """Generar gráfico de barras apiladas por estructura"""
+    """Generar gráfico de barras apiladas por estructura usando cantidades de vano económico"""
     vanos = resultados["vanos"]
     
-    # Extraer costos por estructura para cada vano
-    estructuras_nombres = set()
-    for vano in vanos:
-        detalle = resultados["resultados"][vano]["costeo_detalle"]
-        estructuras_nombres.update(detalle["costos_parciales"].keys())
+    # Identificar tipos de estructura (S, RR, RA, T)
+    tipos_estructura = ['S', 'RR', 'RA', 'T']
+    nombres_display = {
+        'S': 'Suspensión',
+        'RR': 'Retención',
+        'RA': 'Retención Angular',
+        'T': 'Terminal'
+    }
     
     fig = go.Figure()
     
-    for estructura in estructuras_nombres:
-        costos_estructura = []
+    # Generar colores distintos para cada tipo
+    colores = {
+        'S': 'rgb(31, 119, 180)',    # Azul
+        'RR': 'rgb(255, 127, 14)',   # Naranja
+        'RA': 'rgb(44, 160, 44)',    # Verde
+        'T': 'rgb(214, 39, 40)'      # Rojo
+    }
+    
+    for tipo in tipos_estructura:
+        costos_tipo = []
         for vano in vanos:
-            detalle = resultados["resultados"][vano]["costeo_detalle"]
-            costo = detalle["costos_parciales"].get(estructura, 0)
-            costos_estructura.append(costo)
+            # Usar función que multiplica por cantidades VE
+            costo = _calcular_costo_tipo(resultados["resultados"][vano], tipo)
+            costos_tipo.append(costo)
         
-        fig.add_trace(go.Bar(
-            name=estructura,
-            x=vanos,
-            y=costos_estructura
-        ))
+        # Solo agregar si hay costos no nulos
+        if any(c > 0 for c in costos_tipo):
+            fig.add_trace(go.Bar(
+                name=nombres_display[tipo],
+                x=vanos,
+                y=costos_tipo,
+                marker=dict(color=colores[tipo])
+            ))
     
     fig.update_layout(
         barmode='stack',
-        title="Distribución de Costos por Estructura y Vano",
+        title="Distribución de Costos por Estructura",
         xaxis_title="Vano [m]",
-        yaxis_title="Costo [UM]"
+        yaxis_title="Costo [UM]",
+        hovermode='x unified'
     )
     
     return fig
@@ -341,7 +356,15 @@ def generar_vista_resultados_vano_economico(resultados: Dict) -> html.Div:
         return dbc.Alert("No hay resultados para mostrar", color="warning")
     
     vanos = resultados["vanos"]
-    costos = [resultados["resultados"][v]["costo_global"] for v in vanos]
+    
+    # Calcular costos usando cantidades VE (misma lógica que gráficos)
+    costos = []
+    for v in vanos:
+        costo_s = _calcular_costo_tipo(resultados["resultados"][v], 'S')
+        costo_rr = _calcular_costo_tipo(resultados["resultados"][v], 'RR')
+        costo_ra = _calcular_costo_tipo(resultados["resultados"][v], 'RA')
+        costo_t = _calcular_costo_tipo(resultados["resultados"][v], 'T')
+        costos.append(costo_s + costo_rr + costo_ra + costo_t)
     
     # Encontrar vano óptimo
     idx_min = costos.index(min(costos))
@@ -417,9 +440,9 @@ def generar_vista_resultados_vano_economico(resultados: Dict) -> html.Div:
                     html.Td(f"{(costo_rr := _calcular_costo_tipo(resultados['resultados'][vano], 'RR')):,.2f}"),
                     html.Td(f"{(costo_ra := _calcular_costo_tipo(resultados['resultados'][vano], 'RA')):,.2f}"),
                     html.Td(f"{(costo_t := _calcular_costo_tipo(resultados['resultados'][vano], 'T')):,.2f}"),
-                    html.Td(f"{(costo_total_ve := costo_s + costo_rr + costo_ra + costo_t):,.2f}",
+                    html.Td(f"{costos[vanos.index(vano)]:,.2f}",
                            style={"color": "green", "fontWeight": "bold"} if vano == vano_optimo else {}),
-                    html.Td(f"{((costo_total_ve - costo_optimo) / costo_optimo * 100):+.2f}%")
+                    html.Td(f"{((costos[vanos.index(vano)] - costo_optimo) / costo_optimo * 100):+.2f}%" if vano != vano_optimo else "0.00%")
                 ]) for vano in vanos
             ])
         ], bordered=True, hover=True, striped=True),
