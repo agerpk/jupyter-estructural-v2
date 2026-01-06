@@ -34,15 +34,43 @@ def register_callbacks(app):
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
-        print(f"🟢 DEBUG CONFIRMAR: longtraza={longtraza}, criterio_rr={criterio_rr}")
-        print(f"🟢 DEBUG CONFIRMAR: vano_min={vano_min}, vano_max={vano_max}, salto={salto}")
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        print(f"🔵 DEBUG CONFIRMAR - TRIGGER: {trigger_id}")
+        
+        if trigger_id != "vano-economico-btn-confirmar":
+            raise dash.exceptions.PreventUpdate
+        
+        print(f"🔵 DEBUG CONFIRMAR - RAW INPUTS:")
+        print(f"  vano_min={vano_min} (type={type(vano_min)})")
+        print(f"  vano_max={vano_max} (type={type(vano_max)})")
+        print(f"  salto={salto} (type={type(salto)})")
+        print(f"  longtraza={longtraza} (type={type(longtraza)})")
+        print(f"  criterio_rr={criterio_rr} (type={type(criterio_rr)})")
+        print(f"  rr_cada_x_m={rr_cada_x_m} (type={type(rr_cada_x_m)})")
+        print(f"  rr_cada_x_s={rr_cada_x_s} (type={type(rr_cada_x_s)})")
+        print(f"  cant_rr_manual={cant_rr_manual} (type={type(cant_rr_manual)})")
         # Validar campos obligatorios
-        if not all([vano_min, vano_max, salto, longtraza, criterio_rr]):
+        if vano_min is None or vano_max is None or salto is None or longtraza is None or not criterio_rr:
+            print(f"❌ VALIDACION FALLO: Campos None detectados")
             return (True, "Error", "Complete todos los campos obligatorios", "danger", "danger")
         
         if vano_max <= vano_min:
+            print(f"❌ VALIDACION FALLO: vano_max ({vano_max}) <= vano_min ({vano_min})")
             return (True, "Error", "Vano máximo debe ser mayor que vano mínimo", "danger", "danger")
         
+        if longtraza <= vano_max:
+            print(f"❌ VALIDACION FALLO: longtraza ({longtraza}) <= vano_max ({vano_max})")
+            return (True, "Error", "Longitud de traza debe ser mayor que vano máximo", "danger", "danger")
+        
+        if criterio_rr == "Distancia" and rr_cada_x_m and rr_cada_x_m <= vano_max:
+            print(f"❌ VALIDACION FALLO: rr_cada_x_m ({rr_cada_x_m}) <= vano_max ({vano_max})")
+            return (True, "Error", "RR cada X metros debe ser mayor que vano máximo", "danger", "danger")
+        
+        print(f"✅ VALIDACION OK: Guardando ajustes")
         state = AppState()
         ajustes = {
             "vano_min": vano_min,
@@ -55,6 +83,14 @@ def register_callbacks(app):
             "cant_rr_manual": cant_rr_manual
         }
         state.set_vano_economico_ajustes(ajustes)
+        
+        # Guardar en archivo temporal
+        from config.app_config import DATA_DIR
+        import json
+        archivo_temp = DATA_DIR / "vanoeconomico_ajustes.temp.json"
+        with open(archivo_temp, 'w', encoding='utf-8') as f:
+            json.dump(ajustes, f, indent=2, ensure_ascii=False)
+        print(f"💾 Ajustes guardados en: {archivo_temp}")
         
         return (True, "Éxito", "Ajustes guardados correctamente", "success", "success")
     
@@ -118,7 +154,7 @@ def register_callbacks(app):
                                      rr_cada_x_m, rr_cada_x_s, cant_rr_manual,
                                      vano_min, vano_max):
         """Actualizar display de cantidades calculadas con vano medio"""
-        if not all([vano_min, vano_max, longtraza]):
+        if vano_min is None or vano_max is None or longtraza is None:
             return html.P("Complete los campos para ver cantidades", className="text-muted")
         
         try:
@@ -130,13 +166,15 @@ def register_callbacks(app):
             # Obtener cant_RA de familia activa
             state = AppState()
             nombre_familia = state.get_familia_activa()
+            cant_ra = 0
             if nombre_familia:
-                from utils.familia_manager import FamiliaManager
-                from utils.vano_economico_utils import obtener_cant_ra_familia
-                familia_data = FamiliaManager.cargar_familia(nombre_familia)
-                cant_ra = obtener_cant_ra_familia(familia_data)
-            else:
-                cant_ra = 0
+                try:
+                    from utils.familia_manager import FamiliaManager
+                    from utils.vano_economico_utils import obtener_cant_ra_familia
+                    familia_data = FamiliaManager.cargar_familia(nombre_familia)
+                    cant_ra = obtener_cant_ra_familia(familia_data)
+                except Exception:
+                    pass
             
             cantidades = calcular_cantidades(
                 longtraza, vano_medio, criterio_rr,
@@ -197,10 +235,10 @@ def register_callbacks(app):
         
         # Validar inputs obligatorios
         campos_faltantes = []
-        if not vano_min: campos_faltantes.append("vano_min")
-        if not vano_max: campos_faltantes.append("vano_max")
-        if not salto: campos_faltantes.append("salto")
-        if not longtraza: campos_faltantes.append("longtraza")
+        if vano_min is None: campos_faltantes.append("vano_min")
+        if vano_max is None: campos_faltantes.append("vano_max")
+        if salto is None: campos_faltantes.append("salto")
+        if longtraza is None: campos_faltantes.append("longtraza")
         if not criterio_rr: campos_faltantes.append("criterio_rr")
         
         if campos_faltantes:
@@ -211,6 +249,14 @@ def register_callbacks(app):
         if vano_max <= vano_min:
             return (no_update, 0, {"display": "none"}, True, "Error", 
                    "Vano máximo debe ser mayor que vano mínimo", "danger", "danger")
+        
+        if longtraza <= vano_max:
+            return (no_update, 0, {"display": "none"}, True, "Error", 
+                   "Longitud de traza debe ser mayor que vano máximo", "danger", "danger")
+        
+        if criterio_rr == "Distancia" and rr_cada_x_m and rr_cada_x_m <= vano_max:
+            return (no_update, 0, {"display": "none"}, True, "Error", 
+                   "RR cada X metros debe ser mayor que vano máximo", "danger", "danger")
         
         # Cargar familia activa
         state = AppState()

@@ -9,12 +9,25 @@ from models.app_state import AppState
 def crear_vista_vano_economico():
     """Crear vista principal de Vano Económico"""
     
+    # Cargar ajustes desde archivo temporal
+    from config.app_config import DATA_DIR
+    import json
+    from pathlib import Path
+    
+    archivo_temp = DATA_DIR / "vanoeconomico_ajustes.temp.json"
+    ajustes = {}
+    
+    if archivo_temp.exists():
+        try:
+            with open(archivo_temp, 'r', encoding='utf-8') as f:
+                ajustes = json.load(f)
+            print(f"📂 Ajustes cargados desde: {archivo_temp}")
+        except Exception as e:
+            print(f"⚠️ Error cargando ajustes: {e}")
+    
     # Cargar familia activa
     state = AppState()
     nombre_familia_activa = state.get_familia_activa()
-    
-    # Cargar ajustes guardados
-    ajustes = state.get_vano_economico_ajustes() or {}
     
     return html.Div([
         dbc.Card([
@@ -122,23 +135,23 @@ def crear_controles_vano(ajustes):
                     dbc.Input(id="vano-economico-input-min", 
                              type="number", 
                              value=ajustes.get("vano_min", 300), 
-                             step=10,
-                             min=50)
+                             min=1)
                 ], width=4),
                 dbc.Col([
                     html.Label("Vano Máximo [m]:", className="fw-bold"),
                     dbc.Input(id="vano-economico-input-max", 
                              type="number", 
                              value=ajustes.get("vano_max", 500), 
-                             step=10,
-                             min=50)
+                             min=1,
+                             max=3000)
                 ], width=4),
                 dbc.Col([
                     html.Label("Salto [m]:", className="fw-bold"),
                     dbc.Input(
                         id="vano-economico-salto",
                         type="number",
-                        value=ajustes.get("salto", 50)
+                        value=ajustes.get("salto", 50),
+                        min=1
                     )
                 ], width=4)
             ])
@@ -155,7 +168,7 @@ def crear_controles_cantidades(ajustes):
                 dbc.Col([
                     html.Label("Longitud de Traza [m]:", className="fw-bold"),
                     dbc.Input(id="vano-economico-input-longtraza", 
-                             type="number", value=ajustes.get("longtraza", 10000), step=100, min=100)
+                             type="number", value=ajustes.get("longtraza", 10000), min=1)
                 ], width=12)
             ], className="mb-3"),
             
@@ -174,12 +187,12 @@ def crear_controles_cantidades(ajustes):
                 dbc.Col([
                     html.Label("RR cada X metros:", className="fw-bold"),
                     dbc.Input(id="vano-economico-input-rr-cada-x-m", 
-                             type="number", value=ajustes.get("rr_cada_x_m", 2000), step=100, min=100)
+                             type="number", value=ajustes.get("rr_cada_x_m", 2000), min=1)
                 ], width=3),
                 dbc.Col([
                     html.Label("RR cada X suspensiones:", className="fw-bold"),
                     dbc.Input(id="vano-economico-input-rr-cada-x-s", 
-                             type="number", value=ajustes.get("rr_cada_x_s", 5), step=1, min=1)
+                             type="number", value=ajustes.get("rr_cada_x_s", 5), min=1)
                 ], width=3)
             ], className="mb-3"),
             
@@ -188,7 +201,7 @@ def crear_controles_cantidades(ajustes):
                 dbc.Col([
                     html.Label("Cantidad RR Manual:", className="fw-bold"),
                     dbc.Input(id="vano-economico-input-cant-rr-manual", 
-                             type="number", value=ajustes.get("cant_rr_manual", 4), step=1, min=0,
+                             type="number", value=ajustes.get("cant_rr_manual", 4), min=0,
                              disabled=True)
                 ], width=6)
             ], id="vano-economico-row-manual"),
