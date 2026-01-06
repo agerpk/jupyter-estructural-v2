@@ -1,7 +1,7 @@
 {
   "nombre_familia": "0_PruebaCompleta_paraVEE",
   "fecha_creacion": "2026-01-06T10:18:43.974169",
-  "fecha_modificacion": "2026-01-06T15:09:56.803477",
+  "fecha_modificacion": "2026-01-06T15:47:48.410532",
   "estructuras": {
     "Estr.1": {
       "TIPO_ESTRUCTURA": "Terminal",
@@ -163,10 +163,10 @@
           "factor_hierro": 1.2
         },
         "montaje": {
-          "precio_por_estructura": 5000.0,
+          "precio_por_estructura": 1000.0,
           "factor_terreno": 1.0
         },
-        "adicional_estructura": 2000.0
+        "adicional_estructura": 1.0
       },
       "cantidad": 2
     },
@@ -330,10 +330,10 @@
           "factor_hierro": 1.2
         },
         "montaje": {
-          "precio_por_estructura": 5000.0,
+          "precio_por_estructura": 1000.0,
           "factor_terreno": 1.0
         },
-        "adicional_estructura": 2000.0
+        "adicional_estructura": 1.0
       },
       "cantidad": 17
     },
@@ -497,10 +497,10 @@
           "factor_hierro": 1.2
         },
         "montaje": {
-          "precio_por_estructura": 5000.0,
+          "precio_por_estructura": 1000.0,
           "factor_terreno": 1.0
         },
-        "adicional_estructura": 2000.0
+        "adicional_estructura": 1.0
       },
       "cantidad": 2
     },
@@ -664,10 +664,10 @@
           "factor_hierro": 1.2
         },
         "montaje": {
-          "precio_por_estructura": 5000.0,
+          "precio_por_estructura": 1000.0,
           "factor_terreno": 1.0
         },
-        "adicional_estructura": 2000.0
+        "adicional_estructura": 1.0
       },
       "cantidad": 2
     }

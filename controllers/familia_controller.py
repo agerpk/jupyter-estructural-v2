@@ -62,6 +62,34 @@ def register_callbacks(app):
     
     @app.callback(
         Output("tabla-familia-original", "data", allow_duplicate=True),
+        Input("tabla-familia", "data"),
+        State("tabla-familia-original", "data"),
+        prevent_initial_call=True
+    )
+    def sincronizar_ediciones_directas(tabla_filtrada, tabla_original):
+        """Sincroniza ediciones directas en tabla filtrada hacia tabla original"""
+        if not tabla_filtrada or not tabla_original:
+            raise dash.exceptions.PreventUpdate
+        
+        # Actualizar valores en tabla original basándose en parametro
+        for fila_filtrada in tabla_filtrada:
+            parametro = fila_filtrada.get("parametro")
+            if not parametro:
+                continue
+            
+            # Buscar fila correspondiente en tabla original
+            for fila_original in tabla_original:
+                if fila_original.get("parametro") == parametro:
+                    # Copiar valores de columnas Estr.N
+                    for key in fila_filtrada.keys():
+                        if key.startswith("Estr."):
+                            fila_original[key] = fila_filtrada[key]
+                    break
+        
+        return tabla_original
+    
+    @app.callback(
+        Output("tabla-familia-original", "data", allow_duplicate=True),
         [Input("btn-agregar-estructura", "n_clicks"),
          Input("btn-eliminar-estructura", "n_clicks"),
          Input("select-familia-existente", "value")],
@@ -394,7 +422,7 @@ def register_callbacks(app):
          Output("select-familia-existente", "options", allow_duplicate=True)],
         Input("btn-guardar-familia", "n_clicks"),
         [State("input-nombre-familia", "value"),
-         State("tabla-familia", "data"),
+         State("tabla-familia-original", "data"),
          State("tabla-familia", "columns")],
         prevent_initial_call=True
     )
@@ -407,7 +435,7 @@ def register_callbacks(app):
             return True, "Error", "Debe especificar un nombre de familia", "danger", "danger", no_update
         
         try:
-            # Convertir tabla a formato familia
+            # Convertir tabla a formato familia (usar tabla-original para tener TODOS los datos)
             familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
             
             # Guardar
@@ -435,7 +463,7 @@ def register_callbacks(app):
          Output("select-familia-existente", "options", allow_duplicate=True)],
         Input("btn-guardar-como-familia", "n_clicks"),
         [State("input-nombre-familia", "value"),
-         State("tabla-familia", "data"),
+         State("tabla-familia-original", "data"),
          State("tabla-familia", "columns")],
         prevent_initial_call=True
     )
@@ -448,7 +476,7 @@ def register_callbacks(app):
             return True, "Error", "Debe especificar un nombre de familia", "danger", "danger", no_update
         
         try:
-            # Convertir tabla a formato familia con nombre exacto
+            # Convertir tabla a formato familia con nombre exacto (usar tabla-original para tener TODOS los datos)
             familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
             
             # Guardar con nombre exacto
@@ -876,48 +904,50 @@ def register_callbacks(app):
     
     @app.callback(
         [Output("tabla-familia", "data", allow_duplicate=True),
+         Output("tabla-familia-original", "data", allow_duplicate=True),
          Output("modal-familia-parametro", "is_open", allow_duplicate=True)],
         Input("modal-familia-confirmar", "n_clicks"),
         [State("modal-familia-celda-info", "data"),
          State("tabla-familia", "data"),
+         State("tabla-familia-original", "data"),
          State("modal-familia-body-parametro", "children")],
         prevent_initial_call=True
     )
-    def seleccionar_opcion_familia(n_confirmar, celda_info, tabla_data, modal_body):
+    def seleccionar_opcion_familia(n_confirmar, celda_info, tabla_data, tabla_original, modal_body):
         """Actualiza tabla al confirmar modal"""
         if n_confirmar is None or not celda_info:
-            return no_update, no_update
-        
-        print(f"🔵 DEBUG: Confirmar presionado - celda_info: {celda_info}")
+            return no_update, no_update, no_update
         
         # Extraer valor del componente que existe en el modal
         valor_seleccionado = None
         try:
-            # Buscar dropdown o input en el modal_body
             if modal_body and 'props' in modal_body:
                 children = modal_body['props'].get('children', [])
                 for child in children:
                     if isinstance(child, dict) and 'props' in child:
-                        # Buscar dropdown
                         if child.get('type') == 'Dropdown':
                             valor_seleccionado = child['props'].get('value')
-                            print(f"✅ DEBUG: Valor de dropdown: {valor_seleccionado}")
                             break
-                        # Buscar input
                         elif child.get('type') == 'Input':
                             valor_seleccionado = child['props'].get('value')
-                            print(f"✅ DEBUG: Valor de input: {valor_seleccionado}")
                             break
-        except Exception as e:
-            print(f"⚠️ DEBUG: Error extrayendo valor: {e}")
+        except:
+            pass
         
         if valor_seleccionado is None:
-            print("❌ DEBUG: No se pudo extraer valor del modal")
-            return no_update, False
+            return no_update, no_update, False
         
         fila = celda_info["fila"]
         columna = celda_info["columna"]
+        parametro = celda_info["parametro"]
+        
+        # Actualizar tabla filtrada
         tabla_data[fila][columna] = valor_seleccionado
         
-        print(f"✅ DEBUG: Tabla actualizada - fila {fila}, col {columna}, valor: {valor_seleccionado}")
-        return tabla_data, False
+        # Actualizar tabla original (buscar por parametro)
+        for fila_orig in tabla_original:
+            if fila_orig.get("parametro") == parametro:
+                fila_orig[columna] = valor_seleccionado
+                break
+        
+        return tabla_data, tabla_original, False
