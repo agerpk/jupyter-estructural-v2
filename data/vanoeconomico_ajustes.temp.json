@@ -1,7 +1,7 @@
 {
-  "vano_min": 10,
-  "vano_max": 100,
-  "salto": 25,
+  "vano_min": 100,
+  "vano_max": 2000,
+  "salto": 50,
   "longtraza": 30000,
   "criterio_rr": "Suspensiones",
   "rr_cada_x_m": 2000,

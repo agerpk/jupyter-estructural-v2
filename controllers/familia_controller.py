@@ -93,83 +93,114 @@ def register_callbacks(app):
     @app.callback(
         [Output("tabla-familia", "columns", allow_duplicate=True),
          Output("tabla-familia", "data", allow_duplicate=True),
+         Output("tabla-familia-original", "data", allow_duplicate=True),
          Output("toast-notificacion", "is_open", allow_duplicate=True),
          Output("toast-notificacion", "header", allow_duplicate=True),
          Output("toast-notificacion", "children", allow_duplicate=True),
          Output("toast-notificacion", "icon", allow_duplicate=True),
          Output("toast-notificacion", "color", allow_duplicate=True)],
-        [Input("btn-agregar-estructura", "n_clicks"),
-         Input("btn-eliminar-estructura", "n_clicks")],
+        Input("btn-agregar-estructura", "n_clicks"),
         [State("tabla-familia", "columns"),
          State("tabla-familia", "data")],
         prevent_initial_call=True
     )
-    def modificar_estructura_tabla(n_agregar, n_eliminar, columnas, tabla_data):
-        """Agregar o eliminar columna de estructura"""
+    def agregar_estructura_tabla(n_agregar, columnas, tabla_data):
+        """Agregar columna de estructura"""
+        if n_agregar is None:
+            raise dash.exceptions.PreventUpdate
+        
+        cols_estr = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
+        
+        if not cols_estr:
+            nuevo_num = 1
+        else:
+            numeros = [int(col.replace('Estr.', '')) for col in cols_estr]
+            nuevo_num = max(numeros) + 1
+        
+        nuevo_col_id = f"Estr.{nuevo_num}"
+        ultima_col = cols_estr[-1] if cols_estr else None
+        
+        columnas.append({
+            "name": nuevo_col_id,
+            "id": nuevo_col_id,
+            "editable": True,
+            "type": "any"
+        })
+        
+        for fila in tabla_data:
+            if ultima_col:
+                fila[nuevo_col_id] = fila.get(ultima_col, "")
+            else:
+                fila[nuevo_col_id] = fila.get("valor", "")
+        
+        return columnas, tabla_data, list(tabla_data), True, "Éxito", f"Estructura {nuevo_col_id} agregada", "success", "success"
+    
+    @app.callback(
+        [Output("modal-eliminar-estructura", "is_open"),
+         Output("select-columna-eliminar", "options")],
+        [Input("btn-eliminar-estructura", "n_clicks"),
+         Input("modal-eliminar-estructura-cancelar", "n_clicks"),
+         Input("modal-eliminar-estructura-confirmar", "n_clicks")],
+        [State("modal-eliminar-estructura", "is_open"),
+         State("tabla-familia", "columns")],
+        prevent_initial_call=True
+    )
+    def toggle_modal_eliminar_estructura(n_abrir, n_cancelar, n_confirmar, is_open, columnas):
+        """Abrir/cerrar modal de eliminar estructura"""
         ctx = dash.callback_context
         if not ctx.triggered:
             raise dash.exceptions.PreventUpdate
         
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         
-        # Encontrar columnas Estr.N
-        cols_estr = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
-        
-        if trigger_id == "btn-agregar-estructura":
-            if n_agregar is None:
+        if trigger_id == "btn-eliminar-estructura":
+            if n_abrir is None:
                 raise dash.exceptions.PreventUpdate
             
-            # Encontrar siguiente número
-            if not cols_estr:
-                nuevo_num = 1
-            else:
-                numeros = [int(col.replace('Estr.', '')) for col in cols_estr]
-                nuevo_num = max(numeros) + 1
+            cols_estr = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
+            opciones_columnas = [{"label": col, "value": col} for col in cols_estr]
             
-            nuevo_col_id = f"Estr.{nuevo_num}"
-            ultima_col = cols_estr[-1] if cols_estr else None
-            
-            # Agregar nueva columna
-            columnas.append({
-                "name": nuevo_col_id,
-                "id": nuevo_col_id,
-                "editable": True,
-                "type": "any"
-            })
-            
-            # Copiar valores de última columna
-            for fila in tabla_data:
-                if ultima_col:
-                    fila[nuevo_col_id] = fila.get(ultima_col, "")
-                else:
-                    fila[nuevo_col_id] = fila.get("valor", "")
-            
-            return columnas, tabla_data, True, "Éxito", f"Estructura {nuevo_col_id} agregada", "success", "success"
+            return True, opciones_columnas
         
-        elif trigger_id == "btn-eliminar-estructura":
-            if n_eliminar is None:
-                raise dash.exceptions.PreventUpdate
-            
-            # Validar que hay al menos 2 estructuras
-            if len(cols_estr) <= 1:
-                return no_update, no_update, True, "Advertencia", "Debe mantener al menos una estructura", "warning", "warning"
-            
-            # Encontrar última columna
-            numeros = [int(col.replace('Estr.', '')) for col in cols_estr]
-            ultimo_num = max(numeros)
-            col_eliminar = f"Estr.{ultimo_num}"
-            
-            # Eliminar columna
-            columnas = [col for col in columnas if col['id'] != col_eliminar]
-            
-            # Eliminar datos de esa columna
-            for fila in tabla_data:
-                if col_eliminar in fila:
-                    del fila[col_eliminar]
-            
-            return columnas, tabla_data, True, "Éxito", f"Estructura {col_eliminar} eliminada", "success", "success"
+        elif trigger_id in ["modal-eliminar-estructura-cancelar", "modal-eliminar-estructura-confirmar"]:
+            return False, no_update
         
         raise dash.exceptions.PreventUpdate
+    
+    @app.callback(
+        [Output("tabla-familia", "columns", allow_duplicate=True),
+         Output("tabla-familia", "data", allow_duplicate=True),
+         Output("tabla-familia-original", "data", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("modal-eliminar-estructura-confirmar", "n_clicks"),
+        [State("select-columna-eliminar", "value"),
+         State("tabla-familia", "columns"),
+         State("tabla-familia", "data")],
+        prevent_initial_call=True
+    )
+    def eliminar_estructura_confirmado(n_clicks, col_eliminar, columnas, tabla_data):
+        """Eliminar estructura tras confirmación"""
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        if not col_eliminar:
+            return no_update, no_update, no_update, True, "Error", "Debe seleccionar una columna", "danger", "danger"
+        
+        cols_estr = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
+        if len(cols_estr) <= 1:
+            return no_update, no_update, no_update, True, "Advertencia", "Debe mantener al menos una estructura", "warning", "warning"
+        
+        columnas = [col for col in columnas if col['id'] != col_eliminar]
+        
+        for fila in tabla_data:
+            if col_eliminar in fila:
+                del fila[col_eliminar]
+        
+        return columnas, tabla_data, list(tabla_data), True, "Éxito", f"Estructura {col_eliminar} eliminada", "success", "success"
     
     @app.callback(
         [Output("select-familia-existente", "options"),

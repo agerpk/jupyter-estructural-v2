@@ -104,6 +104,7 @@ def crear_vista_familia_estructuras(familia_actual=None):
                         page_size=60,
                         sort_action="native",
                         filter_action="native",
+                        fixed_rows={'headers': True, 'data': 1},
                         style_cell={'textAlign': 'left', 'padding': '8px', 'color': '#000000', 'fontSize': '14px', 'backgroundColor': '#ffffff'},
                         style_header={'backgroundColor': '#d0e8f2', 'color': '#000000', 'fontWeight': 'bold', 'textAlign': 'center'},
                         style_data={'backgroundColor': '#ffffff', 'color': '#000000'},
@@ -317,6 +318,26 @@ def crear_modal_familia():
                 dbc.Button("Cargar", id="modal-cargar-columna-confirmar", color="primary")
             ])
         ], id="modal-cargar-columna", is_open=False),
+        
+        # Modal para eliminar estructura
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle("Eliminar Estructura")),
+            dbc.ModalBody([
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Seleccionar columna a eliminar:"),
+                        dbc.Select(
+                            id="select-columna-eliminar",
+                            placeholder="Seleccione columna..."
+                        )
+                    ], width=12)
+                ])
+            ]),
+            dbc.ModalFooter([
+                dbc.Button("Cancelar", id="modal-eliminar-estructura-cancelar", color="secondary", className="me-2"),
+                dbc.Button("Eliminar", id="modal-eliminar-estructura-confirmar", color="danger")
+            ])
+        ], id="modal-eliminar-estructura", is_open=False),
         
         # Stores para datos
         dcc.Store(id="modal-familia-celda-info", data=None),
