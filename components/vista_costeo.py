@@ -16,43 +16,52 @@ def crear_vista_costeo(estructura_actual, calculo_guardado=None):
     # Obtener parámetros de costeo desde estructura o usar defaults
     params_costeo = estructura_actual.get('costeo', {}) if estructura_actual else {}
     
+    # Valores por defecto actualizados para nueva fórmula (interpolados R²=0.989)
+    default_coef_a = 127.384729  # por metro de longitud
+    default_coef_b = 1.543826    # por daN de resistencia
+    default_coef_c = -631.847156 # fijo
+    
     # Formulario de parámetros
     formulario = dbc.Card([
         dbc.CardHeader(html.H5("Parámetros de Costeo")),
         dbc.CardBody([
             # Costos de Postes
-            html.H6("Costos de Postes y Accesorios", className="text-primary"),
+            html.H6("Costos de Postes", className="text-primary"),
             dbc.Alert([
                 html.Strong("Fórmula Postes: "),
-                "Costo = A × Peso_kg + B × Altura_m + C"
+                "Costo = A × Longitud_m + B × Resistencia_daN + C"
             ], color="info", className="mb-2"),
             dbc.Row([
                 dbc.Col([
-                    dbc.Label("Coeficiente A (por kg rotura)"),
-                    dbc.Input(id="input-coef-a", type="number", value=params_costeo.get('postes', {}).get('coef_a', 0.5), step=0.1)
+                    dbc.Label("Coeficiente A (por m longitud)"),
+                    dbc.Input(id="input-coef-a", type="number", value=params_costeo.get('postes', {}).get('coef_a', 127.384729), step=1.0)
                 ], width=3),
                 dbc.Col([
-                    dbc.Label("Coeficiente B (por m altura)"),
-                    dbc.Input(id="input-coef-b", type="number", value=params_costeo.get('postes', {}).get('coef_b', 100.0), step=10.0)
+                    dbc.Label("Coeficiente B (por daN resistencia)"),
+                    dbc.Input(id="input-coef-b", type="number", value=params_costeo.get('postes', {}).get('coef_b', 1.543826), step=0.01)
                 ], width=3),
                 dbc.Col([
                     dbc.Label("Coeficiente C (fijo)"),
-                    dbc.Input(id="input-coef-c", type="number", value=params_costeo.get('postes', {}).get('coef_c', 1000.0), step=100.0)
+                    dbc.Input(id="input-coef-c", type="number", value=params_costeo.get('postes', {}).get('coef_c', -631.847156), step=10.0)
                 ], width=3)
             ], className="mb-3"),
             
+            html.Hr(),
+            
+            # Costos de Accesorios
+            html.H6("Costos de Accesorios", className="text-primary"),
             dbc.Row([
                 dbc.Col([
                     dbc.Label("Precio Crucetas [UM/u]"),
-                    dbc.Input(id="input-precio-crucetas", type="number", value=params_costeo.get('accesorios', {}).get('crucetas', 400.0), step=50.0)
+                    dbc.Input(id="input-precio-crucetas", type="number", value=params_costeo.get('accesorios', {}).get('crucetas', 580.0), step=50.0)
                 ], width=3),
                 dbc.Col([
                     dbc.Label("Precio Ménsulas [UM/u]"),
-                    dbc.Input(id="input-precio-mensulas", type="number", value=params_costeo.get('accesorios', {}).get('mensulas', 175.0), step=25.0)
+                    dbc.Input(id="input-precio-mensulas", type="number", value=params_costeo.get('accesorios', {}).get('mensulas', 320.0), step=25.0)
                 ], width=3),
                 dbc.Col([
                     dbc.Label("Precio Vínculos [UM/u]"),
-                    dbc.Input(id="input-precio-vinculos", type="number", value=params_costeo.get('accesorios', {}).get('vinculos', 50.0), step=10.0)
+                    dbc.Input(id="input-precio-vinculos", type="number", value=params_costeo.get('accesorios', {}).get('vinculos', 320.0), step=10.0)
                 ], width=3)
             ], className="mb-3"),
             
@@ -63,7 +72,7 @@ def crear_vista_costeo(estructura_actual, calculo_guardado=None):
             dbc.Row([
                 dbc.Col([
                     dbc.Label("Precio Hormigón [UM/m³]"),
-                    dbc.Input(id="input-precio-hormigon", type="number", value=params_costeo.get('fundaciones', {}).get('precio_m3_hormigon', 150.0), step=10.0)
+                    dbc.Input(id="input-precio-hormigon", type="number", value=params_costeo.get('fundaciones', {}).get('precio_m3_hormigon', 250.0), step=10.0)
                 ], width=4),
                 dbc.Col([
                     dbc.Label("Factor Hierro"),
@@ -77,6 +86,7 @@ def crear_vista_costeo(estructura_actual, calculo_guardado=None):
             html.H6("Costos de Montaje y Logística", className="text-primary"),
             dbc.Alert([
                 html.Strong("Factor Terreno: "),
+                "Multiplica el costo de montaje (Precio por Estructura) según dificultad de acceso y condiciones del terreno. ",
                 "1.0=Normal, 1.2=Dificultades menores, 1.5=Difícil, 2.0=Muy difícil"
             ], color="info", className="mb-2"),
             dbc.Row([

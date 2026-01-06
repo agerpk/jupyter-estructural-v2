@@ -97,25 +97,17 @@ def extraer_datos_para_costeo(nombre_estructura):
         raise ValueError(f"Configuración SPH no reconocida: {n_postes}")
     
     dimensiones = resultados_sph.get('dimensiones', {})
-    altura_total_m = dimensiones.get('Ht_comercial')
-    if altura_total_m is None:
+    longitud_total_m = dimensiones.get('Ht_comercial')
+    if longitud_total_m is None:
         raise ValueError("SPH no contiene Ht_comercial en dimensiones")
     
-    # Extraer peso desde desarrollo_texto
+    # Extraer resistencia adoptada (Rc_adopt)
+    resistencia_dan = resultados_sph.get('Rc_adopt')
+    if resistencia_dan is None:
+        raise ValueError("SPH no contiene Rc_adopt")
+    
+    # Extraer cantidades de vínculos desde SPH desarrollo_texto
     desarrollo = calculo_sph.get('desarrollo_texto', '')
-    peso_total_kg = None
-    for linea in desarrollo.split('\n'):
-        if 'Peso =' in linea or 'Peso estimado:' in linea:
-            import re
-            numeros = re.findall(r'\d+', linea)
-            if numeros:
-                peso_total_kg = int(numeros[0])
-                break
-    
-    if peso_total_kg is None:
-        raise ValueError("No se pudo extraer peso desde SPH")
-    
-    # Extraer cantidades de vínculos desde SPH
     cantidad_vinculos = 0
     for linea in desarrollo.split('\n'):
         if 'vínculos' in linea.lower() or 'vinculos' in linea.lower():
@@ -219,8 +211,8 @@ def extraer_datos_para_costeo(nombre_estructura):
     
     datos = {
         'n_postes': n_postes,
-        'altura_total_m': altura_total_m,
-        'peso_total_kg': peso_total_kg,
+        'longitud_total_m': longitud_total_m,
+        'resistencia_dan': resistencia_dan,
         'cantidad_crucetas': cantidad_crucetas,
         'cantidad_mensulas': cantidad_mensulas,
         'cantidad_vinculos': cantidad_vinculos,
@@ -231,7 +223,10 @@ def extraer_datos_para_costeo(nombre_estructura):
     return datos
 
 def calcular_costeo_completo(datos_estructura, parametros_precios, tension_kv=220):
-    """Aplicar fórmulas de costeo y generar resultados completos"""
+    """Aplicar fórmulas de costeo y generar resultados completos
+    
+    Fórmula Postes: Costo = A × Longitud_m + B × Resistencia_daN + C
+    """
     
     # Extraer parámetros
     postes = parametros_precios.get('postes', {})
@@ -240,18 +235,18 @@ def calcular_costeo_completo(datos_estructura, parametros_precios, tension_kv=22
     montaje = parametros_precios.get('montaje', {})
     adicional = parametros_precios.get('adicional_estructura', 0)
     
-    # 1. Costo Postes
-    coef_a = postes.get('coef_a', 0.5)
-    coef_b = postes.get('coef_b', 100.0)
-    coef_c = postes.get('coef_c', 1000.0)
+    # 1. Costo Postes (coeficientes interpolados R²=0.989)
+    coef_a = postes.get('coef_a', 127.384729)
+    coef_b = postes.get('coef_b', 1.543826)
+    coef_c = postes.get('coef_c', -631.847156)
     
-    costo_unitario_poste = coef_a * datos_estructura['peso_total_kg'] + coef_b * datos_estructura['altura_total_m'] + coef_c
+    costo_unitario_poste = coef_a * datos_estructura['longitud_total_m'] + coef_b * datos_estructura['resistencia_dan'] + coef_c
     costo_postes = datos_estructura['n_postes'] * costo_unitario_poste
     
     # 2. Costo Accesorios - precios únicos sin diferenciación por tensión
-    precio_cruceta = accesorios.get('crucetas', 400.0)
-    precio_mensula = accesorios.get('mensulas', 175.0)
-    precio_vinculo = accesorios.get('vinculos', 50.0)
+    precio_cruceta = accesorios.get('crucetas', 580.0)
+    precio_mensula = accesorios.get('mensulas', 320.0)
+    precio_vinculo = accesorios.get('vinculos', 320.0)
     
     costo_crucetas = datos_estructura['cantidad_crucetas'] * precio_cruceta
     costo_mensulas = datos_estructura['cantidad_mensulas'] * precio_mensula
@@ -259,7 +254,7 @@ def calcular_costeo_completo(datos_estructura, parametros_precios, tension_kv=22
     costo_accesorios = costo_crucetas + costo_mensulas + costo_vinculos
     
     # 3. Costo Fundaciones
-    precio_m3 = fundaciones.get('precio_m3_hormigon', 150.0)
+    precio_m3 = fundaciones.get('precio_m3_hormigon', 250.0)
     factor_hierro = fundaciones.get('factor_hierro', 1.2)
     costo_fundaciones = datos_estructura['volumen_hormigon_m3'] * precio_m3 * factor_hierro
     

@@ -114,17 +114,17 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 0.5,
-          "coef_b": 100.0,
-          "coef_c": 1000.0
+          "coef_a": 127.384729,
+          "coef_b": 1.543826,
+          "coef_c": -631.847156
         },
         "accesorios": {
-          "vinculos": 50.0,
-          "crucetas": 400.0,
-          "mensulas": 175.0
+          "vinculos": 320.0,
+          "crucetas": 580.0,
+          "mensulas": 320.0
         },
         "fundaciones": {
-          "precio_m3_hormigon": 150.0,
+          "precio_m3_hormigon": 250.0,
           "factor_hierro": 1.2
         },
         "montaje": {
@@ -245,17 +245,17 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 0.5,
-          "coef_b": 100.0,
-          "coef_c": 1000.0
+          "coef_a": 127.384729,
+          "coef_b": 1.543826,
+          "coef_c": -631.847156
         },
         "accesorios": {
-          "vinculos": 50.0,
-          "crucetas": 400.0,
-          "mensulas": 175.0
+          "vinculos": 320.0,
+          "crucetas": 580.0,
+          "mensulas": 320.0
         },
         "fundaciones": {
-          "precio_m3_hormigon": 150.0,
+          "precio_m3_hormigon": 250.0,
           "factor_hierro": 1.2
         },
         "montaje": {
@@ -376,17 +376,17 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 0.5,
-          "coef_b": 100.0,
-          "coef_c": 1000.0
+          "coef_a": 127.384729,
+          "coef_b": 1.543826,
+          "coef_c": -631.847156
         },
         "accesorios": {
-          "vinculos": 50.0,
-          "crucetas": 400.0,
-          "mensulas": 175.0
+          "vinculos": 320.0,
+          "crucetas": 580.0,
+          "mensulas": 320.0
         },
         "fundaciones": {
-          "precio_m3_hormigon": 150.0,
+          "precio_m3_hormigon": 250.0,
           "factor_hierro": 1.2
         },
         "montaje": {
@@ -507,17 +507,17 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 0.5,
-          "coef_b": 100.0,
-          "coef_c": 1000.0
+          "coef_a": 127.384729,
+          "coef_b": 1.543826,
+          "coef_c": -631.847156
         },
         "accesorios": {
-          "vinculos": 50.0,
-          "crucetas": 400.0,
-          "mensulas": 175.0
+          "vinculos": 320.0,
+          "crucetas": 580.0,
+          "mensulas": 320.0
         },
         "fundaciones": {
-          "precio_m3_hormigon": 150.0,
+          "precio_m3_hormigon": 250.0,
           "factor_hierro": 1.2
         },
         "montaje": {
@@ -638,17 +638,17 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 0.5,
-          "coef_b": 100.0,
-          "coef_c": 1000.0
+          "coef_a": 127.384729,
+          "coef_b": 1.543826,
+          "coef_c": -631.847156
         },
         "accesorios": {
-          "vinculos": 50.0,
-          "crucetas": 400.0,
-          "mensulas": 175.0
+          "vinculos": 320.0,
+          "crucetas": 580.0,
+          "mensulas": 320.0
         },
         "fundaciones": {
-          "precio_m3_hormigon": 150.0,
+          "precio_m3_hormigon": 250.0,
           "factor_hierro": 1.2
         },
         "montaje": {
@@ -769,17 +769,17 @@
       "incremento_calculo": 0.01,
       "costeo": {
         "postes": {
-          "coef_a": 0.5,
-          "coef_b": 100.0,
-          "coef_c": 1000.0
+          "coef_a": 127.384729,
+          "coef_b": 1.543826,
+          "coef_c": -631.847156
         },
         "accesorios": {
-          "vinculos": 50.0,
-          "crucetas": 400.0,
-          "mensulas": 175.0
+          "vinculos": 320.0,
+          "crucetas": 580.0,
+          "mensulas": 320.0
         },
         "fundaciones": {
-          "precio_m3_hormigon": 150.0,
+          "precio_m3_hormigon": 250.0,
           "factor_hierro": 1.2
         },
         "montaje": {

@@ -62,5 +62,26 @@
   "REEMPLAZAR_TITULO_GRAFICO": false,
   "Vn": 220,
   "fecha_creacion": "2024-12-09",
-  "version": "1.0"
+  "version": "1.0",
+  "costeo": {
+    "postes": {
+      "coef_a": 127.384729,
+      "coef_b": 1.543826,
+      "coef_c": -631.847156
+    },
+    "accesorios": {
+      "vinculos": 320.0,
+      "crucetas": 580.0,
+      "mensulas": 320.0
+    },
+    "fundaciones": {
+      "precio_m3_hormigon": 250.0,
+      "factor_hierro": 1.2
+    },
+    "montaje": {
+      "precio_por_estructura": 5000.0,
+      "factor_terreno": 1.0
+    },
+    "adicional_estructura": 2000.0
+  }
 }
