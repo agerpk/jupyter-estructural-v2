@@ -117,7 +117,8 @@ def calcular_vano_economico_iterativo(nombre_familia: str,
                                       criterio_rr: str,
                                       rr_cada_x_m: float,
                                       rr_cada_x_s: int,
-                                      cant_rr_manual: int) -> Dict:
+                                      cant_rr_manual: int,
+                                      generar_plots: bool = False) -> Dict:
     """
     Calcular costo de familia para cada vano con cantidades dinámicas
     REUTILIZA: ejecutar_calculo_familia_completa()
@@ -158,8 +159,8 @@ def calcular_vano_economico_iterativo(nombre_familia: str,
             familia_base, vano, cantidades
         )
         
-        # REUTILIZAR función existente
-        resultado = ejecutar_calculo_familia_completa(familia_modificada)
+        # REUTILIZAR función existente (con control de plots)
+        resultado = ejecutar_calculo_familia_completa(familia_modificada, generar_plots=generar_plots)
         
         if resultado.get("exito"):
             costo_global = resultado["costeo_global"]["costo_global"]

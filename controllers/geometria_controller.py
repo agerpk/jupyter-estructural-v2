@@ -19,7 +19,7 @@ def aplicar_nodos_editados(estructura_geometria, nodos_editados_list, lib_cables
     print(f"✅ Nodos editados aplicados: {len(nodos_editados_list)} nodos")
 
 
-def ejecutar_calculo_dge(estructura_actual, state):
+def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
     """Ejecuta cálculo DGE y retorna resultados para mostrar"""
     try:
         from EstructuraAEA_Geometria import EstructuraAEA_Geometria
@@ -105,25 +105,30 @@ def ejecutar_calculo_dge(estructura_actual, state):
             resultados_guardia2=state.calculo_mecanico.resultados_guardia2
         )
         
-        estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica_temp)
-        
         # Generar gráficos
-        estructura_graficos.graficar_estructura(
-            zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
-            titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
-        )
-        fig_estructura = plt.gcf()
-        
-        estructura_graficos.graficar_cabezal(
-            zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95) * 1.5,
-            titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
-        )
-        fig_cabezal = plt.gcf()
-        
-        # Generar gráfico de nodos (retorna figura Plotly)
-        fig_nodos = estructura_graficos.graficar_nodos_coordenadas(
-            titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
-        )
+        if generar_plots:
+            estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica_temp)
+            
+            estructura_graficos.graficar_estructura(
+                zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+            )
+            fig_estructura = plt.gcf()
+            
+            estructura_graficos.graficar_cabezal(
+                zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95) * 1.5,
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+            )
+            fig_cabezal = plt.gcf()
+            
+            # Generar gráfico de nodos (retorna figura Plotly)
+            fig_nodos = estructura_graficos.graficar_nodos_coordenadas(
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+            )
+        else:
+            fig_estructura = None
+            fig_cabezal = None
+            fig_nodos = None
         
         # Generar memoria
         memoria_dge = gen_memoria_calculo_DGE(estructura_geometria)
@@ -155,7 +160,7 @@ def ejecutar_calculo_dge(estructura_actual, state):
         return {"exito": False, "mensaje": str(e)}
 
 
-def ejecutar_calculo_cmc_automatico(estructura_actual, state):
+def ejecutar_calculo_cmc_automatico(estructura_actual, state, generar_plots=True):
     """Ejecuta cálculo CMC automáticamente con parámetros de estructura o familia"""
     try:
         # Si estructura_actual es de familia, usar datos directamente
@@ -230,23 +235,24 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state):
             
             # Generar gráficos
             fig_combinado, fig_conductor, fig_guardia1, fig_guardia2 = None, None, None, None
-            try:
-                if state.calculo_mecanico.resultados_guardia2:
-                    fig_combinado, fig_conductor, fig_guardia1, fig_guardia2 = crear_grafico_flechas(
-                        state.calculo_objetos.cable_conductor,
-                        state.calculo_objetos.cable_guardia,
-                        params["L_vano"],
-                        state.calculo_objetos.cable_guardia2
-                    )
-                else:
-                    fig_combinado, fig_conductor, fig_guardia1 = crear_grafico_flechas(
-                        state.calculo_objetos.cable_conductor,
-                        state.calculo_objetos.cable_guardia,
-                        params["L_vano"]
-                    )
-            except Exception as e:
-                print(f"Error generando gráficos: {e}")
-                pass
+            if generar_plots:
+                try:
+                    if state.calculo_mecanico.resultados_guardia2:
+                        fig_combinado, fig_conductor, fig_guardia1, fig_guardia2 = crear_grafico_flechas(
+                            state.calculo_objetos.cable_conductor,
+                            state.calculo_objetos.cable_guardia,
+                            params["L_vano"],
+                            state.calculo_objetos.cable_guardia2
+                        )
+                    else:
+                        fig_combinado, fig_conductor, fig_guardia1 = crear_grafico_flechas(
+                            state.calculo_objetos.cable_conductor,
+                            state.calculo_objetos.cable_guardia,
+                            params["L_vano"]
+                        )
+                except Exception as e:
+                    print(f"Error generando gráficos: {e}")
+                    pass
             
             # Serializar DataFrames
             df_conductor_html = state.calculo_mecanico.df_conductor.to_json(orient='split') if state.calculo_mecanico.df_conductor is not None else None

@@ -35,6 +35,21 @@ def crear_vista_vano_economico():
                 
                 html.Hr(),
                 
+                # Switch generar plots
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Generar Graficos:", className="fw-bold"),
+                        dbc.Switch(
+                            id="vano-economico-switch-generar-plots",
+                            value=False,
+                            label="Activar graficos 2D/3D (mas lento)"
+                        ),
+                        html.Small("Desactivado: calculo rapido (solo datos)", className="text-muted")
+                    ], width=12)
+                ], className="mb-3"),
+                
+                html.Hr(),
+                
                 # Botones de acción
                 dbc.Row([
                     dbc.Col([

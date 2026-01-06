@@ -1,6 +1,6 @@
 """Funciones ejecutables centralizadas para todos los cálculos"""
 
-def ejecutar_calculo_dme(estructura_actual, state):
+def ejecutar_calculo_dme(estructura_actual, state, generar_plots=True):
     """Ejecuta cálculo DME y retorna resultados"""
     try:
         from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
@@ -34,11 +34,15 @@ def ejecutar_calculo_dme(estructura_actual, state):
         
         df_reacciones = estructura_mecanica.calcular_reacciones_tiros_cima(nodo_apoyo="BASE", nodo_cima=nodo_cima)
         
-        estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
-        estructura_graficos.diagrama_polar_tiros()
-        fig_polar = plt.gcf()
-        estructura_graficos.diagrama_barras_tiros(mostrar_c2=estructura_actual.get('MOSTRAR_C2', False))
-        fig_barras = plt.gcf()
+        if generar_plots:
+            estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
+            estructura_graficos.diagrama_polar_tiros()
+            fig_polar = plt.gcf()
+            estructura_graficos.diagrama_barras_tiros(mostrar_c2=estructura_actual.get('MOSTRAR_C2', False))
+            fig_barras = plt.gcf()
+        else:
+            fig_polar = None
+            fig_barras = None
         
         CalculoCache.guardar_calculo_dme(nombre_estructura, estructura_actual, df_reacciones, fig_polar, fig_barras)
         
@@ -49,7 +53,7 @@ def ejecutar_calculo_dme(estructura_actual, state):
         return {"exito": False, "mensaje": str(e)}
 
 
-def ejecutar_calculo_arboles(estructura_actual, state):
+def ejecutar_calculo_arboles(estructura_actual, state, generar_plots=True):
     """Ejecuta cálculo de árboles de carga y retorna resultados"""
     try:
         from utils.arboles_carga import generar_arboles_carga
@@ -78,18 +82,21 @@ def ejecutar_calculo_arboles(estructura_actual, state):
         
         estructura_mecanica = state.calculo_objetos.estructura_mecanica
         
-        resultado_arboles = generar_arboles_carga(
-            estructura_mecanica, estructura_actual,
-            zoom=config["zoom"], 
-            escala_flecha=config["escala_flecha"], 
-            grosor_linea=config["grosor_linea"],
-            mostrar_nodos=config["mostrar_nodos"], 
-            fontsize_nodos=config["fontsize_nodos"], 
-            fontsize_flechas=config["fontsize_flechas"], 
-            mostrar_sismo=config["mostrar_sismo"],
-            usar_3d=config["usar_3d"],
-            estructura_geometria=state.calculo_objetos.estructura_geometria
-        )
+        if generar_plots:
+            resultado_arboles = generar_arboles_carga(
+                estructura_mecanica, estructura_actual,
+                zoom=config["zoom"], 
+                escala_flecha=config["escala_flecha"], 
+                grosor_linea=config["grosor_linea"],
+                mostrar_nodos=config["mostrar_nodos"], 
+                fontsize_nodos=config["fontsize_nodos"], 
+                fontsize_flechas=config["fontsize_flechas"], 
+                mostrar_sismo=config["mostrar_sismo"],
+                usar_3d=config["usar_3d"],
+                estructura_geometria=state.calculo_objetos.estructura_geometria
+            )
+        else:
+            resultado_arboles = {'exito': True, 'imagenes': [], 'mensaje': 'Árboles omitidos (generar_plots=False)'}
         
         if resultado_arboles['exito']:
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
@@ -147,7 +154,7 @@ def ejecutar_calculo_sph(estructura_actual, state):
         return {"exito": False, "mensaje": str(e)}
 
 
-def ejecutar_calculo_fundacion(estructura_actual, state):
+def ejecutar_calculo_fundacion(estructura_actual, state, generar_plots=True):
     """Ejecuta cálculo de fundación y retorna resultados"""
     try:
         from utils.validacion_prerequisitos import validar_prerequisitos_fundacion
@@ -236,21 +243,22 @@ def ejecutar_calculo_fundacion(estructura_actual, state):
         
         # Generar gráfico 3D para hipótesis dimensionante
         fig_3d = None
-        try:
-            from utils.grafico_sulzberger_monobloque import GraficoSulzbergerMonobloque
-            grafico_obj = GraficoSulzbergerMonobloque(nombre_estructura)
-            grafico_obj.parametros = {
-                'estructura': parametros_estructura_completos,
-                'suelo': parametros_suelo,
-                'calculo': parametros_calculo,
-                'poste': parametros_poste
-            }
-            grafico_obj.todas_hipotesis = resultados['todas_hipotesis']
-            
-            hipotesis_dim = resultados['hipotesis_dimensionante']
-            fig_3d = grafico_obj._crear_grafico_hipotesis(hipotesis_dim)
-        except Exception as e:
-            print(f"Advertencia: No se pudo generar gráfico 3D: {e}")
+        if generar_plots:
+            try:
+                from utils.grafico_sulzberger_monobloque import GraficoSulzbergerMonobloque
+                grafico_obj = GraficoSulzbergerMonobloque(nombre_estructura)
+                grafico_obj.parametros = {
+                    'estructura': parametros_estructura_completos,
+                    'suelo': parametros_suelo,
+                    'calculo': parametros_calculo,
+                    'poste': parametros_poste
+                }
+                grafico_obj.todas_hipotesis = resultados['todas_hipotesis']
+                
+                hipotesis_dim = resultados['hipotesis_dimensionante']
+                fig_3d = grafico_obj._crear_grafico_hipotesis(hipotesis_dim)
+            except Exception as e:
+                print(f"Advertencia: No se pudo generar gráfico 3D: {e}")
         
         # Guardar en cache
         parametros_cache = {

@@ -12,7 +12,7 @@ from models.app_state import AppState
 from config.app_config import DATA_DIR
 from utils.calculo_cache import CalculoCache
 
-def ejecutar_calculo_familia_completa(familia_data: Dict) -> Dict:
+def ejecutar_calculo_familia_completa(familia_data: Dict, generar_plots: bool = True) -> Dict:
     """
     Ejecuta cálculo completo para toda la familia
     Retorna resultados por estructura y costeo global
@@ -57,7 +57,7 @@ def ejecutar_calculo_familia_completa(familia_data: Dict) -> Dict:
             print(f"   ⚠️ NO hay restricciones_cables en familia_data")
         
         # Ejecutar secuencia completa para esta estructura
-        resultado_estr = _ejecutar_secuencia_estructura(datos_estr, titulo)
+        resultado_estr = _ejecutar_secuencia_estructura(datos_estr, titulo, generar_plots)
         
         if resultado_estr["exito"]:
             costo_individual = resultado_estr.get("costo_total", 0)
@@ -98,7 +98,7 @@ def _cargar_familia(nombre_familia: str) -> Dict:
         print(f"❌ Error cargando familia: {e}")
         return {}
 
-def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str) -> Dict:
+def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str, generar_plots: bool = True) -> Dict:
     """
     Ejecuta secuencia completa CMC>DGE>DME>Árboles>SPH>Fundación>Costeo
     para una estructura individual creando archivos temporales completos
@@ -141,7 +141,7 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str) -> Dict:
         try:
             # 1. CMC
             from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
-            resultado_cmc = ejecutar_calculo_cmc_automatico(datos_estructura, state)
+            resultado_cmc = ejecutar_calculo_cmc_automatico(datos_estructura, state, generar_plots)
             if resultado_cmc.get('exito'):
                 resultados["cmc"] = CalculoCache.cargar_calculo_cmc(titulo)
                 print(f"✅ CMC completado para {titulo}")
@@ -150,7 +150,7 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str) -> Dict:
             
             # 2. DGE
             from controllers.geometria_controller import ejecutar_calculo_dge
-            resultado_dge = ejecutar_calculo_dge(datos_estructura, state)
+            resultado_dge = ejecutar_calculo_dge(datos_estructura, state, generar_plots)
             if resultado_dge.get('exito'):
                 resultados["dge"] = CalculoCache.cargar_calculo_dge(titulo)
                 print(f"✅ DGE completado para {titulo}")
@@ -159,7 +159,7 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str) -> Dict:
             
             # 3. DME
             from controllers.ejecutar_calculos import ejecutar_calculo_dme
-            resultado_dme = ejecutar_calculo_dme(datos_estructura, state)
+            resultado_dme = ejecutar_calculo_dme(datos_estructura, state, generar_plots)
             if resultado_dme.get('exito'):
                 resultados["dme"] = CalculoCache.cargar_calculo_dme(titulo)
                 print(f"✅ DME completado para {titulo}")
@@ -168,7 +168,7 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str) -> Dict:
             
             # 4. Árboles
             from controllers.ejecutar_calculos import ejecutar_calculo_arboles
-            resultado_arboles = ejecutar_calculo_arboles(datos_estructura, state)
+            resultado_arboles = ejecutar_calculo_arboles(datos_estructura, state, generar_plots)
             if resultado_arboles.get('exito'):
                 resultados["arboles"] = CalculoCache.cargar_calculo_arboles(titulo)
                 print(f"✅ Árboles completado para {titulo}")
@@ -186,7 +186,7 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str) -> Dict:
             
             # 6. Fundación
             from controllers.ejecutar_calculos import ejecutar_calculo_fundacion
-            resultado_fundacion = ejecutar_calculo_fundacion(datos_estructura, state)
+            resultado_fundacion = ejecutar_calculo_fundacion(datos_estructura, state, generar_plots)
             if resultado_fundacion.get('exito'):
                 resultados["fundacion"] = CalculoCache.cargar_calculo_fund(titulo)
                 print(f"✅ Fundación completado para {titulo}")

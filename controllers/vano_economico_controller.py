@@ -34,8 +34,14 @@ def register_callbacks(app):
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
-        print(f"🟢 DEBUG CONFIRMAR: vano_min={vano_min}, vano_max={vano_max}, salto={salto}")
         print(f"🟢 DEBUG CONFIRMAR: longtraza={longtraza}, criterio_rr={criterio_rr}")
+        print(f"🟢 DEBUG CONFIRMAR: vano_min={vano_min}, vano_max={vano_max}, salto={salto}")
+        # Validar campos obligatorios
+        if not all([vano_min, vano_max, salto, longtraza, criterio_rr]):
+            return (True, "Error", "Complete todos los campos obligatorios", "danger", "danger")
+        
+        if vano_max <= vano_min:
+            return (True, "Error", "Vano máximo debe ser mayor que vano mínimo", "danger", "danger")
         
         state = AppState()
         ajustes = {
@@ -163,11 +169,12 @@ def register_callbacks(app):
          State("vano-economico-select-criterio-rr", "value"),
          State("vano-economico-input-rr-cada-x-m", "value"),
          State("vano-economico-input-rr-cada-x-s", "value"),
-         State("vano-economico-input-cant-rr-manual", "value")],
+         State("vano-economico-input-cant-rr-manual", "value"),
+         State("vano-economico-switch-generar-plots", "value")],
         prevent_initial_call=True
     )
     def calcular_vano_economico(n_clicks, vano_min, vano_max, salto, longtraza,
-                               criterio_rr, rr_cada_x_m, rr_cada_x_s, cant_rr_manual):
+                               criterio_rr, rr_cada_x_m, rr_cada_x_s, cant_rr_manual, generar_plots):
         """Ejecutar cálculo de vano económico"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
@@ -216,12 +223,12 @@ def register_callbacks(app):
         try:
             print(f"🚀 Iniciando cálculo de vano económico para familia: {nombre_familia}")
             
-            # Ejecutar cálculo iterativo
+            # Ejecutar cálculo iterativo con generar_plots
             from utils.vano_economico_utils import calcular_vano_economico_iterativo, generar_vista_resultados_vano_economico
             resultados = calcular_vano_economico_iterativo(
                 nombre_familia, vano_min, vano_max, salto,
                 longtraza, criterio_rr, 
-                rr_cada_x_m, rr_cada_x_s, cant_rr_manual
+                rr_cada_x_m, rr_cada_x_s, cant_rr_manual, generar_plots
             )
             
             # Guardar en cache

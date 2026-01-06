@@ -224,7 +224,22 @@ rr_cada_x_m = 2000  # m
 
 ## Estado
 
-🟢 **CÁLCULO DINÁMICO IMPLEMENTADO**
+🟢 **IMPLEMENTACIÓN COMPLETA**
+🟢 **PERSISTENCIA DE AJUSTES IMPLEMENTADA**
 🟡 **DESCARGAR HTML PENDIENTE**
 
-Todas las nuevas directivas de cálculo dinámico de cantidades están implementadas y listas para testing.
+Todas las nuevas directivas de cálculo dinámico de cantidades están implementadas.
+Los ajustes persisten entre reinicios de la aplicación.
+
+## Notas Finales
+
+### Persistencia de Ajustes
+- Los ajustes se guardan en `data/familia_state.json`
+- Se cargan automáticamente al entrar a la vista
+- Botón "Confirmar Ajustes" guarda todos los valores
+- Los valores persisten entre reinicios de la app
+
+### Problema Resuelto: Input Salto
+- ID cambiado de `vano-economico-input-salto` a `vano-economico-salto`
+- Estructura simplificada del input
+- Persistencia implementada correctamente
