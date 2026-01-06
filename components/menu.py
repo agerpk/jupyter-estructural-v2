@@ -150,6 +150,7 @@ def crear_menu_herramientas():
         children=[
             dbc.DropdownMenuItem("Comparativa CMC", id="menu-comparativa-cmc"),
             dbc.DropdownMenuItem("Calcular Familia", id="menu-familia-estructuras"),
+            dbc.DropdownMenuItem("Vano Económico", id="menu-vano-economico"),
         ],
         nav=True,
         in_navbar=True,

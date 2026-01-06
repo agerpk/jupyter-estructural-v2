@@ -617,3 +617,32 @@ class CalculoCache:
             return True, "Cache vigente"
         else:
             return False, "Hash no coincide, recalcular"
+    
+    @staticmethod
+    def guardar_calculo_vano_economico(nombre_familia, parametros, resultados):
+        """Guarda resultados de Vano Económico"""
+        nombre_familia = nombre_familia.replace(' ', '_')
+        
+        # Hash basado en parámetros de vano
+        hash_params = hashlib.md5(json.dumps(parametros, sort_keys=True).encode()).hexdigest()
+        
+        calculo_data = {
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "parametros": parametros,
+            "resultados": resultados
+        }
+        
+        archivo = CACHE_DIR / f"{nombre_familia}.calculoVANOECONOMICO.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"✅ Cache vano económico guardado: {archivo.name}")
+        return hash_params
+    
+    @staticmethod
+    def cargar_calculo_vano_economico(nombre_familia):
+        """Carga resultados de Vano Económico"""
+        nombre_familia = nombre_familia.replace(' ', '_')
+        archivo = CACHE_DIR / f"{nombre_familia}.calculoVANOECONOMICO.json"
+        if not archivo.exists():
+            return None
+        return json.loads(archivo.read_text(encoding="utf-8"))

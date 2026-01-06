@@ -8,6 +8,57 @@ Analizar el costo total de una familia de estructuras en función del vano, gene
 ✅ Persistencia de familia activa implementada
 ✅ Lógica de cálculo de familia en `utils/calcular_familia_logica_encadenada.py`
 
+## IMPORTANTE: Cálculo Dinámico de Cantidades
+
+### Validación de Familia
+La familia DEBE contener:
+- **1 estructura** tipo Suspensión Recta (S)
+- **1 estructura** tipo Retención / Ret. Angular con alpha=0 (RR)
+- **N estructuras** tipo Retención / Ret. Angular con alpha>0 (RA) - opcional
+- **1 estructura** tipo Terminal (T)
+
+Si existen múltiples estructuras del mismo tipo → **Error: "Existen múltiples estructuras de tipo (X)"**
+
+### Inputs Adicionales en Vista
+- `LONGTRAZA` (m) - ENTERO - Longitud total de la traza
+- `CRITERIO_RR` - SELECT: "Distancia" / "Suspensiones" / "Manual"
+- `cant_RR_manual` - ENTERO - Solo si CRITERIO_RR = "Manual"
+- `RR_CADA_X_M` - FLOAT - Retención cada X metros (si Distancia)
+- `RR_CADA_X_S` - ENTERO - Retención cada X suspensiones (si Suspensiones)
+
+### Cálculo de Cantidades (por iteración de vano)
+```python
+# Fijas
+cant_T = 2  # Siempre 2 terminales
+
+# Desde familia
+cant_RA = suma de cantidades de estructuras con tipo="Retención / Ret. Angular" y alpha>0
+
+# Dinámicas (dependen de L_vano)
+cant_S = math.ceil(LONGTRAZA / L_vano)  # roundup
+
+# Según criterio
+if CRITERIO_RR == "Distancia":
+    cant_RR = math.ceil(LONGTRAZA / RR_CADA_X_M) - 1 - cant_RA
+elif CRITERIO_RR == "Suspensiones":
+    cant_RR = math.ceil(cant_S / RR_CADA_X_S) - cant_RA
+elif CRITERIO_RR == "Manual":
+    cant_RR = cant_RR_manual
+```
+
+### Modificación en Cada Iteración
+Para cada vano de la lista:
+1. Modificar `L_vano` en TODAS las estructuras
+2. Calcular `cant_S` con nuevo vano
+3. Calcular `cant_RR` según criterio
+4. Modificar campo `Cantidad` en cada estructura:
+   - Terminal → `Cantidad = cant_T`
+   - Suspensión → `Cantidad = cant_S`
+   - RR (alpha=0) → `Cantidad = cant_RR`
+   - RA (alpha>0) → Mantener cantidad del .familia.json
+5. Ejecutar `ejecutar_calculo_familia_completa()`
+6. Capturar `costo_global`
+
 ## Arquitectura - Reutilización de Código
 
 ### 1. Cargar Familia
@@ -20,19 +71,22 @@ Analizar el costo total de una familia de estructuras en función del vano, gene
 **REUTILIZAR**: `ejecutar_calculo_familia_completa()` de `calcular_familia_logica_encadenada.py`
 
 **ESTRATEGIA**:
-1. Generar lista de vanos: `[vano_min, vano_min+salto, ..., vano_max]`
-2. Para cada vano:
+1. **Validar familia** (1 S, 1 RR, N RA, 1 T)
+2. Generar lista de vanos: `[vano_min, vano_min+salto, ..., vano_max]`
+3. Para cada vano:
    - Crear copia de `familia_data`
-   - Modificar `L_vano` en TODAS las estructuras de la familia
+   - Modificar `L_vano` en TODAS las estructuras
+   - **Calcular cantidades dinámicas** (cant_S, cant_RR)
+   - **Modificar campo `Cantidad`** en cada estructura
    - Llamar a `ejecutar_calculo_familia_completa(familia_modificada)`
    - Capturar `costeo_global["costo_global"]`
    - Emitir progreso: `(vano_actual_index / total_vanos) * 100`
-3. Retornar: `{vano: costo_global}` para todos los vanos
+4. Retornar: `{vano: {costo_global, cant_S, cant_RR}}` para todos los vanos
 
 **NO DUPLICAR**:
 - ❌ NO reimplementar secuencia CMC>DGE>DME>SPH>FUND>COSTEO
 - ❌ NO crear nueva lógica de cálculo
-- ✅ SOLO modificar `L_vano` y reutilizar función existente
+- ✅ SOLO modificar `L_vano` y `Cantidad`, reutilizar función existente
 
 ### 3. Callbacks - Evitar Conflictos
 **PATRÓN**: Usar IDs únicos con prefijo `vano-economico-`
@@ -117,6 +171,62 @@ def crear_controles_vano():
             dbc.Input(id="vano-economico-input-salto", 
                      type="number", value=50, step=10)
         ], width=4)
+    ], className="mb-3")
+
+def crear_controles_cantidades():
+    """Controles para cálculo dinámico de cantidades"""
+    return dbc.Card([
+        dbc.CardHeader(html.H5("Configuración de Cantidades")),
+        dbc.CardBody([
+            # LONGTRAZA
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Longitud de Traza [m]:", className="fw-bold"),
+                    dbc.Input(id="vano-economico-input-longtraza", 
+                             type="number", value=10000, step=100, min=100)
+                ], width=12)
+            ], className="mb-3"),
+            
+            # Criterio RR
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Criterio para Retenciones:", className="fw-bold"),
+                    dbc.Select(id="vano-economico-select-criterio-rr",
+                              options=[
+                                  {"label": "Por Distancia", "value": "Distancia"},
+                                  {"label": "Por Suspensiones", "value": "Suspensiones"},
+                                  {"label": "Manual", "value": "Manual"}
+                              ],
+                              value="Distancia")
+                ], width=6),
+                dbc.Col([
+                    html.Label("RR cada X metros:", className="fw-bold"),
+                    dbc.Input(id="vano-economico-input-rr-cada-x-m", 
+                             type="number", value=2000, step=100, min=100)
+                ], width=3),
+                dbc.Col([
+                    html.Label("RR cada X suspensiones:", className="fw-bold"),
+                    dbc.Input(id="vano-economico-input-rr-cada-x-s", 
+                             type="number", value=5, step=1, min=1)
+                ], width=3)
+            ], className="mb-3"),
+            
+            # Manual
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Cantidad RR Manual:", className="fw-bold"),
+                    dbc.Input(id="vano-economico-input-cant-rr-manual", 
+                             type="number", value=4, step=1, min=0,
+                             disabled=True)
+                ], width=6)
+            ], id="vano-economico-row-manual", style={"display": "none"}),
+            
+            html.Hr(),
+            
+            # Display calculado
+            html.H6("Cantidades Calculadas (ejemplo con vano medio):", className="text-muted"),
+            html.Div(id="vano-economico-display-cantidades")
+        ])
     ], className="mb-3")
 ```
 

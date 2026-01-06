@@ -1,3 +1,13 @@
 {
-  "familia_activa": "0_PruebaCompleta"
+  "familia_activa": "0_PruebaCompleta_paraVE",
+  "vano_economico_ajustes": {
+    "vano_min": 50,
+    "vano_max": 150,
+    "salto": 25,
+    "longtraza": 10000,
+    "criterio_rr": "Distancia",
+    "rr_cada_x_m": 2000,
+    "rr_cada_x_s": 5,
+    "cant_rr_manual": 4
+  }
 }

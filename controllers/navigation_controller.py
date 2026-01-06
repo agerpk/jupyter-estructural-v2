@@ -92,13 +92,15 @@ def register_callbacks(app):
         Input("menu-consola", "n_clicks"),
         Input("menu-comparativa-cmc", "n_clicks"),
         Input("menu-familia-estructuras", "n_clicks"),
+        Input("menu-vano-economico", "n_clicks"),
         State("estructura-actual", "data"),
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
                        n_clicks_eliminar, n_clicks_cmc,
                        n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
                        n_clicks_diseno_geom, n_clicks_diseno_mec, n_clicks_arboles, n_clicks_sph, 
-                       n_clicks_fundacion, n_clicks_costeo, n_clicks_calcular_todo, n_clicks_consola, n_clicks_comparativa_cmc, n_clicks_familia, estructura_actual):
+                       n_clicks_fundacion, n_clicks_costeo, n_clicks_calcular_todo, n_clicks_consola, 
+                       n_clicks_comparativa_cmc, n_clicks_familia, n_clicks_vano_economico, estructura_actual):
         ctx = callback_context
         
         # Detectar carga inicial (app restart o hot reload)
@@ -187,6 +189,9 @@ def register_callbacks(app):
                 from components.vista_familia_estructuras import crear_vista_familia_estructuras
                 familia_actual = state.cargar_familia_activa()
                 return crear_vista_familia_estructuras(familia_actual)
+            elif ultima_vista == "vano-economico":
+                from components.vista_vano_economico import crear_vista_vano_economico
+                return crear_vista_vano_economico()
             return crear_vista_home()
         
         print(f"DEBUG: Trigger detectado: {trigger_id}")
@@ -326,6 +331,11 @@ def register_callbacks(app):
             from components.vista_familia_estructuras import crear_vista_familia_estructuras
             familia_actual = state.cargar_familia_activa()
             return crear_vista_familia_estructuras(familia_actual)
+        
+        elif trigger_id == "menu-vano-economico":
+            guardar_navegacion_state("vano-economico")
+            from components.vista_vano_economico import crear_vista_vano_economico
+            return crear_vista_vano_economico()
         
         elif "btn-volver" in trigger_id:
             try:

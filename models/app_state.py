@@ -127,3 +127,29 @@ class AppState:
             print(f"💾 Familia activa guardada en persistencia: {nombre_familia}")
         except Exception as e:
             print(f"⚠️ Error guardando familia activa persistente: {e}")
+    
+    def set_vano_economico_ajustes(self, ajustes):
+        """Guardar ajustes de vano económico"""
+        try:
+            state_data = {}
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+            
+            state_data['vano_economico_ajustes'] = ajustes
+            
+            with open(FAMILIA_STATE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(state_data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"⚠️ Error guardando ajustes vano económico: {e}")
+    
+    def get_vano_economico_ajustes(self):
+        """Obtener ajustes de vano económico"""
+        try:
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+                    return state_data.get('vano_economico_ajustes')
+        except Exception as e:
+            print(f"⚠️ Error cargando ajustes vano económico: {e}")
+        return None
