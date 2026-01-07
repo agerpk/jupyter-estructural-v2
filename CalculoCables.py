@@ -487,7 +487,7 @@ class Cable_AEA:
         tipo_violacion = None
         factor_severidad = 0
         
-        # DEBUG: Mostrar restricciones que se van a aplicar
+        """# DEBUG: Mostrar restricciones que se van a aplicar
         print(f"   🔍 Verificando restricciones para {self.nombre}:")
         print(f"      Objetivo: {objetivo}")
         print(f"      Restricciones aplicadas:")
@@ -500,7 +500,7 @@ class Cable_AEA:
         if objetivo == 'TiroMin' and flecha_max_permitida is not None and flecha_max_permitida > 0:
             print(f"        Flecha máxima permitida: {flecha_max_permitida:.3f} m")
         if es_guardia and "relflecha_max" in restricciones_cable:
-            print(f"        Relación flecha máxima: {restricciones_cable['relflecha_max']}")
+            print(f"        Relación flecha máxima: {restricciones_cable['relflecha_max']}")"""
         
         for estado_id, datos in resultados.items():
             # Para TiroMin: IGNORAR restricciones de tensión máxima
