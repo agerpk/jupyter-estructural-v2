@@ -1,7 +1,7 @@
 {
   "nombre_familia": "PSJ_prueba",
   "fecha_creacion": "2026-01-05T10:35:57.988330",
-  "fecha_modificacion": "2026-01-05T10:35:57.989331",
+  "fecha_modificacion": "2026-01-06T17:12:32.258056",
   "estructuras": {
     "Estr.1": {
       "TITULO": "PSJ_Sdtt",
@@ -116,6 +116,22 @@
           "factor_terreno": 1.0
         },
         "adicional_estructura": 2000.0
+      },
+      "restricciones_cables": {
+        "conductor": {
+          "I": 0.25,
+          "II": 0.4,
+          "III": 0.4,
+          "IV": 0.4,
+          "V": 0.25
+        },
+        "guardia": {
+          "I": 0.7,
+          "II": 0.7,
+          "III": 0.7,
+          "IV": 0.7,
+          "V": 0.7
+        }
       }
     }
   }

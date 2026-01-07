@@ -1,7 +1,7 @@
 {
-  "vano_min": 100,
-  "vano_max": 1000,
-  "salto": 50,
+  "vano_min": 60,
+  "vano_max": 300,
+  "salto": 20,
   "longtraza": 30000,
   "criterio_rr": "Distancia",
   "rr_cada_x_m": 1500,
