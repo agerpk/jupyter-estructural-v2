@@ -26,7 +26,8 @@ def ejecutar_calculo_dme(estructura_actual, state, generar_plots=True):
             state.calculo_mecanico.resultados_guardia1,
             estructura_actual.get('L_vano'),
             hipotesis_maestro,
-            estructura_actual.get('t_hielo')
+            estructura_actual.get('t_hielo'),
+            resultados_guardia2=state.calculo_mecanico.resultados_guardia2
         )
         
         nodes_key = estructura_geometria.nodes_key

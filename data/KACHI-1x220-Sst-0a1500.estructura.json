@@ -20,9 +20,9 @@
   "Cf_guardia": 1,
   "Cf_cadena": 0.9,
   "Cf_estructura": 0.9,
-  "L_vano": 400.0,
-  "alpha": 0.0,
-  "theta": 45.0,
+  "L_vano": 400,
+  "alpha": 0,
+  "theta": 45,
   "A_cadena": 0.03,
   "PCADENA": 10.5,
   "PESTRUCTURA": 3900,
@@ -64,10 +64,10 @@
   "Vn": 220,
   "fecha_creacion": "2024-12-09",
   "version": "1.0",
-  "fecha_modificacion": "2025-12-16T15:26:33.566154",
+  "fecha_modificacion": "2026-01-07T15:13:15.057139",
   "VANO_DESNIVELADO": true,
-  "H_PIQANTERIOR": 8.0,
-  "H_PIQPOSTERIOR": -5.0,
+  "H_PIQANTERIOR": 8,
+  "H_PIQPOSTERIOR": -5,
   "VANO_DESNIVELADO_CMC": true,
   "H_PIQANTERIOR_CMC": 0,
   "H_PIQPOSTERIOR_CMC": 5,
@@ -78,18 +78,19 @@
       "coef_c": -2662.3376
     },
     "accesorios": {
-      "vinculos": 320.0,
-      "crucetas": 580.0,
-      "mensulas": 320.0
+      "vinculos": 320,
+      "crucetas": 580,
+      "mensulas": 320
     },
     "fundaciones": {
-      "precio_m3_hormigon": 250.0,
+      "precio_m3_hormigon": 250,
       "factor_hierro": 1.2
     },
     "montaje": {
-      "precio_por_estructura": 5000.0,
-      "factor_terreno": 1.0
+      "precio_por_estructura": 5000,
+      "factor_terreno": 1
     },
-    "adicional_estructura": 2000.0
-  }
+    "adicional_estructura": 2000
+  },
+  "nodos_editados": []
 }

@@ -397,6 +397,10 @@ def register_callbacks(app):
                         hipotesis_maestro_base
                     )
                     
+                    # Asignar cable_guardia2 si existe
+                    if state.calculo_objetos.cable_guardia2:
+                        estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
+                    
                     estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
                     estructura_mecanica.asignar_cargas_hipotesis(
                         state.calculo_mecanico.df_cargas_totales,
@@ -404,7 +408,8 @@ def register_callbacks(app):
                         state.calculo_mecanico.resultados_guardia1,
                         estructura_actual.get('L_vano'),
                         hipotesis_maestro,
-                        estructura_actual.get('t_hielo')
+                        estructura_actual.get('t_hielo'),
+                        resultados_guardia2=state.calculo_mecanico.resultados_guardia2
                     )
                     
                     estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
@@ -512,7 +517,8 @@ def register_callbacks(app):
                     state.calculo_mecanico.resultados_guardia1,
                     estructura_actual.get('L_vano'),
                     hipotesis_maestro,
-                    estructura_actual.get('t_hielo')
+                    estructura_actual.get('t_hielo'),
+                    resultados_guardia2=state.calculo_mecanico.resultados_guardia2
                 )
                 
                 state.calculo_objetos.estructura_mecanica = estructura_mecanica

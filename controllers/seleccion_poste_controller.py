@@ -178,18 +178,15 @@ def register_callbacks(app):
             # PASO 3: Auto-ejecutar DME si no existe
             if not state.calculo_objetos.estructura_mecanica:
                 estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
-                # Combinar resultados de guardia para compatibilidad
-                resultados_guardia_combinados = state.calculo_mecanico.resultados_guardia1.copy()
-                if hasattr(state.calculo_mecanico, 'resultados_guardia2') and state.calculo_mecanico.resultados_guardia2:
-                    resultados_guardia_combinados.update(state.calculo_mecanico.resultados_guardia2)
                 
                 estructura_mecanica.asignar_cargas_hipotesis(
                     state.calculo_mecanico.df_cargas_totales,
                     state.calculo_mecanico.resultados_conductor,
-                    resultados_guardia_combinados,
+                    state.calculo_mecanico.resultados_guardia1,
                     estructura_actual.get('L_vano'),
                     hipotesis_maestro,
-                    estructura_actual.get('t_hielo')
+                    estructura_actual.get('t_hielo'),
+                    resultados_guardia2=state.calculo_mecanico.resultados_guardia2
                 )
                 
                 nodes_key = state.calculo_objetos.estructura_geometria.nodes_key

@@ -69,6 +69,10 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             altura_msnm=estructura_actual.get("Altura_MSNM")
         )
         
+        # Asignar cable_guardia2 ANTES de dimensionar (para que los nodos lo usen)
+        if state.calculo_objetos.cable_guardia2:
+            estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
+        
         estructura_geometria.dimensionar_unifilar(
             estructura_actual.get("L_vano"),
             fmax_conductor,
@@ -91,6 +95,10 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             aplicar_nodos_editados(estructura_geometria, nodos_editados, lib_cables)
         
         state.calculo_objetos.estructura_geometria = estructura_geometria
+        
+        # Asignar cable_guardia2 si existe
+        if state.calculo_objetos.cable_guardia2:
+            estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
         
         # Crear mecánica temporal para gráficos
         estructura_mecanica_temp = EstructuraAEA_Mecanica(estructura_geometria)
@@ -1020,6 +1028,10 @@ def register_callbacks(app):
                 mensula_defasar=estructura_actual.get("mensula_defasar", "primera")
             )
             
+            # Asignar cable_guardia2 ANTES de dimensionar (para que los nodos lo usen)
+            if state.calculo_objetos.cable_guardia2:
+                estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
+            
             # Dimensionar
             estructura_geometria.dimensionar_unifilar(
                 estructura_actual.get("L_vano"),
@@ -1054,9 +1066,6 @@ def register_callbacks(app):
             from HipotesisMaestro_Especial import hipotesis_maestro
             
             estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
-            # Asignar cable_guardia2 si existe
-            if state.calculo_objetos.cable_guardia2:
-                estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
             
             estructura_mecanica.asignar_cargas_hipotesis(
                 state.calculo_mecanico.df_cargas_totales,
