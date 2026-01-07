@@ -176,15 +176,16 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def descargar_estructura_pc(n_clicks, estructura_actual):
-        if estructura_actual and "TITULO" in estructura_actual:
-            try:
-                titulo = estructura_actual["TITULO"]
-                nombre_archivo = f"{titulo}.estructura.json"
-                contenido = json.dumps(estructura_actual, indent=2, ensure_ascii=False)
-                return (
-                    dict(content=contenido, filename=nombre_archivo),
-                    True, "Éxito", f"Estructura descargada: {nombre_archivo}", "success", "success"
-                )
-            except Exception as e:
-                return dash.no_update, True, "Error", f"Error al descargar: {str(e)}", "danger", "danger"
-        return dash.no_update, True, "Error", "No hay estructura para descargar", "danger", "danger"
+        if not estructura_actual or "TITULO" not in estructura_actual:
+            return dash.no_update, True, "Error", "No hay estructura para descargar", "danger", "danger"
+        
+        try:
+            titulo = estructura_actual["TITULO"]
+            nombre_archivo = f"{titulo}.estructura.json"
+            contenido = json.dumps(estructura_actual, indent=2, ensure_ascii=False)
+            return (
+                dict(content=contenido, filename=nombre_archivo),
+                True, "Éxito", f"Estructura descargada: {nombre_archivo}", "success", "success"
+            )
+        except Exception as e:
+            return dash.no_update, True, "Error", f"Error al descargar: {str(e)}", "danger", "danger"

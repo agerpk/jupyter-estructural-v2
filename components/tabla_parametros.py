@@ -15,6 +15,7 @@ def crear_tabla_parametros(estructura_actual: Dict, cables_disponibles: List[str
     
     # Configurar columnas
     columnas = [
+        {"name": "Categoría", "id": "categoria", "editable": False, "type": "text"},
         {"name": "Parámetro", "id": "parametro", "editable": False, "type": "text"},
         {"name": "Símbolo", "id": "simbolo", "editable": False, "type": "text"},
         {"name": "Valor", "id": "valor", "editable": True, "type": "any"},
@@ -66,6 +67,7 @@ def crear_tabla_parametros(estructura_actual: Dict, cables_disponibles: List[str
             sort_action="native",
             filter_action="native",
             page_action="none",
+            fixed_rows={'headers': True, 'data': 1},
             
             style_cell={
                 'textAlign': 'right',
@@ -83,7 +85,10 @@ def crear_tabla_parametros(estructura_actual: Dict, cables_disponibles: List[str
                 'color': '#ffffff',
                 'fontWeight': 'bold',
                 'border': '1px solid #dee2e6',
-                'textAlign': 'center'
+                'textAlign': 'center',
+                'position': 'sticky',
+                'top': 0,
+                'zIndex': 1
             },
             style_data={
                 'border': '1px solid #dee2e6',
@@ -94,6 +99,14 @@ def crear_tabla_parametros(estructura_actual: Dict, cables_disponibles: List[str
             },
             style_data_conditional=[
                 {
+                    'if': {'row_index': 0},
+                    'backgroundColor': '#fff3cd',
+                    'fontWeight': 'bold',
+                    'position': 'sticky',
+                    'top': '40px',
+                    'zIndex': 1
+                },
+                {
                     'if': {'column_id': 'valor'},
                     'backgroundColor': '#f8f9fa',
                     'color': '#000000'
@@ -101,6 +114,11 @@ def crear_tabla_parametros(estructura_actual: Dict, cables_disponibles: List[str
                 {
                     'if': {'column_id': 'parametro'},
                     'fontWeight': 'bold',
+                    'color': '#000000',
+                    'textAlign': 'left'
+                },
+                {
+                    'if': {'column_id': 'categoria'},
                     'color': '#000000',
                     'textAlign': 'left'
                 }

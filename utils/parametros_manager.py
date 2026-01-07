@@ -791,22 +791,30 @@ class ParametrosManager:
     def estructura_a_tabla(cls, estructura: Dict) -> List[Dict]:
         """Convierte estructura JSON a formato tabla"""
         tabla_data = []
+        titulo_fila = None
         
         for parametro, valor in estructura.items():
             if parametro in cls.PARAMETROS_METADATA:
                 metadata = cls.PARAMETROS_METADATA[parametro]
                 
-                tabla_data.append({
+                fila = {
+                    "categoria": metadata["categoria"],
                     "parametro": parametro,
                     "simbolo": metadata["simbolo"],
                     "valor": valor,
                     "unidad": metadata["unidad"],
                     "descripcion": metadata["descripcion"],
-                    "tipo": metadata["tipo"],
-                    "categoria": metadata["categoria"]
-                })
+                    "tipo": metadata["tipo"]
+                }
+                
+                # Separar TITULO para ponerlo primero
+                if parametro == "TITULO":
+                    titulo_fila = fila
+                else:
+                    tabla_data.append(fila)
         
         # Procesar parámetros anidados de costeo
+        costeo_fundacion_filas = []
         if "costeo" in estructura and isinstance(estructura["costeo"], dict):
             costeo = estructura["costeo"]
             
@@ -816,14 +824,14 @@ class ParametrosManager:
                     param_key = f"costeo.postes.{key}"
                     if param_key in cls.PARAMETROS_METADATA:
                         metadata = cls.PARAMETROS_METADATA[param_key]
-                        tabla_data.append({
+                        costeo_fundacion_filas.append({
+                            "categoria": metadata["categoria"],
                             "parametro": param_key,
                             "simbolo": metadata["simbolo"],
                             "valor": valor,
                             "unidad": metadata["unidad"],
                             "descripcion": metadata["descripcion"],
-                            "tipo": metadata["tipo"],
-                            "categoria": metadata["categoria"]
+                            "tipo": metadata["tipo"]
                         })
             
             # Accesorios
@@ -832,14 +840,14 @@ class ParametrosManager:
                     param_key = f"costeo.accesorios.{key}"
                     if param_key in cls.PARAMETROS_METADATA:
                         metadata = cls.PARAMETROS_METADATA[param_key]
-                        tabla_data.append({
+                        costeo_fundacion_filas.append({
+                            "categoria": metadata["categoria"],
                             "parametro": param_key,
                             "simbolo": metadata["simbolo"],
                             "valor": valor,
                             "unidad": metadata["unidad"],
                             "descripcion": metadata["descripcion"],
-                            "tipo": metadata["tipo"],
-                            "categoria": metadata["categoria"]
+                            "tipo": metadata["tipo"]
                         })
             
             # Fundaciones
@@ -848,14 +856,14 @@ class ParametrosManager:
                     param_key = f"costeo.fundaciones.{key}"
                     if param_key in cls.PARAMETROS_METADATA:
                         metadata = cls.PARAMETROS_METADATA[param_key]
-                        tabla_data.append({
+                        costeo_fundacion_filas.append({
+                            "categoria": metadata["categoria"],
                             "parametro": param_key,
                             "simbolo": metadata["simbolo"],
                             "valor": valor,
                             "unidad": metadata["unidad"],
                             "descripcion": metadata["descripcion"],
-                            "tipo": metadata["tipo"],
-                            "categoria": metadata["categoria"]
+                            "tipo": metadata["tipo"]
                         })
             
             # Montaje
@@ -864,14 +872,14 @@ class ParametrosManager:
                     param_key = f"costeo.montaje.{key}"
                     if param_key in cls.PARAMETROS_METADATA:
                         metadata = cls.PARAMETROS_METADATA[param_key]
-                        tabla_data.append({
+                        costeo_fundacion_filas.append({
+                            "categoria": metadata["categoria"],
                             "parametro": param_key,
                             "simbolo": metadata["simbolo"],
                             "valor": valor,
                             "unidad": metadata["unidad"],
                             "descripcion": metadata["descripcion"],
-                            "tipo": metadata["tipo"],
-                            "categoria": metadata["categoria"]
+                            "tipo": metadata["tipo"]
                         })
             
             # Adicional estructura
@@ -879,19 +887,28 @@ class ParametrosManager:
                 param_key = "costeo.adicional_estructura"
                 if param_key in cls.PARAMETROS_METADATA:
                     metadata = cls.PARAMETROS_METADATA[param_key]
-                    tabla_data.append({
+                    costeo_fundacion_filas.append({
+                        "categoria": metadata["categoria"],
                         "parametro": param_key,
                         "simbolo": metadata["simbolo"],
                         "valor": costeo["adicional_estructura"],
                         "unidad": metadata["unidad"],
                         "descripcion": metadata["descripcion"],
-                        "tipo": metadata["tipo"],
-                        "categoria": metadata["categoria"]
+                        "tipo": metadata["tipo"]
                     })
         
-        # Ordenar por categoría y luego por parámetro
-        tabla_data.sort(key=lambda x: (x["categoria"], x["parametro"]))
-        return tabla_data
+        # Ordenar por categoría, moviendo Costeo y Fundación al final
+        orden_categorias = {"Costeo": 999, "Fundación": 998}
+        tabla_data.sort(key=lambda x: (orden_categorias.get(x["categoria"], 0), x["categoria"], x["parametro"]))
+        
+        # Construir resultado final: TITULO primero, luego resto, luego Costeo/Fundación
+        resultado = []
+        if titulo_fila:
+            resultado.append(titulo_fila)
+        resultado.extend(tabla_data)
+        resultado.extend(costeo_fundacion_filas)
+        
+        return resultado
     
     @classmethod
     def tabla_a_estructura(cls, tabla_data: List[Dict]) -> Dict:
