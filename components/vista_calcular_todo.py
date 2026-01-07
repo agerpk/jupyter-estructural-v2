@@ -92,187 +92,211 @@ def generar_resultados_cmc_lista(calculo_guardado, estructura_actual, mostrar_al
         return [dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")]
 
 
-def cargar_resultados_modulares(estructura_actual):
+def cargar_resultados_modulares(estructura_actual, calculos_activos=None):
     """Carga resultados desde cachés individuales con placeholders donde no existan"""
     if not estructura_actual:
         print("❌ No hay estructura cargada")
         return [dbc.Alert("No hay estructura cargada", color="warning")]
     
+    if calculos_activos is None:
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
+    
     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
     print(f"📂 Cargando resultados modulares para: {nombre_estructura}")
+    print(f"🔍 Cálculos activos: {calculos_activos}")
     componentes = []
     
     # 1. CMC
-    print("🔍 Verificando cache CMC...")
-    calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
-    if calculo_cmc:
-        print("✅ Cache CMC encontrado")
-        componentes.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
-        try:
-            lista_cmc = generar_resultados_cmc_lista(calculo_cmc, estructura_actual, mostrar_alerta_cache=True)
-            print(f"🔍 DEBUG CMC: Tipo de lista_cmc: {type(lista_cmc)}, Longitud: {len(lista_cmc)}")
-            for i, comp in enumerate(lista_cmc[:3]):  # Solo primeros 3 para debug
-                print(f"   CMC[{i}]: {type(comp).__name__}")
-            componentes.extend(lista_cmc)
-            print(f"✅ CMC: {len(lista_cmc)} componentes agregados")
-        except Exception as e:
-            print(f"❌ Error generando CMC: {e}")
-            componentes.append(dbc.Alert(f"Error cargando CMC: {str(e)}", color="danger"))
+    if "cmc" not in calculos_activos:
+        print("⏭️ CMC desactivado, saltando...")
     else:
-        print("❌ Cache CMC no encontrado")
-        componentes.append(crear_placeholder("1. CMC"))
+        print("🔍 Verificando cache CMC...")
+        calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
+        if calculo_cmc:
+            print("✅ Cache CMC encontrado")
+            componentes.append(html.H3("1. CÁLCULO MECÁNICO DE CABLES (CMC)", className="mt-4"))
+            try:
+                lista_cmc = generar_resultados_cmc_lista(calculo_cmc, estructura_actual, mostrar_alerta_cache=True)
+                print(f"🔍 DEBUG CMC: Tipo de lista_cmc: {type(lista_cmc)}, Longitud: {len(lista_cmc)}")
+                for i, comp in enumerate(lista_cmc[:3]):
+                    print(f"   CMC[{i}]: {type(comp).__name__}")
+                componentes.extend(lista_cmc)
+                print(f"✅ CMC: {len(lista_cmc)} componentes agregados")
+            except Exception as e:
+                print(f"❌ Error generando CMC: {e}")
+                componentes.append(dbc.Alert(f"Error cargando CMC: {str(e)}", color="danger"))
+        else:
+            print("❌ Cache CMC no encontrado")
+            componentes.append(crear_placeholder("1. CMC"))
     
     # 2. DGE
-    print("🔍 Verificando cache DGE...")
-    calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
-    if calculo_dge:
-        print("✅ Cache DGE encontrado")
-        from components.vista_diseno_geometrico import generar_resultados_dge
-        componentes.append(html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"))
-        try:
-            resultado_dge = generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=True)
-            print(f"🔍 DEBUG DGE: Tipo de resultado_dge: {type(resultado_dge)}")
-            if isinstance(resultado_dge, list):
-                print(f"   DGE es lista con {len(resultado_dge)} elementos")
-                for i, comp in enumerate(resultado_dge[:3]):  # Solo primeros 3 para debug
-                    print(f"   DGE[{i}]: {type(comp).__name__}")
-                componentes.extend(resultado_dge)
-                print(f"✅ DGE: {len(resultado_dge)} componentes agregados")
-            else:
-                print(f"   DGE es {type(resultado_dge).__name__}")
-                componentes.append(resultado_dge)
-                print("✅ DGE: 1 componente agregado")
-        except Exception as e:
-            import traceback
-            print(f"❌ Error cargando DGE: {traceback.format_exc()}")
-            componentes.append(dbc.Alert(f"Error cargando DGE: {str(e)}", color="danger"))
+    if "dge" not in calculos_activos:
+        print("⏭️ DGE desactivado, saltando...")
     else:
-        print("❌ Cache DGE no encontrado")
-        componentes.append(crear_placeholder("2. DGE"))
+        print("🔍 Verificando cache DGE...")
+        calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
+        if calculo_dge:
+            print("✅ Cache DGE encontrado")
+            from components.vista_diseno_geometrico import generar_resultados_dge
+            componentes.append(html.H3("2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)", className="mt-4"))
+            try:
+                resultado_dge = generar_resultados_dge(calculo_dge, estructura_actual, mostrar_alerta_cache=True)
+                print(f"🔍 DEBUG DGE: Tipo de resultado_dge: {type(resultado_dge)}")
+                if isinstance(resultado_dge, list):
+                    print(f"   DGE es lista con {len(resultado_dge)} elementos")
+                    for i, comp in enumerate(resultado_dge[:3]):
+                        print(f"   DGE[{i}]: {type(comp).__name__}")
+                    componentes.extend(resultado_dge)
+                    print(f"✅ DGE: {len(resultado_dge)} componentes agregados")
+                else:
+                    print(f"   DGE es {type(resultado_dge).__name__}")
+                    componentes.append(resultado_dge)
+                    print("✅ DGE: 1 componente agregado")
+            except Exception as e:
+                import traceback
+                print(f"❌ Error cargando DGE: {traceback.format_exc()}")
+                componentes.append(dbc.Alert(f"Error cargando DGE: {str(e)}", color="danger"))
+        else:
+            print("❌ Cache DGE no encontrado")
+            componentes.append(crear_placeholder("2. DGE"))
     
     # 3. DME
-    print("🔍 Verificando cache DME...")
-    calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
-    if calculo_dme:
-        print("✅ Cache DME encontrado")
-        from components.vista_diseno_mecanico import generar_resultados_dme
-        componentes.append(html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"))
-        try:
-            resultado_dme = generar_resultados_dme(calculo_dme, estructura_actual, mostrar_alerta_cache=True)
-            print(f"🔍 DEBUG DME: Tipo de resultado_dme: {type(resultado_dme).__name__}")
-            componentes.append(resultado_dme)
-            print("✅ DME: 1 componente agregado")
-        except Exception as e:
-            import traceback
-            print(f"❌ Error cargando DME: {traceback.format_exc()}")
-            componentes.append(dbc.Alert(f"Error cargando DME: {str(e)}", color="danger"))
+    if "dme" not in calculos_activos:
+        print("⏭️ DME desactivado, saltando...")
     else:
-        print("❌ Cache DME no encontrado")
-        componentes.append(crear_placeholder("3. DME"))
+        print("🔍 Verificando cache DME...")
+        calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
+        if calculo_dme:
+            print("✅ Cache DME encontrado")
+            from components.vista_diseno_mecanico import generar_resultados_dme
+            componentes.append(html.H3("3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)", className="mt-4"))
+            try:
+                resultado_dme = generar_resultados_dme(calculo_dme, estructura_actual, mostrar_alerta_cache=True)
+                print(f"🔍 DEBUG DME: Tipo de resultado_dme: {type(resultado_dme).__name__}")
+                componentes.append(resultado_dme)
+                print("✅ DME: 1 componente agregado")
+            except Exception as e:
+                import traceback
+                print(f"❌ Error cargando DME: {traceback.format_exc()}")
+                componentes.append(dbc.Alert(f"Error cargando DME: {str(e)}", color="danger"))
+        else:
+            print("❌ Cache DME no encontrado")
+            componentes.append(crear_placeholder("3. DME"))
     
     # 4. Árboles de Carga
-    print("🔍 Verificando cache Árboles...")
-    calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
-    if calculo_arboles:
-        print("✅ Cache Árboles encontrado")
-        from components.vista_arboles_carga import generar_resultados_arboles
-        componentes.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
-        try:
-            resultado_arboles = generar_resultados_arboles(calculo_arboles, estructura_actual, mostrar_alerta_cache=True)
-            print(f"🔍 DEBUG Árboles: Tipo de resultado_arboles: {type(resultado_arboles)}")
-            if isinstance(resultado_arboles, list):
-                print(f"   Árboles es lista con {len(resultado_arboles)} elementos")
-                componentes.extend(resultado_arboles)
-                print(f"✅ Árboles: {len(resultado_arboles)} componentes agregados")
-            else:
-                print(f"   Árboles es {type(resultado_arboles).__name__}")
-                componentes.append(resultado_arboles)
-                print("✅ Árboles: 1 componente agregado")
-        except Exception as e:
-            import traceback
-            print(f"❌ Error cargando Árboles: {traceback.format_exc()}")
-            componentes.append(dbc.Alert(f"Error cargando Árboles: {str(e)}", color="danger"))
+    if "arboles" not in calculos_activos:
+        print("⏭️ Árboles desactivado, saltando...")
     else:
-        print("❌ Cache Árboles no encontrado")
-        componentes.append(crear_placeholder("4. Árboles de Carga"))
+        print("🔍 Verificando cache Árboles...")
+        calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
+        if calculo_arboles:
+            print("✅ Cache Árboles encontrado")
+            from components.vista_arboles_carga import generar_resultados_arboles
+            componentes.append(html.H3("4. ÁRBOLES DE CARGA", className="mt-4"))
+            try:
+                resultado_arboles = generar_resultados_arboles(calculo_arboles, estructura_actual, mostrar_alerta_cache=True)
+                print(f"🔍 DEBUG Árboles: Tipo de resultado_arboles: {type(resultado_arboles)}")
+                if isinstance(resultado_arboles, list):
+                    print(f"   Árboles es lista con {len(resultado_arboles)} elementos")
+                    componentes.extend(resultado_arboles)
+                    print(f"✅ Árboles: {len(resultado_arboles)} componentes agregados")
+                else:
+                    print(f"   Árboles es {type(resultado_arboles).__name__}")
+                    componentes.append(resultado_arboles)
+                    print("✅ Árboles: 1 componente agregado")
+            except Exception as e:
+                import traceback
+                print(f"❌ Error cargando Árboles: {traceback.format_exc()}")
+                componentes.append(dbc.Alert(f"Error cargando Árboles: {str(e)}", color="danger"))
+        else:
+            print("❌ Cache Árboles no encontrado")
+            componentes.append(crear_placeholder("4. Árboles de Carga"))
     
     # 5. SPH
-    print("🔍 Verificando cache SPH...")
-    calculo_sph = CalculoCache.cargar_calculo_sph(nombre_estructura)
-    if calculo_sph:
-        print("✅ Cache SPH encontrado")
-        from components.vista_seleccion_poste import _crear_area_resultados
-        componentes.append(html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"))
-        try:
-            resultado_sph = _crear_area_resultados(calculo_sph, estructura_actual)
-            print(f"🔍 DEBUG SPH: Tipo de resultado_sph: {type(resultado_sph).__name__}")
-            # Si SPH retorna una lista, extenderla; si no, agregarla
-            if isinstance(resultado_sph, list):
-                print(f"   SPH es lista con {len(resultado_sph)} elementos")
-                componentes.extend(resultado_sph)
-                print(f"✅ SPH: {len(resultado_sph)} componentes agregados")
-            else:
-                componentes.append(resultado_sph)
-                print("✅ SPH: 1 componente agregado")
-        except Exception as e:
-            import traceback
-            print(f"❌ Error cargando SPH: {traceback.format_exc()}")
-            componentes.append(dbc.Alert(f"Error cargando SPH: {str(e)}", color="danger"))
+    if "sph" not in calculos_activos:
+        print("⏭️ SPH desactivado, saltando...")
     else:
-        print("❌ Cache SPH no encontrado")
-        componentes.append(crear_placeholder("5. SPH"))
+        print("🔍 Verificando cache SPH...")
+        calculo_sph = CalculoCache.cargar_calculo_sph(nombre_estructura)
+        if calculo_sph:
+            print("✅ Cache SPH encontrado")
+            from components.vista_seleccion_poste import _crear_area_resultados
+            componentes.append(html.H3("5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)", className="mt-4"))
+            try:
+                resultado_sph = _crear_area_resultados(calculo_sph, estructura_actual)
+                print(f"🔍 DEBUG SPH: Tipo de resultado_sph: {type(resultado_sph).__name__}")
+                if isinstance(resultado_sph, list):
+                    print(f"   SPH es lista con {len(resultado_sph)} elementos")
+                    componentes.extend(resultado_sph)
+                    print(f"✅ SPH: {len(resultado_sph)} componentes agregados")
+                else:
+                    componentes.append(resultado_sph)
+                    print("✅ SPH: 1 componente agregado")
+            except Exception as e:
+                import traceback
+                print(f"❌ Error cargando SPH: {traceback.format_exc()}")
+                componentes.append(dbc.Alert(f"Error cargando SPH: {str(e)}", color="danger"))
+        else:
+            print("❌ Cache SPH no encontrado")
+            componentes.append(crear_placeholder("5. SPH"))
     
     # 6. Fundación
-    print("🔍 Verificando cache Fundación...")
-    calculo_fundacion = CalculoCache.cargar_calculo_fund(nombre_estructura)
-    if calculo_fundacion:
-        print("✅ Cache Fundación encontrado")
-        from components.vista_fundacion import generar_resultados_fundacion
-        componentes.append(html.H3("6. FUNDACIÓN", className="mt-4"))
-        try:
-            resultado_fundacion = generar_resultados_fundacion(calculo_fundacion, estructura_actual)
-            print(f"🔍 DEBUG Fundación: Tipo de resultado_fundacion: {type(resultado_fundacion)}")
-            if isinstance(resultado_fundacion, list):
-                print(f"   Fundación es lista con {len(resultado_fundacion)} elementos")
-                componentes.extend(resultado_fundacion)
-                print(f"✅ Fundación: {len(resultado_fundacion)} componentes agregados")
-            else:
-                print(f"   Fundación es {type(resultado_fundacion).__name__}")
-                componentes.append(resultado_fundacion)
-                print("✅ Fundación: 1 componente agregado")
-        except Exception as e:
-            import traceback
-            print(f"❌ Error cargando Fundación: {traceback.format_exc()}")
-            componentes.append(dbc.Alert(f"Error cargando Fundación: {str(e)}", color="danger"))
+    if "fundacion" not in calculos_activos:
+        print("⏭️ Fundación desactivado, saltando...")
     else:
-        print("❌ Cache Fundación no encontrado")
-        componentes.append(crear_placeholder("6. Fundación"))
+        print("🔍 Verificando cache Fundación...")
+        calculo_fundacion = CalculoCache.cargar_calculo_fund(nombre_estructura)
+        if calculo_fundacion:
+            print("✅ Cache Fundación encontrado")
+            from components.vista_fundacion import generar_resultados_fundacion
+            componentes.append(html.H3("6. FUNDACIÓN", className="mt-4"))
+            try:
+                resultado_fundacion = generar_resultados_fundacion(calculo_fundacion, estructura_actual)
+                print(f"🔍 DEBUG Fundación: Tipo de resultado_fundacion: {type(resultado_fundacion)}")
+                if isinstance(resultado_fundacion, list):
+                    print(f"   Fundación es lista con {len(resultado_fundacion)} elementos")
+                    componentes.extend(resultado_fundacion)
+                    print(f"✅ Fundación: {len(resultado_fundacion)} componentes agregados")
+                else:
+                    print(f"   Fundación es {type(resultado_fundacion).__name__}")
+                    componentes.append(resultado_fundacion)
+                    print("✅ Fundación: 1 componente agregado")
+            except Exception as e:
+                import traceback
+                print(f"❌ Error cargando Fundación: {traceback.format_exc()}")
+                componentes.append(dbc.Alert(f"Error cargando Fundación: {str(e)}", color="danger"))
+        else:
+            print("❌ Cache Fundación no encontrado")
+            componentes.append(crear_placeholder("6. Fundación"))
     
     # 7. Costeo
-    print("🔍 Verificando cache Costeo...")
-    calculo_costeo = CalculoCache.cargar_calculo_costeo(nombre_estructura)
-    if calculo_costeo:
-        print("✅ Cache Costeo encontrado")
-        from components.vista_costeo import generar_resultados_costeo
-        componentes.append(html.H3("7. COSTEO", className="mt-4"))
-        try:
-            resultado_costeo = generar_resultados_costeo(calculo_costeo, estructura_actual, mostrar_alerta_cache=True)
-            print(f"🔍 DEBUG Costeo: Tipo de resultado_costeo: {type(resultado_costeo)}")
-            if isinstance(resultado_costeo, list):
-                print(f"   Costeo es lista con {len(resultado_costeo)} elementos")
-                componentes.extend(resultado_costeo)
-                print(f"✅ Costeo: {len(resultado_costeo)} componentes agregados")
-            else:
-                print(f"   Costeo es {type(resultado_costeo).__name__}")
-                componentes.append(resultado_costeo)
-                print("✅ Costeo: 1 componente agregado")
-        except Exception as e:
-            import traceback
-            print(f"❌ Error cargando Costeo: {traceback.format_exc()}")
-            componentes.append(dbc.Alert(f"Error cargando Costeo: {str(e)}", color="danger"))
+    if "costeo" not in calculos_activos:
+        print("⏭️ Costeo desactivado, saltando...")
     else:
-        print("❌ Cache Costeo no encontrado")
-        componentes.append(crear_placeholder("7. Costeo"))
+        print("🔍 Verificando cache Costeo...")
+        calculo_costeo = CalculoCache.cargar_calculo_costeo(nombre_estructura)
+        if calculo_costeo:
+            print("✅ Cache Costeo encontrado")
+            from components.vista_costeo import generar_resultados_costeo
+            componentes.append(html.H3("7. COSTEO", className="mt-4"))
+            try:
+                resultado_costeo = generar_resultados_costeo(calculo_costeo, estructura_actual, mostrar_alerta_cache=True)
+                print(f"🔍 DEBUG Costeo: Tipo de resultado_costeo: {type(resultado_costeo)}")
+                if isinstance(resultado_costeo, list):
+                    print(f"   Costeo es lista con {len(resultado_costeo)} elementos")
+                    componentes.extend(resultado_costeo)
+                    print(f"✅ Costeo: {len(resultado_costeo)} componentes agregados")
+                else:
+                    print(f"   Costeo es {type(resultado_costeo).__name__}")
+                    componentes.append(resultado_costeo)
+                    print("✅ Costeo: 1 componente agregado")
+            except Exception as e:
+                import traceback
+                print(f"❌ Error cargando Costeo: {traceback.format_exc()}")
+                componentes.append(dbc.Alert(f"Error cargando Costeo: {str(e)}", color="danger"))
+        else:
+            print("❌ Cache Costeo no encontrado")
+            componentes.append(crear_placeholder("7. Costeo"))
     
     print(f"✅ Carga modular completada: {len(componentes)} componentes totales")
     print(f"🔍 DEBUG FINAL: Tipos de componentes en lista:")
@@ -283,6 +307,11 @@ def cargar_resultados_modulares(estructura_actual):
 
 def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
     """Vista para ejecutar todos los cálculos en secuencia"""
+    
+    # Cargar checkboxes desde persistencia
+    from models.app_state import AppState
+    state = AppState()
+    calculos_activos_guardados = state.get_calculos_activos()
     
     # Auto-cargar cache si hay estructura disponible
     contenido_inicial = [dbc.Alert("Presione un botón para comenzar", color="secondary")]
@@ -304,17 +333,25 @@ def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
             dbc.CardBody([
                 dbc.Alert([
                     html.H5("Secuencia de Cálculo:", className="alert-heading"),
-                    html.P("Esta vista ejecutará automáticamente todos los cálculos en el siguiente orden:"),
-                    html.Ol([
-                        html.Li("Cálculo Mecánico de Cables (CMC)"),
-                        html.Li("Diseño Geométrico de Estructura (DGE)"),
-                        html.Li("Diseño Mecánico de Estructura (DME)"),
-                        html.Li("Árboles de Carga"),
-                        html.Li("Selección de Poste de Hormigón (SPH)"),
-                        html.Li("Fundación"),
-                        html.Li("Costeo")
-                    ]),
-                    html.P("Los resultados se mostrarán en orden a continuación.", className="mb-0")
+                    html.P("Seleccione qué cálculos ejecutar/mostrar:"),
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Checklist(
+                                id="checklist-calculos",
+                                options=[
+                                    {"label": "CMC - Cálculo Mecánico de Cables", "value": "cmc"},
+                                    {"label": "DGE - Diseño Geométrico (requiere CMC)", "value": "dge"},
+                                    {"label": "DME - Diseño Mecánico (requiere DGE)", "value": "dme"},
+                                    {"label": "Árboles de Carga (requiere DME)", "value": "arboles"},
+                                    {"label": "SPH - Selección de Poste (requiere DME)", "value": "sph"},
+                                    {"label": "Fundación (requiere SPH)", "value": "fundacion"},
+                                    {"label": "Costeo (requiere SPH y Fundación)", "value": "costeo"}
+                                ],
+                                value=calculos_activos_guardados,
+                                inline=False
+                            )
+                        ], md=12)
+                    ])
                 ], color="info", className="mb-4"),
                 
                 dbc.Row([

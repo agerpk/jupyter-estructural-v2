@@ -183,3 +183,29 @@ class AppState:
         except Exception as e:
             print(f"⚠️ Error cargando ajustes vano económico: {e}")
         return None
+    
+    def set_calculos_activos(self, calculos_activos):
+        """Guardar checkboxes de cálculos activos"""
+        try:
+            state_data = {}
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+            
+            state_data['calculos_activos'] = calculos_activos
+            
+            with open(FAMILIA_STATE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(state_data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"⚠️ Error guardando cálculos activos: {e}")
+    
+    def get_calculos_activos(self):
+        """Obtener checkboxes de cálculos activos"""
+        try:
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+                    return state_data.get('calculos_activos', ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"])
+        except Exception as e:
+            print(f"⚠️ Error cargando cálculos activos: {e}")
+        return ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
