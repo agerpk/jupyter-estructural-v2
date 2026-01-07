@@ -1014,7 +1014,10 @@ def register_callbacks(app):
                 dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
                 ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
                 metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
-                altura_msnm=estructura_actual.get("Altura_MSNM")
+                altura_msnm=estructura_actual.get("Altura_MSNM"),
+                defasaje_mensula_hielo=estructura_actual.get("defasaje_mensula_hielo", False),
+                lmen_extra_hielo=estructura_actual.get("lmen_extra_hielo", 0.0),
+                mensula_defasar=estructura_actual.get("mensula_defasar", "primera")
             )
             
             # Dimensionar

@@ -38,8 +38,16 @@ def cambiar_pestana_parametros(tab_activo, estructura_actual):
     if not tab_activo:
         tab_activo = "tabla"
     
-    if not estructura_actual:
-        return "No hay estructura cargada", False, "", "warning"
+    # Recargar estructura desde archivo para asegurar datos actualizados
+    from config.app_config import DATA_DIR
+    state = AppState()
+    try:
+        titulo = estructura_actual.get('TITULO', 'estructura') if estructura_actual else 'estructura'
+        ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
+        estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
+    except:
+        if not estructura_actual:
+            return "No hay estructura cargada", False, "", "warning"
     
     try:
         # Obtener cables disponibles una sola vez
@@ -86,6 +94,16 @@ def cambiar_pestana_parametros(tab_activo, estructura_actual):
 )
 def filtrar_por_categoria(categoria_seleccionada, estructura_actual):
     """Filtra tabla por categoría"""
+    
+    # Recargar desde archivo para tener datos actualizados
+    from config.app_config import DATA_DIR
+    state = AppState()
+    try:
+        titulo = estructura_actual.get('TITULO', 'estructura') if estructura_actual else 'estructura'
+        ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
+        estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
+    except:
+        pass
     
     if not estructura_actual:
         return no_update, False, "", "info"
@@ -139,13 +157,14 @@ def guardar_parametros_desde_tabla(n_clicks, tabla_data, estructura_actual):
             if key not in estructura_actualizada:
                 estructura_actualizada[key] = value
         
-        # Guardar usando el mismo patrón que parametros_controller
+        # Guardar directamente en {TITULO}.estructura.json
+        from config.app_config import DATA_DIR
         state = AppState()
-        state.set_estructura_actual(estructura_actual)
-        ruta_actual = state.get_estructura_actual_path()
+        titulo = estructura_actualizada.get('TITULO', 'estructura')
+        ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
         
         # Guardar en el archivo usando el manager
-        state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_actual)
+        state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_estructura)
         
         # Actualizar el estado interno
         state.set_estructura_actual(estructura_actualizada)
@@ -153,6 +172,8 @@ def guardar_parametros_desde_tabla(n_clicks, tabla_data, estructura_actual):
         return estructura_actualizada, True, "Parámetros guardados exitosamente", "success"
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return no_update, True, f"Error al guardar: {str(e)}", "danger"
 
 @callback(
@@ -164,7 +185,25 @@ def guardar_parametros_desde_tabla(n_clicks, tabla_data, estructura_actual):
 def buscar_parametro(texto_busqueda, tabla_data):
     """Filtra tabla por texto de búsqueda"""
     
-    if not texto_busqueda or not tabla_data:
+    if not texto_busqueda:
+        # Si no hay búsqueda, recargar desde archivo
+        from config.app_config import DATA_DIR
+        state = AppState()
+        try:
+            # Obtener TITULO desde tabla_data si está disponible
+            titulo = 'estructura'
+            if tabla_data and len(tabla_data) > 0:
+                for fila in tabla_data:
+                    if fila.get('parametro') == 'TITULO':
+                        titulo = fila.get('valor', 'estructura')
+                        break
+            ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
+            estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
+            return ParametrosManager.estructura_a_tabla(estructura_actual)
+        except:
+            return no_update
+    
+    if not tabla_data:
         return no_update
     
     texto_lower = texto_busqueda.lower()
@@ -257,10 +296,6 @@ def manejar_modal_parametro(active_cell, n_confirm, n_cancel, is_open, tabla_dat
         valor_actual = tabla_data[fila]["valor"]
         tipo = tabla_data[fila]["tipo"]
         
-        # Solo abrir modal para tipos no numéricos
-        if tipo in ["int", "float"]:
-            return no_update, no_update, no_update
-        
         # Obtener opciones si es select
         opciones = ParametrosManager.obtener_opciones_parametro(parametro)
         
@@ -271,7 +306,7 @@ def manejar_modal_parametro(active_cell, n_confirm, n_cancel, is_open, tabla_dat
                 color = "primary" if opcion == valor_actual else "outline-secondary"
                 botones.append(
                     dbc.Button(
-                        opcion,
+                        str(opcion),
                         id={"type": "opcion-btn", "value": opcion},
                         color=color,
                         className="me-2 mb-2",
@@ -282,6 +317,9 @@ def manejar_modal_parametro(active_cell, n_confirm, n_cancel, is_open, tabla_dat
                 html.P(f"Seleccione valor para {parametro}:"),
                 html.Div(botones)
             ])
+            celda_info = {"fila": fila, "parametro": parametro, "tipo": tipo}
+            return True, contenido, celda_info
+        
         elif tipo == "bool":
             # Modal para booleanos
             contenido = html.Div([
@@ -299,19 +337,16 @@ def manejar_modal_parametro(active_cell, n_confirm, n_cancel, is_open, tabla_dat
                     )
                 ])
             ])
-        else:
-            # Modal para numéricos
-            contenido = html.Div([
-                html.P(f"Ingrese valor para {parametro}:"),
-                dbc.Input(
-                    id="input-valor",
-                    type="number" if tipo in ["int", "float"] else "text",
-                    value=valor_actual
-                )
-            ])
+            celda_info = {"fila": fila, "parametro": parametro, "tipo": tipo}
+            return True, contenido, celda_info
         
-        celda_info = {"fila": fila, "parametro": parametro, "tipo": tipo}
-        return True, contenido, celda_info
+        elif tipo in ["int", "float"]:
+            # No abrir modal para numéricos, editar directo en celda
+            return no_update, no_update, no_update
+        
+        else:
+            # Para str sin opciones, editar directo en celda
+            return no_update, no_update, no_update
     
     # Cerrar modal
     elif trigger_id in ["modal-confirmar", "modal-cancelar"]:

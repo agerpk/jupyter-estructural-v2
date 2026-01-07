@@ -127,7 +127,9 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
             f"Terna: {estructura_actual.get('TERNA')}\n" +
             f"Cantidad HG: {estructura_actual.get('CANT_HG')}\n" +
             f"Vano: {estructura_actual.get('L_vano')} m\n" +
-            f"Autoajustar lmenhg: {'ACTIVADO' if estructura_actual.get('AUTOAJUSTAR_LMENHG') else 'DESACTIVADO'}"
+            f"Autoajustar lmenhg: {'ACTIVADO' if estructura_actual.get('AUTOAJUSTAR_LMENHG') else 'DESACTIVADO'}\n" +
+            f"Defasaje por hielo: {'Sí' if estructura_actual.get('defasaje_mensula_hielo', False) else 'No'}\n" +
+            (f"  Ménsula defasada: {estructura_actual.get('mensula_defasar', 'N/A')} ({estructura_actual.get('lmen_extra_hielo', 0.0):+.3f}m)\n" if estructura_actual.get('defasaje_mensula_hielo', False) else "")
         )
         
         # Dimensiones

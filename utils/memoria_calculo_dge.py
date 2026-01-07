@@ -284,4 +284,38 @@ def gen_memoria_calculo_DGE(estructura_geometria):
     
     memoria.append("=" * 80)
     
+    # DEFASAJE POR HIELO
+    if estructura_geometria.defasaje_mensula_hielo:
+        memoria.append("")
+        memoria.append("DEFASAJE DE MENSULA POR HIELO")
+        memoria.append("-" * 60)
+        memoria.append(f"Defasaje activado: Sí")
+        memoria.append(f"Ménsula defasada: {estructura_geometria.mensula_defasar.capitalize()}")
+        memoria.append(f"Valor de defasaje: {estructura_geometria.lmen_extra_hielo:+.3f} m")
+        memoria.append("")
+        
+        # Identificar altura de la ménsula defasada
+        mensulas_crucetas = {}
+        for origen, destino, tipo in estructura_geometria.conexiones:
+            if tipo in ['mensula', 'cruceta'] and destino in estructura_geometria.nodos:
+                z = estructura_geometria.nodos[destino].coordenadas[2]
+                if z not in mensulas_crucetas:
+                    mensulas_crucetas[z] = []
+                mensulas_crucetas[z].append(destino)
+        
+        alturas_ordenadas = sorted(mensulas_crucetas.keys())
+        nombres_mensulas = {0: "primera", 1: "segunda", 2: "tercera"}
+        
+        for i, altura in enumerate(alturas_ordenadas):
+            nombre = nombres_mensulas.get(i, f"nivel_{i+1}")
+            if nombre == estructura_geometria.mensula_defasar:
+                memoria.append(f"Altura de ménsula defasada: z = {altura:.3f} m")
+                memoria.append(f"Nodos afectados: {', '.join(mensulas_crucetas[altura])}")
+                break
+        
+        memoria.append("")
+        memoria.append("NOTA: El defasaje se aplica para considerar el desplazamiento horizontal")
+        memoria.append("      de los conductores debido a la carga de hielo asimétrica.")
+        memoria.append("=" * 80)
+    
     return "\n".join(memoria)

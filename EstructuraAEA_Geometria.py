@@ -48,7 +48,8 @@ class EstructuraAEA_Geometria:
                 cable_conductor, cable_guardia, peso_estructura=0, peso_cadena=None,
                 hg_centrado=None, ang_apantallamiento=None, hadd_hg=0.0, hadd_lmen=0.0,
                 dist_reposicionar_hg=0.1, ajustar_por_altura_msnm=None,
-                metodo_altura_msnm=None, altura_msnm=None):  # ← NUEVOS PARÁMETROS
+                metodo_altura_msnm=None, altura_msnm=None,
+                defasaje_mensula_hielo=False, lmen_extra_hielo=0.0, mensula_defasar="primera"):
         """
         Inicializa una estructura completa
         
@@ -78,6 +79,9 @@ class EstructuraAEA_Geometria:
             ajustar_por_altura_msnm (bool): Si True, ajusta distancias por altura MSNM
             metodo_altura_msnm (str): Método de ajuste (actualmente solo "AEA 3%/300m")
             altura_msnm (float): Altura sobre el nivel del mar en metros
+            defasaje_mensula_hielo (bool): Si True, aplica defasaje por hielo
+            lmen_extra_hielo (float): Valor a agregar a ménsula seleccionada (puede ser negativo)
+            mensula_defasar (str): Ménsula a defasar ("primera", "segunda", "tercera")
         """
         # Parámetros básicos
         self.tipo_estructura = tipo_estructura
@@ -107,6 +111,11 @@ class EstructuraAEA_Geometria:
         self.ajustar_por_altura_msnm = ajustar_por_altura_msnm if ajustar_por_altura_msnm is not None else self.AJUSTAR_POR_ALTURA_MSNM
         self.metodo_altura_msnm = metodo_altura_msnm if metodo_altura_msnm is not None else self.METODO_ALTURA_MSNM
         self.altura_msnm = altura_msnm if altura_msnm is not None else self.ALTURA_MSNM
+        
+        # Parámetros de defasaje por hielo
+        self.defasaje_mensula_hielo = defasaje_mensula_hielo
+        self.lmen_extra_hielo = lmen_extra_hielo
+        self.mensula_defasar = mensula_defasar
         
         # Nuevos parámetros
         self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO
@@ -546,6 +555,9 @@ class EstructuraAEA_Geometria:
         # 15. CREAR NODOS SEGÚN CONFIGURACIÓN
         self._crear_nodos_estructurales_nuevo(h1a, h2a, h3a, s_estructura, D_fases, theta_max)
         
+        # 16. APLICAR DEFASAJE POR HIELO
+        self._aplicar_defasaje_hielo()
+        
         # GUARDAR DIMENSIONES
         self.dimensiones = {
             "h1a": h1a, "h2a": h2a, "h3a": h3a, "hhg": self.hhg,
@@ -561,7 +573,10 @@ class EstructuraAEA_Geometria:
             "ang_apantallamiento": self.ang_apantallamiento,
             "b": b,
             "altura_total": max(h3a, h2a, h1a, self.hhg),
-            "autoajustar_lmenhg": autoajustar_lmenhg  # Guardar el estado
+            "autoajustar_lmenhg": autoajustar_lmenhg,
+            "defasaje_mensula_hielo": self.defasaje_mensula_hielo,
+            "lmen_extra_hielo": self.lmen_extra_hielo,
+            "mensula_defasar": self.mensula_defasar
         }
         
         # CREAR DATAFRAME CON PARÁMETROS DEL CABEZAL
@@ -1525,6 +1540,79 @@ class EstructuraAEA_Geometria:
             self.phg2 = (-self.lmenhg, self.hhg)
         
         print(f"   🔧 lmenhg final: {self.lmenhg:.3f}m")
+
+    def _aplicar_defasaje_hielo(self):
+        """
+        Aplica defasaje por hielo a nodos conductores en altura seleccionada.
+        
+        Identifica nodos conductores por altura, ordena alturas ascendentemente,
+        y aplica lmen_extra_hielo a todos los nodos en la altura indicada.
+        """
+        if not self.defasaje_mensula_hielo:
+            return
+        
+        print(f"\n❄️  Defasaje por hielo activado: {self.mensula_defasar}, valor: {self.lmen_extra_hielo}m")
+        
+        # 1. Recolectar nodos conductores por altura
+        nodos_por_altura = {}  # {z: [nombre_nodo1, nombre_nodo2, ...]}
+        
+        for nombre, nodo in self.nodos.items():
+            if nodo.tipo_nodo == "conductor":
+                z = nodo.coordenadas[2]
+                if z not in nodos_por_altura:
+                    nodos_por_altura[z] = []
+                nodos_por_altura[z].append(nombre)
+        
+        print(f"   Nodos conductores encontrados en {len(nodos_por_altura)} alturas")
+        
+        if len(nodos_por_altura) <= 1:
+            print(f"   ⚠️  Solo una altura, no se aplica defasaje")
+            return
+        
+        # 2. Ordenar alturas ascendentemente
+        alturas_ordenadas = sorted(nodos_por_altura.keys())
+        print(f"   Alturas ordenadas: {[f'{z:.3f}' for z in alturas_ordenadas]}")
+        
+        # 3. Mapear nombres a índices
+        nombres_alturas = {0: "primera", 1: "segunda", 2: "tercera"}
+        
+        # 4. Identificar índice de altura a defasar
+        indice_defasar = None
+        for i, nombre in nombres_alturas.items():
+            if nombre == self.mensula_defasar:
+                indice_defasar = i
+                break
+        
+        print(f"   Buscando altura '{self.mensula_defasar}' (índice {indice_defasar})")
+        
+        if indice_defasar is None or indice_defasar >= len(alturas_ordenadas):
+            print(f"   ⚠️  Altura '{self.mensula_defasar}' no válida (índice {indice_defasar}, total alturas {len(alturas_ordenadas)})")
+            return
+        
+        # 5. Obtener altura y nodos a defasar
+        altura_defasar = alturas_ordenadas[indice_defasar]
+        nodos_defasar = nodos_por_altura[altura_defasar]
+        
+        print(f"   Defasando {len(nodos_defasar)} nodos en z={altura_defasar:.3f}m")
+        
+        # 6. Aplicar defasaje a cada nodo
+        for nombre_nodo in nodos_defasar:
+            nodo = self.nodos[nombre_nodo]
+            x, y, z = nodo.coordenadas
+            
+            # Solo defasar si x != 0
+            if abs(x) > 0.001:
+                # Mantener signo: positivo suma, negativo resta
+                signo = 1 if x > 0 else -1
+                x_nuevo = x + signo * self.lmen_extra_hielo
+                nodo.coordenadas = (x_nuevo, y, z)
+                print(f"      {nombre_nodo}: x={x:.3f} → {x_nuevo:.3f}")
+        
+        # 7. Actualizar nodes_key
+        self._actualizar_nodes_key()
+        
+        # 8. Mensaje de consola
+        print(f"\nDefasando mensula en altura {self.mensula_defasar} (z = {altura_defasar:.3f}); valor defasado {self.lmen_extra_hielo:.3f}")
 
     def _calcular_coeficiente_altura(self):
         """

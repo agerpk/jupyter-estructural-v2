@@ -189,7 +189,8 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         "cable_guardia2_id": cables_disponibles if cables_disponibles else [],
         "metodo_fundacion": ["sulzberger", "mohr_pohl"],
         "forma_fundacion": ["monobloque", "escalonada_recta", "escalonada_piramide"],
-        "tipo_base_fundacion": ["Rombica", "Cuadrada"]
+        "tipo_base_fundacion": ["Rombica", "Cuadrada"],
+        "mensula_defasar": ["primera", "segunda", "tercera"]
     }
     
     # Definir bloques
@@ -252,6 +253,9 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
             ("ANCHO_CRUCETA", float, None, None),
             ("AUTOAJUSTAR_LMENHG", bool, "Autoajuste ménsula guardia", None),
             ("DIST_REPOSICIONAR_HG", float, None, None),
+            ("defasaje_mensula_hielo", bool, "Activar defasaje por hielo", None),
+            ("lmen_extra_hielo", float, "Longitud extra hielo (m)", None),
+            ("mensula_defasar", str, "Ménsula a defasar", "mensula_defasar"),
         ],
         estructura_actual, opciones
     ))

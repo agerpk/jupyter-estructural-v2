@@ -361,6 +361,28 @@ class ParametrosManager:
             "tipo": "float",
             "categoria": "Cabezal"
         },
+        "defasaje_mensula_hielo": {
+            "simbolo": "DEF_HIELO",
+            "unidad": "-",
+            "descripcion": "Activar defasaje de ménsula por hielo",
+            "tipo": "bool",
+            "categoria": "Cabezal"
+        },
+        "lmen_extra_hielo": {
+            "simbolo": "L_HIELO",
+            "unidad": "m",
+            "descripcion": "Longitud extra para ménsula defasada",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "mensula_defasar": {
+            "simbolo": "MEN_DEF",
+            "unidad": "-",
+            "descripcion": "Ménsula a defasar (primera/segunda/tercera)",
+            "tipo": "select",
+            "opciones": ["primera", "segunda", "tercera"],
+            "categoria": "Cabezal"
+        },
         
         # PARÁMETROS DE DISEÑO DE LÍNEA
         "L_vano": {
@@ -773,6 +795,7 @@ class ParametrosManager:
         for parametro, valor in estructura.items():
             if parametro in cls.PARAMETROS_METADATA:
                 metadata = cls.PARAMETROS_METADATA[parametro]
+                
                 tabla_data.append({
                     "parametro": parametro,
                     "simbolo": metadata["simbolo"],
@@ -918,7 +941,9 @@ class ParametrosManager:
             elif tipo == "bool":
                 if isinstance(valor, bool):
                     return valor
-                return str(valor).lower() in ["true", "1", "yes", "on"]
+                if isinstance(valor, str):
+                    return valor.lower() in ["true", "1", "yes", "on"]
+                return bool(valor)
             else:  # str, select
                 return str(valor)
         except (ValueError, TypeError):
@@ -970,10 +995,18 @@ class ParametrosManager:
     @classmethod
     def obtener_opciones_parametro(cls, parametro: str) -> Optional[List[str]]:
         """Obtiene opciones para parámetro tipo select"""
+        # Primero buscar en PARAMETROS_METADATA
+        if parametro in cls.PARAMETROS_METADATA:
+            metadata = cls.PARAMETROS_METADATA[parametro]
+            if metadata.get("tipo") == "select" and "opciones" in metadata:
+                return metadata["opciones"]
+        
+        # Fallback a CONTROLES_PARAMETROS
         if parametro in CONTROLES_PARAMETROS:
             config = CONTROLES_PARAMETROS[parametro]
             if config.get("tipo") == "select":
                 return config.get("opciones", [])
+        
         return None
     
     @classmethod
