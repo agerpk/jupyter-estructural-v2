@@ -32,6 +32,8 @@ def register_callbacks(app):
         if trigger_id == "menu-cargar-estructura":
             return True
         elif trigger_id in ["btn-cancelar-db", "btn-cargar-db"]:
+            if trigger_id == "btn-cargar-db":
+                print(f"\n🔵 Cargando estructura desde DB...")
             return False
         
         return is_open

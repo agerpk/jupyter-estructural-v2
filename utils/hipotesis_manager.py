@@ -145,6 +145,7 @@ class HipotesisManager:
         """
         ruta_hipotesis = HipotesisManager.obtener_ruta_hipotesis(nombre_estructura)
         
+        # Solo actualizar si el archivo de hipótesis existe
         if ruta_hipotesis.exists():
             try:
                 # Cargar hipótesis existentes
@@ -154,14 +155,15 @@ class HipotesisManager:
                 # Calcular nuevo hash
                 hash_nuevo = HipotesisManager.calcular_hash_estructura(estructura_json_path)
                 
-                # Actualizar hash
-                datos['hash_estructura'] = hash_nuevo
-                
-                # Guardar
-                with open(ruta_hipotesis, 'w', encoding='utf-8') as f:
-                    json.dump(datos, f, indent=2, ensure_ascii=False)
-                
-                print(f"🔄 Hash actualizado en: {ruta_hipotesis.name}")
+                # Solo actualizar si el hash cambió
+                if datos.get('hash_estructura') != hash_nuevo:
+                    datos['hash_estructura'] = hash_nuevo
+                    
+                    # Guardar
+                    with open(ruta_hipotesis, 'w', encoding='utf-8') as f:
+                        json.dump(datos, f, indent=2, ensure_ascii=False)
+                    
+                    print(f"🔄 Hash actualizado en: {ruta_hipotesis.name}")
                 return True
             except Exception as e:
                 print(f"❌ Error al actualizar hash: {e}")

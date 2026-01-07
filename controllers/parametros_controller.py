@@ -97,15 +97,19 @@ def register_callbacks(app):
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
+        print(f"\n🔵 Guardando parámetros...")
+        
         try:
-            # SIEMPRE recargar desde archivo para obtener datos actualizados
             from config.app_config import DATA_DIR
             
-            # Usar el nuevo sistema de estructura actual
-            state.set_estructura_actual(estructura_actual)
-            ruta_actual = state.get_estructura_actual_path()
-            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
-            estructura_actualizada = estructura_actual.copy()
+            if not estructura_actual or 'TITULO' not in estructura_actual:
+                raise ValueError("No hay estructura activa")
+            
+            titulo = estructura_actual['TITULO']
+            ruta_archivo = DATA_DIR / f"{titulo}.estructura.json"
+            print(f"📁 Archivo: {ruta_archivo.name}")
+            
+            estructura_actualizada = state.estructura_manager.cargar_estructura(ruta_archivo)
             
             for param_id, param_value in zip(param_ids, param_values):
                 if param_id and "index" in param_id:
@@ -202,17 +206,15 @@ def register_callbacks(app):
                         }
                     }
             
-            # Guardar en el archivo de la estructura actual (unificado)
-            state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_actual)
-            
-            # Actualizar el estado interno
+            state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_archivo)
             state.set_estructura_actual(estructura_actualizada)
+            print(f"✅ Guardado: {ruta_archivo.name}")
             
             return (
                 estructura_actualizada,
                 True, 
                 "Éxito", 
-                "Parámetros guardados correctamente", 
+                f"Guardado en: {ruta_archivo.name}", 
                 "success", 
                 "success"
             )

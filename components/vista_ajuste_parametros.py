@@ -13,7 +13,15 @@ def crear_vista_ajuste_parametros_con_pestanas(estructura_actual=None, cables_di
     
     from components.pestanas_parametros import crear_pestanas_parametros, crear_toast_validacion, crear_botones_accion
     
+    # Indicador de estructura activa
+    if estructura_actual:
+        titulo = estructura_actual.get('TITULO', 'Sin título')
+        indicador = dbc.Alert(f"📁 Editando: {titulo}.estructura.json", color="info", className="mb-3")
+    else:
+        indicador = dbc.Alert("⚠️ No hay estructura activa", color="warning", className="mb-3")
+    
     return html.Div([
+        indicador,
         dbc.Card([
             dbc.CardHeader(html.H4("Ajustar Parámetros de Estructura", className="mb-0")),
             dbc.CardBody([
@@ -411,7 +419,15 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         ])
     ]))
     
+    # Indicador de estructura activa
+    if estructura_actual:
+        titulo = estructura_actual.get('TITULO', 'Sin título')
+        indicador = dbc.Alert(f"📁 Editando: {titulo}.estructura.json", color="info", className="mb-3")
+    else:
+        indicador = dbc.Alert("⚠️ No hay estructura activa", color="warning", className="mb-3")
+    
     return html.Div([
+        indicador,
         dbc.Card([
             dbc.CardHeader(html.H4("Ajustar Parámetros de Estructura", className="mb-0")),
             dbc.CardBody([

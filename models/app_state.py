@@ -28,9 +28,9 @@ class AppState:
         self.cable_manager = CableManager(CABLES_PATH)
         self.calculo_objetos = CalculoObjetosAEA()
         self.calculo_mecanico = CalculoMecanicoCables(self.calculo_objetos)
-        self.cargado_desde_cache = False  # Flag para controlar mensajes de cache
-        self._estructura_actual_titulo = None  # Título de la estructura actual
-        self._familia_activa_nombre = self._cargar_familia_activa_persistente()  # Cargar familia persistente
+        self.cargado_desde_cache = False
+        self._estructura_actual_titulo = self._cargar_estructura_activa_persistente()
+        self._familia_activa_nombre = self._cargar_familia_activa_persistente()
         
         self._initialized = True
     
@@ -71,8 +71,8 @@ class AppState:
         if estructura_data:
             titulo = estructura_data.get('TITULO', 'estructura')
             self._estructura_actual_titulo = titulo
+            self._guardar_estructura_activa_persistente(titulo)
             
-            # Guardar en archivo unificado
             ruta_actual = self.get_estructura_actual_path()
             self.estructura_manager.guardar_estructura(estructura_data, ruta_actual)
             
@@ -117,6 +117,36 @@ class AppState:
         except Exception as e:
             print(f"⚠️ Error cargando familia activa persistente: {e}")
         return None
+    
+    def _cargar_estructura_activa_persistente(self):
+        """Cargar estructura activa desde archivo de persistencia"""
+        try:
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state = json.load(f)
+                    titulo_estructura = state.get('estructura_activa')
+                    if titulo_estructura:
+                        print(f"📂 Estructura activa cargada desde persistencia: {titulo_estructura}")
+                        return titulo_estructura
+        except Exception as e:
+            print(f"⚠️ Error cargando estructura activa persistente: {e}")
+        return None
+    
+    def _guardar_estructura_activa_persistente(self, titulo_estructura):
+        """Guardar estructura activa en archivo de persistencia"""
+        try:
+            state_data = {}
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+            
+            state_data['estructura_activa'] = titulo_estructura
+            
+            with open(FAMILIA_STATE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(state_data, f, indent=2, ensure_ascii=False)
+            print(f"💾 Estructura activa guardada en persistencia: {titulo_estructura}")
+        except Exception as e:
+            print(f"⚠️ Error guardando estructura activa persistente: {e}")
     
     def _guardar_familia_activa_persistente(self, nombre_familia):
         """Guardar familia activa en archivo de persistencia"""

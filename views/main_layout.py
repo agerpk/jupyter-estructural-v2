@@ -25,6 +25,7 @@ def crear_layout():
     
     state = AppState()
     estructura_actual = state.cargar_estructura_actual()
+    print(f"\n🔵 Layout inicial - Estructura cargada: {estructura_actual.get('TITULO', 'N/A') if estructura_actual else 'None'}")
     
     return html.Div([
         # Almacenamiento de estado

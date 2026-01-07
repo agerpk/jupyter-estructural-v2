@@ -299,7 +299,16 @@ def manejar_modal_parametro(active_cell, n_confirm, n_cancel, is_open, tabla_dat
         # Obtener opciones si es select
         opciones = ParametrosManager.obtener_opciones_parametro(parametro)
         
-        if opciones:
+        # Para cables, cargar opciones dinámicamente desde cables.json
+        if parametro in ["cable_conductor_id", "cable_guardia_id", "cable_guardia2_id"] and not opciones:
+            try:
+                with open("data/cables.json", "r", encoding="utf-8") as f:
+                    cables_data = json.load(f)
+                    opciones = list(cables_data.keys())
+            except:
+                opciones = []
+        
+        if opciones and len(opciones) > 0:
             # Modal con botones para opciones
             botones = []
             for opcion in opciones:
