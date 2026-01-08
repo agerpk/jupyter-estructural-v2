@@ -167,5 +167,17 @@
       "zoom_estructura_default": 0.95,
       "mostrar_c2": false
     }
+  },
+  "AnalisisEstaticoEsfuerzos": {
+    "ACTIVAR_AEE": true,
+    "DIAGRAMAS_ACTIVOS": {
+      "MQNT": true,
+      "MRT": true,
+      "MFE": true
+    },
+    "GRAFICOS_3D_AEE": true,
+    "n_segmentar_conexion_corta": 10,
+    "n_segmentar_conexion_larga": 30,
+    "percentil_separacion_corta_larga": 50
   }
 }
