@@ -532,6 +532,241 @@ class ParametrosManager:
             "categoria": "Gráficos"
         },
         
+        # PARÁMETROS GRÁFICOS - COLORES
+        "parametros_graficos.colores.conductor": {
+            "simbolo": "Col_C",
+            "unidad": "-",
+            "descripcion": "Color conductor (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.guardia": {
+            "simbolo": "Col_G",
+            "unidad": "-",
+            "descripcion": "Color guardia (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.poste": {
+            "simbolo": "Col_P",
+            "unidad": "-",
+            "descripcion": "Color poste (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.cadena": {
+            "simbolo": "Col_Cad",
+            "unidad": "-",
+            "descripcion": "Color cadena (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.conductor_end": {
+            "simbolo": "Col_CE",
+            "unidad": "-",
+            "descripcion": "Color extremo conductor (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.circulo": {
+            "simbolo": "Col_Cir",
+            "unidad": "-",
+            "descripcion": "Color círculo (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.apantallamiento": {
+            "simbolo": "Col_A",
+            "unidad": "-",
+            "descripcion": "Color apantallamiento (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.texto_verde": {
+            "simbolo": "Col_TV",
+            "unidad": "-",
+            "descripcion": "Color texto verde (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.dhg_circulo": {
+            "simbolo": "Col_DHG",
+            "unidad": "-",
+            "descripcion": "Color círculo Dhg (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.terreno": {
+            "simbolo": "Col_T",
+            "unidad": "-",
+            "descripcion": "Color terreno (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.colores.area_s_estructura": {
+            "simbolo": "Col_AS",
+            "unidad": "-",
+            "descripcion": "Color área s_estructura (hex)",
+            "tipo": "str",
+            "categoria": "Gráficos"
+        },
+        
+        # PARÁMETROS GRÁFICOS - CONTROLES
+        "parametros_graficos.controles.declinar_todos": {
+            "simbolo": "Dec_T",
+            "unidad": "-",
+            "descripcion": "Declinar todos los conductores",
+            "tipo": "bool",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.dibujar_solo_circulos_declinados_trayectoria": {
+            "simbolo": "Cir_Tray",
+            "unidad": "-",
+            "descripcion": "Dibujar solo círculos declinados trayectoria",
+            "tipo": "bool",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.dibujar_circulos_s_estructura": {
+            "simbolo": "Cir_S",
+            "unidad": "-",
+            "descripcion": "Dibujar círculos s_estructura",
+            "tipo": "bool",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.dibujar_areas_s_estructura": {
+            "simbolo": "Area_S",
+            "unidad": "-",
+            "descripcion": "Dibujar áreas s_estructura",
+            "tipo": "bool",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.dibujar_circulos_d_fases": {
+            "simbolo": "Cir_D",
+            "unidad": "-",
+            "descripcion": "Dibujar círculos D_fases",
+            "tipo": "bool",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.dibujar_circulos_dhg": {
+            "simbolo": "Cir_DHG",
+            "unidad": "-",
+            "descripcion": "Dibujar círculos Dhg",
+            "tipo": "bool",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.linewidth_cadena": {
+            "simbolo": "LW_Cad",
+            "unidad": "px",
+            "descripcion": "Ancho línea cadena",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.linewidth_estructura": {
+            "simbolo": "LW_Est",
+            "unidad": "px",
+            "descripcion": "Ancho línea estructura",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.linewidth_cruceta": {
+            "simbolo": "LW_Cru",
+            "unidad": "px",
+            "descripcion": "Ancho línea cruceta",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.linewidth_circulo": {
+            "simbolo": "LW_Cir",
+            "unidad": "px",
+            "descripcion": "Ancho línea círculo",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.alpha_cruceta": {
+            "simbolo": "α_Cru",
+            "unidad": "-",
+            "descripcion": "Transparencia cruceta (0-1)",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.alpha_circulo": {
+            "simbolo": "α_Cir",
+            "unidad": "-",
+            "descripcion": "Transparencia círculo (0-1)",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.alpha_circulo_trayectoria": {
+            "simbolo": "α_CirT",
+            "unidad": "-",
+            "descripcion": "Transparencia círculo trayectoria (0-1)",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.alpha_apantallamiento": {
+            "simbolo": "α_Apan",
+            "unidad": "-",
+            "descripcion": "Transparencia apantallamiento (0-1)",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.alpha_area_s_estructura": {
+            "simbolo": "α_AS",
+            "unidad": "-",
+            "descripcion": "Transparencia área s_estructura (0-1)",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.size_nodo_conductor": {
+            "simbolo": "Sz_NC",
+            "unidad": "px",
+            "descripcion": "Tamaño nodo conductor",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.size_nodo_guardia": {
+            "simbolo": "Sz_NG",
+            "unidad": "px",
+            "descripcion": "Tamaño nodo guardia",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.size_nodo_estructura": {
+            "simbolo": "Sz_NE",
+            "unidad": "px",
+            "descripcion": "Tamaño nodo estructura",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.size_conductor_end": {
+            "simbolo": "Sz_CE",
+            "unidad": "px",
+            "descripcion": "Tamaño extremo conductor",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.zoom_cabezal_default": {
+            "simbolo": "Zm_Cab",
+            "unidad": "-",
+            "descripcion": "Zoom cabezal por defecto",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.zoom_estructura_default": {
+            "simbolo": "Zm_Est",
+            "unidad": "-",
+            "descripcion": "Zoom estructura por defecto",
+            "tipo": "float",
+            "categoria": "Gráficos"
+        },
+        "parametros_graficos.controles.mostrar_c2": {
+            "simbolo": "MC2",
+            "unidad": "-",
+            "descripcion": "Mostrar hipótesis C2",
+            "tipo": "bool",
+            "categoria": "Gráficos"
+        },
+        
         # PARÁMETROS DE FUNDACIÓN
         "metodo_fundacion": {
             "simbolo": "MF",
@@ -789,109 +1024,132 @@ class ParametrosManager:
     
     @classmethod
     def estructura_a_tabla(cls, estructura: Dict) -> List[Dict]:
-        """Convierte estructura JSON a formato tabla"""
+        """Convierte estructura JSON a formato tabla
+        
+        SIEMPRE muestra todos los parámetros definidos en PARAMETROS_METADATA,
+        usando valores de estructura si existen, o valores por defecto si no.
+        """
+        from pathlib import Path
+        import json
+        
+        # Cargar plantilla para obtener valores por defecto
+        plantilla_path = Path("data/plantilla.estructura.json")
+        plantilla = {}
+        if plantilla_path.exists():
+            try:
+                with open(plantilla_path, "r", encoding="utf-8") as f:
+                    plantilla = json.load(f)
+            except:
+                pass
+        
         tabla_data = []
         titulo_fila = None
         
-        for parametro, valor in estructura.items():
-            if parametro in cls.PARAMETROS_METADATA:
-                metadata = cls.PARAMETROS_METADATA[parametro]
-                
-                fila = {
-                    "categoria": metadata["categoria"],
-                    "parametro": parametro,
-                    "simbolo": metadata["simbolo"],
-                    "valor": valor,
-                    "unidad": metadata["unidad"],
-                    "descripcion": metadata["descripcion"],
-                    "tipo": metadata["tipo"]
-                }
-                
-                # Separar TITULO para ponerlo primero
-                if parametro == "TITULO":
-                    titulo_fila = fila
-                else:
-                    tabla_data.append(fila)
+        # Procesar TODOS los parámetros de PARAMETROS_METADATA
+        for parametro, metadata in cls.PARAMETROS_METADATA.items():
+            # Saltar parámetros anidados (se procesan después)
+            if "." in parametro:
+                continue
+            
+            # Obtener valor: primero de estructura, luego de plantilla, luego por defecto
+            if parametro in estructura:
+                valor = estructura[parametro]
+            elif parametro in plantilla:
+                valor = plantilla[parametro]
+            else:
+                valor = cls._valor_por_defecto(metadata["tipo"])
+            
+            fila = {
+                "categoria": metadata["categoria"],
+                "parametro": parametro,
+                "simbolo": metadata["simbolo"],
+                "valor": valor,
+                "unidad": metadata["unidad"],
+                "descripcion": metadata["descripcion"],
+                "tipo": metadata["tipo"]
+            }
+            
+            # Separar TITULO para ponerlo primero
+            if parametro == "TITULO":
+                titulo_fila = fila
+            else:
+                tabla_data.append(fila)
+        
+        # Procesar parámetros anidados de parametros_graficos
+        graficos_filas = []
+        param_graficos = estructura.get("parametros_graficos", {})
+        plantilla_graficos = plantilla.get("parametros_graficos", {})
+        
+        # Procesar TODOS los parámetros gráficos de PARAMETROS_METADATA
+        for parametro, metadata in cls.PARAMETROS_METADATA.items():
+            if parametro.startswith("parametros_graficos."):
+                parts = parametro.split(".")
+                if len(parts) == 3:
+                    categoria = parts[1]  # colores o controles
+                    param_name = parts[2]
+                    
+                    # Obtener valor: estructura -> plantilla -> por defecto
+                    if categoria in param_graficos and param_name in param_graficos[categoria]:
+                        valor = param_graficos[categoria][param_name]
+                    elif categoria in plantilla_graficos and param_name in plantilla_graficos[categoria]:
+                        valor = plantilla_graficos[categoria][param_name]
+                    else:
+                        valor = cls._valor_por_defecto(metadata["tipo"])
+                    
+                    graficos_filas.append({
+                        "categoria": metadata["categoria"],
+                        "parametro": parametro,
+                        "simbolo": metadata["simbolo"],
+                        "valor": valor,
+                        "unidad": metadata["unidad"],
+                        "descripcion": metadata["descripcion"],
+                        "tipo": metadata["tipo"]
+                    })
         
         # Procesar parámetros anidados de costeo
         costeo_fundacion_filas = []
-        if "costeo" in estructura and isinstance(estructura["costeo"], dict):
-            costeo = estructura["costeo"]
-            
-            # Postes
-            if "postes" in costeo:
-                for key, valor in costeo["postes"].items():
-                    param_key = f"costeo.postes.{key}"
-                    if param_key in cls.PARAMETROS_METADATA:
-                        metadata = cls.PARAMETROS_METADATA[param_key]
-                        costeo_fundacion_filas.append({
-                            "categoria": metadata["categoria"],
-                            "parametro": param_key,
-                            "simbolo": metadata["simbolo"],
-                            "valor": valor,
-                            "unidad": metadata["unidad"],
-                            "descripcion": metadata["descripcion"],
-                            "tipo": metadata["tipo"]
-                        })
-            
-            # Accesorios
-            if "accesorios" in costeo:
-                for key, valor in costeo["accesorios"].items():
-                    param_key = f"costeo.accesorios.{key}"
-                    if param_key in cls.PARAMETROS_METADATA:
-                        metadata = cls.PARAMETROS_METADATA[param_key]
-                        costeo_fundacion_filas.append({
-                            "categoria": metadata["categoria"],
-                            "parametro": param_key,
-                            "simbolo": metadata["simbolo"],
-                            "valor": valor,
-                            "unidad": metadata["unidad"],
-                            "descripcion": metadata["descripcion"],
-                            "tipo": metadata["tipo"]
-                        })
-            
-            # Fundaciones
-            if "fundaciones" in costeo:
-                for key, valor in costeo["fundaciones"].items():
-                    param_key = f"costeo.fundaciones.{key}"
-                    if param_key in cls.PARAMETROS_METADATA:
-                        metadata = cls.PARAMETROS_METADATA[param_key]
-                        costeo_fundacion_filas.append({
-                            "categoria": metadata["categoria"],
-                            "parametro": param_key,
-                            "simbolo": metadata["simbolo"],
-                            "valor": valor,
-                            "unidad": metadata["unidad"],
-                            "descripcion": metadata["descripcion"],
-                            "tipo": metadata["tipo"]
-                        })
-            
-            # Montaje
-            if "montaje" in costeo:
-                for key, valor in costeo["montaje"].items():
-                    param_key = f"costeo.montaje.{key}"
-                    if param_key in cls.PARAMETROS_METADATA:
-                        metadata = cls.PARAMETROS_METADATA[param_key]
-                        costeo_fundacion_filas.append({
-                            "categoria": metadata["categoria"],
-                            "parametro": param_key,
-                            "simbolo": metadata["simbolo"],
-                            "valor": valor,
-                            "unidad": metadata["unidad"],
-                            "descripcion": metadata["descripcion"],
-                            "tipo": metadata["tipo"]
-                        })
-            
-            # Adicional estructura
-            if "adicional_estructura" in costeo:
-                param_key = "costeo.adicional_estructura"
-                if param_key in cls.PARAMETROS_METADATA:
-                    metadata = cls.PARAMETROS_METADATA[param_key]
+        costeo_estructura = estructura.get("costeo", {})
+        costeo_plantilla = plantilla.get("costeo", {})
+        
+        # Procesar TODOS los parámetros de costeo de PARAMETROS_METADATA
+        for parametro, metadata in cls.PARAMETROS_METADATA.items():
+            if parametro.startswith("costeo."):
+                parts = parametro.split(".")
+                if len(parts) == 3:  # costeo.categoria.parametro
+                    categoria = parts[1]
+                    param_name = parts[2]
+                    
+                    # Obtener valor: estructura -> plantilla -> por defecto
+                    if categoria in costeo_estructura and param_name in costeo_estructura[categoria]:
+                        valor = costeo_estructura[categoria][param_name]
+                    elif categoria in costeo_plantilla and param_name in costeo_plantilla[categoria]:
+                        valor = costeo_plantilla[categoria][param_name]
+                    else:
+                        valor = cls._valor_por_defecto(metadata["tipo"])
+                    
                     costeo_fundacion_filas.append({
                         "categoria": metadata["categoria"],
-                        "parametro": param_key,
+                        "parametro": parametro,
                         "simbolo": metadata["simbolo"],
-                        "valor": costeo["adicional_estructura"],
+                        "valor": valor,
+                        "unidad": metadata["unidad"],
+                        "descripcion": metadata["descripcion"],
+                        "tipo": metadata["tipo"]
+                    })
+                elif len(parts) == 2 and parts[1] == "adicional_estructura":
+                    # Obtener valor: estructura -> plantilla -> por defecto
+                    if "adicional_estructura" in costeo_estructura:
+                        valor = costeo_estructura["adicional_estructura"]
+                    elif "adicional_estructura" in costeo_plantilla:
+                        valor = costeo_plantilla["adicional_estructura"]
+                    else:
+                        valor = cls._valor_por_defecto(metadata["tipo"])
+                    
+                    costeo_fundacion_filas.append({
+                        "categoria": metadata["categoria"],
+                        "parametro": parametro,
+                        "simbolo": metadata["simbolo"],
+                        "valor": valor,
                         "unidad": metadata["unidad"],
                         "descripcion": metadata["descripcion"],
                         "tipo": metadata["tipo"]
@@ -901,11 +1159,12 @@ class ParametrosManager:
         orden_categorias = {"Costeo": 999, "Fundación": 998}
         tabla_data.sort(key=lambda x: (orden_categorias.get(x["categoria"], 0), x["categoria"], x["parametro"]))
         
-        # Construir resultado final: TITULO primero, luego resto, luego Costeo/Fundación
+        # Construir resultado final: TITULO primero, luego resto, luego Gráficos, luego Costeo/Fundación
         resultado = []
         if titulo_fila:
             resultado.append(titulo_fila)
         resultado.extend(tabla_data)
+        resultado.extend(graficos_filas)
         resultado.extend(costeo_fundacion_filas)
         
         return resultado
@@ -915,6 +1174,7 @@ class ParametrosManager:
         """Convierte datos de tabla a estructura JSON"""
         estructura = {}
         costeo = {"postes": {}, "accesorios": {}, "fundaciones": {}, "montaje": {}}
+        parametros_graficos = {"colores": {}, "controles": {}}
         
         for fila in tabla_data:
             parametro = fila["parametro"]
@@ -925,8 +1185,16 @@ class ParametrosManager:
                 tipo = cls.PARAMETROS_METADATA[parametro]["tipo"]
                 valor = cls._convertir_valor(valor, tipo)
             
+            # Manejar parámetros anidados de parametros_graficos
+            if parametro.startswith("parametros_graficos."):
+                parts = parametro.split(".")
+                if len(parts) == 3:  # parametros_graficos.categoria.parametro
+                    categoria = parts[1]  # colores o controles
+                    param_name = parts[2]
+                    if categoria in parametros_graficos:
+                        parametros_graficos[categoria][param_name] = valor
             # Manejar parámetros anidados de costeo
-            if parametro.startswith("costeo."):
+            elif parametro.startswith("costeo."):
                 parts = parametro.split(".")
                 if len(parts) == 3:  # costeo.categoria.parametro
                     categoria = parts[1]
@@ -937,6 +1205,10 @@ class ParametrosManager:
                     costeo["adicional_estructura"] = valor
             else:
                 estructura[parametro] = valor
+        
+        # Agregar parametros_graficos si tiene datos
+        if any(parametros_graficos[cat] for cat in ["colores", "controles"]):
+            estructura["parametros_graficos"] = parametros_graficos
         
         # Agregar costeo si tiene datos
         if any(costeo[cat] for cat in ["postes", "accesorios", "fundaciones", "montaje"]) or "adicional_estructura" in costeo:

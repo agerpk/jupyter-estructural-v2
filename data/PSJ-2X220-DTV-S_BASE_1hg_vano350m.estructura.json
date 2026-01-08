@@ -1,4 +1,47 @@
 {
+  "ADC_3D": false,
+  "MOSTRAR_C2": false,
+  "REEMPLAZAR_TITULO_GRAFICO": false,
+  "ZOOM_CABEZAL": 0.95,
+  "parametros_graficos": {
+    "colores": {
+      "conductor": "#FF0000",
+      "guardia": "#2ca02c",
+      "poste": "#000000",
+      "cadena": "#717170",
+      "conductor_end": "#FF0000",
+      "circulo": "gray",
+      "apantallamiento": "#84FF6B",
+      "texto_verde": "#006400",
+      "dhg_circulo": "gray",
+      "terreno": "#8B4513",
+      "area_s_estructura": "lightblue"
+    },
+    "controles": {
+      "declinar_todos": false,
+      "dibujar_solo_circulos_declinados_trayectoria": true,
+      "dibujar_circulos_s_estructura": true,
+      "dibujar_areas_s_estructura": true,
+      "dibujar_circulos_d_fases": true,
+      "dibujar_circulos_dhg": true,
+      "linewidth_cadena": 2,
+      "linewidth_estructura": 4,
+      "linewidth_cruceta": 3,
+      "linewidth_circulo": 1.5,
+      "alpha_cruceta": 0.8,
+      "alpha_circulo": 0.7,
+      "alpha_circulo_trayectoria": 0.4,
+      "alpha_apantallamiento": 0.7,
+      "alpha_area_s_estructura": 0.15,
+      "size_nodo_conductor": 100,
+      "size_nodo_guardia": 100,
+      "size_nodo_estructura": 80,
+      "size_conductor_end": 80,
+      "zoom_cabezal_default": 0.7,
+      "zoom_estructura_default": 0.95,
+      "mostrar_c2": false
+    }
+  },
   "TITULO": "PSJ-2X220-DTV-S_BASE_1hg_vano350m",
   "AJUSTAR_POR_ALTURA_MSNM": true,
   "ALTURA_MINIMA_CABLE": 6.5,
@@ -34,10 +77,6 @@
   "exposicion": "C",
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "ADC_3D": false,
-  "MOSTRAR_C2": false,
-  "REEMPLAZAR_TITULO_GRAFICO": false,
-  "ZOOM_CABEZAL": 0.95,
   "Cf_cable": 1,
   "Cf_cadena": 0.9,
   "Cf_estructura": 0.9,
@@ -164,6 +203,6 @@
       "V": 0.7
     }
   },
-  "fecha_modificacion": "2026-01-07T16:05:31.890624",
+  "fecha_modificacion": "2026-01-08T10:25:58.349807",
   "nodos_editados": []
 }

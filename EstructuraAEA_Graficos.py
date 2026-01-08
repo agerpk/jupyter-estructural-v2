@@ -14,19 +14,65 @@ class EstructuraAEA_Graficos:
         'conductor': '#1f77b4', 'guardia': '#2ca02c', 'poste': '#000000', 
         'cadena': "#717170", 'conductor_end': 'red', 'circulo': 'gray',
         'apantallamiento': '#84FF6B', 'texto_verde': '#006400',
-        'dhg_circulo': 'gray', 'terreno': '#8B4513'
+        'dhg_circulo': 'gray', 'terreno': '#8B4513',
+        'area_s_estructura': 'lightblue'
     }
     
-    def __init__(self, geometria, mecanica=None):
+    # Configuración de controles gráficos
+    OTROS_CONTROLES_GRAFICOS = {
+        'declinar_todos': False,
+        'dibujar_solo_circulos_declinados_trayectoria': True,
+        'dibujar_circulos_s_estructura': True,
+        'dibujar_areas_s_estructura': True,
+        'dibujar_circulos_d_fases': True,
+        'dibujar_circulos_dhg': True,
+        'linewidth_cadena': 2,
+        'linewidth_estructura': 4,
+        'linewidth_cruceta': 3,
+        'linewidth_circulo': 1.5,
+        'alpha_cruceta': 0.8,
+        'alpha_circulo': 0.7,
+        'alpha_circulo_trayectoria': 0.4,
+        'alpha_apantallamiento': 0.7,
+        'alpha_area_s_estructura': 0.15,
+        'size_nodo_conductor': 100,
+        'size_nodo_guardia': 100,
+        'size_nodo_estructura': 80,
+        'size_conductor_end': 80,
+        'zoom_cabezal_default': 0.7,
+        'zoom_estructura_default': 0.95,
+        'mostrar_c2': False
+    }
+    
+    def __init__(self, geometria, mecanica=None, config_graficos=None):
         """
         Inicializa el módulo de gráficos con referencia a geometría y mecánica
         
         Args:
             geometria (EstructuraAEA_Geometria): Instancia de la clase de geometría
             mecanica (EstructuraAEA_Mecanica, optional): Instancia de la clase de mecánica
+            config_graficos (dict, optional): Configuración personalizada de gráficos
         """
         self.geometria = geometria
         self.mecanica = mecanica
+        
+        # Cargar configuración desde geometria si existe
+        if hasattr(geometria, 'parametros_graficos'):
+            colores_custom = geometria.parametros_graficos.get('colores', {})
+            # Filtrar colores vacíos
+            colores_custom = {k: v for k, v in colores_custom.items() if v and v.strip()}
+            self.COLORES.update(colores_custom)
+            
+            self.OTROS_CONTROLES_GRAFICOS.update(geometria.parametros_graficos.get('controles', {}))
+        
+        # Override con configuración pasada como parámetro
+        if config_graficos:
+            colores_custom = config_graficos.get('colores', {})
+            # Filtrar colores vacíos
+            colores_custom = {k: v for k, v in colores_custom.items() if v and v.strip()}
+            self.COLORES.update(colores_custom)
+            
+            self.OTROS_CONTROLES_GRAFICOS.update(config_graficos.get('controles', {}))
         
         print(f"✅ ESTRUCTURA_AEA GRÁFICOS CREADA")
     
@@ -657,25 +703,58 @@ class EstructuraAEA_Graficos:
         # 4. DIBUJAR CADENAS CON DECLINACIÓN
         puntos_conductor = {}
         
+        # LEER FLAGS DE CONFIGURACIÓN
+        declinar_todos = self.OTROS_CONTROLES_GRAFICOS['declinar_todos']
+        dibujar_solo_circulos_declinados_trayectoria = self.OTROS_CONTROLES_GRAFICOS['dibujar_solo_circulos_declinados_trayectoria']
+        dibujar_circulos_s = self.OTROS_CONTROLES_GRAFICOS['dibujar_circulos_s_estructura']
+        dibujar_areas_s = self.OTROS_CONTROLES_GRAFICOS['dibujar_areas_s_estructura']
+        dibujar_circulos_d = self.OTROS_CONTROLES_GRAFICOS['dibujar_circulos_d_fases']
+        dibujar_circulos_dhg = self.OTROS_CONTROLES_GRAFICOS['dibujar_circulos_dhg']
+        
         # Determinar qué conductor declina según configuración
         es_horizontal_simple = tiene_y and self.geometria.terna == "Simple"
         
+        # Detectar altura máxima de conductores
+        alturas_conductores = list(conductores_por_altura.keys())
+        z_max_conductor = max(alturas_conductores) if alturas_conductores else 0
+        
         for altura, conductores in conductores_por_altura.items():
             for x_cond, nombre_cond, coord_cond in conductores:
-                # Lógica de declinación
-                if es_horizontal_simple:
-                    # Horizontal simple: C3 y C2 declinan a la derecha
-                    angulo_cadena = theta_max if ("C3" in nombre_cond or "C2" in nombre_cond) else 0.0
-                    direccion_declinacion = 1  # Hacia la derecha
-                else:
-                    # Otras configuraciones: C1_L declina
-                    angulo_cadena = theta_max if (nombre_cond.endswith('_L') and "C1" in nombre_cond) else 0.0
-                    direccion_declinacion = 1 if nombre_cond.endswith('_L') else -1
+                if nombre_cond not in self.geometria.nodes_key:
+                    continue
+                    
+                x_amarre, y_amarre, z_amarre = coord_cond
                 
-                if nombre_cond in self.geometria.nodes_key:
-                    x_amarre, y_amarre, z_amarre = coord_cond
-                    ang_rad = math.radians(angulo_cadena)
-                    x_conductor = x_amarre + direccion_declinacion * self.geometria.lk * math.sin(ang_rad)
+                if declinar_todos:
+                    # Dibujar 3 posiciones: izquierda, centro, derecha
+                    posiciones = [
+                        (-1, theta_max),  # Izquierda
+                        (0, 0),           # Centro (sin declinar)
+                        (1, theta_max)    # Derecha
+                    ]
+                else:
+                    # Lógica original de declinación
+                    if es_horizontal_simple:
+                        angulo_cadena = theta_max if ("C3" in nombre_cond or "C2" in nombre_cond) else 0.0
+                        direccion_declinacion = 1
+                    else:
+                        angulo_cadena = theta_max if (nombre_cond.endswith('_L') and "C1" in nombre_cond) else 0.0
+                        direccion_declinacion = 1 if nombre_cond.endswith('_L') else -1
+                    posiciones = [(direccion_declinacion, angulo_cadena)]
+                
+                # Si dibujar_solo_circulos_declinados_trayectoria, agregar posiciones adicionales solo para círculos
+                if dibujar_solo_circulos_declinados_trayectoria and not declinar_todos:
+                    posiciones_circulos_extra = [
+                        (-1, theta_max),  # Izquierda
+                        (0, 0),           # Centro
+                        (1, theta_max)    # Derecha
+                    ]
+                else:
+                    posiciones_circulos_extra = []
+                
+                for direccion, angulo in posiciones:
+                    ang_rad = math.radians(angulo)
+                    x_conductor = x_amarre + direccion * self.geometria.lk * math.sin(ang_rad)
                     z_conductor = z_amarre - self.geometria.lk * math.cos(ang_rad)
                     
                     # Dibujar cadena
@@ -686,16 +765,70 @@ class EstructuraAEA_Graficos:
                     plt.scatter(x_conductor, z_conductor, color=self.COLORES['conductor_end'], 
                             s=80, marker='o', edgecolors='white', linewidth=1.5, zorder=5)
                     
-                    puntos_conductor[nombre_cond] = (x_conductor, z_conductor)
+                    puntos_conductor[f"{nombre_cond}_{direccion}"] = (x_conductor, z_conductor)
                     
-                    # Dibujar círculos de distancia según configuración
+                    # Dibujar círculos y áreas en TODOS los conductores
+                    # 1. Círculo D_fases
+                    if dibujar_circulos_d:
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), D_fases, 
+                                                    color=self.COLORES['circulo'], fill=False, 
+                                                    linestyle='--', 
+                                                    linewidth=self.OTROS_CONTROLES_GRAFICOS.get('linewidth_circulo', 1.5), 
+                                                    alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_circulo', 0.7)))))
+                    
+                    # 2. Área s_estructura (primero, para que quede debajo)
+                    if dibujar_areas_s:
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                                                    color=self.COLORES['area_s_estructura'], fill=True, 
+                                                    alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_area_s_estructura', 0.15))),
+                                                    zorder=2))
+                    
+                    # 3. Círculo s_estructura (encima del área)
+                    if dibujar_circulos_s:
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                                                    color=self.COLORES['circulo'], fill=False, 
+                                                    linestyle='--', 
+                                                    linewidth=self.OTROS_CONTROLES_GRAFICOS.get('linewidth_circulo', 1.5), 
+                                                    alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_circulo', 0.7))),
+                                                    zorder=3))
+                    
+                    # 4. Círculo Dhg solo en conductores de altura máxima
+                    if dibujar_circulos_dhg and abs(z_amarre - z_max_conductor) < 0.01:
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), Dhg, 
+                                                    color=self.COLORES['dhg_circulo'], fill=False, 
+                                                    linestyle='--', 
+                                                    linewidth=self.OTROS_CONTROLES_GRAFICOS.get('linewidth_circulo', 1.5), 
+                                                    alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_circulo', 0.7)))))
+                
+                # Dibujar círculos y áreas s_estructura adicionales para trayectoria (sin cadenas ni otros círculos)
+                for direccion, angulo in posiciones_circulos_extra:
+                    ang_rad = math.radians(angulo)
+                    x_conductor = x_amarre + direccion * self.geometria.lk * math.sin(ang_rad)
+                    z_conductor = z_amarre - self.geometria.lk * math.cos(ang_rad)
+                    
+                    # Área s_estructura
+                    if dibujar_areas_s:
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                                                    color=self.COLORES['area_s_estructura'], fill=True, 
+                                                    alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_area_s_estructura', 0.15))),
+                                                    zorder=2))
+                    
+                    # Círculo s_estructura
+                    if dibujar_circulos_s:
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                                                    color=self.COLORES['circulo'], fill=False, 
+                                                    linestyle='--', 
+                                                    linewidth=self.OTROS_CONTROLES_GRAFICOS.get('linewidth_circulo', 1.5), 
+                                                    alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_circulo_trayectoria', 0.4))),
+                                                    zorder=3))
+                
+                # Etiquetas solo en casos específicos (mantener lógica original) - solo si no declinar_todos
+                if not declinar_todos:
+                    x_conductor = x_amarre + direccion_declinacion * self.geometria.lk * math.sin(math.radians(angulo_cadena))
+                    z_conductor = z_amarre - self.geometria.lk * math.cos(math.radians(angulo_cadena))
+                    
                     if es_horizontal_simple:
-                        # Horizontal simple: s_estructura en C3 y C2 declinado, D_fases en C2 sin declinar
                         if "C3" in nombre_cond:
-                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
-                                                        color=self.COLORES['circulo'], fill=False, 
-                                                        linestyle='--', linewidth=1.5, alpha=0.7))
-                            
                             plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_estructura), 
                                         xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
                                         color=self.COLORES['circulo'], 
@@ -708,12 +841,7 @@ class EstructuraAEA_Graficos:
                                         horizontalalignment='center', verticalalignment='top')
                         
                         elif "C2" in nombre_cond:
-                            # C2 declinado: círculo s_estructura
-                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
-                                                        color=self.COLORES['circulo'], fill=False, 
-                                                        linestyle='--', linewidth=1.5, alpha=0.7))
-                            
-                            # C2 sin declinar: dibujar cadena vertical y círculos D_fases y s_estructura
+                            # C2 sin declinar: dibujar cadena vertical
                             x_c2_vertical = x_amarre
                             z_c2_vertical = z_amarre - self.geometria.lk
                             
@@ -722,10 +850,15 @@ class EstructuraAEA_Graficos:
                             plt.scatter(x_c2_vertical, z_c2_vertical, color=self.COLORES['conductor_end'], 
                                     s=80, marker='o', edgecolors='white', linewidth=1.5, zorder=5)
                             
-                            # Círculo D_fases con etiqueta arriba
+                            # Círculos en C2 vertical
                             plt.gca().add_patch(plt.Circle((x_c2_vertical, z_c2_vertical), D_fases, 
                                                         color=self.COLORES['circulo'], fill=False, 
                                                         linestyle='--', linewidth=1.5, alpha=0.7))
+                            plt.gca().add_patch(plt.Circle((x_c2_vertical, z_c2_vertical), s_estructura, 
+                                                        color=self.COLORES['circulo'], fill=False, 
+                                                        linestyle='--', linewidth=1.5, alpha=0.7))
+                            
+                            # Etiqueta D_fases
                             plt.annotate('D (entre fases)', xy=(x_c2_vertical, z_c2_vertical + D_fases), 
                                         xytext=(0, 8), textcoords='offset points', fontsize=8, fontweight='bold',
                                         color=self.COLORES['circulo'], 
@@ -736,18 +869,9 @@ class EstructuraAEA_Graficos:
                                         color=self.COLORES['circulo'],
                                         bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
                                         horizontalalignment='center', verticalalignment='bottom')
-                            
-                            # Círculo s_estructura sin etiqueta (ya tiene en C3)
-                            plt.gca().add_patch(plt.Circle((x_c2_vertical, z_c2_vertical), s_estructura, 
-                                                        color=self.COLORES['circulo'], fill=False, 
-                                                        linestyle='--', linewidth=1.5, alpha=0.7))
                     else:
-                        # Otras configuraciones: lógica original
+                        # Otras configuraciones: etiquetas originales
                         if nombre_cond.endswith('_L') and "C1" in nombre_cond:
-                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
-                                                        color=self.COLORES['circulo'], fill=False, 
-                                                        linestyle='--', linewidth=1.5, alpha=0.7))
-                            
                             plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_estructura), 
                                         xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
                                         color=self.COLORES['circulo'], 
@@ -760,11 +884,6 @@ class EstructuraAEA_Graficos:
                                         horizontalalignment='center', verticalalignment='top')
                         
                         elif nombre_cond.endswith('_R') and "C2" in nombre_cond:
-                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), D_fases, 
-                                                        color=self.COLORES['circulo'], fill=False, 
-                                                        linestyle='--', linewidth=1.5, alpha=0.7))
-                            
-                            # Etiqueta D_fases
                             offset_vertical = 0.017
                             plt.annotate('D (entre fases)', xy=(x_conductor + D_fases/2, z_conductor + offset_vertical), 
                                         xytext=(5, 2), textcoords='offset points', fontsize=8, fontweight='bold', 
@@ -778,11 +897,6 @@ class EstructuraAEA_Graficos:
                                         verticalalignment='top')
                         
                         elif nombre_cond.endswith('_L') and "C3" in nombre_cond:
-                            plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), Dhg, 
-                                                        color=self.COLORES['dhg_circulo'], fill=False, 
-                                                        linestyle='--', linewidth=1.5, alpha=0.7))
-                            
-                            # Etiqueta Dhg
                             offset_vertical = 0.017
                             plt.annotate('Dhg (guardia-conductor)', xy=(x_conductor + Dhg/2, z_conductor + offset_vertical), 
                                         xytext=(5, 2), textcoords='offset points', fontsize=8, fontweight='bold', 
@@ -883,21 +997,7 @@ class EstructuraAEA_Graficos:
                     plt.arrow(x, z, dx, dy, head_width=0.1, head_length=0.08, 
                             fc='red', ec='red', linewidth=1.5, zorder=6, alpha=0.8)
                 
-                # Dibujar círculo Dhg en HG1 para horizontal simple
-                if es_horizontal_simple and nombre == 'HG1':
-                    plt.gca().add_patch(plt.Circle((x, z), Dhg, 
-                                                color=self.COLORES['dhg_circulo'], fill=False, 
-                                                linestyle='--', linewidth=1.5, alpha=0.7))
-                    plt.annotate('Dhg (guardia-conductor)', xy=(x, z - Dhg), 
-                                xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
-                                color=self.COLORES['dhg_circulo'], 
-                                bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
-                                horizontalalignment='center', verticalalignment='top')
-                    plt.annotate(f'{Dhg:.2f} m', xy=(x, z - Dhg), 
-                                xytext=(0, -23), textcoords='offset points', fontsize=8, fontweight='bold',
-                                color=self.COLORES['dhg_circulo'],
-                                bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
-                                horizontalalignment='center', verticalalignment='top')
+
             
             # Nodo top
             elif "TOP" in nombre:

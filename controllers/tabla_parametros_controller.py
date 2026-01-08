@@ -354,8 +354,42 @@ def manejar_modal_parametro(active_cell, n_confirm, n_cancel, is_open, tabla_dat
             return no_update, no_update, no_update
         
         else:
-            # Para str sin opciones, editar directo en celda
-            return no_update, no_update, no_update
+            # Para str sin opciones, verificar si es parámetro de color
+            if parametro.startswith("parametros_graficos.colores."):
+                # Modal con color picker nativo HTML5
+                contenido = html.Div([
+                    html.P(f"Seleccione color para {parametro}:"),
+                    html.Div([
+                        html.Label("Selector de color:", style={"marginBottom": "5px"}),
+                        dcc.Input(
+                            id="native-color-picker",
+                            type="color",
+                            value=valor_actual if valor_actual else "#000000",
+                            style={
+                                "width": "100%",
+                                "height": "150px",
+                                "border": "1px solid #ccc",
+                                "borderRadius": "4px",
+                                "cursor": "pointer"
+                            }
+                        )
+                    ], className="mb-3"),
+                    html.Div([
+                        html.Label("Código hexadecimal:", style={"marginBottom": "5px"}),
+                        dbc.Input(
+                            id="input-hex-color",
+                            type="text",
+                            value=valor_actual if valor_actual else "#000000",
+                            placeholder="#RRGGBB",
+                            style={"fontFamily": "monospace"}
+                        )
+                    ])
+                ])
+                celda_info = {"fila": fila, "parametro": parametro, "tipo": "hex_color"}
+                return True, contenido, celda_info
+            else:
+                # Para str sin opciones, editar directo en celda
+                return no_update, no_update, no_update
     
     # Cerrar modal
     elif trigger_id in ["modal-confirmar", "modal-cancelar"]:
@@ -364,20 +398,58 @@ def manejar_modal_parametro(active_cell, n_confirm, n_cancel, is_open, tabla_dat
     return no_update, no_update, no_update
 
 @callback(
+    [Output("input-hex-color", "value"),
+     Output("native-color-picker", "value")],
+    [Input("native-color-picker", "value"),
+     Input("input-hex-color", "value")],
+    prevent_initial_call=True
+)
+def sincronizar_color_pickers(color_picker_value, hex_input_value):
+    """Sincroniza el color picker nativo con el input hex"""
+    if not ctx.triggered:
+        return no_update, no_update
+    
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    # Si cambió el color picker nativo, actualizar el input hex
+    if trigger_id == "native-color-picker":
+        return color_picker_value.upper(), no_update
+    
+    # Si cambió el input hex, actualizar el color picker
+    elif trigger_id == "input-hex-color":
+        # Validar que sea un color hex válido
+        if hex_input_value and hex_input_value.startswith("#") and len(hex_input_value) == 7:
+            return no_update, hex_input_value
+    
+    return no_update, no_update
+
+@callback(
     [Output("tabla-parametros", "data", allow_duplicate=True),
      Output("modal-parametro", "is_open", allow_duplicate=True)],
     [Input({"type": "opcion-btn", "value": ALL}, "n_clicks"),
-     Input({"type": "bool-btn", "value": ALL}, "n_clicks")],
+     Input({"type": "bool-btn", "value": ALL}, "n_clicks"),
+     Input("modal-confirmar", "n_clicks")],
     [State("modal-celda-info", "data"),
-     State("tabla-parametros", "data")],
+     State("tabla-parametros", "data"),
+     State("input-hex-color", "value")],
     prevent_initial_call=True
 )
-def seleccionar_opcion_directa(n_clicks_opciones, n_clicks_bool, celda_info, tabla_data):
+def seleccionar_opcion_directa(n_clicks_opciones, n_clicks_bool, n_confirmar, celda_info, tabla_data, hex_value):
     """Actualiza tabla directamente al seleccionar opción y cierra modal"""
     if not ctx.triggered or not celda_info:
         return no_update, no_update
     
-    # Obtener el valor seleccionado
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    # Si es confirmar en modal hex_color
+    if trigger_id == "modal-confirmar" and celda_info.get("tipo") == "hex_color":
+        if hex_value:
+            fila = celda_info["fila"]
+            tabla_data[fila]["valor"] = hex_value.upper()
+            return tabla_data, False
+        return no_update, no_update
+    
+    # Obtener el valor seleccionado de botones
     trigger = ctx.triggered[0]
     if trigger["value"] is None:
         return no_update, no_update
