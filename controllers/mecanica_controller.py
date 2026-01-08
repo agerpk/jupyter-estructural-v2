@@ -107,7 +107,6 @@ def register_callbacks(app):
     @app.callback(
         Output("modal-editor-hipotesis", "is_open"),
         Output("modal-editor-hipotesis", "children"),
-        Input("btn-modificar-hipotesis", "n_clicks"),
         Input("btn-cancelar-hipotesis", "n_clicks"),
         Input("btn-guardar-hipotesis", "n_clicks"),
         State("modal-editor-hipotesis", "is_open"),
@@ -122,17 +121,12 @@ def register_callbacks(app):
         
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
         
-        if button_id == "btn-modificar-hipotesis":
-            # Regenerar modal con tipo de estructura actual
-            from components.editor_hipotesis import crear_modal_editor_hipotesis
-            tipo_estructura = estructura_actual.get("TIPO_ESTRUCTURA", "Suspensión Recta")
-            modal_content = crear_modal_editor_hipotesis(tipo_estructura, hipotesis_actuales)
-            return True, modal_content.children
-        elif button_id in ["btn-cancelar-hipotesis", "btn-guardar-hipotesis"]:
+        # Manejar solo cancelar/guardar desde modal (la edición se centraliza en el Editor de Hipótesis)
+        if button_id in ["btn-cancelar-hipotesis", "btn-guardar-hipotesis"]:
             return False, dash.no_update
-        
         return is_open, dash.no_update
-    
+
+
     @app.callback(
         Output("toast-notificacion", "is_open", allow_duplicate=True),
         Output("toast-notificacion", "header", allow_duplicate=True),
@@ -166,74 +160,13 @@ def register_callbacks(app):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
+        # Guardado desde DME DESHABILITADO: usar la vista central "Editor de Hipótesis"
         try:
-            from utils.hipotesis_manager import HipotesisManager
-            
-            tipo_estructura = estructura_actual.get("TIPO_ESTRUCTURA")
-            nombre_estructura = estructura_actual.get("TITULO", "estructura")
-            
-            # Reconstruir hipótesis desde los campos
-            hipotesis_modificadas = {}
-            
-            for i, desc_id in enumerate(desc_ids):
-                codigo_hip = desc_id["index"]
-                
-                # Construir viento
-                viento = None
-                if viento_estados[i] and viento_estados[i] != "None":
-                    viento = {
-                        "estado": viento_estados[i],
-                        "direccion": viento_dirs[i],
-                        "factor": float(viento_factors[i])
-                    }
-                
-                # Construir tiro
-                tiro = {
-                    "estado": tiro_estados[i],
-                    "patron": tiro_patrones[i],
-                    "reduccion_cond": float(tiro_red_conds[i]),
-                    "reduccion_guardia": float(tiro_red_guards[i])
-                }
-                
-                # Agregar factores si existen
-                if tiro_factor_conds[i] is not None:
-                    tiro["factor_cond"] = float(tiro_factor_conds[i])
-                if tiro_factor_guards[i] is not None:
-                    tiro["factor_guardia"] = float(tiro_factor_guards[i])
-                
-                # Construir peso
-                peso = {
-                    "factor": float(peso_factors[i]),
-                    "hielo": bool(peso_hielos[i])
-                }
-                
-                # Sobrecarga
-                sobrecarga = float(sobrecargas[i]) if sobrecargas[i] and sobrecargas[i] > 0 else None
-                
-                hipotesis_modificadas[codigo_hip] = {
-                    "desc": descs[i],
-                    "viento": viento,
-                    "tiro": tiro,
-                    "peso": peso,
-                    "sobrecarga": sobrecarga
-                }
-            
-            # Actualizar hipótesis completas
-            hipotesis_completas = hipotesis_actuales.copy()
-            hipotesis_completas[tipo_estructura] = hipotesis_modificadas
-            
-            # Guardar en archivo
-            from config.app_config import DATA_DIR
-            estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
-            hash_estructura = HipotesisManager.calcular_hash_estructura(estructura_json_path)
-            HipotesisManager.guardar_hipotesis(nombre_estructura, hash_estructura, hipotesis_completas)
-            
-            return True, "Éxito", "Hipótesis guardadas correctamente", "success", "success", hipotesis_completas
-            
+            return True, "Deshabilitado", "La edición/guardado de hipótesis desde DME está deshabilitada. Use la vista 'Editor de Hipótesis' para modificar y guardar hipótesis.", "info", "info", hipotesis_actuales
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return True, "Error", f"Error al guardar hipótesis: {str(e)}", "danger", "danger", hipotesis_actuales
+            return True, "Error", f"Error: {str(e)}", "danger", "danger", hipotesis_actuales
     
     @app.callback(
         Output("toast-notificacion", "is_open", allow_duplicate=True),
@@ -558,6 +491,15 @@ def register_callbacks(app):
             # Guardar en cache ANTES de cerrar figuras
             from utils.calculo_cache import CalculoCache
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            # Registrar hipótesis activa: preferir la hipótesis global si existe
+            from utils.hipotesis_manager import HipotesisManager
+            hip_activa = HipotesisManager.obtener_hipotesis_activa()
+            if hip_activa:
+                estructura_actual['HIPOTESIS_ACTIVA'] = hip_activa
+            else:
+                estructura_actual['HIPOTESIS_ACTIVA'] = f"{nombre_estructura}.hipotesis.json"
+            print(f"USANDO HIPÓTESIS: {estructura_actual['HIPOTESIS_ACTIVA']}")
+
             CalculoCache.guardar_calculo_dme(
                 nombre_estructura,
                 estructura_actual,

@@ -60,6 +60,8 @@ def crear_menu_editar():
             dbc.DropdownMenuItem("Eliminar Cable", id="menu-eliminar-cable"),
             dbc.DropdownMenuItem(divider=True),
             dbc.DropdownMenuItem("Borrar Cache", id="menu-borrar-cache"),
+            dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem("Editor de Hipótesis", id="menu-editor-hipotesis"),
         ],
         nav=True,
         in_navbar=True,

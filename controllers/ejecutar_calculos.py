@@ -19,6 +19,15 @@ def ejecutar_calculo_dme(estructura_actual, state, generar_plots=True):
         hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
             nombre_estructura, estructura_json_path, hipotesis_maestro_base
         )
+        # Registrar hipótesis activa en los parámetros de estructura para metadata
+        # Preferir una hipótesis global activa si existe
+        hip_activa = HipotesisManager.obtener_hipotesis_activa()
+        if hip_activa:
+            estructura_actual['HIPOTESIS_ACTIVA'] = hip_activa
+        else:
+            # Fallback: usar hipótesis local por convención de nombre
+            estructura_actual['HIPOTESIS_ACTIVA'] = HipotesisManager.obtener_ruta_hipotesis(nombre_estructura).name
+        print(f"USANDO HIPÓTESIS: {estructura_actual['HIPOTESIS_ACTIVA']}")
         
         estructura_mecanica.asignar_cargas_hipotesis(
             state.calculo_mecanico.df_cargas_totales,

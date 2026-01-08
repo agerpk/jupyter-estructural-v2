@@ -151,9 +151,7 @@ def crear_vista_diseno_mecanico(estructura_actual, calculo_guardado=None, hipote
                     dbc.Col([
                         dbc.Button("Guardar Parámetros", id="btn-guardar-params-dme", color="primary", size="lg", className="w-100"),
                     ], md=3),
-                    dbc.Col([
-                        dbc.Button("Modificar Hipótesis", id="btn-modificar-hipotesis", color="warning", size="lg", className="w-100"),
-                    ], md=3),
+
                     dbc.Col([
                         dbc.Button("Cargas en Nodos", id="btn-cargas-nodos-dme", color="info", size="lg", className="w-100"),
                     ], md=3),

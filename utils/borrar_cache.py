@@ -42,23 +42,33 @@ def borrar_cache():
     archivos_borrados = 0
     errores = []
     
-    # Borrar archivos en /data
+    # Borrar archivos en /data (proteger carpeta `hipotesis` y archivos .hipotesis.json)
     try:
         for archivo in DATA_DIR.iterdir():
-            if not archivo.is_file():
-                continue
-                
+            # Proteger carpetas (no borrar directorios completos salvo /cache)
+            if archivo.is_dir():
+                if archivo.name == 'hipotesis':
+                    # NO borrar nada dentro de data/hipotesis/
+                    continue
+                else:
+                    # Otras carpetas, saltarlas (cache se maneja abajo)
+                    continue
+
             # Proteger archivos esenciales
             if archivo.name in archivos_protegidos:
                 continue
-            
+
             # Proteger archivos por extensión
             if any(archivo.name.endswith(ext) for ext in extensiones_protegidas):
                 continue
-            
+
+            # Proteger archivos de hipótesis por convención
+            if archivo.name.endswith('.hipotesis.json'):
+                continue
+
             # Borrar archivos de cache
             es_cache = any(ext in archivo.name for ext in extensiones_cache)
-            
+
             if es_cache:
                 try:
                     archivo.unlink()

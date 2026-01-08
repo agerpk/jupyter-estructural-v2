@@ -173,7 +173,8 @@ class CalculoCache:
             "fecha_calculo": datetime.now().isoformat(),
             "df_reacciones": df_reacciones.to_dict(orient='index') if df_reacciones is not None else None,
             "imagen_polar": f"DME_Polar.{hash_params}.png" if fig_polar else None,
-            "imagen_barras": f"DME_Barras.{hash_params}.png" if fig_barras else None
+            "imagen_barras": f"DME_Barras.{hash_params}.png" if fig_barras else None,
+            "hipotesis_activa": estructura_data.get('HIPOTESIS_ACTIVA') if estructura_data else None
         }
         
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoDME.json"
