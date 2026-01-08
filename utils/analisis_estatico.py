@@ -463,6 +463,12 @@ class AnalizadorEstatico:
             sm.set_array([])
             plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]', shrink=0.8)
             
+            # Etiqueta con valor máximo
+            ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f} daN.m", 
+                      transform=ax.transAxes, fontsize=10, fontweight='bold',
+                      va='top', ha='left',
+                      bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
+
             # Reacciones BASE (hasta 4)
             texto = "REACCIONES BASE:\n"
             for idx, (nombre, reac) in enumerate(reacciones.items()):
@@ -547,6 +553,12 @@ class AnalizadorEstatico:
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
             sm.set_array([])
             plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]')
+            
+            # Etiqueta con valor máximo
+            ax.text(0.02, 0.98, f"Máximo: {vmax:.2f} daN.m", 
+                    transform=ax.transAxes, fontsize=10, fontweight='bold',
+                    va='top', ha='left',
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
             
             # Reacciones BASE (hasta 4)
             texto = "REACCIONES BASE:\n"
@@ -676,6 +688,12 @@ class AnalizadorEstatico:
             cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}', shrink=0.6)
             cbar.ax.axhline(y=1.0, color='r', linewidth=3)
             
+            # Etiqueta con valor máximo
+            ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f} {unidad}", 
+                      transform=ax.transAxes, fontsize=10, fontweight='bold',
+                      va='top', ha='left',
+                      bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
+            
             # Reacciones BASE (hasta 4)
             texto = "REACCIONES BASE:\n"
             for idx, (nombre, reac) in enumerate(reacciones.items()):
@@ -766,6 +784,12 @@ class AnalizadorEstatico:
             sm.set_array([])
             cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}')
             cbar.ax.axhline(y=1.0, color='r', linewidth=3)
+            
+            # Etiqueta con valor máximo
+            ax.text(0.02, 0.98, f"Máximo: {vmax:.2f} {unidad}", 
+                    transform=ax.transAxes, fontsize=10, fontweight='bold',
+                    va='top', ha='left',
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
             
             # Reacciones BASE (hasta 4)
             texto = "REACCIONES BASE:\n"
