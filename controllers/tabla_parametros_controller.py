@@ -330,24 +330,8 @@ def manejar_modal_parametro(active_cell, n_confirm, n_cancel, is_open, tabla_dat
             return True, contenido, celda_info
         
         elif tipo == "bool":
-            # Modal para booleanos
-            contenido = html.Div([
-                html.P(f"Seleccione valor para {parametro}:"),
-                dbc.ButtonGroup([
-                    dbc.Button(
-                        "Verdadero",
-                        id={"type": "bool-btn", "value": True},
-                        color="success" if valor_actual else "outline-success"
-                    ),
-                    dbc.Button(
-                        "Falso",
-                        id={"type": "bool-btn", "value": False},
-                        color="danger" if not valor_actual else "outline-danger"
-                    )
-                ])
-            ])
-            celda_info = {"fila": fila, "parametro": parametro, "tipo": tipo}
-            return True, contenido, celda_info
+            # No abrir modal para booleanos, editar directo en celda
+            return no_update, no_update, no_update
         
         elif tipo in ["int", "float"]:
             # No abrir modal para numéricos, editar directo en celda
@@ -427,14 +411,13 @@ def sincronizar_color_pickers(color_picker_value, hex_input_value):
     [Output("tabla-parametros", "data", allow_duplicate=True),
      Output("modal-parametro", "is_open", allow_duplicate=True)],
     [Input({"type": "opcion-btn", "value": ALL}, "n_clicks"),
-     Input({"type": "bool-btn", "value": ALL}, "n_clicks"),
      Input("modal-confirmar", "n_clicks")],
     [State("modal-celda-info", "data"),
      State("tabla-parametros", "data"),
      State("input-hex-color", "value")],
     prevent_initial_call=True
 )
-def seleccionar_opcion_directa(n_clicks_opciones, n_clicks_bool, n_confirmar, celda_info, tabla_data, hex_value):
+def seleccionar_opcion_directa(n_clicks_opciones, n_confirmar, celda_info, tabla_data, hex_value):
     """Actualiza tabla directamente al seleccionar opción y cierra modal"""
     if not ctx.triggered or not celda_info:
         return no_update, no_update
@@ -458,6 +441,14 @@ def seleccionar_opcion_directa(n_clicks_opciones, n_clicks_bool, n_confirmar, ce
     component_id = trigger["prop_id"].split(".")[0]
     import json
     component_data = json.loads(component_id)
+    valor_seleccionado = component_data["value"]
+    
+    # Actualizar tabla
+    fila = celda_info["fila"]
+    tabla_data[fila]["valor"] = valor_seleccionado
+    
+    # Cerrar modal y actualizar tabla
+    return tabla_data, Falseid)
     valor_seleccionado = component_data["value"]
     
     # Actualizar tabla
