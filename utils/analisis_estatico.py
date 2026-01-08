@@ -8,6 +8,18 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from typing import Dict, List, Tuple, Optional
 import openseespy.opensees as ops
+import logging
+
+# Logger básico para este módulo
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
+
+logger.info("AnalizadorEstatico inicializado. Nota: OpenSeesPy no impone unidades; use SI (N, m) o convierta cargas si es necesario. NodoEstructural usa daN en documentación interna.")
 
 def calcular_propiedades_barra_circular(diametro=0.10):
     """
@@ -39,10 +51,10 @@ class AnalizadorEstatico:
         self.props_barra = calcular_propiedades_barra_circular(diametro=0.10)
         self.conexiones = self._extraer_conexiones()
         
-        print(f"📐 Propiedades de barra circular (D=10cm):")
-        print(f"   A = {self.props_barra['A']:.6f} m²")
-        print(f"   E = {self.props_barra['E']/1e9:.1f} GPa")
-        print(f"   I = {self.props_barra['Ix']:.8f} m⁴")
+        logger.info(f"📐 Propiedades de barra circular (D=10cm):")
+        logger.debug(f"   A = {self.props_barra['A']:.6f} m²")
+        logger.debug(f"   E = {self.props_barra['E']/1e9:.1f} GPa")
+        logger.debug(f"   I = {self.props_barra['Ix']:.8f} m⁴")
     
     def _extraer_conexiones(self):
         """Extrae y limpia conexiones desde geometría"""
@@ -84,7 +96,7 @@ class AnalizadorEstatico:
                         pares_vistos.add(par)
                         conexiones_limpias.append((nodo_i, nodo_j))
                 
-                print(f"📊 Conexiones: {len(conexiones_raw)} raw → {len(conexiones_limpias)} limpias")
+                logger.debug(f"📊 Conexiones: {len(conexiones_raw)} raw → {len(conexiones_limpias)} limpias")
                 return conexiones_limpias
         
         return []
@@ -92,9 +104,9 @@ class AnalizadorEstatico:
     def resolver_sistema(self, hipotesis_nombre: str) -> Dict:
         """Resuelve sistema usando OpenSeesPy con subdivisión de elementos"""
         
-        print(f"\n🔍 Analizando hipótesis: {hipotesis_nombre}")
-        print(f"   Nodos originales: {len(self.geometria.nodos)}")
-        print(f"   Conexiones: {len(self.conexiones)}")
+        logger.info(f"🔍 Analizando hipótesis: {hipotesis_nombre}")
+        logger.debug(f"   Nodos originales: {len(self.geometria.nodos)}")
+        logger.debug(f"   Conexiones: {len(self.conexiones)}")
         
         # Validar parámetros obligatorios
         n_corta = self.parametros.get('n_segmentar_conexion_corta')
@@ -109,40 +121,50 @@ class AnalizadorEstatico:
             raise ValueError("Parámetro obligatorio 'percentil_separacion_corta_larga' no definido")
         
         # Calcular longitudes de conexiones para determinar umbral
+        eps = 1e-9
         longitudes = []
         conexiones_invalidas = []
+        conexiones_validas = []
         for ni, nj in self.conexiones:
             if ni not in self.geometria.nodos:
                 conexiones_invalidas.append((ni, nj, f"nodo '{ni}' no existe"))
+                logger.error(f"Conexión inválida: nodo '{ni}' no existe en geometría ({ni}, {nj})")
                 continue
             if nj not in self.geometria.nodos:
                 conexiones_invalidas.append((ni, nj, f"nodo '{nj}' no existe"))
+                logger.error(f"Conexión inválida: nodo '{nj}' no existe en geometría ({ni}, {nj})")
                 continue
             ci = np.array(self.geometria.nodos[ni].coordenadas)
             cj = np.array(self.geometria.nodos[nj].coordenadas)
             longitud = np.linalg.norm(cj - ci)
+            if longitud < eps:
+                logger.warning(f"Conexión {ni}-{nj} ignorada: longitud {longitud:.3e} (≈0)")
+                continue
             longitudes.append(longitud)
+            conexiones_validas.append((ni, nj))
         
         if conexiones_invalidas:
+            logger.error(f"Conexiones inválidas detectadas: {conexiones_invalidas}")
             raise ValueError(f"Conexiones inválidas detectadas: {conexiones_invalidas}")
         
         if not longitudes:
+            logger.warning("No hay conexiones válidas para analizar")
             raise ValueError("No hay conexiones válidas para analizar")
         
         umbral_longitud = np.percentile(longitudes, percentil)
         
-        print(f"   Subdivisiones: corta={n_corta}, larga={n_larga}, percentil={percentil}")
-        print(f"   Umbral longitud: {umbral_longitud:.2f} m")
+        logger.debug(f"Subdivisiones: corta={n_corta}, larga={n_larga}, percentil={percentil}")
+        logger.debug(f"Umbral longitud: {umbral_longitud:.2f} m")
         
         # PASO 1: PREPARAR ESTRUCTURA COMPLETA (ANTES de ops.model)
         nodos_base = [n for n, nodo in self.geometria.nodos.items() 
-                     if 'BASE' in n.upper() or getattr(nodo, 'tipo_restriccion', None) == 'FIXED']
+                     if 'BASE' in n.upper() or getattr(nodo, 'tipo_restriccion', None) == 'FIXED' or getattr(nodo, 'tipo_nodo', '').lower() == 'base']
         
         if not nodos_base:
-            print("   ⚠️ No se encontraron nodos BASE")
+            logger.warning("No se encontraron nodos BASE: marque nodos con tipo 'base' o con restricción 'FIXED'.")
             return {}
         
-        print(f"   Nodos BASE: {nodos_base}")
+        logger.debug(f"Nodos BASE: {nodos_base}")
         
         # 1.1: Preparar diccionario de nodos (originales + intermedios)
         nodos_dict = {}  # {nombre: {'coord': [x,y,z], 'tag': int, 'restriccion': [0/1]*6}}
@@ -155,7 +177,7 @@ class AnalizadorEstatico:
             tag += 1
         
         # Nodos intermedios (con subdivisión variable según longitud)
-        for ni, nj in self.conexiones:
+        for ni, nj in conexiones_validas:
             ci = np.array(self.geometria.nodos[ni].coordenadas)
             cj = np.array(self.geometria.nodos[nj].coordenadas)
             longitud = np.linalg.norm(cj - ci)
@@ -170,13 +192,13 @@ class AnalizadorEstatico:
                 nodos_dict[nombre_inter] = {'coord': c_inter.tolist(), 'tag': tag, 'restriccion': [0,0,0,0,0,0]}
                 tag += 1
         
-        print(f"   Nodos preparados: {len(nodos_dict)} (originales + intermedios)")
+        logger.debug(f"Nodos preparados: {len(nodos_dict)} (originales + intermedios)")
         
         # 1.2: Preparar diccionario de elementos con ejes locales
         elementos_dict = {}  # {elem_id: {..., 'ejes_locales': matriz 3x3}}
         elem_id = 1
         
-        for ni, nj in self.conexiones:
+        for ni, nj in conexiones_validas:
             ci = np.array(self.geometria.nodos[ni].coordenadas)
             cj = np.array(self.geometria.nodos[nj].coordenadas)
             longitud = np.linalg.norm(cj - ci)
@@ -185,6 +207,9 @@ class AnalizadorEstatico:
             n_subdiv = n_larga if longitud > umbral_longitud else n_corta
             
             # Calcular ejes locales del elemento
+            if longitud < eps:
+                logger.warning(f"Elemento {ni}-{nj} con longitud {longitud:.3e} ignorado (≈0)")
+                continue
             vec_x_local = (cj - ci) / longitud  # Eje X local = dirección del elemento
             
             # Determinar transfTag y vector de referencia
@@ -201,7 +226,19 @@ class AnalizadorEstatico:
             
             # Calcular eje Z local (perpendicular a X y referencia)
             vec_z_local = np.cross(vec_x_local, vec_ref)
-            vec_z_local = vec_z_local / np.linalg.norm(vec_z_local)
+            norm_z = np.linalg.norm(vec_z_local)
+            if norm_z < eps:
+                # Intentar referencias alternativas si la referencia inicial falla
+                for alt_ref in [np.array([1., 0., 0.]), np.array([0., 1., 0.]), np.array([0., 0., 1.])]:
+                    vec_z_local = np.cross(vec_x_local, alt_ref)
+                    norm_z = np.linalg.norm(vec_z_local)
+                    if norm_z >= eps:
+                        vec_ref = alt_ref
+                        break
+                if norm_z < eps:
+                    logger.warning(f"Elemento {ni}-{nj}: no se pudo determinar eje Z local (vector colineal). Se omite elemento.")
+                    continue
+            vec_z_local = vec_z_local / norm_z
             
             # Calcular eje Y local (perpendicular a X y Z)
             vec_y_local = np.cross(vec_z_local, vec_x_local)
@@ -229,7 +266,7 @@ class AnalizadorEstatico:
                 }
                 elem_id += 1
         
-        print(f"   Elementos preparados: {len(elementos_dict)} subelementos")
+        logger.debug(f"Elementos preparados: {len(elementos_dict)} subelementos")
         
         # 1.3: Preparar cargas
         cargas_dict = {}  # {tag: [fx, fy, fz, mx, my, mz]}
@@ -240,10 +277,10 @@ class AnalizadorEstatico:
                     tag_nodo = nodos_dict[nombre]['tag']
                     cargas_dict[tag_nodo] = [cargas['fx'], cargas['fy'], cargas['fz'], 0, 0, 0]
         
-        print(f"   Cargas preparadas: {len(cargas_dict)} nodos con carga")
+        logger.debug(f"Cargas preparadas: {len(cargas_dict)} nodos con carga")
         
         if len(cargas_dict) == 0:
-            print("   ⚠️ No hay cargas para esta hipótesis")
+            logger.warning("No hay cargas para esta hipótesis")
             return {}
         
         # PASO 2: CREAR MODELO OPENSEESPY
@@ -286,16 +323,17 @@ class AnalizadorEstatico:
         try:
             resultado = ops.analyze(1)
             if resultado != 0:
-                print("   🔄 Reintentando con Newton...")
+                logger.info("🔄 Reintentando con Newton...")
                 ops.algorithm('Newton')
                 resultado = ops.analyze(1)
             
             if resultado != 0:
+                logger.error("Análisis no convergió después de reintentos")
                 raise RuntimeError("Análisis no convergió después de reintentos")
             
-            print("   ✅ Análisis convergió")
+            logger.info("✅ Análisis convergió")
         except Exception as e:
-            print(f"   ❌ Error en análisis: {e}")
+            logger.error(f"❌ Error en análisis: {e}", exc_info=True)
             raise
         
         # PASO 4: EXTRAER RESULTADOS Y TRANSFORMAR A EJES GLOBALES
@@ -303,6 +341,14 @@ class AnalizadorEstatico:
         for eid, data in elementos_dict.items():
             try:
                 fuerzas_locales = ops.eleForce(eid)
+            except Exception as e:
+                logger.error(f"Error obteniendo fuerzas del elemento {eid}: {e}", exc_info=True)
+                continue
+            # Validar tamaño del vector de fuerzas (se esperan 12 entradas)
+            if not hasattr(fuerzas_locales, '__len__') or len(fuerzas_locales) < 12:
+                logger.error(f"Elemento {eid} devolvió fuerzas con longitud inesperada ({getattr(fuerzas_locales, '__len__', None)}). Se omite elemento.")
+                continue
+            try:
                 ni, nj, sub_idx = data['origen']
                 ejes_locales = data['ejes_locales']
                 
@@ -361,8 +407,8 @@ class AnalizadorEstatico:
                     fuerzas_locales[9], fuerzas_locales[10], fuerzas_locales[11]
                 ])
             except Exception as e:
-                print(f"   ⚠️ Error procesando elemento {eid}: {e}")
-                pass
+                logger.error(f"Error procesando elemento {eid}: {e}", exc_info=True)
+                continue
         
         # Extraer reacciones en BASE
         ops.reactions()
@@ -372,12 +418,16 @@ class AnalizadorEstatico:
                 tag = nodos_dict[nombre]['tag']
                 try:
                     reaccion = ops.nodeReaction(tag)
+                    if not hasattr(reaccion, '__len__') or len(reaccion) < 6:
+                        logger.error(f"Reacción en nodo base {nombre} con formato inesperado: {reaccion}")
+                        continue
                     reacciones_base[nombre] = {'Fx': reaccion[0], 'Fy': reaccion[1], 'Fz': reaccion[2],
                                                'Mx': reaccion[3], 'My': reaccion[4], 'Mz': reaccion[5]}
-                except:
-                    pass
+                except Exception as e:
+                    logger.error(f"Error obteniendo reacciones en nodo {nombre}: {e}", exc_info=True)
+                    continue
         
-        print(f"   Valores extraídos: {len(valores_subnodos)} subnodos")
+        logger.debug(f"Valores extraídos: {len(valores_subnodos)} subnodos")
         return {'valores': valores_subnodos, 'reacciones': reacciones_base, 'elementos_dict': elementos_dict}
     
     def calcular_momento_resultante_total(self, resultado_analisis: Dict) -> Dict:

@@ -9,14 +9,27 @@
 - **Fase 4**: Vista AEE
 - **Fase 5**: Controller AEE
 - **Fase 6**: Integración app.py + menú
-- **Fase 9 (parcial)**: Cache System (guardar/cargar)
+- **Fase 7**: Vista Calcular Todo (checkbox AEE + ejecución integrada; carga desde cache es manual)
+- **Fase 9**: Cache System (guardar/cargar AEE, reconstrucción de `diagramas` desde PNG) ✅
 
 ### ⏳ PENDIENTE
-- **Fase 7**: Vista Calcular Todo
 - **Fase 8**: Familia de Estructuras
 - **Fase 10**: Descargar HTML
-- **Fase 11**: Testing completo
-- **Fase 12**: Optimizaciones
+- **Fase 11**: Testing completo (unit + integration)
+- **Fase 12**: Optimizaciones (performance y robustez)
+
+### 🔧 Cambios recientes / Notas
+- **Serialización**: Implementada conversión recursiva de tipos numpy a primitivos para JSON (`_make_serializable`) — evita errores al guardar cache ✅
+- **Cache AEE**: `guardar_calculo_aee` ahora prefiere `resultados['hash']` y reconstruye `diagramas` desde PNGs existentes cuando faltan entradas en el dict ✅
+- **Robustez en análisis**: `utils/analisis_estatico` actualizado con logger, validaciones (elementos de longitud ≈0 saltados), protección ante ejes colineales, y try/except alrededor de `ops.eleForce` y `ops.nodeReaction` ✅
+- **UI / UX**: Auto-carga de cache en la vista "Calcular Todo" deshabilitada; el botón "Cargar desde Cache" realiza la carga manualmente ✅
+- **Integración**: AEE ahora se ejecuta en el flujo "Calcular Todo" cuando el checkbox `aee` está marcado; las imágenes (MQNT/MRT/MFE) se guardan en `data/cache` y se muestran en `components/vista_analisis_estatico.py` ✅
+
+### Riesgos conocidos / Tareas abiertas
+- Añadir pruebas unitarias para los casos límite (conexiones de longitud 0, elementos que devuelven vectores inesperados, excepciones de OpenSeesPy). 
+- Añadir tests de integración que verifiquen el pipeline completo (ejecutar AEE → guardar cache → cargar desde cache → view). 
+- Test de regresión para compatibilidad con NumPy 2.x (evitar uso de `np.float_` / `np.int_`).
+- Documentación de uso y recomendaciones (unidades: SI vs daN; ejemplos de parámetros).
 
 ### 📦 ARCHIVOS CREADOS
 - `utils/analisis_estatico.py` - Clase AnalizadorEstatico

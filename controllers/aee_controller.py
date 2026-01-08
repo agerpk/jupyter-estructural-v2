@@ -5,6 +5,25 @@ Controller para Analisis Estatico de Esfuerzos (AEE)
 import dash
 from dash import Input, Output, State, no_update
 import threading
+import numpy as np
+
+def _make_serializable(data):
+    """
+    Recursively traverses a data structure and converts non-serializable
+    numpy types to their serializable Python equivalents.
+    """
+    if isinstance(data, dict):
+        return {k: _make_serializable(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [_make_serializable(i) for i in data]
+    elif isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, (np.integer,)):
+        return int(data)
+    elif isinstance(data, (np.floating,)):
+        return float(data)
+    else:
+        return data
 
 def register_callbacks(app):
     """Registrar callbacks del controller AEE"""
@@ -319,14 +338,8 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
         
         try:
             esfuerzos = analizador.resolver_sistema(hip)
-            # Convertir arrays numpy a listas para JSON
-            esfuerzos_serializables = {}
-            for k, v in esfuerzos.items():
-                if hasattr(v, 'tolist'):  # Es numpy array
-                    esfuerzos_serializables[k] = v.tolist()
-                else:
-                    esfuerzos_serializables[k] = v
-            
+            # Convertir recursivamente tipos numpy a serializables para JSON
+            esfuerzos_serializables = _make_serializable(esfuerzos)
             resultados['esfuerzos'][hip] = esfuerzos_serializables
             
             # Generar diagramas MQNT
@@ -353,7 +366,7 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
             if diagramas_activos.get('MRT', True):
                 valores_mrt = analizador.calcular_momento_resultante_total(esfuerzos)
                 # Convertir a formato serializable
-                valores_mrt_serializables = {k: float(v) if hasattr(v, 'item') else v for k, v in valores_mrt.items()}
+                valores_mrt_serializables = _make_serializable(valores_mrt)
                 resultados['diagramas'][f'MRT_{hip}'] = valores_mrt_serializables
                 
                 # Generar grafico estatico (PNG)
@@ -370,13 +383,15 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
                     filepath.parent.mkdir(parents=True, exist_ok=True)
                     fig.savefig(str(filepath), dpi=150, bbox_inches='tight')
                     plt.close(fig)
+                    # Registrar nombre de archivo en resultados para que la vista pueda cargar la imagen
+                    resultados['diagramas'][f'MRT_{hip}'] = filename
                 except Exception as e:
                     print(f"Error guardando MRT para {hip}: {e}")
             
             if diagramas_activos.get('MFE', True):
                 valores_mfe = analizador.calcular_momento_flector_equivalente(esfuerzos)
                 # Convertir a formato serializable
-                valores_mfe_serializables = {k: float(v) if hasattr(v, 'item') else v for k, v in valores_mfe.items()}
+                valores_mfe_serializables = _make_serializable(valores_mfe)
                 resultados['diagramas'][f'MFE_{hip}'] = valores_mfe_serializables
                 
                 # Generar grafico estatico (PNG)
@@ -393,6 +408,8 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
                     filepath.parent.mkdir(parents=True, exist_ok=True)
                     fig.savefig(str(filepath), dpi=150, bbox_inches='tight')
                     plt.close(fig)
+                    # Registrar nombre de archivo en resultados para que la vista pueda cargar la imagen
+                    resultados['diagramas'][f'MFE_{hip}'] = filename
                 except Exception as e:
                     print(f"Error guardando MFE para {hip}: {e}")
                 

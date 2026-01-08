@@ -651,13 +651,30 @@ class CalculoCache:
     def guardar_calculo_aee(nombre_estructura, estructura_data, resultados):
         """Guarda resultados de Análisis Estático de Esfuerzos (AEE)"""
         nombre_estructura = nombre_estructura.replace(' ', '_')
-        hash_params = CalculoCache.calcular_hash(estructura_data)
+        # Preferir el hash calculado en los resultados si está disponible (evita inconsistencias al re-escribir cache)
+        hash_params = resultados.get('hash') if isinstance(resultados, dict) and 'hash' in resultados else CalculoCache.calcular_hash(estructura_data)
         
         calculo_data = {
             "hash_parametros": hash_params,
             "fecha_calculo": datetime.now().isoformat(),
             "resultados": resultados
         }
+        
+        # Reconstruir/añadir entradas de 'diagramas' si existen PNGs ya generados con este hash
+        try:
+            png_pattern = f"AEE_*.{hash_params}.png"
+            for png_path in CACHE_DIR.glob(png_pattern):
+                nombre_png = png_path.name
+                # Extraer la clave: remover prefijo 'AEE_' y sufijo '.{hash}.png'
+                clave = nombre_png[len('AEE_'):-len(f'.{hash_params}.png')]
+                if 'resultados' not in calculo_data:
+                    calculo_data['resultados'] = {}
+                if 'diagramas' not in calculo_data['resultados']:
+                    calculo_data['resultados']['diagramas'] = {}
+                # Registrar filename (no path)
+                calculo_data['resultados']['diagramas'][clave] = nombre_png
+        except Exception as e:
+            print(f"⚠️ No se pudo reconstruir diagramas desde PNGs: {e}")
         
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoAEE.json"
         archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")

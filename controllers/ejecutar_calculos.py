@@ -336,3 +336,40 @@ def ejecutar_calculo_costeo(estructura_actual, state):
         import traceback
         print(f"Error en costeo: {traceback.format_exc()}")
         return {"exito": False, "mensaje": str(e)}
+
+
+def ejecutar_calculo_aee(estructura_actual, state):
+    """Ejecuta el cálculo de Análisis Estático de Esfuerzos (AEE)"""
+    try:
+        from utils.calculo_cache import CalculoCache
+        from controllers.aee_controller import ejecutar_analisis_aee
+        
+        nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+        
+        # Verificar prerequisitos
+        calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
+        if not calculo_dge:
+            return {"exito": False, "mensaje": "AEE requiere el resultado de un cálculo DGE previo."}
+        
+        calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
+        if not calculo_dme:
+            return {"exito": False, "mensaje": "AEE requiere el resultado de un cálculo DME previo."}
+        
+        # El guardado en cache se maneja dentro de ejecutar_analisis_aee
+        resultados = ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme)
+        
+        if resultados:
+            # Guardar explícitamente en cache para el flujo de "Calcular Todo"
+            CalculoCache.guardar_calculo_aee(
+                nombre_estructura,
+                estructura_actual,
+                resultados
+            )
+            return {"exito": True, "mensaje": "Cálculo AEE completado"}
+        else:
+            return {"exito": False, "mensaje": "El análisis AEE no produjo resultados."}
+
+    except Exception as e:
+        import traceback
+        print(f"Error en AEE: {traceback.format_exc()}")
+        return {"exito": False, "mensaje": str(e)}

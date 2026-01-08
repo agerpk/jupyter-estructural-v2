@@ -298,6 +298,32 @@ def cargar_resultados_modulares(estructura_actual, calculos_activos=None):
             print("❌ Cache Costeo no encontrado")
             componentes.append(crear_placeholder("7. Costeo"))
     
+    # 8. AEE
+    if "aee" not in calculos_activos:
+        print("⏭️ AEE desactivado, saltando...")
+    else:
+        print("🔍 Verificando cache AEE...")
+        calculo_aee = CalculoCache.cargar_calculo_aee(nombre_estructura)
+        if calculo_aee:
+            print("✅ Cache AEE encontrado")
+            from components.vista_analisis_estatico import generar_resultados_aee
+            componentes.append(html.H3("8. ANÁLISIS ESTÁTICO DE ESFUERZOS (AEE)", className="mt-4"))
+            try:
+                resultado_aee = generar_resultados_aee(calculo_aee, estructura_actual)
+                if isinstance(resultado_aee, list):
+                    componentes.extend(resultado_aee)
+                    print(f"✅ AEE: {len(resultado_aee)} componentes agregados")
+                else:
+                    componentes.append(resultado_aee)
+                    print("✅ AEE: 1 componente agregado")
+            except Exception as e:
+                import traceback
+                print(f"❌ Error cargando AEE: {traceback.format_exc()}")
+                componentes.append(dbc.Alert(f"Error cargando AEE: {str(e)}", color="danger"))
+        else:
+            print("❌ Cache AEE no encontrado")
+            componentes.append(crear_placeholder("8. AEE"))
+
     print(f"✅ Carga modular completada: {len(componentes)} componentes totales")
     print(f"🔍 DEBUG FINAL: Tipos de componentes en lista:")
     for i, comp in enumerate(componentes[:10]):  # Solo primeros 10 para debug
@@ -313,16 +339,16 @@ def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
     state = AppState()
     calculos_activos_guardados = state.get_calculos_activos()
     
-    # Auto-cargar cache si hay estructura disponible
-    contenido_inicial = [dbc.Alert("Presione un botón para comenzar", color="secondary")]
+    # Auto-cargar cache DESHABILITADA: el usuario debe presionar "Cargar desde Cache"
+    contenido_inicial = [
+        dbc.Alert(
+            "Presione 'Cargar desde Cache' para cargar resultados guardados, o 'Ejecutar Cálculo Completo' para calcular desde cero.",
+            color="secondary"
+        )
+    ]
+    # Nota de debug para desarrolladores
     if estructura_actual:
-        try:
-            print(f"🔄 VISTA: Iniciando auto-carga de cache para {estructura_actual.get('TITULO', 'N/A')}")
-            contenido_inicial = cargar_resultados_modulares(estructura_actual)
-            print(f"✅ VISTA: Auto-carga completada: {len(contenido_inicial)} componentes")
-        except Exception as e:
-            print(f"❌ VISTA: Error en auto-carga: {e}")
-            contenido_inicial = [dbc.Alert(f"Error cargando cache: {str(e)}", color="warning")]
+        print(f"🔍 VISTA: Auto-carga de cache está deshabilitada para {estructura_actual.get('TITULO', 'N/A')}; esperando acción del usuario.")
     else:
         print("⚠️ VISTA: No hay estructura_actual, mostrando placeholder")
     
@@ -345,7 +371,8 @@ def crear_vista_calcular_todo(estructura_actual, calculo_guardado=None):
                                     {"label": "Árboles de Carga (requiere DME)", "value": "arboles"},
                                     {"label": "SPH - Selección de Poste (requiere DME)", "value": "sph"},
                                     {"label": "Fundación (requiere SPH)", "value": "fundacion"},
-                                    {"label": "Costeo (requiere SPH y Fundación)", "value": "costeo"}
+                                    {"label": "Costeo (requiere SPH y Fundación)", "value": "costeo"},
+                                    {"label": "AEE - Análisis Estático (requiere DME)", "value": "aee"}
                                 ],
                                 value=calculos_activos_guardados,
                                 inline=False

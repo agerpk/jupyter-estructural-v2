@@ -15,8 +15,8 @@ def register_callbacks(app):
     
     state = AppState()
     
-    # Remove automatic callback - only manual button clicks
-    # The view will auto-load content on creation
+    # Manual cache loading only: 'Cargar desde Cache' button triggers loading.
+    # Note: automatic cache load on view creation was disabled in the view.
     
     @app.callback(
         Output("output-calcular-todo", "children", allow_duplicate=True),
@@ -117,6 +117,11 @@ def register_callbacks(app):
                 return (
                     [dbc.Alert("Costeo requiere SPH y Fundación. Active ambos primero.", color="warning")],
                     True, "Advertencia", "Costeo requiere SPH y Fundación", "warning", "warning"
+                )
+            if "aee" in calculos_activos and "dme" not in calculos_activos:
+                return (
+                    [dbc.Alert("AEE requiere DME. Active DME primero.", color="warning")],
+                    True, "Advertencia", "AEE requiere DME", "warning", "warning"
                 )
             
             # 1. CMC
@@ -291,6 +296,33 @@ def register_callbacks(app):
                 else:
                     print(f"❌ Costeo falló: {resultado_costeo.get('mensaje')}")
                     resultados.append(dbc.Alert(f"Error Costeo: {resultado_costeo.get('mensaje')}", color="danger"))
+
+            # 8. AEE
+            if "aee" not in calculos_activos:
+                print("⏭️ AEE desactivado, saltando...")
+            else:
+                from controllers.ejecutar_calculos import ejecutar_calculo_aee
+                
+                print("🔧 Ejecutando AEE...")
+                resultados.append(html.H3("8. ANÁLISIS ESTÁTICO DE ESFUERZOS (AEE)", className="mt-4"))
+                resultado_aee = ejecutar_calculo_aee(estructura_actual, state)
+                if resultado_aee.get('exito'):
+                    print("✅ AEE exitoso, cargando desde cache...")
+                    calculo_aee = CalculoCache.cargar_calculo_aee(estructura_actual.get('TITULO', 'estructura'))
+                    if calculo_aee:
+                        from components.vista_analisis_estatico import generar_resultados_aee
+                        resultado_aee_vista = generar_resultados_aee(calculo_aee, estructura_actual)
+                        if isinstance(resultado_aee_vista, list):
+                            resultados.extend(resultado_aee_vista)
+                            print(f"✅ AEE: {len(resultado_aee_vista)} componentes agregados")
+                        else:
+                            resultados.append(resultado_aee_vista)
+                            print("✅ AEE: 1 componente agregado")
+                    else:
+                        print("❌ AEE: No se pudo cargar desde cache")
+                else:
+                    print(f"❌ AEE falló: {resultado_aee.get('mensaje')}")
+                    resultados.append(dbc.Alert(f"Error AEE: {resultado_aee.get('mensaje')}", color="danger"))
             
             print(f"✅ CÁLCULO COMPLETO FINALIZADO - Retornando {len(resultados)} componentes")
             resultado_final = (
