@@ -5,8 +5,8 @@
   "ZOOM_CABEZAL": 0.95,
   "parametros_graficos": {
     "colores": {
-      "conductor": "#FF0000",
-      "guardia": "#2ca02c",
+      "conductor": "#007BFF",
+      "guardia": "#2CA02C",
       "poste": "#000000",
       "cadena": "#717170",
       "conductor_end": "#FF0000",
@@ -15,12 +15,12 @@
       "texto_verde": "#006400",
       "dhg_circulo": "gray",
       "terreno": "#8B4513",
-      "area_s_estructura": "lightblue"
+      "area_s_estructura": "#BABABA"
     },
     "controles": {
       "declinar_todos": false,
       "dibujar_solo_circulos_declinados_trayectoria": true,
-      "dibujar_circulos_s_estructura": true,
+      "dibujar_circulos_s_estructura": false,
       "dibujar_areas_s_estructura": true,
       "dibujar_circulos_d_fases": true,
       "dibujar_circulos_dhg": true,
@@ -32,7 +32,7 @@
       "alpha_circulo": 0.7,
       "alpha_circulo_trayectoria": 0.4,
       "alpha_apantallamiento": 0.7,
-      "alpha_area_s_estructura": 0.15,
+      "alpha_area_s_estructura": 0.2,
       "size_nodo_conductor": 100,
       "size_nodo_guardia": 100,
       "size_nodo_estructura": 80,
@@ -203,6 +203,6 @@
       "V": 0.7
     }
   },
-  "fecha_modificacion": "2026-01-08T10:25:58.349807",
+  "fecha_modificacion": "2026-01-08T10:39:50.675533",
   "nodos_editados": []
 }

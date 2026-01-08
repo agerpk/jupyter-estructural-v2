@@ -115,7 +115,11 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
         
         # Generar gráficos
         if generar_plots:
-            estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica_temp)
+            estructura_graficos = EstructuraAEA_Graficos(
+                estructura_geometria, 
+                estructura_mecanica_temp,
+                config_graficos=estructura_actual.get('parametros_graficos')
+            )
             
             estructura_graficos.graficar_estructura(
                 zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
@@ -1078,7 +1082,11 @@ def register_callbacks(app):
                 resultados_guardia2=state.calculo_mecanico.resultados_guardia2
             )
             
-            estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
+            estructura_graficos = EstructuraAEA_Graficos(
+                estructura_geometria, 
+                estructura_mecanica,
+                config_graficos=estructura_actual.get('parametros_graficos')
+            )
             
             # Actualizar nodes_key INMEDIATAMENTE después de aplicar nodos editados
             estructura_geometria._actualizar_nodes_key()
