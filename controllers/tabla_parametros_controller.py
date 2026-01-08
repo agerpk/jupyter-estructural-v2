@@ -448,14 +448,6 @@ def seleccionar_opcion_directa(n_clicks_opciones, n_confirmar, celda_info, tabla
     tabla_data[fila]["valor"] = valor_seleccionado
     
     # Cerrar modal y actualizar tabla
-    return tabla_data, Falseid)
-    valor_seleccionado = component_data["value"]
-    
-    # Actualizar tabla
-    fila = celda_info["fila"]
-    tabla_data[fila]["valor"] = valor_seleccionado
-    
-    # Cerrar modal y actualizar tabla
     return tabla_data, False
 
 @callback(

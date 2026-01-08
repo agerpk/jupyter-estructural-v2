@@ -646,3 +646,29 @@ class CalculoCache:
         if not archivo.exists():
             return None
         return json.loads(archivo.read_text(encoding="utf-8"))
+    
+    @staticmethod
+    def guardar_calculo_aee(nombre_estructura, estructura_data, resultados):
+        """Guarda resultados de Análisis Estático de Esfuerzos (AEE)"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
+        hash_params = CalculoCache.calcular_hash(estructura_data)
+        
+        calculo_data = {
+            "hash_parametros": hash_params,
+            "fecha_calculo": datetime.now().isoformat(),
+            "resultados": resultados
+        }
+        
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoAEE.json"
+        archivo.write_text(json.dumps(calculo_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"✅ Cache AEE guardado: {archivo.name}")
+        return hash_params
+    
+    @staticmethod
+    def cargar_calculo_aee(nombre_estructura):
+        """Carga resultados de Análisis Estático de Esfuerzos (AEE)"""
+        nombre_estructura = nombre_estructura.replace(' ', '_')
+        archivo = CACHE_DIR / f"{nombre_estructura}.calculoAEE.json"
+        if not archivo.exists():
+            return None
+        return json.loads(archivo.read_text(encoding="utf-8"))

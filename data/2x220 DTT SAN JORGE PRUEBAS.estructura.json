@@ -1,4 +1,16 @@
 {
+  "AnalisisEstaticoEsfuerzos": {
+    "DIAGRAMAS_ACTIVOS": {
+      "MQNT": true,
+      "MRT": true,
+      "MFE": true
+    },
+    "ACTIVAR_AEE": false,
+    "GRAFICOS_3D_AEE": true,
+    "n_segmentar_conexion_corta": 10,
+    "n_segmentar_conexion_larga": 30,
+    "percentil_separacion_corta_larga": 50
+  },
   "TIPO_ESTRUCTURA": "Suspensión Recta",
   "Zona_climatica": "D",
   "exposicion": "C",
@@ -119,7 +131,7 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2026-01-07T15:12:33.663539",
+  "fecha_modificacion": "2026-01-08T12:09:08.334340",
   "nodos_editados": [],
   "metodo_fundacion": "sulzberger",
   "forma_fundacion": "monobloque",

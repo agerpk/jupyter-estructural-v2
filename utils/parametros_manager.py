@@ -937,6 +937,64 @@ class ParametrosManager:
             "categoria": "Fundación"
         },
         
+        # ANÁLISIS ESTÁTICO DE ESFUERZOS (AEE)
+        "AnalisisEstaticoEsfuerzos.ACTIVAR_AEE": {
+            "simbolo": "AEE_ON",
+            "unidad": "-",
+            "descripcion": "Activar módulo AEE",
+            "tipo": "bool",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.GRAFICOS_3D_AEE": {
+            "simbolo": "AEE_3D",
+            "unidad": "-",
+            "descripcion": "Gráficos 3D (False=2D)",
+            "tipo": "bool",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.n_segmentar_conexion_corta": {
+            "simbolo": "n_corta",
+            "unidad": "-",
+            "descripcion": "Elementos conexión corta",
+            "tipo": "int",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.n_segmentar_conexion_larga": {
+            "simbolo": "n_larga",
+            "unidad": "-",
+            "descripcion": "Elementos conexión larga",
+            "tipo": "int",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.percentil_separacion_corta_larga": {
+            "simbolo": "p_sep",
+            "unidad": "-",
+            "descripcion": "Percentil separación corta/larga",
+            "tipo": "int",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.DIAGRAMAS_ACTIVOS.MQNT": {
+            "simbolo": "MQNT",
+            "unidad": "-",
+            "descripcion": "Diagrama MQNT",
+            "tipo": "bool",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.DIAGRAMAS_ACTIVOS.MRT": {
+            "simbolo": "MRT",
+            "unidad": "-",
+            "descripcion": "Diagrama MRT",
+            "tipo": "bool",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.DIAGRAMAS_ACTIVOS.MFE": {
+            "simbolo": "MFE",
+            "unidad": "-",
+            "descripcion": "Diagrama MFE",
+            "tipo": "bool",
+            "categoria": "AEE"
+        },
+        
         # PARÁMETROS DE COSTEO
         "costeo.postes.coef_a": {
             "simbolo": "Ca",
@@ -1155,16 +1213,63 @@ class ParametrosManager:
                         "tipo": metadata["tipo"]
                     })
         
+        # Procesar parámetros anidados de AEE
+        aee_filas = []
+        aee_estructura = estructura.get("AnalisisEstaticoEsfuerzos", {})
+        aee_plantilla = plantilla.get("AnalisisEstaticoEsfuerzos", {})
+        
+        for parametro, metadata in cls.PARAMETROS_METADATA.items():
+            if parametro.startswith("AnalisisEstaticoEsfuerzos."):
+                parts = parametro.split(".")
+                if len(parts) == 2:  # AnalisisEstaticoEsfuerzos.parametro
+                    param_name = parts[1]
+                    if param_name in aee_estructura:
+                        valor = aee_estructura[param_name]
+                    elif param_name in aee_plantilla:
+                        valor = aee_plantilla[param_name]
+                    else:
+                        valor = cls._valor_por_defecto(metadata["tipo"])
+                    
+                    aee_filas.append({
+                        "categoria": metadata["categoria"],
+                        "parametro": parametro,
+                        "simbolo": metadata["simbolo"],
+                        "valor": valor,
+                        "unidad": metadata["unidad"],
+                        "descripcion": metadata["descripcion"],
+                        "tipo": metadata["tipo"]
+                    })
+                elif len(parts) == 3:  # AnalisisEstaticoEsfuerzos.DIAGRAMAS_ACTIVOS.MQNT
+                    categoria_aee = parts[1]
+                    param_name = parts[2]
+                    if categoria_aee in aee_estructura and param_name in aee_estructura[categoria_aee]:
+                        valor = aee_estructura[categoria_aee][param_name]
+                    elif categoria_aee in aee_plantilla and param_name in aee_plantilla[categoria_aee]:
+                        valor = aee_plantilla[categoria_aee][param_name]
+                    else:
+                        valor = cls._valor_por_defecto(metadata["tipo"])
+                    
+                    aee_filas.append({
+                        "categoria": metadata["categoria"],
+                        "parametro": parametro,
+                        "simbolo": metadata["simbolo"],
+                        "valor": valor,
+                        "unidad": metadata["unidad"],
+                        "descripcion": metadata["descripcion"],
+                        "tipo": metadata["tipo"]
+                    })
+        
         # Ordenar por categoría, moviendo Costeo y Fundación al final
         orden_categorias = {"Costeo": 999, "Fundación": 998}
         tabla_data.sort(key=lambda x: (orden_categorias.get(x["categoria"], 0), x["categoria"], x["parametro"]))
         
-        # Construir resultado final: TITULO primero, luego resto, luego Gráficos, luego Costeo/Fundación
+        # Construir resultado final: TITULO primero, luego resto, luego Gráficos, luego AEE, luego Costeo/Fundación
         resultado = []
         if titulo_fila:
             resultado.append(titulo_fila)
         resultado.extend(tabla_data)
         resultado.extend(graficos_filas)
+        resultado.extend(aee_filas)
         resultado.extend(costeo_fundacion_filas)
         
         return resultado
@@ -1175,6 +1280,7 @@ class ParametrosManager:
         estructura = {}
         costeo = {"postes": {}, "accesorios": {}, "fundaciones": {}, "montaje": {}}
         parametros_graficos = {"colores": {}, "controles": {}}
+        aee = {"DIAGRAMAS_ACTIVOS": {}}
         
         for fila in tabla_data:
             parametro = fila["parametro"]
@@ -1203,6 +1309,18 @@ class ParametrosManager:
                         costeo[categoria][param_name] = valor
                 elif len(parts) == 2 and parts[1] == "adicional_estructura":
                     costeo["adicional_estructura"] = valor
+            # Manejar parámetros anidados de AEE
+            elif parametro.startswith("AnalisisEstaticoEsfuerzos."):
+                parts = parametro.split(".")
+                if len(parts) == 2:  # AnalisisEstaticoEsfuerzos.parametro
+                    param_name = parts[1]
+                    aee[param_name] = valor
+                elif len(parts) == 3:  # AnalisisEstaticoEsfuerzos.DIAGRAMAS_ACTIVOS.MQNT
+                    categoria_aee = parts[1]
+                    param_name = parts[2]
+                    if categoria_aee not in aee:
+                        aee[categoria_aee] = {}
+                    aee[categoria_aee][param_name] = valor
             else:
                 estructura[parametro] = valor
         
@@ -1213,6 +1331,10 @@ class ParametrosManager:
         # Agregar costeo si tiene datos
         if any(costeo[cat] for cat in ["postes", "accesorios", "fundaciones", "montaje"]) or "adicional_estructura" in costeo:
             estructura["costeo"] = costeo
+        
+        # Agregar AEE si tiene datos
+        if len(aee) > 1 or (len(aee) == 1 and "DIAGRAMAS_ACTIVOS" not in aee):  # Más que solo DIAGRAMAS_ACTIVOS vacío
+            estructura["AnalisisEstaticoEsfuerzos"] = aee
         
         return estructura
     

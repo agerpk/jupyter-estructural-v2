@@ -1,0 +1,171 @@
+"""
+Vista para Analisis Estatico de Esfuerzos (AEE)
+"""
+
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+
+def crear_vista_analisis_estatico(estructura_actual=None, calculo_guardado=None):
+    """Crear vista de analisis estatico de esfuerzos"""
+    
+    # Indicador de estructura activa
+    if estructura_actual:
+        titulo = estructura_actual.get('TITULO', 'Sin titulo')
+        indicador = dbc.Alert(f"Estructura: {titulo}", color="info", className="mb-3")
+    else:
+        indicador = dbc.Alert("No hay estructura activa", color="warning", className="mb-3")
+    
+    # Parametros AEE
+    aee_params = estructura_actual.get('AnalisisEstaticoEsfuerzos', {}) if estructura_actual else {}
+    diagramas = aee_params.get('DIAGRAMAS_ACTIVOS', {})
+    
+    # Controles AEE
+    controles = dbc.Card([
+        dbc.CardHeader(html.H6("Parametros AEE")),
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Graficos 3D"),
+                    dbc.Switch(
+                        id="aee-graficos-3d",
+                        value=aee_params.get('GRAFICOS_3D_AEE', True)
+                    )
+                ], width=6),
+                dbc.Col([
+                    html.Label("Elementos conexion corta"),
+                    dbc.Input(
+                        id="aee-n-corta",
+                        type="number",
+                        value=aee_params.get('n_segmentar_conexion_corta', 10),
+                        min=5, max=50, step=1
+                    )
+                ], width=6)
+            ], className="mb-3"),
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Elementos conexion larga"),
+                    dbc.Input(
+                        id="aee-n-larga",
+                        type="number",
+                        value=aee_params.get('n_segmentar_conexion_larga', 30),
+                        min=10, max=100, step=1
+                    )
+                ], width=6),
+                dbc.Col([
+                    html.Label("Percentil separacion"),
+                    dbc.Input(
+                        id="aee-percentil",
+                        type="number",
+                        value=aee_params.get('percentil_separacion_corta_larga', 50),
+                        min=0, max=100, step=1
+                    )
+                ], width=6)
+            ], className="mb-3"),
+            html.Label("Diagramas activos:"),
+            dbc.Checklist(
+                id="aee-diagramas",
+                options=[
+                    {"label": "MQNT", "value": "MQNT"},
+                    {"label": "MRT", "value": "MRT"},
+                    {"label": "MFE", "value": "MFE"}
+                ],
+                value=[k for k, v in diagramas.items() if v],
+                inline=True
+            ),
+            html.Hr(),
+            dbc.Button("Guardar Parametros", id="btn-guardar-params-aee", color="info", size="sm", className="w-100")
+        ])
+    ], className="mb-3")
+    
+    # Botones de accion
+    botones = dbc.Row([
+        dbc.Col(
+            dbc.Button(
+                "Calcular AEE",
+                id="btn-calcular-aee",
+                color="primary",
+                size="lg",
+                className="w-100"
+            ),
+            width=6
+        ),
+        dbc.Col(
+            dbc.Button(
+                "Cargar desde Cache",
+                id="btn-cargar-cache-aee",
+                color="secondary",
+                size="lg",
+                className="w-100"
+            ),
+            width=6
+        )
+    ], className="mb-3")
+    
+    # Area de resultados
+    if calculo_guardado:
+        resultados = generar_resultados_aee(calculo_guardado, estructura_actual)
+    else:
+        resultados = html.Div([
+            html.P("Presione 'Calcular AEE' para ejecutar el analisis estatico de esfuerzos.", 
+                   className="text-muted text-center mt-5")
+        ], id="resultados-aee")
+    
+    return html.Div([
+        indicador,
+        dbc.Card([
+            dbc.CardHeader(html.H4("Analisis Estatico de Esfuerzos (AEE)", className="mb-0")),
+            dbc.CardBody([
+                controles,
+                botones,
+                html.Hr(),
+                resultados
+            ])
+        ])
+    ])
+
+def generar_resultados_aee(calculo_guardado, estructura_actual):
+    """Genera vista de resultados desde cache"""
+    from utils.view_helpers import ViewHelpers
+    
+    resultados = calculo_guardado.get('resultados', {})
+    hash_params = calculo_guardado.get('hash_parametros', '')
+    
+    # Alerta de cache
+    vigente = True
+    if estructura_actual:
+        from utils.calculo_cache import CalculoCache
+        vigente = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+    
+    alerta = ViewHelpers.crear_alerta_cache(
+        mostrar_vigencia=True,
+        vigente=vigente,
+        mensaje_vigente="Cache vigente - Parametros sin cambios",
+        mensaje_no_vigente="Cache desactualizado - Parametros modificados"
+    )
+    
+    componentes = [alerta]
+    
+    # Seccion de diagramas
+    diagramas = resultados.get('diagramas', {})
+    
+    if diagramas:
+        componentes.append(html.H5("Diagramas de Esfuerzos", className="mt-4 mb-3"))
+        
+        # Cargar imagenes de diagramas
+        for nombre_diagrama in diagramas.keys():
+            # Formato: MRT_HIP_nombre o MFE_HIP_nombre
+            img_filename = f"AEE_{nombre_diagrama}.{hash_params}.png"
+            img_str = ViewHelpers.cargar_imagen_base64(img_filename)
+            
+            if img_str:
+                componentes.append(html.Div([
+                    html.H6(nombre_diagrama.replace('_', ' '), className="mt-3"),
+                    html.Img(
+                        src=f'data:image/png;base64,{img_str}',
+                        style={'width': '100%', 'maxWidth': '1200px'}
+                    )
+                ]))
+    else:
+        componentes.append(html.P("No se generaron diagramas.", className="text-muted"))
+    
+    return html.Div(componentes, id="resultados-aee")

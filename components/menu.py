@@ -82,6 +82,8 @@ def crear_menu_calcular():
             dbc.DropdownMenuItem("Fundación", id="menu-fundacion"),
             dbc.DropdownMenuItem("Costeo", id="menu-costeo"),
             dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem("Análisis Estático Esfuerzos (AEE)", id="menu-analisis-estatico"),
+            dbc.DropdownMenuItem(divider=True),
             dbc.DropdownMenuItem("Calcular Todo", id="menu-calcular-todo", style={"fontWeight": "bold"}),
         ],
         nav=True,

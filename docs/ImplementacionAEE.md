@@ -1,5 +1,42 @@
 # Implementación AEE - Análisis Estático de Esfuerzos
 
+## ESTADO DE IMPLEMENTACIÓN
+
+### ✅ COMPLETADO - LISTO PARA TESTEAR
+- **Fase 1**: Parámetros en plantilla.estructura.json
+- **Fase 2**: Vista Ajustar Parámetros (tabla + panel)
+- **Fase 3**: Utility analisis_estatico.py
+- **Fase 4**: Vista AEE
+- **Fase 5**: Controller AEE
+- **Fase 6**: Integración app.py + menú
+- **Fase 9 (parcial)**: Cache System (guardar/cargar)
+
+### ⏳ PENDIENTE
+- **Fase 7**: Vista Calcular Todo
+- **Fase 8**: Familia de Estructuras
+- **Fase 10**: Descargar HTML
+- **Fase 11**: Testing completo
+- **Fase 12**: Optimizaciones
+
+### 📦 ARCHIVOS CREADOS
+- `utils/analisis_estatico.py` - Clase AnalizadorEstatico
+- `components/vista_analisis_estatico.py` - Vista AEE
+- `controllers/aee_controller.py` - Controller con callbacks
+
+### 🔧 ARCHIVOS MODIFICADOS
+- `data/plantilla.estructura.json` - Parámetros AEE
+- `data/2x220 DTT SAN JORGE PRUEBAS.estructura.json` - Parámetros AEE
+- `components/vista_ajuste_parametros.py` - Sección AEE
+- `utils/parametros_manager.py` - Metadatos AEE
+- `utils/calculo_cache.py` - Métodos guardar/cargar AEE
+- `app.py` - Import y registro de aee_controller
+- `components/menu.py` - Entrada "Análisis Estático Esfuerzos (AEE)"
+- `controllers/navigation_controller.py` - Ruta menu-analisis-estatico
+
+---
+
+# Implementación AEE - Análisis Estático de Esfuerzos
+
 ## Resumen Ejecutivo
 
 Nueva feature para análisis estático de estructuras sin propiedades E, I, A. Utiliza numpy para cálculos de esfuerzos MQNT (Momento, Corte, Normal, Torsión) y genera diagramas 2D/3D estáticos (PNG) con escala de colores.
@@ -405,11 +442,14 @@ def register_callbacks(app):
             raise dash.exceptions.PreventUpdate
         
         try:
-            # Recargar estructura
-            from config.app_config import DATA_DIR
+            # Recargar estructura desde archivo activo
             from models.app_state import AppState
             state = AppState()
-            estructura_actual = state.estructura_manager.cargar_estructura(DATA_DIR / "actual.estructura.json")
+            ruta_actual = state.estructura_manager.ruta_estructura_actual
+            if ruta_actual:
+                estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
+            else:
+                return no_update, True, "Error", "No hay estructura activa", "danger", "danger"
             
             # Verificar DGE/DME
             calculo_dge = CalculoCache.cargar_calculo_dge(estructura_actual['TITULO'])
@@ -1577,3 +1617,21 @@ def generar_contenido_aee():
 - [ ] Probar prerequisitos (sin DGE/DME)
 - [ ] Probar con nombres con espacios
 - [ ] Verificar no hay memory leaks (figuras cerradas)
+
+
+## Notas sobre Estructura Activa
+
+**IMPORTANTE**: El proyecto NO usa `actual.estructura.json`. En su lugar:
+
+1. **State en Dash**: `estructura-actual` contiene datos de la estructura activa
+2. **Recargar desde archivo**: Usar `state.estructura_manager.ruta_estructura_actual` para obtener ruta
+3. **Patrón en callbacks**:
+```python
+from models.app_state import AppState
+state = AppState()
+ruta_actual = state.estructura_manager.ruta_estructura_actual
+if ruta_actual:
+    estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
+```
+
+Este patrón se aplica en TODOS los callbacks críticos de AEE.

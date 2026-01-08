@@ -93,6 +93,7 @@ def register_callbacks(app):
         Input("menu-comparativa-cmc", "n_clicks"),
         Input("menu-familia-estructuras", "n_clicks"),
         Input("menu-vano-economico", "n_clicks"),
+        Input("menu-analisis-estatico", "n_clicks"),
         State("estructura-actual", "data"),
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
@@ -100,7 +101,8 @@ def register_callbacks(app):
                        n_clicks_agregar_cable, n_clicks_modificar_cable, n_clicks_eliminar_cable,
                        n_clicks_diseno_geom, n_clicks_diseno_mec, n_clicks_arboles, n_clicks_sph, 
                        n_clicks_fundacion, n_clicks_costeo, n_clicks_calcular_todo, n_clicks_consola, 
-                       n_clicks_comparativa_cmc, n_clicks_familia, n_clicks_vano_economico, estructura_actual):
+                       n_clicks_comparativa_cmc, n_clicks_familia, n_clicks_vano_economico, 
+                       n_clicks_aee, estructura_actual):
         ctx = callback_context
         
         # Detectar carga inicial (app restart o hot reload)
@@ -192,6 +194,14 @@ def register_callbacks(app):
             elif ultima_vista == "vano-economico":
                 from components.vista_vano_economico import crear_vista_vano_economico
                 return crear_vista_vano_economico()
+            elif ultima_vista == "analisis-estatico":
+                from components.vista_analisis_estatico import crear_vista_analisis_estatico
+                from utils.calculo_cache import CalculoCache
+                calculo_guardado = None
+                if estructura_actual:
+                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                    calculo_guardado = CalculoCache.cargar_calculo_aee(nombre_estructura)
+                return crear_vista_analisis_estatico(estructura_actual, calculo_guardado)
             return crear_vista_home()
         
         print(f"DEBUG: Trigger detectado: {trigger_id}")
@@ -336,6 +346,16 @@ def register_callbacks(app):
             guardar_navegacion_state("vano-economico")
             from components.vista_vano_economico import crear_vista_vano_economico
             return crear_vista_vano_economico()
+        
+        elif trigger_id == "menu-analisis-estatico":
+            guardar_navegacion_state("analisis-estatico")
+            from components.vista_analisis_estatico import crear_vista_analisis_estatico
+            from utils.calculo_cache import CalculoCache
+            calculo_guardado = None
+            if estructura_actual:
+                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                calculo_guardado = CalculoCache.cargar_calculo_aee(nombre_estructura)
+            return crear_vista_analisis_estatico(estructura_actual, calculo_guardado)
         
         elif "btn-volver" in trigger_id:
             try:

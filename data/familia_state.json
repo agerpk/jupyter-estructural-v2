@@ -1,9 +1,10 @@
 {
-  "estructura_activa": "PSJ-2X220-DTV-S_BASE_1hg_vano350m",
+  "estructura_activa": "TECPETROL_Edt_mas2",
   "calculos_activos": [
     "cmc",
     "dge",
     "dme",
-    "arboles"
+    "arboles",
+    "sph"
   ]
 }

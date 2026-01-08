@@ -380,6 +380,38 @@ def crear_vista_ajuste_parametros(estructura_actual=None, cables_disponibles=Non
         estructura_actual, opciones
     ))
     
+    # ANÁLISIS ESTÁTICO DE ESFUERZOS (AEE)
+    def crear_campos_aee(estructura_actual):
+        """Crear campos para parámetros de AEE anidados"""
+        aee = estructura_actual.get('AnalisisEstaticoEsfuerzos', {})
+        diagramas = aee.get('DIAGRAMAS_ACTIVOS', {})
+        
+        campos_col1 = [
+            crear_campo("aee_activar", bool, aee.get('ACTIVAR_AEE', True), "Activar módulo AEE"),
+            crear_campo("aee_graficos_3d", bool, aee.get('GRAFICOS_3D_AEE', True), "Gráficos 3D (False=2D)"),
+            crear_campo("aee_n_corta", int, aee.get('n_segmentar_conexion_corta', 10), "Elementos conexión corta"),
+            crear_campo("aee_n_larga", int, aee.get('n_segmentar_conexion_larga', 30), "Elementos conexión larga"),
+        ]
+        
+        campos_col2 = [
+            crear_campo("aee_percentil", int, aee.get('percentil_separacion_corta_larga', 50), "Percentil separación corta/larga"),
+            crear_campo("aee_mqnt", bool, diagramas.get('MQNT', True), "Diagrama MQNT"),
+            crear_campo("aee_mrt", bool, diagramas.get('MRT', True), "Diagrama MRT"),
+            crear_campo("aee_mfe", bool, diagramas.get('MFE', True), "Diagrama MFE"),
+        ]
+        
+        return campos_col1, campos_col2
+    
+    campos_aee_col1, campos_aee_col2 = crear_campos_aee(estructura_actual)
+    
+    bloques.append(html.Div([
+        html.H5("ANÁLISIS ESTÁTICO DE ESFUERZOS (AEE)", style={"color": "#2084f2", "marginTop": "20px", "marginBottom": "15px", "fontSize": "1.5rem"}),
+        dbc.Row([
+            dbc.Col(campos_aee_col1, width=6),
+            dbc.Col(campos_aee_col2, width=6)
+        ])
+    ]))
+    
     # PARÁMETROS DE COSTEO
     def crear_campos_costeo(estructura_actual):
         """Crear campos para parámetros de costeo anidados"""
