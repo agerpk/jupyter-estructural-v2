@@ -1,270 +1,502 @@
 """
-Análisis Estático de Esfuerzos (AEE)
-Calcula esfuerzos en barras de estructura sin propiedades E, I, A
+Análisis Estático de Esfuerzos (AEE) usando OpenSeesPy
+Calcula esfuerzos en barras de estructura con propiedades E, I, A simuladas
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from typing import Dict, List, Tuple, Optional
+import openseespy.opensees as ops
+
+def calcular_propiedades_barra_circular(diametro=0.10):
+    """
+    Calcula propiedades de una barra circular de acero.
+    
+    Args:
+        diametro: Diámetro de la barra en metros (default 10 cm)
+    
+    Returns:
+        dict con A, E, G, Ix, Iy, Iz (J)
+    """
+    E_acero = 200e9
+    nu_acero = 0.3
+    G_acero = E_acero / (2 * (1 + nu_acero))
+    
+    A = (np.pi / 4) * diametro**2
+    I = (np.pi / 64) * diametro**4
+    J = (np.pi / 32) * diametro**4
+    
+    return {'A': A, 'E': E_acero, 'G': G_acero, 'Ix': I, 'Iy': I, 'Iz': J}
 
 class AnalizadorEstatico:
-    """Analizador estático de esfuerzos en estructuras"""
+    """Analizador estático de esfuerzos usando OpenSeesPy"""
     
     def __init__(self, geometria, mecanica, parametros_aee):
-        """
-        Args:
-            geometria: EstructuraAEA_Geometria con nodos y conexiones
-            mecanica: EstructuraAEA_Mecanica con cargas por hipótesis
-            parametros_aee: Dict con configuración AEE
-        """
         self.geometria = geometria
         self.mecanica = mecanica
         self.parametros = parametros_aee
-        
-        # Extraer conexiones de geometría
+        self.props_barra = calcular_propiedades_barra_circular(diametro=0.10)
         self.conexiones = self._extraer_conexiones()
         
-        # Segmentar conexiones
-        self.conexiones_segmentadas = self._segmentar_conexiones()
+        print(f"📐 Propiedades de barra circular (D=10cm):")
+        print(f"   A = {self.props_barra['A']:.6f} m²")
+        print(f"   E = {self.props_barra['E']/1e9:.1f} GPa")
+        print(f"   I = {self.props_barra['Ix']:.8f} m⁴")
     
-    def _extraer_conexiones(self) -> List[Tuple[str, str]]:
-        """Extrae lista de conexiones (nodo_i, nodo_j) desde geometría"""
-        conexiones = []
+    def _extraer_conexiones(self):
+        """Extrae y limpia conexiones desde geometría"""
+        conexiones_raw = []
         
-        # Recorrer todas las conexiones en geometría
-        for nombre_nodo, nodo in self.geometria.nodos.items():
-            # Las conexiones están en nodo.conexiones como lista de nombres
-            if hasattr(nodo, 'conexiones'):
-                for nodo_destino in nodo.conexiones:
-                    # Evitar duplicados (A-B y B-A)
-                    if (nombre_nodo, nodo_destino) not in conexiones and \
-                       (nodo_destino, nombre_nodo) not in conexiones:
-                        conexiones.append((nombre_nodo, nodo_destino))
-        
-        return conexiones
-    
-    def _segmentar_conexiones(self) -> Dict:
-        """Segmenta conexiones en cortas/largas según percentil"""
-        # Calcular longitudes
-        longitudes = []
-        for nodo_i, nodo_j in self.conexiones:
-            coord_i = self.geometria.nodos[nodo_i].coordenadas
-            coord_j = self.geometria.nodos[nodo_j].coordenadas
-            longitud = np.linalg.norm(np.array(coord_j) - np.array(coord_i))
-            longitudes.append(longitud)
-        
-        # Calcular percentil
-        percentil = self.parametros.get('percentil_separacion_corta_larga', 50)
-        umbral = np.percentile(longitudes, percentil)
-        
-        # Clasificar y segmentar
-        segmentadas = {
-            'cortas': [],
-            'largas': []
-        }
-        
-        n_corta = self.parametros.get('n_segmentar_conexion_corta', 10)
-        n_larga = self.parametros.get('n_segmentar_conexion_larga', 30)
-        
-        for (nodo_i, nodo_j), longitud in zip(self.conexiones, longitudes):
-            n_elementos = n_corta if longitud <= umbral else n_larga
-            categoria = 'cortas' if longitud <= umbral else 'largas'
+        if hasattr(self.geometria, 'conexiones') and self.geometria.conexiones:
+            for conn in self.geometria.conexiones:
+                if isinstance(conn, (list, tuple)) and len(conn) >= 2:
+                    nodo_i, nodo_j = conn[0], conn[1]
+                    tipo_conn = conn[2] if len(conn) > 2 else 'barra'
+                    conexiones_raw.append((nodo_i, nodo_j, tipo_conn))
             
-            segmentadas[categoria].append({
-                'nodo_i': nodo_i,
-                'nodo_j': nodo_j,
-                'longitud': longitud,
-                'n_elementos': n_elementos
-            })
+            if conexiones_raw:
+                conexiones_sin_cadena = [(i, j, t) for i, j, t in conexiones_raw if t != 'cadena']
+                
+                crucetas = [(i, j, t) for i, j, t in conexiones_sin_cadena if t == 'cruceta']
+                mensulas = [(i, j, t) for i, j, t in conexiones_sin_cadena if t == 'mensula']
+                
+                crucetas_redundantes = set()
+                for nodo_a, nodo_b, _ in crucetas:
+                    for nodo_c1, nodo_d1, _ in mensulas:
+                        for nodo_c2, nodo_d2, _ in mensulas:
+                            if nodo_c1 == nodo_c2:
+                                extremos_mensulas = {nodo_d1, nodo_d2}
+                                extremos_cruceta = {nodo_a, nodo_b}
+                                if extremos_mensulas == extremos_cruceta:
+                                    crucetas_redundantes.add((nodo_a, nodo_b))
+                                    crucetas_redundantes.add((nodo_b, nodo_a))
+                
+                conexiones_limpias = []
+                pares_vistos = set()
+                
+                for nodo_i, nodo_j, tipo_conn in conexiones_sin_cadena:
+                    if tipo_conn == 'cruceta' and (nodo_i, nodo_j) in crucetas_redundantes:
+                        continue
+                    
+                    par = tuple(sorted([nodo_i, nodo_j]))
+                    if par not in pares_vistos:
+                        pares_vistos.add(par)
+                        conexiones_limpias.append((nodo_i, nodo_j))
+                
+                print(f"📊 Conexiones: {len(conexiones_raw)} raw → {len(conexiones_limpias)} limpias")
+                return conexiones_limpias
         
-        return segmentadas
+        return []
     
     def resolver_sistema(self, hipotesis_nombre: str) -> Dict:
-        """
-        Resuelve sistema de ecuaciones para obtener esfuerzos
+        """Resuelve sistema usando OpenSeesPy con subdivisión de elementos"""
         
-        Args:
-            hipotesis_nombre: Nombre de hipótesis de carga
+        print(f"\n🔍 Analizando hipótesis: {hipotesis_nombre}")
+        print(f"   Nodos originales: {len(self.geometria.nodos)}")
+        print(f"   Conexiones: {len(self.conexiones)}")
+        
+        # Validar parámetros obligatorios
+        n_corta = self.parametros.get('n_segmentar_conexion_corta')
+        n_larga = self.parametros.get('n_segmentar_conexion_larga')
+        percentil = self.parametros.get('percentil_separacion_corta_larga')
+        
+        if n_corta is None:
+            raise ValueError("Parámetro obligatorio 'n_segmentar_conexion_corta' no definido")
+        if n_larga is None:
+            raise ValueError("Parámetro obligatorio 'n_segmentar_conexion_larga' no definido")
+        if percentil is None:
+            raise ValueError("Parámetro obligatorio 'percentil_separacion_corta_larga' no definido")
+        
+        # Calcular longitudes de conexiones para determinar umbral
+        longitudes = []
+        conexiones_invalidas = []
+        for ni, nj in self.conexiones:
+            if ni not in self.geometria.nodos:
+                conexiones_invalidas.append((ni, nj, f"nodo '{ni}' no existe"))
+                continue
+            if nj not in self.geometria.nodos:
+                conexiones_invalidas.append((ni, nj, f"nodo '{nj}' no existe"))
+                continue
+            ci = np.array(self.geometria.nodos[ni].coordenadas)
+            cj = np.array(self.geometria.nodos[nj].coordenadas)
+            longitud = np.linalg.norm(cj - ci)
+            longitudes.append(longitud)
+        
+        if conexiones_invalidas:
+            raise ValueError(f"Conexiones inválidas detectadas: {conexiones_invalidas}")
+        
+        if not longitudes:
+            raise ValueError("No hay conexiones válidas para analizar")
+        
+        umbral_longitud = np.percentile(longitudes, percentil)
+        
+        print(f"   Subdivisiones: corta={n_corta}, larga={n_larga}, percentil={percentil}")
+        print(f"   Umbral longitud: {umbral_longitud:.2f} m")
+        
+        # PASO 1: PREPARAR ESTRUCTURA COMPLETA (ANTES de ops.model)
+        nodos_base = [n for n, nodo in self.geometria.nodos.items() 
+                     if 'BASE' in n.upper() or getattr(nodo, 'tipo_restriccion', None) == 'FIXED']
+        
+        if not nodos_base:
+            print("   ⚠️ No se encontraron nodos BASE")
+            return {}
+        
+        print(f"   Nodos BASE: {nodos_base}")
+        
+        # 1.1: Preparar diccionario de nodos (originales + intermedios)
+        nodos_dict = {}  # {nombre: {'coord': [x,y,z], 'tag': int, 'restriccion': [0/1]*6}}
+        tag = 1
+        
+        # Nodos originales
+        for nombre, nodo in self.geometria.nodos.items():
+            restriccion = [1,1,1,1,1,1] if nombre in nodos_base else [0,0,0,0,0,0]
+            nodos_dict[nombre] = {'coord': nodo.coordenadas, 'tag': tag, 'restriccion': restriccion}
+            tag += 1
+        
+        # Nodos intermedios (con subdivisión variable según longitud)
+        for ni, nj in self.conexiones:
+            ci = np.array(self.geometria.nodos[ni].coordenadas)
+            cj = np.array(self.geometria.nodos[nj].coordenadas)
+            longitud = np.linalg.norm(cj - ci)
             
-        Returns:
-            Dict con esfuerzos por conexión {(nodo_i, nodo_j): [N, Qy, Qz, Mx, My, Mz]}
-        """
-        # Obtener cargas de la hipótesis
-        cargas = self._obtener_cargas_hipotesis(hipotesis_nombre)
+            # Determinar n_subdiv según longitud
+            n_subdiv = n_larga if longitud > umbral_longitud else n_corta
+            
+            for k in range(1, n_subdiv):
+                t = k / n_subdiv
+                c_inter = ci + t * (cj - ci)
+                nombre_inter = f"{ni}_{nj}_{k}"
+                nodos_dict[nombre_inter] = {'coord': c_inter.tolist(), 'tag': tag, 'restriccion': [0,0,0,0,0,0]}
+                tag += 1
         
-        # Construir matriz de rigidez (solo geométrica, sin E/I/A)
-        K = self._construir_matriz_rigidez()
+        print(f"   Nodos preparados: {len(nodos_dict)} (originales + intermedios)")
         
-        # Vector de cargas
-        F = self._construir_vector_cargas(cargas)
+        # 1.2: Preparar diccionario de elementos con ejes locales
+        elementos_dict = {}  # {elem_id: {..., 'ejes_locales': matriz 3x3}}
+        elem_id = 1
         
-        # Resolver sistema K * u = F
+        for ni, nj in self.conexiones:
+            ci = np.array(self.geometria.nodos[ni].coordenadas)
+            cj = np.array(self.geometria.nodos[nj].coordenadas)
+            longitud = np.linalg.norm(cj - ci)
+            
+            # Determinar n_subdiv según longitud
+            n_subdiv = n_larga if longitud > umbral_longitud else n_corta
+            
+            # Calcular ejes locales del elemento
+            vec_x_local = (cj - ci) / longitud  # Eje X local = dirección del elemento
+            
+            # Determinar transfTag y vector de referencia
+            dz = abs(vec_x_local[2])
+            dx = abs(vec_x_local[0])
+            dy = abs(vec_x_local[1])
+            
+            if dz > max(dx, dy):  # Elemento vertical
+                transfTag = 1
+                vec_ref = np.array([0., 1., 0.])  # Referencia Y global
+            else:  # Elemento horizontal/inclinado
+                transfTag = 2
+                vec_ref = np.array([0., 0., 1.])  # Referencia Z global
+            
+            # Calcular eje Z local (perpendicular a X y referencia)
+            vec_z_local = np.cross(vec_x_local, vec_ref)
+            vec_z_local = vec_z_local / np.linalg.norm(vec_z_local)
+            
+            # Calcular eje Y local (perpendicular a X y Z)
+            vec_y_local = np.cross(vec_z_local, vec_x_local)
+            
+            # Matriz de transformación: columnas = ejes locales en coordenadas globales
+            ejes_locales = np.column_stack([vec_x_local, vec_y_local, vec_z_local])
+            
+            # Secuencia de tags para esta conexión
+            tags_secuencia = [nodos_dict[ni]['tag']]
+            for k in range(1, n_subdiv):
+                nombre_inter = f"{ni}_{nj}_{k}"
+                tags_secuencia.append(nodos_dict[nombre_inter]['tag'])
+            tags_secuencia.append(nodos_dict[nj]['tag'])
+            
+            # Crear subelementos
+            for idx in range(n_subdiv):
+                elementos_dict[elem_id] = {
+                    'tag_i': tags_secuencia[idx],
+                    'tag_j': tags_secuencia[idx + 1],
+                    'transfTag': transfTag,
+                    'origen': (ni, nj, idx),
+                    'n_subdiv': n_subdiv,
+                    'ejes_locales': ejes_locales,
+                    'vec_x_local': vec_x_local
+                }
+                elem_id += 1
+        
+        print(f"   Elementos preparados: {len(elementos_dict)} subelementos")
+        
+        # Diagnóstico de ejes locales (primeros 5 elementos)
+        print(f"\n   📊 Diagnóstico de Ejes Locales (primeros 5 elementos):")
+        for eid in list(elementos_dict.keys())[:5]:
+            data = elementos_dict[eid]
+            ni, nj, _ = data['origen']
+            vec_x = data['vec_x_local']
+            ejes = data['ejes_locales']
+            print(f"   Elem {eid} ({ni}-{nj}):")
+            print(f"      X_local: [{vec_x[0]:6.3f}, {vec_x[1]:6.3f}, {vec_x[2]:6.3f}]")
+            print(f"      Y_local: [{ejes[0,1]:6.3f}, {ejes[1,1]:6.3f}, {ejes[2,1]:6.3f}]")
+            print(f"      Z_local: [{ejes[0,2]:6.3f}, {ejes[1,2]:6.3f}, {ejes[2,2]:6.3f}]")
+        
+        # 1.3: Preparar cargas
+        cargas_dict = {}  # {tag: [fx, fy, fz, mx, my, mz]}
+        for nombre, nodo in self.geometria.nodos.items():
+            if nombre not in nodos_base and nombre in nodos_dict:
+                cargas = nodo.obtener_cargas_hipotesis(hipotesis_nombre)
+                if cargas and any(abs(cargas.get(k, 0)) > 0.01 for k in ['fx', 'fy', 'fz']):
+                    tag_nodo = nodos_dict[nombre]['tag']
+                    cargas_dict[tag_nodo] = [cargas['fx'], cargas['fy'], cargas['fz'], 0, 0, 0]
+        
+        print(f"   Cargas preparadas: {len(cargas_dict)} nodos con carga")
+        
+        if len(cargas_dict) == 0:
+            print("   ⚠️ No hay cargas para esta hipótesis")
+            return {}
+        
+        # PASO 2: CREAR MODELO OPENSEESPY
+        ops.wipe()
+        ops.model('basic', '-ndm', 3, '-ndf', 6)
+        
+        # 2.1: Crear nodos
+        for nombre, data in nodos_dict.items():
+            c = data['coord']
+            ops.node(data['tag'], c[0], c[1], c[2])
+            ops.fix(data['tag'], *data['restriccion'])
+        
+        # 2.2: Transformaciones
+        ops.geomTransf('Linear', 1, 0., 1., 0.)
+        ops.geomTransf('Linear', 2, 0., 0., 1.)
+        
+        # 2.3: Crear elementos
+        for eid, data in elementos_dict.items():
+            ops.element('elasticBeamColumn', eid, data['tag_i'], data['tag_j'],
+                       self.props_barra['A'], self.props_barra['E'], self.props_barra['G'],
+                       self.props_barra['Iz'], self.props_barra['Ix'], self.props_barra['Iy'],
+                       data['transfTag'])
+        
+        # 2.4: Aplicar cargas
+        ops.timeSeries('Constant', 1)
+        ops.pattern('Plain', 1, 1)
+        
+        for tag_nodo, carga in cargas_dict.items():
+            ops.load(tag_nodo, *carga)
+        
+        # PASO 3: ANÁLISIS
+        ops.constraints('Plain')
+        ops.numberer('RCM')
+        ops.system('BandGeneral')
+        ops.test('NormDispIncr', 1.0e-6, 10)
+        ops.algorithm('Linear')
+        ops.integrator('LoadControl', 1.0)
+        ops.analysis('Static')
+        
         try:
-            u = np.linalg.solve(K, F)
-        except np.linalg.LinAlgError:
-            # Sistema singular, usar mínimos cuadrados
-            u = np.linalg.lstsq(K, F, rcond=None)[0]
+            resultado = ops.analyze(1)
+            if resultado != 0:
+                print("   🔄 Reintentando con Newton...")
+                ops.algorithm('Newton')
+                resultado = ops.analyze(1)
+            
+            if resultado != 0:
+                raise RuntimeError("Análisis no convergió después de reintentos")
+            
+            print("   ✅ Análisis convergió")
+        except Exception as e:
+            print(f"   ❌ Error en análisis: {e}")
+            raise
         
-        # Calcular esfuerzos en cada conexión
-        esfuerzos = self._calcular_esfuerzos_conexiones(u)
+        # PASO 4: EXTRAER RESULTADOS Y TRANSFORMAR A EJES GLOBALES
+        valores_subnodos = {}
+        for eid, data in elementos_dict.items():
+            try:
+                fuerzas_locales = ops.eleForce(eid)
+                ni, nj, sub_idx = data['origen']
+                ejes_locales = data['ejes_locales']
+                
+                # Extraer fuerzas/momentos en ejes locales (nodo i)
+                N_local_i = fuerzas_locales[0]   # Axial
+                Qy_local_i = fuerzas_locales[1]  # Cortante Y local
+                Qz_local_i = fuerzas_locales[2]  # Cortante Z local
+                Mx_local_i = fuerzas_locales[3]  # Momento X local (torsión en eje elemento)
+                My_local_i = fuerzas_locales[4]  # Momento Y local
+                Mz_local_i = fuerzas_locales[5]  # Momento Z local
+                
+                # Extraer fuerzas/momentos en ejes locales (nodo j)
+                N_local_j = fuerzas_locales[6]
+                Qy_local_j = fuerzas_locales[7]
+                Qz_local_j = fuerzas_locales[8]
+                Mx_local_j = fuerzas_locales[9]
+                My_local_j = fuerzas_locales[10]
+                Mz_local_j = fuerzas_locales[11]
+                
+                # Transformar momentos a ejes globales
+                # M_local = [Mx, My, Mz] en sistema local
+                # M_global = R * M_local, donde R = matriz de ejes locales
+                M_local_i = np.array([Mx_local_i, My_local_i, Mz_local_i])
+                M_global_i = ejes_locales @ M_local_i
+                
+                M_local_j = np.array([Mx_local_j, My_local_j, Mz_local_j])
+                M_global_j = ejes_locales @ M_local_j
+                
+                # Calcular magnitudes en ejes globales
+                # Momento Flector Global = componentes perpendiculares al eje del elemento
+                vec_x_local = data['vec_x_local']
+                
+                # Proyección del momento en dirección del elemento = Torsión
+                T_i = abs(np.dot(M_global_i, vec_x_local))
+                T_j = abs(np.dot(M_global_j, vec_x_local))
+                
+                # Componente perpendicular = Flexión
+                M_perp_i = M_global_i - T_i * vec_x_local
+                M_perp_j = M_global_j - T_j * vec_x_local
+                M_i = np.linalg.norm(M_perp_i)
+                M_j = np.linalg.norm(M_perp_j)
+                
+                # Cortantes (magnitud)
+                Q_i = np.sqrt(Qy_local_i**2 + Qz_local_i**2)
+                Q_j = np.sqrt(Qy_local_j**2 + Qz_local_j**2)
+                
+                # Almacenar: [N, Q, M, T, componentes originales...]
+                valores_subnodos[f"{ni}_{nj}_{sub_idx}_i"] = np.array([
+                    abs(N_local_i), Q_i, M_i, T_i,
+                    fuerzas_locales[0], fuerzas_locales[1], fuerzas_locales[2],
+                    fuerzas_locales[3], fuerzas_locales[4], fuerzas_locales[5]
+                ])
+                valores_subnodos[f"{ni}_{nj}_{sub_idx}_j"] = np.array([
+                    abs(N_local_j), Q_j, M_j, T_j,
+                    fuerzas_locales[6], fuerzas_locales[7], fuerzas_locales[8],
+                    fuerzas_locales[9], fuerzas_locales[10], fuerzas_locales[11]
+                ])
+            except Exception as e:
+                print(f"   ⚠️ Error procesando elemento {eid}: {e}")
+                pass
         
-        return esfuerzos
+        # Extraer reacciones en BASE
+        ops.reactions()
+        reacciones_base = {}
+        for nombre in nodos_base:
+            if nombre in nodos_dict:
+                tag = nodos_dict[nombre]['tag']
+                try:
+                    reaccion = ops.nodeReaction(tag)
+                    reacciones_base[nombre] = {'Fx': reaccion[0], 'Fy': reaccion[1], 'Fz': reaccion[2],
+                                               'Mx': reaccion[3], 'My': reaccion[4], 'Mz': reaccion[5]}
+                except:
+                    pass
+        
+        print(f"   Valores extraídos: {len(valores_subnodos)} subnodos")
+        return {'valores': valores_subnodos, 'reacciones': reacciones_base, 'elementos_dict': elementos_dict}
     
-    def _obtener_cargas_hipotesis(self, hipotesis_nombre: str) -> Dict:
-        """Obtiene cargas de nodos para hipótesis"""
-        cargas = {}
-        
-        for nombre_nodo, nodo in self.geometria.nodos.items():
-            # Obtener cargas del nodo en coordenadas globales
-            carga = nodo.obtener_cargas_hipotesis(hipotesis_nombre)
-            if carga:
-                cargas[nombre_nodo] = carga
-        
-        return cargas
-    
-    def _construir_matriz_rigidez(self) -> np.ndarray:
-        """Construye matriz de rigidez geométrica (sin E/I/A)"""
-        n_nodos = len(self.geometria.nodos)
-        n_gdl = n_nodos * 6  # 6 grados de libertad por nodo
-        
-        K = np.zeros((n_gdl, n_gdl))
-        
-        # Agregar rigidez de cada conexión
-        for conexion in self.conexiones:
-            nodo_i, nodo_j = conexion
-            k_local = self._matriz_rigidez_barra(nodo_i, nodo_j)
-            
-            # Ensamblar en matriz global
-            idx_i = list(self.geometria.nodos.keys()).index(nodo_i)
-            idx_j = list(self.geometria.nodos.keys()).index(nodo_j)
-            
-            gdl_i = slice(idx_i * 6, (idx_i + 1) * 6)
-            gdl_j = slice(idx_j * 6, (idx_j + 1) * 6)
-            
-            K[gdl_i, gdl_i] += k_local[:6, :6]
-            K[gdl_i, gdl_j] += k_local[:6, 6:]
-            K[gdl_j, gdl_i] += k_local[6:, :6]
-            K[gdl_j, gdl_j] += k_local[6:, 6:]
-        
-        return K
-    
-    def _matriz_rigidez_barra(self, nodo_i: str, nodo_j: str) -> np.ndarray:
-        """Matriz de rigidez de barra (12x12) sin E/I/A"""
-        coord_i = np.array(self.geometria.nodos[nodo_i].coordenadas)
-        coord_j = np.array(self.geometria.nodos[nodo_j].coordenadas)
-        
-        L = np.linalg.norm(coord_j - coord_i)
-        
-        # Vector director
-        v = (coord_j - coord_i) / L
-        
-        # Matriz de rigidez simplificada (solo geometría)
-        k = np.zeros((12, 12))
-        
-        # Rigidez axial (normalizada)
-        k[0, 0] = k[6, 6] = 1.0 / L
-        k[0, 6] = k[6, 0] = -1.0 / L
-        
-        # Rigidez flexional (normalizada)
-        k[1, 1] = k[7, 7] = 12.0 / L**3
-        k[1, 7] = k[7, 1] = -12.0 / L**3
-        
-        k[2, 2] = k[8, 8] = 12.0 / L**3
-        k[2, 8] = k[8, 2] = -12.0 / L**3
-        
-        return k
-    
-    def _construir_vector_cargas(self, cargas: Dict) -> np.ndarray:
-        """Construye vector de cargas globales"""
-        n_nodos = len(self.geometria.nodos)
-        F = np.zeros(n_nodos * 6)
-        
-        for nombre_nodo, carga in cargas.items():
-            idx = list(self.geometria.nodos.keys()).index(nombre_nodo)
-            gdl = slice(idx * 6, (idx + 1) * 6)
-            
-            # carga = [Fx, Fy, Fz, Mx, My, Mz] en daN y daN.m
-            F[gdl] = carga
-        
-        return F
-    
-    def _calcular_esfuerzos_conexiones(self, u: np.ndarray) -> Dict:
-        """Calcula esfuerzos en conexiones desde desplazamientos"""
-        esfuerzos = {}
-        
-        for conexion in self.conexiones:
-            nodo_i, nodo_j = conexion
-            
-            idx_i = list(self.geometria.nodos.keys()).index(nodo_i)
-            idx_j = list(self.geometria.nodos.keys()).index(nodo_j)
-            
-            u_i = u[idx_i * 6:(idx_i + 1) * 6]
-            u_j = u[idx_j * 6:(idx_j + 1) * 6]
-            
-            # Calcular esfuerzos [N, Qy, Qz, Mx, My, Mz]
-            k_local = self._matriz_rigidez_barra(nodo_i, nodo_j)
-            u_local = np.concatenate([u_i, u_j])
-            f_local = k_local @ u_local
-            
-            esfuerzos[conexion] = f_local[:6]  # Esfuerzos en nodo i
-        
-        return esfuerzos
-    
-    def calcular_momento_resultante_total(self, esfuerzos: Dict) -> Dict:
-        """Calcula MRT = sqrt(Mx^2 + My^2 + Mz^2) para cada conexión"""
+    def calcular_momento_resultante_total(self, resultado_analisis: Dict) -> Dict:
+        """MRT = sqrt(M^2 + T^2)"""
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        valores_subnodos = resultado_analisis.get('valores', {})
         mrt = {}
-        
-        for conexion, esf in esfuerzos.items():
-            Mx, My, Mz = esf[3], esf[4], esf[5]
-            mrt[conexion] = np.sqrt(Mx**2 + My**2 + Mz**2)
-        
-        return mrt
+        for nodo, vals in valores_subnodos.items():
+            if isinstance(vals, np.ndarray) and len(vals) >= 10:
+                M, T = vals[2], vals[3]
+                mrt[nodo] = float(np.sqrt(M**2 + T**2))
+        return {'valores': mrt, 'reacciones': resultado_analisis.get('reacciones', {})}
     
-    def calcular_momento_flector_equivalente(self, esfuerzos: Dict) -> Dict:
-        """Calcula MFE = sqrt(My^2 + Mz^2) para cada conexión"""
+    def calcular_momento_flector_equivalente(self, resultado_analisis: Dict) -> Dict:
+        """MFE = M"""
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        valores_subnodos = resultado_analisis.get('valores', {})
         mfe = {}
-        
-        for conexion, esf in esfuerzos.items():
-            My, Mz = esf[4], esf[5]
-            mfe[conexion] = np.sqrt(My**2 + Mz**2)
-        
-        return mfe
+        for nodo, vals in valores_subnodos.items():
+            if isinstance(vals, np.ndarray) and len(vals) >= 10:
+                mfe[nodo] = float(vals[2])
+        return {'valores': mfe, 'reacciones': resultado_analisis.get('reacciones', {})}
     
-    def generar_diagrama_3d(self, valores: Dict, tipo: str, hipotesis: str) -> plt.Figure:
-        """Genera diagrama 3D con escala de colores"""
+    def generar_diagrama_3d(self, resultado_analisis: Dict, tipo: str, hipotesis: str) -> plt.Figure:
+        """Genera diagrama 3D con gradientes"""
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        
+        # Validar parámetros
+        n_corta = self.parametros.get('n_segmentar_conexion_corta')
+        n_larga = self.parametros.get('n_segmentar_conexion_larga')
+        percentil = self.parametros.get('percentil_separacion_corta_larga')
+        
+        if n_corta is None or n_larga is None or percentil is None:
+            raise ValueError("Faltan parámetros de subdivisión para generar diagrama")
+        
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111, projection='3d')
         
-        # Extraer coordenadas y valores
-        coords = []
-        vals = []
+        valores_subnodos = resultado_analisis.get('valores', {})
+        reacciones = resultado_analisis.get('reacciones', {})
         
-        for (nodo_i, nodo_j), valor in valores.items():
-            coord_i = self.geometria.nodos[nodo_i].coordenadas
-            coord_j = self.geometria.nodos[nodo_j].coordenadas
+        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
+        y_coords = [n.coordenadas[1] for n in self.geometria.nodos.values()]
+        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
+        
+        max_range = max(max(x_coords)-min(x_coords), max(y_coords)-min(y_coords), max(z_coords)-min(z_coords))
+        x_c, y_c, z_c = sum(x_coords)/len(x_coords), sum(y_coords)/len(y_coords), sum(z_coords)/len(z_coords)
+        
+        vals = list(valores_subnodos.values())
+        if vals:
+            vmin, vmax = min(vals), max(vals)
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            cmap = plt.cm.jet
             
-            coords.append([coord_i, coord_j])
-            vals.append(valor)
+            # Calcular umbral para determinar n_subdiv por conexión
+            longitudes = []
+            for ni, nj in self.conexiones:
+                ci = np.array(self.geometria.nodos[ni].coordenadas)
+                cj = np.array(self.geometria.nodos[nj].coordenadas)
+                longitudes.append(np.linalg.norm(cj - ci))
+            umbral_longitud = np.percentile(longitudes, percentil)
+            
+            for ni, nj in self.conexiones:
+                ci = np.array(self.geometria.nodos[ni].coordenadas)
+                cj = np.array(self.geometria.nodos[nj].coordenadas)
+                longitud = np.linalg.norm(cj - ci)
+                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
+                
+                for sub_idx in range(n_subdiv):
+                    t_i = sub_idx / n_subdiv
+                    t_j = (sub_idx + 1) / n_subdiv
+                    c_i = ci + t_i * (cj - ci)
+                    c_j = ci + t_j * (cj - ci)
+                    
+                    val = valores_subnodos.get(f"{ni}_{nj}_{sub_idx}_i", 0)
+                    ax.plot([c_i[0], c_j[0]], [c_i[1], c_j[1]], [c_i[2], c_j[2]], 
+                           color=cmap(norm(val)), linewidth=3)
+            
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]', shrink=0.8)
+            
+            # Reacciones BASE (hasta 4)
+            texto = "REACCIONES BASE:\n"
+            for idx, (nombre, reac) in enumerate(reacciones.items()):
+                if idx >= 4:
+                    break
+                if idx > 0:
+                    texto += "\n"
+                texto += f"{nombre}:\n"
+                texto += f"Fx: {reac['Fx']:.1f} daN\n"
+                texto += f"Fy: {reac['Fy']:.1f} daN\n"
+                texto += f"Fz: {reac['Fz']:.1f} daN\n"
+                texto += f"Mx: {reac['Mx']:.1f} daN·m\n"
+                texto += f"My: {reac['My']:.1f} daN·m\n"
+                texto += f"Mz: {reac['Mz']:.1f} daN·m"
+            ax.text2D(0.02, 0.02, texto, transform=ax.transAxes, fontsize=7, fontweight='bold',
+                     bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
+                     ha='left', va='bottom')
         
-        # Normalizar valores para colormap
-        vmin, vmax = min(vals), max(vals)
-        norm = plt.Normalize(vmin=vmin, vmax=vmax)
-        cmap = plt.cm.jet
-        
-        # Dibujar conexiones con colores
-        for (coord_i, coord_j), valor in zip(coords, vals):
-            color = cmap(norm(valor))
-            ax.plot([coord_i[0], coord_j[0]], 
-                   [coord_i[1], coord_j[1]], 
-                   [coord_i[2], coord_j[2]], 
-                   color=color, linewidth=2)
-        
-        # Colorbar
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array([])
-        plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]')
-        
+        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
+        ax.set_ylim(y_c - max_range/2, y_c + max_range/2)
+        ax.set_zlim(z_c - max_range/2, z_c + max_range/2)
+        ax.set_box_aspect([1,1,1])
         ax.set_xlabel('X [m]')
         ax.set_ylabel('Y [m]')
         ax.set_zlabel('Z [m]')
@@ -272,42 +504,360 @@ class AnalizadorEstatico:
         
         return fig
     
-    def generar_diagrama_2d(self, valores: Dict, tipo: str, hipotesis: str) -> plt.Figure:
-        """Genera diagrama 2D (vista XZ) con escala de colores"""
+    def generar_diagrama_2d(self, resultado_analisis: Dict, tipo: str, hipotesis: str) -> plt.Figure:
+        """Genera diagrama 2D con gradientes"""
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        
+        # Validar parámetros
+        n_corta = self.parametros.get('n_segmentar_conexion_corta')
+        n_larga = self.parametros.get('n_segmentar_conexion_larga')
+        percentil = self.parametros.get('percentil_separacion_corta_larga')
+        
+        if n_corta is None or n_larga is None or percentil is None:
+            raise ValueError("Faltan parámetros de subdivisión para generar diagrama")
+        
         fig, ax = plt.subplots(figsize=(12, 8))
         
-        # Extraer coordenadas y valores
-        coords = []
-        vals = []
+        valores_subnodos = resultado_analisis.get('valores', {})
+        reacciones = resultado_analisis.get('reacciones', {})
         
-        for (nodo_i, nodo_j), valor in valores.items():
-            coord_i = self.geometria.nodos[nodo_i].coordenadas
-            coord_j = self.geometria.nodos[nodo_j].coordenadas
+        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
+        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
+        max_range = max(max(x_coords)-min(x_coords), max(z_coords)-min(z_coords))
+        x_c, z_c = sum(x_coords)/len(x_coords), sum(z_coords)/len(z_coords)
+        
+        vals = list(valores_subnodos.values())
+        if vals:
+            vmin, vmax = min(vals), max(vals)
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            cmap = plt.cm.jet
             
-            coords.append([coord_i, coord_j])
-            vals.append(valor)
+            # Calcular umbral para determinar n_subdiv por conexión
+            longitudes = []
+            for ni, nj in self.conexiones:
+                ci = np.array(self.geometria.nodos[ni].coordenadas)
+                cj = np.array(self.geometria.nodos[nj].coordenadas)
+                longitudes.append(np.linalg.norm(cj - ci))
+            umbral_longitud = np.percentile(longitudes, percentil)
+            
+            for ni, nj in self.conexiones:
+                ci = np.array(self.geometria.nodos[ni].coordenadas)
+                cj = np.array(self.geometria.nodos[nj].coordenadas)
+                longitud = np.linalg.norm(cj - ci)
+                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
+                
+                for sub_idx in range(n_subdiv):
+                    t_i = sub_idx / n_subdiv
+                    t_j = (sub_idx + 1) / n_subdiv
+                    c_i = ci + t_i * (cj - ci)
+                    c_j = ci + t_j * (cj - ci)
+                    
+                    val = valores_subnodos.get(f"{ni}_{nj}_{sub_idx}_i", 0)
+                    ax.plot([c_i[0], c_j[0]], [c_i[2], c_j[2]], color=cmap(norm(val)), linewidth=3)
+            
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]')
+            
+            # Reacciones BASE (hasta 4)
+            texto = "REACCIONES BASE:\n"
+            for idx, (nombre, reac) in enumerate(reacciones.items()):
+                if idx >= 4:
+                    break
+                if idx > 0:
+                    texto += "\n"
+                texto += f"{nombre}:\n"
+                texto += f"Fx: {reac['Fx']:.1f} daN\n"
+                texto += f"Fy: {reac['Fy']:.1f} daN\n"
+                texto += f"Fz: {reac['Fz']:.1f} daN\n"
+                texto += f"Mx: {reac['Mx']:.1f} daN·m\n"
+                texto += f"My: {reac['My']:.1f} daN·m\n"
+                texto += f"Mz: {reac['Mz']:.1f} daN·m"
+            ax.text(0.02, 0.02, texto, transform=ax.transAxes, fontsize=7, fontweight='bold',
+                   bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
+                   ha='left', va='bottom')
         
-        # Normalizar valores para colormap
-        vmin, vmax = min(vals), max(vals)
-        norm = plt.Normalize(vmin=vmin, vmax=vmax)
-        cmap = plt.cm.jet
-        
-        # Dibujar conexiones con colores (vista XZ)
-        for (coord_i, coord_j), valor in zip(coords, vals):
-            color = cmap(norm(valor))
-            ax.plot([coord_i[0], coord_j[0]], 
-                   [coord_i[2], coord_j[2]], 
-                   color=color, linewidth=2)
-        
-        # Colorbar
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array([])
-        plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]')
-        
+        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
+        ax.set_ylim(z_c - max_range/2, z_c + max_range/2)
+        ax.set_aspect('equal')
         ax.set_xlabel('X [m]')
         ax.set_ylabel('Z [m]')
         ax.set_title(f'{tipo} - {hipotesis}')
         ax.grid(True, alpha=0.3)
-        ax.set_aspect('equal')
         
         return fig
+    
+    def generar_diagrama_mqnt(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False) -> plt.Figure:
+        """Genera diagrama combinado M, Q, N, T en 2x2 con etiquetas y marcas de máximo"""
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        
+        fig = plt.figure(figsize=(16, 12))
+        
+        valores_subnodos = resultado_analisis.get('valores', {})
+        reacciones = resultado_analisis.get('reacciones', {})
+        
+        valores_n = {k: v[0] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
+        valores_q = {k: v[1] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
+        valores_m = {k: v[2] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
+        valores_t = {k: v[3] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
+        
+        configs = [
+            (valores_n, 'Esfuerzo Normal (N)', 'daN', 221),
+            (valores_q, 'Esfuerzo Cortante (Q)', 'daN', 222),
+            (valores_m, 'Momento Flector (M)', 'daN.m', 223),
+            (valores_t, 'Momento Torsor (T)', 'daN.m', 224)
+        ]
+        
+        for valores_dict, titulo, unidad, subplot_pos in configs:
+            if graficos_3d:
+                ax = fig.add_subplot(subplot_pos, projection='3d')
+                self._dibujar_3d(ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones)
+            else:
+                ax = fig.add_subplot(subplot_pos)
+                self._dibujar_2d(ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones)
+        
+        plt.tight_layout()
+        return fig
+    
+    def _dibujar_3d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones):
+        """Dibuja subplot 3D con subelementos y reacciones"""
+        # Validar parámetros
+        n_corta = self.parametros.get('n_segmentar_conexion_corta')
+        n_larga = self.parametros.get('n_segmentar_conexion_larga')
+        percentil = self.parametros.get('percentil_separacion_corta_larga')
+        
+        if n_corta is None or n_larga is None or percentil is None:
+            raise ValueError("Faltan parámetros de subdivisión para dibujar")
+        
+        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
+        y_coords = [n.coordenadas[1] for n in self.geometria.nodos.values()]
+        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
+        
+        max_range = max(max(x_coords)-min(x_coords), max(y_coords)-min(y_coords), max(z_coords)-min(z_coords))
+        x_c, y_c, z_c = sum(x_coords)/len(x_coords), sum(y_coords)/len(y_coords), sum(z_coords)/len(z_coords)
+        
+        vals = list(valores_dict.values())
+        if vals:
+            vmin, vmax = min(vals), max(vals)
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            cmap = plt.cm.jet
+            
+            # Encontrar elemento con valor máximo
+            nodo_max = max(valores_dict, key=valores_dict.get)
+            coord_max = None
+            
+            # Calcular umbral
+            longitudes = []
+            for ni, nj in self.conexiones:
+                ci = np.array(self.geometria.nodos[ni].coordenadas)
+                cj = np.array(self.geometria.nodos[nj].coordenadas)
+                longitudes.append(np.linalg.norm(cj - ci))
+            umbral_longitud = np.percentile(longitudes, percentil)
+            
+            # Dibujar TODOS los subelementos
+            for ni, nj in self.conexiones:
+                ci = np.array(self.geometria.nodos[ni].coordenadas)
+                cj = np.array(self.geometria.nodos[nj].coordenadas)
+                longitud = np.linalg.norm(cj - ci)
+                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
+                
+                for sub_idx in range(n_subdiv):
+                    t_i = sub_idx / n_subdiv
+                    t_j = (sub_idx + 1) / n_subdiv
+                    c_i = ci + t_i * (cj - ci)
+                    c_j = ci + t_j * (cj - ci)
+                    
+                    key = f"{ni}_{nj}_{sub_idx}_i"
+                    val = valores_dict.get(key, 0)
+                    ax.plot([c_i[0], c_j[0]], [c_i[1], c_j[1]], [c_i[2], c_j[2]], 
+                           color=cmap(norm(val)), linewidth=3)
+                    
+                    # Guardar coordenada del máximo
+                    if key == nodo_max:
+                        coord_max = (c_i + c_j) / 2
+            
+            # Marcar elemento máximo con círculo rojo
+            if coord_max is not None:
+                ax.scatter([coord_max[0]], [coord_max[1]], [coord_max[2]], 
+                          c='red', s=50, marker='o', edgecolors='darkred', zorder=10)
+            
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}', shrink=0.6)
+            cbar.ax.axhline(y=1.0, color='r', linewidth=3)
+            
+            # Reacciones BASE (hasta 4)
+            texto = "REACCIONES BASE:\n"
+            for idx, (nombre, reac) in enumerate(reacciones.items()):
+                if idx >= 4:
+                    break
+                if idx > 0:
+                    texto += "\n"
+                texto += f"{nombre}:\n"
+                texto += f"Fx: {reac['Fx']:.1f} daN\n"
+                texto += f"Fy: {reac['Fy']:.1f} daN\n"
+                texto += f"Fz: {reac['Fz']:.1f} daN\n"
+                texto += f"Mx: {reac['Mx']:.1f} daN·m\n"
+                texto += f"My: {reac['My']:.1f} daN·m\n"
+                texto += f"Mz: {reac['Mz']:.1f} daN·m"
+            ax.text2D(0.02, 0.02, texto, transform=ax.transAxes, fontsize=7, fontweight='bold',
+                     bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
+                     ha='left', va='bottom')
+        
+        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
+        ax.set_ylim(y_c - max_range/2, y_c + max_range/2)
+        ax.set_zlim(z_c - max_range/2, z_c + max_range/2)
+        ax.set_box_aspect([1,1,1])
+        ax.set_xlabel('X [m]')
+        ax.set_ylabel('Y [m]')
+        ax.set_zlabel('Z [m]')
+        ax.set_title(f'{titulo} - {hipotesis}')
+    
+    def _dibujar_2d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones):
+        """Dibuja subplot 2D con subelementos y reacciones"""
+        # Validar parámetros
+        n_corta = self.parametros.get('n_segmentar_conexion_corta')
+        n_larga = self.parametros.get('n_segmentar_conexion_larga')
+        percentil = self.parametros.get('percentil_separacion_corta_larga')
+        
+        if n_corta is None or n_larga is None or percentil is None:
+            raise ValueError("Faltan parámetros de subdivisión para dibujar")
+        
+        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
+        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
+        max_range = max(max(x_coords)-min(x_coords), max(z_coords)-min(z_coords))
+        x_c, z_c = sum(x_coords)/len(x_coords), sum(z_coords)/len(z_coords)
+        
+        vals = list(valores_dict.values())
+        if vals:
+            vmin, vmax = min(vals), max(vals)
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            cmap = plt.cm.jet
+            
+            # Encontrar elemento con valor máximo
+            nodo_max = max(valores_dict, key=valores_dict.get)
+            coord_max = None
+            
+            # Calcular umbral
+            longitudes = []
+            for ni, nj in self.conexiones:
+                ci = np.array(self.geometria.nodos[ni].coordenadas)
+                cj = np.array(self.geometria.nodos[nj].coordenadas)
+                longitudes.append(np.linalg.norm(cj - ci))
+            umbral_longitud = np.percentile(longitudes, percentil)
+            
+            # Dibujar TODOS los subelementos
+            for ni, nj in self.conexiones:
+                ci = np.array(self.geometria.nodos[ni].coordenadas)
+                cj = np.array(self.geometria.nodos[nj].coordenadas)
+                longitud = np.linalg.norm(cj - ci)
+                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
+                
+                for sub_idx in range(n_subdiv):
+                    t_i = sub_idx / n_subdiv
+                    t_j = (sub_idx + 1) / n_subdiv
+                    c_i = ci + t_i * (cj - ci)
+                    c_j = ci + t_j * (cj - ci)
+                    
+                    key = f"{ni}_{nj}_{sub_idx}_i"
+                    val = valores_dict.get(key, 0)
+                    ax.plot([c_i[0], c_j[0]], [c_i[2], c_j[2]], color=cmap(norm(val)), linewidth=3)
+                    
+                    # Guardar coordenada del máximo
+                    if key == nodo_max:
+                        coord_max = ((c_i[0] + c_j[0]) / 2, (c_i[2] + c_j[2]) / 2)
+            
+            # Marcar elemento máximo con círculo rojo
+            if coord_max is not None:
+                ax.scatter([coord_max[0]], [coord_max[1]], 
+                          c='red', s=50, marker='o', edgecolors='darkred', zorder=10)
+            
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}')
+            cbar.ax.axhline(y=1.0, color='r', linewidth=3)
+            
+            # Reacciones BASE (hasta 4)
+            texto = "REACCIONES BASE:\n"
+            for idx, (nombre, reac) in enumerate(reacciones.items()):
+                if idx >= 4:
+                    break
+                if idx > 0:
+                    texto += "\n"
+                texto += f"{nombre}:\n"
+                texto += f"Fx: {reac['Fx']:.1f} daN\n"
+                texto += f"Fy: {reac['Fy']:.1f} daN\n"
+                texto += f"Fz: {reac['Fz']:.1f} daN\n"
+                texto += f"Mx: {reac['Mx']:.1f} daN·m\n"
+                texto += f"My: {reac['My']:.1f} daN·m\n"
+                texto += f"Mz: {reac['Mz']:.1f} daN·m"
+            ax.text(0.02, 0.02, texto, transform=ax.transAxes, fontsize=7, fontweight='bold', 
+                   zorder=1000, color='black',
+                   bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
+                   ha='left', va='bottom')
+        
+        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
+        ax.set_ylim(z_c - max_range/2, z_c + max_range/2)
+        ax.set_aspect('equal')
+        ax.set_xlabel('X [m]')
+        ax.set_ylabel('Z [m]')
+        ax.set_title(f'{titulo} - {hipotesis}')
+        ax.grid(True, alpha=0.3)
+    
+    def generar_diagrama_ejes_locales(self, elementos_dict: Dict, hipotesis: str) -> plt.Figure:
+        """Genera diagrama 3D mostrando ejes locales de elementos"""
+        fig = plt.figure(figsize=(14, 10))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
+        y_coords = [n.coordenadas[1] for n in self.geometria.nodos.values()]
+        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
+        
+        max_range = max(max(x_coords)-min(x_coords), max(y_coords)-min(y_coords), max(z_coords)-min(z_coords))
+        x_c, y_c, z_c = sum(x_coords)/len(x_coords), sum(y_coords)/len(y_coords), sum(z_coords)/len(z_coords)
+        
+        # Dibujar estructura
+        for ni, nj in self.conexiones:
+            ci = np.array(self.geometria.nodos[ni].coordenadas)
+            cj = np.array(self.geometria.nodos[nj].coordenadas)
+            ax.plot([ci[0], cj[0]], [ci[1], cj[1]], [ci[2], cj[2]], 'k-', linewidth=2, alpha=0.3)
+        
+        # Dibujar ejes locales (cada 3 elementos para claridad)
+        escala = max_range * 0.1
+        for eid, data in list(elementos_dict.items())[::3]:
+            ni, nj, _ = data['origen']
+            ci = np.array(self.geometria.nodos[ni].coordenadas)
+            cj = np.array(self.geometria.nodos[nj].coordenadas)
+            centro = (ci + cj) / 2
+            
+            ejes = data['ejes_locales']
+            
+            # Eje X local (rojo) - dirección del elemento
+            ax.quiver(centro[0], centro[1], centro[2],
+                     ejes[0,0]*escala, ejes[1,0]*escala, ejes[2,0]*escala,
+                     color='red', arrow_length_ratio=0.3, linewidth=2)
+            
+            # Eje Y local (verde)
+            ax.quiver(centro[0], centro[1], centro[2],
+                     ejes[0,1]*escala, ejes[1,1]*escala, ejes[2,1]*escala,
+                     color='green', arrow_length_ratio=0.3, linewidth=2)
+            
+            # Eje Z local (azul)
+            ax.quiver(centro[0], centro[1], centro[2],
+                     ejes[0,2]*escala, ejes[1,2]*escala, ejes[2,2]*escala,
+                     color='blue', arrow_length_ratio=0.3, linewidth=2)
+        
+        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
+        ax.set_ylim(y_c - max_range/2, y_c + max_range/2)
+        ax.set_zlim(z_c - max_range/2, z_c + max_range/2)
+        ax.set_box_aspect([1,1,1])
+        ax.set_xlabel('X [m]')
+        ax.set_ylabel('Y [m]')
+        ax.set_zlabel('Z [m]')
+        ax.set_title(f'Ejes Locales de Elementos - {hipotesis}\nRojo=X(long), Verde=Y, Azul=Z')
+        
+        return fig
+    
+

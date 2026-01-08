@@ -13,76 +13,6 @@ from components.tabla_parametros import validar_tabla_parametros
 from models.app_state import AppState
 from components.pestanas_parametros import crear_tabla_estados_climaticos_ajuste
 
-# Modal para estados climáticos (compartido entre tabla y panel)
-modal_estados_panel = dbc.Modal([
-    dbc.ModalHeader(dbc.ModalTitle("Estados Climáticos y Restricciones")),
-    dbc.ModalBody(id="modal-estados-panel-body"),
-    dbc.ModalFooter([
-        dbc.Button("Cancelar", id="modal-estados-panel-cancelar", color="secondary", className="me-2"),
-        dbc.Button("Guardar", id="modal-estados-panel-guardar", color="primary")
-    ])
-], id="modal-estados-panel", is_open=False, size="xl")
-
-@callback(
-    [Output("contenido-pestana-parametros", "children"),
-     Output("toast-validacion-tabla", "is_open", allow_duplicate=True),
-     Output("toast-validacion-tabla", "children", allow_duplicate=True),
-     Output("toast-validacion-tabla", "icon", allow_duplicate=True)],
-    Input("pestanas-parametros", "active_tab"),
-    State("estructura-actual", "data"),
-    prevent_initial_call='initial_duplicate'
-)
-def cambiar_pestana_parametros(tab_activo, estructura_actual):
-    """Cambia contenido según pestaña activa"""
-    
-    if not tab_activo:
-        tab_activo = "tabla"
-    
-    # Recargar estructura desde archivo para asegurar datos actualizados
-    from config.app_config import DATA_DIR
-    state = AppState()
-    try:
-        titulo = estructura_actual.get('TITULO', 'estructura') if estructura_actual else 'estructura'
-        ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
-        estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
-    except:
-        if not estructura_actual:
-            return "No hay estructura cargada", False, "", "warning"
-    
-    try:
-        # Obtener cables disponibles una sola vez
-        try:
-            with open("data/cables.json", "r", encoding="utf-8") as f:
-                cables_data = json.load(f)
-                cables_disponibles = list(cables_data.keys())
-        except:
-            cables_disponibles = []
-        
-        if tab_activo == "tabla":
-            from components.tabla_parametros import crear_tabla_parametros, crear_filtros_categoria
-            from components.pestanas_parametros import crear_alerta_sincronizacion
-            
-            contenido = [
-                crear_filtros_categoria(),
-                crear_tabla_parametros(estructura_actual, cables_disponibles)
-            ]
-            
-        elif tab_activo == "panel":
-            from components.vista_ajuste_parametros import crear_vista_ajuste_parametros
-            
-            contenido = html.Div([
-                crear_vista_ajuste_parametros(estructura_actual, cables_disponibles),
-                modal_estados_panel
-            ])
-        
-        else:
-            return "Pestaña no válida", False, "", "warning"
-        
-        return contenido, False, "", "success"
-        
-    except Exception as e:
-        return f"Error al cargar contenido: {str(e)}", True, f"Error: {str(e)}", "danger"
-
 @callback(
     [Output("tabla-parametros", "data", allow_duplicate=True),
      Output("toast-validacion-tabla", "is_open", allow_duplicate=True),
@@ -216,6 +146,116 @@ def buscar_parametro(texto_busqueda, tabla_data):
     ]
     
     return tabla_filtrada
+
+@callback(
+    [Output("modal-estados-tabla", "is_open"),
+     Output("modal-estados-tabla-body", "children")],
+    [Input("btn-modificar-estados-tabla", "n_clicks"),
+     Input("modal-estados-tabla-cancelar", "n_clicks"),
+     Input("modal-estados-tabla-guardar", "n_clicks")],
+    State("estructura-actual", "data"),
+    prevent_initial_call=True
+)
+def manejar_modal_estados_tabla(n_abrir, n_cancelar, n_guardar, estructura_actual):
+    """Maneja apertura/cierre del modal de estados climáticos"""
+    if not ctx.triggered:
+        return no_update, no_update
+    
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if trigger_id == "btn-modificar-estados-tabla":
+        tabla = crear_tabla_estados_climaticos_ajuste(estructura_actual)
+        return True, tabla
+    
+    return False, no_update
+
+@callback(
+    [Output("estructura-actual", "data", allow_duplicate=True),
+     Output("modal-estados-tabla", "is_open", allow_duplicate=True),
+     Output("toast-validacion-tabla", "is_open", allow_duplicate=True),
+     Output("toast-validacion-tabla", "children", allow_duplicate=True),
+     Output("toast-validacion-tabla", "icon", allow_duplicate=True)],
+    Input("modal-estados-tabla-guardar", "n_clicks"),
+    [State({"type": "estado-temp-ajuste", "index": ALL}, "value"),
+     State({"type": "estado-viento-ajuste", "index": ALL}, "value"),
+     State({"type": "estado-hielo-ajuste", "index": ALL}, "value"),
+     State({"type": "restriccion-conductor-ajuste", "index": ALL}, "value"),
+     State({"type": "restriccion-guardia-ajuste", "index": ALL}, "value"),
+     State("estructura-actual", "data")],
+    prevent_initial_call=True
+)
+def guardar_estados_climaticos(n_clicks, temps, vientos, hielos, rest_conductor, rest_guardia, estructura_actual):
+    """Guarda estados climáticos y restricciones"""
+    print(f"\n🔵 DEBUG MODAL: Callback guardar_estados_climaticos ejecutado")
+    print(f"   n_clicks: {n_clicks}")
+    print(f"   temps recibidos: {temps}")
+    print(f"   vientos recibidos: {vientos}")
+    print(f"   hielos recibidos: {hielos}")
+    print(f"   rest_conductor recibidos: {rest_conductor}")
+    print(f"   rest_guardia recibidos: {rest_guardia}")
+    
+    if not n_clicks:
+        print(f"   ⚠️  n_clicks es None o 0, abortando")
+        return no_update, no_update, False, "", "info"
+    
+    try:
+        from config.app_config import DATA_DIR
+        state = AppState()
+        
+        print(f"\n💾 Procesando guardado de estados climáticos...")
+        
+        # Recargar estructura desde archivo
+        titulo = estructura_actual.get('TITULO', 'estructura')
+        ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
+        print(f"   Archivo: {ruta_estructura}")
+        estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
+        
+        # Estados climáticos
+        estados_ids = ["I", "II", "III", "IV", "V"]
+        estados_desc = ["Tmáx", "Tmín", "Vmáx", "Vmed", "TMA"]
+        
+        print(f"\n🔄 Construyendo estados_climaticos dict:")
+        estados_climaticos = {}
+        for i, estado_id in enumerate(estados_ids):
+            estados_climaticos[estado_id] = {
+                "temperatura": temps[i],
+                "descripcion": estados_desc[i],
+                "viento_velocidad": vientos[i],
+                "espesor_hielo": hielos[i]
+            }
+            print(f"   Estado {estado_id}: T={temps[i]}°C, V={vientos[i]}km/h, H={hielos[i]}mm")
+        
+        # Restricciones de cables
+        print(f"\n🔄 Construyendo restricciones_cables dict:")
+        restricciones_cables = {
+            "conductor": {"tension_max_porcentaje": {}},
+            "guardia": {"tension_max_porcentaje": {}}
+        }
+        
+        for i, estado_id in enumerate(estados_ids):
+            restricciones_cables["conductor"]["tension_max_porcentaje"][estado_id] = rest_conductor[i]
+            restricciones_cables["guardia"]["tension_max_porcentaje"][estado_id] = rest_guardia[i]
+            print(f"   Estado {estado_id}: Conductor={rest_conductor[i]*100}%, Guardia={rest_guardia[i]*100}%")
+        
+        # Actualizar estructura
+        print(f"\n✅ Escribiendo en estructura_actual:")
+        estructura_actual["estados_climaticos"] = estados_climaticos
+        print(f"   estructura_actual['estados_climaticos'] = {len(estados_climaticos)} estados")
+        estructura_actual["restricciones_cables"] = restricciones_cables
+        print(f"   estructura_actual['restricciones_cables'] = OK")
+        
+        # Guardar
+        print(f"\n💾 Guardando archivo...")
+        state.estructura_manager.guardar_estructura(estructura_actual, ruta_estructura)
+        state.set_estructura_actual(estructura_actual)
+        print(f"\n✅ Guardado exitoso")
+        
+        return estructura_actual, False, True, "Estados climáticos guardados exitosamente", "success"
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return no_update, no_update, True, f"Error al guardar: {str(e)}", "danger"
 
 @callback(
     [Output("tabla-parametros", "style_data_conditional", allow_duplicate=True),
@@ -450,46 +490,3 @@ def seleccionar_opcion_directa(n_clicks_opciones, n_confirmar, celda_info, tabla
     # Cerrar modal y actualizar tabla
     return tabla_data, False
 
-@callback(
-    [Output("modal-estados-tabla", "is_open"),
-     Output("modal-estados-tabla-body", "children")],
-    [Input("btn-modificar-estados-tabla", "n_clicks"),
-     Input("modal-estados-tabla-cancelar", "n_clicks"),
-     Input("modal-estados-tabla-guardar", "n_clicks")],
-    State("estructura-actual", "data"),
-    prevent_initial_call=True
-)
-def manejar_modal_estados_tabla(n_abrir, n_cancelar, n_guardar, estructura_actual):
-    """Maneja apertura/cierre del modal de estados climáticos"""
-    if not ctx.triggered:
-        return no_update, no_update
-    
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    
-    if trigger_id == "btn-modificar-estados-tabla":
-        tabla = crear_tabla_estados_climaticos_ajuste(estructura_actual)
-        return True, tabla
-    
-    return False, no_update
-
-@callback(
-    [Output("modal-estados-panel", "is_open"),
-     Output("modal-estados-panel-body", "children")],
-    [Input("btn-modificar-estados-panel", "n_clicks"),
-     Input("modal-estados-panel-cancelar", "n_clicks"),
-     Input("modal-estados-panel-guardar", "n_clicks")],
-    State("estructura-actual", "data"),
-    prevent_initial_call=True
-)
-def manejar_modal_estados_panel(n_abrir, n_cancelar, n_guardar, estructura_actual):
-    """Maneja apertura/cierre del modal de estados climáticos en panel"""
-    if not ctx.triggered:
-        return no_update, no_update
-    
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    
-    if trigger_id == "btn-modificar-estados-panel":
-        tabla = crear_tabla_estados_climaticos_ajuste(estructura_actual)
-        return True, tabla
-    
-    return False, no_update

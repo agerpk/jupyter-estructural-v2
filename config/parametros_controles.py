@@ -97,6 +97,13 @@ CONTROLES_PARAMETROS = {
         "step": 0.05,
         "marks": {i*0.2: str(round(i*0.2, 1)) for i in range(11)}
     },
+    "D_fases_add": {
+        "tipo": "slider",
+        "min": -2,
+        "max": 2,
+        "step": 0.05,
+        "marks": {-2: '-2', -1: '-1', 0: '0', 1: '1', 2: '2'}
+    },
     "Altura_MSNM": {
         "tipo": "slider",
         "min": 0,
@@ -113,10 +120,10 @@ CONTROLES_PARAMETROS = {
     },
     "HADD_ENTRE_AMARRES": {
         "tipo": "slider",
-        "min": 0,
+        "min": -2,
         "max": 2,
         "step": 0.05,
-        "marks": {i*0.2: str(round(i*0.2, 1)) for i in range(11)}
+        "marks": {-2: '-2', -1: '-1', 0: '0', 1: '1', 2: '2'}
     },
     "CANT_HG": {
         "tipo": "slider",

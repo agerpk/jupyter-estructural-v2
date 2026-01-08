@@ -158,8 +158,8 @@
   "AnalisisEstaticoEsfuerzos": {
     "DIAGRAMAS_ACTIVOS": {
       "MQNT": true,
-      "MRT": true,
-      "MFE": true
+      "MRT": false,
+      "MFE": false
     },
     "ACTIVAR_AEE": true,
     "GRAFICOS_3D_AEE": true,
@@ -199,7 +199,7 @@
       "espesor_hielo": 0
     }
   },
-  "fecha_modificacion": "2026-01-08T12:37:14.239259",
+  "fecha_modificacion": "2026-01-08T14:58:01.060332",
   "nodos_editados": [
     {
       "nombre": "C1A",
@@ -259,5 +259,25 @@
       "conectado_a": [],
       "es_editado": true
     }
-  ]
+  ],
+  "restricciones_cables": {
+    "conductor": {
+      "tension_max_porcentaje": {
+        "I": 0.25,
+        "II": 0.4,
+        "III": 0.4,
+        "IV": 0.4,
+        "V": 0.25
+      }
+    },
+    "guardia": {
+      "tension_max_porcentaje": {
+        "I": 0.7,
+        "II": 0.7,
+        "III": 0.7,
+        "IV": 0.7,
+        "V": 0.7
+      }
+    }
+  }
 }

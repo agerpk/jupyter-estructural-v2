@@ -340,6 +340,13 @@ class ParametrosManager:
             "tipo": "float",
             "categoria": "Cabezal"
         },
+        "D_fases_add": {
+            "simbolo": "Dfadd",
+            "unidad": "m",
+            "descripcion": "Distancia adicional entre fases",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
         "ANCHO_CRUCETA": {
             "simbolo": "Ac",
             "unidad": "m",
@@ -1396,10 +1403,12 @@ class ParametrosManager:
         # Validar rangos para numéricos
         if tipo in ["int", "float"] and parametro in CONTROLES_PARAMETROS:
             config = CONTROLES_PARAMETROS[parametro]
-            if "min" in config and valor_convertido < config["min"]:
-                return False, f"Valor debe ser >= {config['min']}"
-            if "max" in config and valor_convertido > config["max"]:
-                return False, f"Valor debe ser <= {config['max']}"
+            # Excluir D_fases_add de validación de rangos
+            if parametro != "D_fases_add":
+                if "min" in config and valor_convertido < config["min"]:
+                    return False, f"Valor debe ser >= {config['min']}"
+                if "max" in config and valor_convertido > config["max"]:
+                    return False, f"Valor debe ser <= {config['max']}"
         
         return True, ""
     

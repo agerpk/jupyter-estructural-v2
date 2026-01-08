@@ -49,7 +49,8 @@ class EstructuraAEA_Geometria:
                 hg_centrado=None, ang_apantallamiento=None, hadd_hg=0.0, hadd_lmen=0.0,
                 dist_reposicionar_hg=0.1, ajustar_por_altura_msnm=None,
                 metodo_altura_msnm=None, altura_msnm=None,
-                defasaje_mensula_hielo=False, lmen_extra_hielo=0.0, mensula_defasar="primera"):
+                defasaje_mensula_hielo=False, lmen_extra_hielo=0.0, mensula_defasar="primera",
+                d_fases_add=0.0):
         """
         Inicializa una estructura completa
         
@@ -82,6 +83,7 @@ class EstructuraAEA_Geometria:
             defasaje_mensula_hielo (bool): Si True, aplica defasaje por hielo
             lmen_extra_hielo (float): Valor a agregar a ménsula seleccionada (puede ser negativo)
             mensula_defasar (str): Ménsula a defasar ("primera", "segunda", "tercera")
+            d_fases_add (float): Distancia adicional a sumar a D_fases calculada
         """
         # Parámetros básicos
         self.tipo_estructura = tipo_estructura
@@ -116,6 +118,9 @@ class EstructuraAEA_Geometria:
         self.defasaje_mensula_hielo = defasaje_mensula_hielo
         self.lmen_extra_hielo = lmen_extra_hielo
         self.mensula_defasar = mensula_defasar
+        
+        # Parámetro de ajuste de D_fases
+        self.d_fases_add = d_fases_add
         
         # Nuevos parámetros
         self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO
@@ -300,8 +305,8 @@ class EstructuraAEA_Geometria:
         # 3. Término común: flecha + longitud de cadena
         termino_flecha = flecha_max_conductor + self.lk
         
-        # 4. Distancia mínima entre fases (D) - AJUSTADO POR ALTURA
-        D_fases = k * math.sqrt(termino_flecha) + Ka * self.tension_nominal / 150
+        # 4. Distancia mínima entre fases (D) - AJUSTADO POR ALTURA + D_fases_add
+        D_fases = k * math.sqrt(termino_flecha) + Ka * self.tension_nominal / 150 + self.d_fases_add
         
         # 5. Distancia mínima fase-estructura (s) - AJUSTADO POR ALTURA
         if self.tension_nominal <= 33:
@@ -347,7 +352,9 @@ class EstructuraAEA_Geometria:
     
     def _calcular_alturas_fases(self, D_fases, s_estructura, flecha_max_conductor):
         """Calcula las alturas h1a, h2a, h3a según el proceso indicado"""
-        # 1. h1a = HADD + h_base_electrica + fmax + lk
+        # 1. h1a = HADD + h_base_electrica + fmax + Lk
+        # Nota: h_base_electrica = a + b (altura mínima + componente eléctrico)
+        # Lk se suma porque h1a es la altura del punto de amarre en la cruceta
         h1a = self.hadd + self.h_base_electrica + flecha_max_conductor + self.lk
         
         # Inicializar h2a y h3a
@@ -576,7 +583,8 @@ class EstructuraAEA_Geometria:
             "autoajustar_lmenhg": autoajustar_lmenhg,
             "defasaje_mensula_hielo": self.defasaje_mensula_hielo,
             "lmen_extra_hielo": self.lmen_extra_hielo,
-            "mensula_defasar": self.mensula_defasar
+            "mensula_defasar": self.mensula_defasar,
+            "d_fases_add": self.d_fases_add
         }
         
         # CREAR DATAFRAME CON PARÁMETROS DEL CABEZAL

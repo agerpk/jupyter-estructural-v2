@@ -174,45 +174,62 @@ def register_callbacks(app):
                         estructura_actualizada[param_key] = param_value
             
             # Guardar estados climáticos si existen
-            print(f"DEBUG: estado_ids={len(estado_ids) if estado_ids else 0}, estado_temps={len(estado_temps) if estado_temps else 0}")
+            print(f"\n📊 DEBUG ESTADOS CLIMÁTICOS:")
+            print(f"  - estado_ids recibidos: {len(estado_ids) if estado_ids else 0}")
+            print(f"  - estado_temps recibidos: {len(estado_temps) if estado_temps else 0}")
+            print(f"  - estado_vientos recibidos: {len(estado_vientos) if estado_vientos else 0}")
+            print(f"  - estado_hielos recibidos: {len(estado_hielos) if estado_hielos else 0}")
+            print(f"  - restriccion_conductores recibidos: {len(restriccion_conductores) if restriccion_conductores else 0}")
+            print(f"  - restriccion_guardias recibidos: {len(restriccion_guardias) if restriccion_guardias else 0}")
             
             if estado_ids and estado_temps:
                 estados_climaticos = {}
                 descripciones = {"I": "Tmáx", "II": "Tmín", "III": "Vmáx", "IV": "Vmed", "V": "TMA"}
                 
+                print(f"\n🔄 Procesando {len(estado_ids)} estados:")
                 for i, estado_id_dict in enumerate(estado_ids):
                     estado_id = estado_id_dict["index"]
+                    temp = float(estado_temps[i]) if estado_temps[i] is not None else 0
+                    viento = float(estado_vientos[i]) if estado_vientos[i] is not None else 0
+                    hielo = float(estado_hielos[i]) if estado_hielos[i] is not None else 0
+                    
                     estados_climaticos[estado_id] = {
-                        "temperatura": float(estado_temps[i]) if estado_temps[i] is not None else 0,
+                        "temperatura": temp,
                         "descripcion": descripciones.get(estado_id, ""),
-                        "viento_velocidad": float(estado_vientos[i]) if estado_vientos[i] is not None else 0,
-                        "espesor_hielo": float(estado_hielos[i]) if estado_hielos[i] is not None else 0
+                        "viento_velocidad": viento,
+                        "espesor_hielo": hielo
                     }
+                    print(f"  Estado {estado_id}: T={temp}°C, V={viento}km/h, H={hielo}mm")
                 
                 estructura_actualizada["estados_climaticos"] = estados_climaticos
-                print(f"DEBUG: Estados climáticos guardados: {len(estados_climaticos)}")
+                print(f"\n✅ Estados climáticos escritos en estructura_actualizada[\"estados_climaticos\"]")
+                print(f"   Total estados guardados: {len(estados_climaticos)}")
                 
-                # SIEMPRE guardar restricciones (con valores por defecto si no existen)
+                # SIEMPRE guardar restricciones
+                print(f"\n🔄 Procesando restricciones:")
+                restricciones_conductor = {}
+                restricciones_guardia = {}
+                
+                for i, estado_id_dict in enumerate(estado_ids):
+                    estado_id = estado_id_dict["index"]
+                    rest_cond = float(restriccion_conductores[i]) if restriccion_conductores and i < len(restriccion_conductores) and restriccion_conductores[i] is not None else 0.25
+                    rest_guard = float(restriccion_guardias[i]) if restriccion_guardias and i < len(restriccion_guardias) and restriccion_guardias[i] is not None else 0.7
+                    
+                    restricciones_conductor[estado_id] = rest_cond
+                    restricciones_guardia[estado_id] = rest_guard
+                    print(f"  Estado {estado_id}: Conductor={rest_cond*100}%, Guardia={rest_guard*100}%")
+                
                 estructura_actualizada["restricciones_cables"] = {
-                    "conductor": {
-                        "tension_max_porcentaje": {
-                            estado_id_dict["index"]: float(restriccion_conductores[i]) if restriccion_conductores and i < len(restriccion_conductores) and restriccion_conductores[i] is not None else 0.25
-                            for i, estado_id_dict in enumerate(estado_ids)
-                        }
-                    },
-                    "guardia": {
-                        "tension_max_porcentaje": {
-                            estado_id_dict["index"]: float(restriccion_guardias[i]) if restriccion_guardias and i < len(restriccion_guardias) and restriccion_guardias[i] is not None else 0.7
-                            for i, estado_id_dict in enumerate(estado_ids)
-                        }
-                    }
+                    "conductor": {"tension_max_porcentaje": restricciones_conductor},
+                    "guardia": {"tension_max_porcentaje": restricciones_guardia}
                 }
-                print(f"DEBUG: Restricciones guardadas")
+                print(f"\n✅ Restricciones escritas en estructura_actualizada[\"restricciones_cables\"]")
             else:
-                print(f"DEBUG: NO se guardaron estados desde inputs (listas vacías)")
+                print(f"\n⚠️  DEBUG: NO se guardaron estados desde inputs (listas vacías)")
                 # Si ya existen estados_climaticos en el archivo, crear restricciones basadas en ellos
                 if "estados_climaticos" in estructura_actualizada:
-                    print(f"DEBUG: Creando restricciones desde estados existentes")
+                    print(f"   Creando restricciones desde estados existentes en archivo")
+                    print(f"   Estados encontrados: {list(estructura_actualizada['estados_climaticos'].keys())}")
                     estructura_actualizada["restricciones_cables"] = {
                         "conductor": {
                             "tension_max_porcentaje": {estado_id: 0.25 for estado_id in estructura_actualizada["estados_climaticos"].keys()}
@@ -221,11 +238,18 @@ def register_callbacks(app):
                             "tension_max_porcentaje": {estado_id: 0.7 for estado_id in estructura_actualizada["estados_climaticos"].keys()}
                         }
                     }
-                    print(f"DEBUG: Restricciones creadas con valores por defecto")
+                    print(f"   ✅ Restricciones creadas con valores por defecto (Conductor=25%, Guardia=70%)")
+            
+            print(f"\n💾 Guardando archivo: {ruta_archivo}")
+            print(f"   Claves en estructura_actualizada: {list(estructura_actualizada.keys())}")
+            if "estados_climaticos" in estructura_actualizada:
+                print(f"   ✅ 'estados_climaticos' presente con {len(estructura_actualizada['estados_climaticos'])} estados")
+            if "restricciones_cables" in estructura_actualizada:
+                print(f"   ✅ 'restricciones_cables' presente")
             
             state.estructura_manager.guardar_estructura(estructura_actualizada, ruta_archivo)
             state.set_estructura_actual(estructura_actualizada)
-            print(f"✅ Guardado: {ruta_archivo.name}")
+            print(f"\n✅ Guardado exitoso: {ruta_archivo.name}")
             
             return (
                 estructura_actualizada,

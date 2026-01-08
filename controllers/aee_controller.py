@@ -240,7 +240,21 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
         resultados_guardia2=state.calculo_mecanico.resultados_guardia2
     )
     
-    print(f"DEBUG: Objetos listos - {len(geometria.nodos)} nodos")
+    print(f"DEBUG: Cargas asignadas - {len(geometria.nodos)} nodos")
+    
+    # Obtener hipótesis desde las cargas asignadas a los nodos
+    hipotesis = set()
+    for nodo in geometria.nodos.values():
+        # Usar el método listar_hipotesis() del nodo
+        hipotesis.update(nodo.listar_hipotesis())
+    
+    hipotesis = list(hipotesis)
+    if not hipotesis:
+        raise ValueError("No se encontraron hipótesis con cargas asignadas")
+    
+    print(f"DEBUG: Analizando {len(hipotesis)} hipótesis: {hipotesis}")
+    
+    print(f"DEBUG: Analizando {len(hipotesis)} hipotesis: {hipotesis}")
     
     # Parametros AEE
     parametros_aee = estructura_actual.get('AnalisisEstaticoEsfuerzos', {})
@@ -248,27 +262,50 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
     # Crear analizador
     analizador = AnalizadorEstatico(geometria, mecanica, parametros_aee)
     
-    # Obtener hipotesis activas
-    hipotesis = estructura_actual.get('hipotesis_activas', [])
-    
-    if not hipotesis:
-        # Fallback: usar hipotesis de DME
-        df_reacciones = calculo_dme['resultados'].get('df_reacciones')
-        if df_reacciones:
-            import pandas as pd
-            df = pd.read_json(df_reacciones, orient='split')
-            hipotesis = df.columns.get_level_values(0).unique().tolist()
-    
-    print(f"DEBUG: Analizando {len(hipotesis)} hipotesis")
-    
     # Hash de parametros
     hash_params = CalculoCache.calcular_hash(estructura_actual)
     
     resultados = {
         'hash': hash_params,
         'esfuerzos': {},
-        'diagramas': {}
+        'diagramas': {},
+        'nodos_info': {},
+        'conexiones_info': []
     }
+    
+    # Guardar info de nodos
+    for nombre, nodo in geometria.nodos.items():
+        resultados['nodos_info'][nombre] = {
+            'x': float(nodo.x),
+            'y': float(nodo.y),
+            'z': float(nodo.z),
+            'tipo': nodo.tipo_nodo
+        }
+    
+    # Guardar info de conexiones
+    import numpy as np
+    for conn in analizador.conexiones:
+        nodo_i, nodo_j = conn
+        
+        # Obtener tipo de conexión desde geometria.conexiones (tupla de 3 elementos)
+        tipo_conexion = 'barra'
+        if hasattr(geometria, 'conexiones') and geometria.conexiones:
+            for geom_conn in geometria.conexiones:
+                if isinstance(geom_conn, (list, tuple)) and len(geom_conn) >= 3:
+                    if geom_conn[0] == nodo_i and geom_conn[1] == nodo_j:
+                        tipo_conexion = geom_conn[2]
+                        break
+        
+        coord_i = geometria.nodos[nodo_i].coordenadas
+        coord_j = geometria.nodos[nodo_j].coordenadas
+        longitud = float(np.linalg.norm(np.array(coord_j) - np.array(coord_i)))
+        
+        resultados['conexiones_info'].append({
+            'Nodo Inicial': nodo_i,
+            'Nodo Final': nodo_j,
+            'Longitud [m]': f"{longitud:.2f}",
+            'Tipo': tipo_conexion
+        })
     
     # Analizar cada hipotesis
     diagramas_activos = parametros_aee.get('DIAGRAMAS_ACTIVOS', {})
@@ -279,36 +316,82 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
         
         try:
             esfuerzos = analizador.resolver_sistema(hip)
-            resultados['esfuerzos'][hip] = esfuerzos
+            # Convertir arrays numpy a listas para JSON
+            esfuerzos_serializables = {}
+            for k, v in esfuerzos.items():
+                if hasattr(v, 'tolist'):  # Es numpy array
+                    esfuerzos_serializables[k] = v.tolist()
+                else:
+                    esfuerzos_serializables[k] = v
+            
+            resultados['esfuerzos'][hip] = esfuerzos_serializables
+            
+            # Generar diagramas MQNT
+            if diagramas_activos.get('MQNT', True):
+                try:
+                    fig = analizador.generar_diagrama_mqnt(esfuerzos, hip, graficos_3d)
+                    
+                    from pathlib import Path
+                    filename = f"AEE_MQNT_{hip}.{hash_params}.png"
+                    filepath = Path("data/cache") / filename
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+                    fig.savefig(str(filepath), dpi=150, bbox_inches='tight')
+                    plt.close(fig)
+                    
+                    # Guardar referencia en resultados
+                    resultados['diagramas'][f'MQNT_{hip}'] = filename
+                    print(f"✅ Diagrama MQNT guardado: {filename}")
+                except Exception as e:
+                    print(f"❌ Error guardando MQNT para {hip}: {e}")
+                    import traceback
+                    traceback.print_exc()
             
             # Generar diagramas segun configuracion
             if diagramas_activos.get('MRT', True):
                 valores_mrt = analizador.calcular_momento_resultante_total(esfuerzos)
-                resultados['diagramas'][f'MRT_{hip}'] = valores_mrt
+                # Convertir a formato serializable
+                valores_mrt_serializables = {k: float(v) if hasattr(v, 'item') else v for k, v in valores_mrt.items()}
+                resultados['diagramas'][f'MRT_{hip}'] = valores_mrt_serializables
                 
                 # Generar grafico estatico (PNG)
-                if graficos_3d:
-                    fig = analizador.generar_diagrama_3d(valores_mrt, 'MRT', hip)
-                else:
-                    fig = analizador.generar_diagrama_2d(valores_mrt, 'MRT', hip)
-                
-                # Guardar PNG
-                ViewHelpers.guardar_imagen_matplotlib(fig, f"AEE_MRT_{hip}", hash_params)
-                plt.close(fig)
+                try:
+                    if graficos_3d:
+                        fig = analizador.generar_diagrama_3d(valores_mrt, 'MRT', hip)
+                    else:
+                        fig = analizador.generar_diagrama_2d(valores_mrt, 'MRT', hip)
+                    
+                    # Guardar PNG directamente
+                    from pathlib import Path
+                    filename = f"AEE_MRT_{hip}.{hash_params}.png"
+                    filepath = Path("data/cache") / filename
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+                    fig.savefig(str(filepath), dpi=150, bbox_inches='tight')
+                    plt.close(fig)
+                except Exception as e:
+                    print(f"Error guardando MRT para {hip}: {e}")
             
             if diagramas_activos.get('MFE', True):
                 valores_mfe = analizador.calcular_momento_flector_equivalente(esfuerzos)
-                resultados['diagramas'][f'MFE_{hip}'] = valores_mfe
+                # Convertir a formato serializable
+                valores_mfe_serializables = {k: float(v) if hasattr(v, 'item') else v for k, v in valores_mfe.items()}
+                resultados['diagramas'][f'MFE_{hip}'] = valores_mfe_serializables
                 
                 # Generar grafico estatico (PNG)
-                if graficos_3d:
-                    fig = analizador.generar_diagrama_3d(valores_mfe, 'MFE', hip)
-                else:
-                    fig = analizador.generar_diagrama_2d(valores_mfe, 'MFE', hip)
-                
-                # Guardar PNG
-                ViewHelpers.guardar_imagen_matplotlib(fig, f"AEE_MFE_{hip}", hash_params)
-                plt.close(fig)
+                try:
+                    if graficos_3d:
+                        fig = analizador.generar_diagrama_3d(valores_mfe, 'MFE', hip)
+                    else:
+                        fig = analizador.generar_diagrama_2d(valores_mfe, 'MFE', hip)
+                    
+                    # Guardar PNG directamente
+                    from pathlib import Path
+                    filename = f"AEE_MFE_{hip}.{hash_params}.png"
+                    filepath = Path("data/cache") / filename
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+                    fig.savefig(str(filepath), dpi=150, bbox_inches='tight')
+                    plt.close(fig)
+                except Exception as e:
+                    print(f"Error guardando MFE para {hip}: {e}")
                 
         except Exception as e:
             print(f"ERROR en hipotesis {hip}: {e}")

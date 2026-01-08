@@ -126,24 +126,80 @@ def crear_vista_analisis_estatico(estructura_actual=None, calculo_guardado=None)
 def generar_resultados_aee(calculo_guardado, estructura_actual):
     """Genera vista de resultados desde cache"""
     from utils.view_helpers import ViewHelpers
+    import pandas as pd
     
     resultados = calculo_guardado.get('resultados', {})
     hash_params = calculo_guardado.get('hash_parametros', '')
     
-    # Alerta de cache
-    vigente = True
-    if estructura_actual:
-        from utils.calculo_cache import CalculoCache
-        vigente = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+    # Alerta de cache - solo mostrar si realmente viene de cache
+    # Si no tiene 'fecha_calculo', es un cálculo fresco
+    es_cache = 'fecha_calculo' in calculo_guardado
     
-    alerta = ViewHelpers.crear_alerta_cache(
-        mostrar_vigencia=True,
-        vigente=vigente,
-        mensaje_vigente="Cache vigente - Parametros sin cambios",
-        mensaje_no_vigente="Cache desactualizado - Parametros modificados"
-    )
+    if es_cache:
+        vigente = True
+        if estructura_actual:
+            from utils.calculo_cache import CalculoCache
+            vigente = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
+        
+        alerta = ViewHelpers.crear_alerta_cache(
+            mostrar_vigencia=True,
+            vigente=vigente
+        )
+        componentes = [alerta]
+    else:
+        # Cálculo fresco - no mostrar alerta de cache
+        componentes = []
     
-    componentes = [alerta]
+    # Tabla de nodos y conexiones
+    if resultados:
+        try:
+            import numpy as np
+            
+            # Obtener nodos y conexiones desde resultados guardados
+            # Los guardamos en el controller durante el análisis
+            nodos_info = resultados.get('nodos_info', {})
+            conexiones_info = resultados.get('conexiones_info', [])
+            
+            if nodos_info:
+                # Crear DataFrame de nodos
+                nodos_data = []
+                for nombre, info in nodos_info.items():
+                    nodos_data.append({
+                        'Nodo': nombre,
+                        'X [m]': f"{info['x']:.2f}",
+                        'Y [m]': f"{info['y']:.2f}",
+                        'Z [m]': f"{info['z']:.2f}",
+                        'Tipo': info['tipo']
+                    })
+                
+                df_nodos = pd.DataFrame(nodos_data)
+                
+                # Agregar tabla de nodos
+                componentes.append(html.H5("Nodos de la Estructura", className="mt-4 mb-3"))
+                componentes.append(dbc.Table.from_dataframe(
+                    df_nodos, 
+                    striped=True, 
+                    bordered=True, 
+                    hover=True, 
+                    size="sm"
+                ))
+            
+            if conexiones_info:
+                # Crear DataFrame de conexiones
+                df_conexiones = pd.DataFrame(conexiones_info)
+                
+                # Agregar tabla de conexiones
+                componentes.append(html.H5("Conexiones", className="mt-4 mb-3"))
+                componentes.append(dbc.Table.from_dataframe(
+                    df_conexiones, 
+                    striped=True, 
+                    bordered=True, 
+                    hover=True, 
+                    size="sm"
+                ))
+                
+        except Exception as e:
+            print(f"Error generando tablas de nodos/conexiones: {e}")
     
     # Seccion de diagramas
     diagramas = resultados.get('diagramas', {})

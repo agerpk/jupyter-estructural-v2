@@ -66,7 +66,8 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
             ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
             metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
-            altura_msnm=estructura_actual.get("Altura_MSNM")
+            altura_msnm=estructura_actual.get("Altura_MSNM"),
+            d_fases_add=estructura_actual.get("D_fases_add", 0.0)
         )
         
         # Asignar cable_guardia2 ANTES de dimensionar (para que los nodos lo usen)
@@ -193,12 +194,12 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state, generar_plots=True
         if "restricciones_cables" in estructura_actual:
             rest_cables = estructura_actual["restricciones_cables"]
             restricciones_dict = {
-                "conductor": {"tension_max_porcentaje": rest_cables["conductor"]},
-                "guardia": {
-                    "tension_max_porcentaje": rest_cables["guardia"],
-                    "relflecha_max": estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95)
-                }
+                "conductor": rest_cables["conductor"],
+                "guardia": rest_cables["guardia"]
             }
+            # Agregar relflecha_max si no existe
+            if "relflecha_max" not in restricciones_dict["guardia"]:
+                restricciones_dict["guardia"]["relflecha_max"] = estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95)
         else:
             raise KeyError("Debe configurar restricciones de cables en la familia antes de calcular (botón 'Modificar Estados Climáticos y Restricciones')")
         
@@ -1027,6 +1028,7 @@ def register_callbacks(app):
                 ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
                 metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
                 altura_msnm=estructura_actual.get("Altura_MSNM"),
+                d_fases_add=estructura_actual.get("D_fases_add", 0.0),
                 defasaje_mensula_hielo=estructura_actual.get("defasaje_mensula_hielo", False),
                 lmen_extra_hielo=estructura_actual.get("lmen_extra_hielo", 0.0),
                 mensula_defasar=estructura_actual.get("mensula_defasar", "primera")
