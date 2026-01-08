@@ -172,23 +172,26 @@ def register_callbacks(app):
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
-        print(f"DEBUG: Boton 'Cargar Cache AEE' presionado")
+        print(f"🔵 DEBUG: Boton 'Cargar Cache AEE' presionado")
         
         try:
             from utils.calculo_cache import CalculoCache
             from components.vista_analisis_estatico import generar_resultados_aee
             
             nombre_estructura = estructura_actual.get('TITULO', '')
+            print(f"🔵 DEBUG: Buscando cache para: '{nombre_estructura}'")
+            
             calculo_guardado = CalculoCache.cargar_calculo_aee(nombre_estructura)
             
             if not calculo_guardado:
+                print(f"❌ DEBUG: No se encontró archivo de cache")
                 return no_update, True, "Advertencia", "No hay cache disponible", "warning", "warning"
             
-            print("DEBUG: Cache AEE cargado")
+            print(f"✅ DEBUG: Cache cargado - keys: {list(calculo_guardado.keys())}")
             
             vista = generar_resultados_aee(calculo_guardado, estructura_actual)
             
-            return vista, True, "Exito", "Cache AEE cargado", "success", "success"
+            return vista, True, "Éxito", "Cache AEE cargado", "success", "success"
             
         except Exception as e:
             import traceback
@@ -242,13 +245,13 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
     
     print(f"DEBUG: Cargas asignadas - {len(geometria.nodos)} nodos")
     
-    # Obtener hipótesis desde las cargas asignadas a los nodos
-    hipotesis = set()
+    # Obtener hipótesis desde las cargas asignadas a los nodos (mantener orden)
+    hipotesis_set = set()
     for nodo in geometria.nodos.values():
-        # Usar el método listar_hipotesis() del nodo
-        hipotesis.update(nodo.listar_hipotesis())
+        hipotesis_set.update(nodo.listar_hipotesis())
     
-    hipotesis = list(hipotesis)
+    # Ordenar hipótesis alfabéticamente para mantener orden consistente (A0, A1, A2, B1, B2, C1, C2)
+    hipotesis = sorted(list(hipotesis_set))
     if not hipotesis:
         raise ValueError("No se encontraron hipótesis con cargas asignadas")
     

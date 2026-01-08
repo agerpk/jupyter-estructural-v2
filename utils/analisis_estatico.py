@@ -231,18 +231,6 @@ class AnalizadorEstatico:
         
         print(f"   Elementos preparados: {len(elementos_dict)} subelementos")
         
-        # Diagnóstico de ejes locales (primeros 5 elementos)
-        print(f"\n   📊 Diagnóstico de Ejes Locales (primeros 5 elementos):")
-        for eid in list(elementos_dict.keys())[:5]:
-            data = elementos_dict[eid]
-            ni, nj, _ = data['origen']
-            vec_x = data['vec_x_local']
-            ejes = data['ejes_locales']
-            print(f"   Elem {eid} ({ni}-{nj}):")
-            print(f"      X_local: [{vec_x[0]:6.3f}, {vec_x[1]:6.3f}, {vec_x[2]:6.3f}]")
-            print(f"      Y_local: [{ejes[0,1]:6.3f}, {ejes[1,1]:6.3f}, {ejes[2,1]:6.3f}]")
-            print(f"      Z_local: [{ejes[0,2]:6.3f}, {ejes[1,2]:6.3f}, {ejes[2,2]:6.3f}]")
-        
         # 1.3: Preparar cargas
         cargas_dict = {}  # {tag: [fx, fy, fz, mx, my, mz]}
         for nombre, nodo in self.geometria.nodos.items():
@@ -598,15 +586,15 @@ class AnalizadorEstatico:
         valores_subnodos = resultado_analisis.get('valores', {})
         reacciones = resultado_analisis.get('reacciones', {})
         
-        valores_n = {k: v[0] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
-        valores_q = {k: v[1] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
         valores_m = {k: v[2] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
+        valores_q = {k: v[1] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
+        valores_n = {k: v[0] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
         valores_t = {k: v[3] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
         
         configs = [
-            (valores_n, 'Esfuerzo Normal (N)', 'daN', 221),
+            (valores_m, 'Momento Flector (M)', 'daN.m', 221),
             (valores_q, 'Esfuerzo Cortante (Q)', 'daN', 222),
-            (valores_m, 'Momento Flector (M)', 'daN.m', 223),
+            (valores_n, 'Esfuerzo Normal (N)', 'daN', 223),
             (valores_t, 'Momento Torsor (T)', 'daN.m', 224)
         ]
         
