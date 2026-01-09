@@ -461,7 +461,7 @@ class AnalizadorEstatico:
                 mfe[nodo] = float(vals[2])
         return {'valores': mfe, 'reacciones': resultado_analisis.get('reacciones', {})}
     
-    def generar_diagrama_3d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "logaritmica") -> plt.Figure:
+    def generar_diagrama_3d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "lineal") -> plt.Figure:
         """Genera diagrama 3D con gradientes"""
         if not resultado_analisis:
             raise ValueError("resultado_analisis vacío - análisis no convergió")
@@ -489,8 +489,10 @@ class AnalizadorEstatico:
         
         vals = list(valores_subnodos.values())
         if vals:
-            vmin, vmax = min(vals), max(vals)`n            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")`n            if escala == "logaritmica":
-                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=max(vmax, 0.2))
+            vmin, vmax = min(vals), max(vals)
+            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")
+            if escala == "logaritmica":
+                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=vmax)
             else:
                 norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
             cmap = plt.cm.jet
@@ -523,8 +525,8 @@ class AnalizadorEstatico:
             sm.set_array([])
             plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]', shrink=0.8)
             
-            # Etiqueta con valor máximo
-            ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f} daN.m", 
+            # Etiqueta con valor máximo y mínimo
+            ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} daN.m", 
                       transform=ax.transAxes, fontsize=10, fontweight='bold',
                       va='top', ha='left',
                       bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
@@ -558,7 +560,7 @@ class AnalizadorEstatico:
         
         return fig
     
-    def generar_diagrama_2d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "logaritmica") -> plt.Figure:
+    def generar_diagrama_2d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "lineal") -> plt.Figure:
         """Genera diagrama 2D con gradientes"""
         if not resultado_analisis:
             raise ValueError("resultado_analisis vacío - análisis no convergió")
@@ -583,8 +585,10 @@ class AnalizadorEstatico:
         
         vals = list(valores_subnodos.values())
         if vals:
-            vmin, vmax = min(vals), max(vals)`n            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")`n            if escala == "logaritmica":
-                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=max(vmax, 0.2))
+            vmin, vmax = min(vals), max(vals)
+            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")
+            if escala == "logaritmica":
+                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=vmax)
             else:
                 norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
             cmap = plt.cm.jet
@@ -616,8 +620,8 @@ class AnalizadorEstatico:
             sm.set_array([])
             plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]')
             
-            # Etiqueta con valor máximo
-            ax.text(0.02, 0.98, f"Máximo: {vmax:.2f} daN.m", 
+            # Etiqueta con valor máximo y mínimo
+            ax.text(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} daN.m", 
                     transform=ax.transAxes, fontsize=10, fontweight='bold',
                     va='top', ha='left',
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
@@ -650,7 +654,7 @@ class AnalizadorEstatico:
         
         return fig
     
-    def generar_diagrama_mqnt(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False, escala: str = "logaritmica") -> plt.Figure:
+    def generar_diagrama_mqnt(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False, escala: str = "lineal") -> plt.Figure:
         """Genera diagrama combinado Mf, Q, N, T en 2x2 (valores directos de OpenSeesPy en ejes locales)"""
         if not resultado_analisis:
             raise ValueError("resultado_analisis vacío - análisis no convergió")
@@ -707,7 +711,7 @@ class AnalizadorEstatico:
         plt.tight_layout()
         return fig
     
-    def _dibujar_3d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala="logaritmica"):
+    def _dibujar_3d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala="lineal"):
         """Dibuja subplot 3D con subelementos y reacciones"""
         # Validar parámetros
         n_corta = self.parametros.get('n_segmentar_conexion_corta')
@@ -726,8 +730,10 @@ class AnalizadorEstatico:
         
         vals = list(valores_dict.values())
         if vals:
-            vmin, vmax = min(vals), max(vals)`n            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")`n            if escala == "logaritmica":
-                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=max(vmax, 0.2))
+            vmin, vmax = min(vals), max(vals)
+            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")
+            if escala == "logaritmica":
+                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=vmax)
             else:
                 norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
             cmap = plt.cm.jet
@@ -776,8 +782,8 @@ class AnalizadorEstatico:
             cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}', shrink=0.6)
             cbar.ax.axhline(y=1.0, color='r', linewidth=3)
             
-            # Etiqueta con valor máximo
-            ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f} {unidad}", 
+            # Etiqueta con valor máximo y mínimo
+            ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} {unidad}", 
                       transform=ax.transAxes, fontsize=10, fontweight='bold',
                       va='top', ha='left',
                       bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
@@ -809,7 +815,7 @@ class AnalizadorEstatico:
         ax.set_zlabel('Z [m]')
         ax.set_title(f'{titulo} - {hipotesis}')
     
-    def _dibujar_2d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala="logaritmica"):
+    def _dibujar_2d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala="lineal"):
         """Dibuja subplot 2D con subelementos y reacciones"""
         # Validar parámetros
         n_corta = self.parametros.get('n_segmentar_conexion_corta')
@@ -826,8 +832,10 @@ class AnalizadorEstatico:
         
         vals = list(valores_dict.values())
         if vals:
-            vmin, vmax = min(vals), max(vals)`n            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")`n            if escala == "logaritmica":
-                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=max(vmax, 0.2))
+            vmin, vmax = min(vals), max(vals)
+            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")
+            if escala == "logaritmica":
+                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=vmax)
             else:
                 norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
             cmap = plt.cm.jet
@@ -875,8 +883,8 @@ class AnalizadorEstatico:
             cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}')
             cbar.ax.axhline(y=1.0, color='r', linewidth=3)
             
-            # Etiqueta con valor máximo
-            ax.text(0.02, 0.98, f"Máximo: {vmax:.2f} {unidad}", 
+            # Etiqueta con valor máximo y mínimo
+            ax.text(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} {unidad}", 
                     transform=ax.transAxes, fontsize=10, fontweight='bold',
                     va='top', ha='left',
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
@@ -962,6 +970,7 @@ class AnalizadorEstatico:
         
         return fig
     
+
 
 
 
