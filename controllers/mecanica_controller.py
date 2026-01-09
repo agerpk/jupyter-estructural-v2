@@ -104,27 +104,11 @@ def register_callbacks(app):
         
         return is_open, dash.no_update
     
-    @app.callback(
-        Output("modal-editor-hipotesis", "is_open"),
-        Output("modal-editor-hipotesis", "children"),
-        Input("btn-cancelar-hipotesis", "n_clicks"),
-        Input("btn-guardar-hipotesis", "n_clicks"),
-        State("modal-editor-hipotesis", "is_open"),
-        State("estructura-actual", "data"),
-        State("hipotesis-actuales", "data"),
-        prevent_initial_call=True
-    )
-    def toggle_modal_hipotesis(n_abrir, n_cancelar, n_guardar, is_open, estructura_actual, hipotesis_actuales):
-        ctx = dash.callback_context
-        if not ctx.triggered:
-            return is_open, dash.no_update
-        
-        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-        
-        # Manejar solo cancelar/guardar desde modal (la edición se centraliza en el Editor de Hipótesis)
-        if button_id in ["btn-cancelar-hipotesis", "btn-guardar-hipotesis"]:
-            return False, dash.no_update
-        return is_open, dash.no_update
+    # Nota: El manejo del modal de edición de hipótesis se centraliza en
+    # `callbacks_minimos_para_editor_hipotesis_vista.py` y en el controlador
+    # `hipotesis_controller`. Para evitar callbacks duplicados que rompan la
+    # navegación, este hook quedó deshabilitado aquí intencionalmente.
+    # Si se necesita, reimplementar en el controlador específico del Editor.
 
 
     @app.callback(

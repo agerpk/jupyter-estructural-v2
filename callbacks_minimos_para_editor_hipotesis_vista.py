@@ -99,7 +99,7 @@ def register_callbacks(app):
         return campos, tipo
 
     @app.callback(
-        Output('hip-list', 'children'),
+        Output('hip-list', 'children', allow_duplicate=True),
         Output('hip-detalle', 'children'),
         Output('hip-toasts-container', 'children'),
         Input('btn-guardar-hipotesis', 'n_clicks'),
@@ -184,7 +184,7 @@ def register_callbacks(app):
         return items, detalle, toast
 
     @app.callback(
-        Output('modal-editor-hipotesis', 'is_open'),
+        Output('modal-editor-hipotesis', 'is_open', allow_duplicate=True),
         Input('btn-cancelar-hipotesis', 'n_clicks'),
         Input('btn-guardar-hipotesis', 'n_clicks'),
         Input('btn-eliminar-hipotesis', 'n_clicks'),
@@ -229,7 +229,7 @@ def register_callbacks(app):
         return nombre, toast
 
     @app.callback(
-        Output('hip-list', 'children'),
+        Output('hip-list', 'children', allow_duplicate=True),
         Output('hip-detalle', 'children'),
         Input('btn-exportar-hipotesis', 'n_clicks'),
         State('hip-seleccionada', 'data')
@@ -245,7 +245,7 @@ def register_callbacks(app):
         return [dbc.ListGroupItem(h, id={"type": "hip-item", "name": h}, action=True) for h in HipotesisManager.listar_hipotesis()], html.Div(f'Exportado a {destino}'), toast
 
     @app.callback(
-        Output('hip-list', 'children'),
+        Output('hip-list', 'children', allow_duplicate=True),
         Output('hip-detalle', 'children'),
         Input('upload-hipotesis', 'contents'),
         State('upload-hipotesis', 'filename')
@@ -347,6 +347,7 @@ def register_callbacks(app):
         Output('modal-crear-hip', 'is_open', allow_duplicate=True),
         Output('hip-list', 'children', allow_duplicate=True),
         Output('hip-toasts-container', 'children', allow_duplicate=True),
+        Output('hip-seleccionada', 'data', allow_duplicate=True),
         Input('crear-hip-guardar-btn', 'n_clicks'),
         State('crear-hip-nombre-input', 'value'),
         prevent_initial_call=True
@@ -354,7 +355,7 @@ def register_callbacks(app):
     def _ejecutar_crear(n, nombre_nuevo):
         if not n or not nombre_nuevo or not nombre_nuevo.strip():
             toast = dbc.Toast("El nombre no puede estar vacío.", header="Error", icon="danger", duration=4000)
-            return True, dash.no_update, toast
+            return True, dash.no_update, toast, dash.no_update
 
         # Cargar la hipótesis activa como base, o la plantilla si no hay activa
         datos_base = HipotesisManager.cargar_hipotesis_activa()
@@ -364,17 +365,20 @@ def register_callbacks(app):
 
         if not datos_base:
             toast = dbc.Toast("Error: No se encontró ni hipótesis activa ni plantilla para copiar.", header="Error", icon="danger", duration=5000)
-            return True, dash.no_update, toast
+            return True, dash.no_update, toast, dash.no_update
 
         # Guardar la copia
         HipotesisManager.guardar_hipotesis(nombre_nuevo, datos_base)
+        # Establecer la nueva hipótesis como activa
+        HipotesisManager.establecer_hipotesis_activa(nombre_nuevo)
 
         # Actualizar la lista y notificar
         hip_list = HipotesisManager.listar_hipotesis()
         items = [dbc.ListGroupItem(h, id={"type": "hip-item", "name": h}, action=True) for h in hip_list]
         toast = dbc.Toast(f"Hipótesis '{nombre_nuevo}' creada con éxito.", header="Éxito", icon="success", duration=3000)
-        
-        return False, items, toast
+        # Seleccionar la nueva hipótesis en el store (con extensión)
+        seleccion_name = f"{nombre_nuevo}.hipotesis.json"
+        return False, items, toast, seleccion_name
 
     @app.callback(
         Output('modal-crear-hip', 'is_open', allow_duplicate=True),

@@ -37,3 +37,18 @@ def importar_hipotesis(ruta_externa):
     return HipotesisManager.importar_hipotesis_desde_archivo(ruta_externa)
 
 
+def register_callbacks(app):
+    """Registra callbacks relacionados al Editor de Hipótesis.
+
+    Llama a la implementación mínima de callbacks en
+    `callbacks_minimos_para_editor_hipotesis_vista.py`.
+    """
+    try:
+        from callbacks_minimos_para_editor_hipotesis_vista import register_callbacks as _register
+        _register(app)
+    except Exception as e:
+        # No debe interrumpir el arranque; solo registrar un mensaje
+        print(f"⚠️ No se pudieron registrar callbacks de hipotesis: {e}")
+        return
+
+

@@ -1,7 +1,7 @@
 """Vista para el Editor de Hipótesis"""
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from controllers.hipotesis_controller import listar_hipotesis
+from controllers.hipotesis_controller import listar_hipotesis, obtener_activa
 from components.editor_hipotesis import crear_modal_editor_hipotesis
 
 
@@ -28,7 +28,7 @@ def crear_vista_editor_hipotesis():
                 dbc.Alert(
                     [
                         html.Span("Hipótesis Activa: ", className="fw-bold"),
-                        html.Span("Ninguna", id="hip-activa-nombre")
+                        html.Span(obtener_activa() or "Ninguna", id="hip-activa-nombre")
                     ], 
                     id="hip-activa-display",
                     color="success",
