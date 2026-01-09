@@ -83,19 +83,6 @@ La feature "Editor de Hipótesis" permitirá crear, editar, guardar, cargar y ap
 
 ---
 
-## Tests & QA ✅
-- Unit tests:
-  - `tests/test_hipotesis_manager.py`: cargar/guardar/listar/validación de esquema.
-  - `tests/test_asignar_cargas_con_flag.py`: test de `doble-terna-una-terna-activa` aplicando cargas. 
-- Integration tests:
-  - Simular flujo UI: crear hipotesis, guardarla, ejecutar DME y comprobar que `df_reacciones` refleja cambios.
-- Manual QA checklist:
-  - Crear, editar, guardar como, eliminar, importar/exportar.
-  - Probar fallback a plantilla y mensajes UI.
-  - Verificar cache/hash y que DME use hipótesis activa.
-
----
-
 ## Ejemplo: `doble-terna-una-terna-activa` (implementación sugerida)
 - Flag en la hipótesis: `"doble-terna-una-terna-activa": { "lado": "L" }` o `{ "lado": "R" }`.
 - En `asignar_cargas_hipotesis` antes de aplicar cargas, evaluar flag y si está presente:
@@ -133,14 +120,6 @@ La feature "Editor de Hipótesis" permitirá crear, editar, guardar, cargar y ap
 - **Eliminar edición duplicada:** Hay ediciones de hipótesis actualmente accesibles desde la vista DME (`components/vista_diseno_mecanico.py` y callbacks en `controllers/mecanica_controller.py`). Estas deben **eliminarse** (botón/funcionalidad de "Modificar Hipótesis" y callbacks de guardado en DME) para evitar duplicidad: toda edición debe centralizarse en la nueva vista/Editor de Hipótesis. En la vista DME solo dejar un botón que *abra* la vista de Editor o navegue a ella.
 - **Reemplazo total del sistema:** El sistema antiguo quedará totalmente reemplazado por el nuevo (no coexistirán ambos). Añadir un paso de migración y un mensaje de deprecación en el código para facilitar la transición.
 - **Callbacks y allow_duplicate:** Al mover o reubicar callbacks asegúrate de evitar errores `DuplicateCallback`. Revisar todos los callbacks que usan `allow_duplicate=True` y ajustar según sea necesario; añadir tests que detecten errores de registro de callbacks.
-
----
-
-## Tests adicionales a incluir ✅
-- Test en `tests/test_borrar_cache.py` que valide que la ejecución de `borrar_cache()` no borra `data/hipotesis/` ni sus archivos.
-- Test en `tests/test_hipotesis_html_header.py` que verifique que los HTML generados contienen la línea `USANDO HIPÓTESIS {nombre}` en su encabezado o metadatos.
-- Test en `tests/test_no_duplicate_editor.py` que valide que la vista DME ya no permite editar hipótesis directamente y que al pulsar "Abrir Editor" la navegación funciona.
-- Test de integración: crear hipótesis, guardarla en `data/hipotesis/`, activar y ejecutar DME → verificar mensajes y que los cálculos usen la hipótesis activa.
 
 ---
 
