@@ -404,11 +404,14 @@ class AnalizadorEstatico:
                 My_local_i = -fuerzas_locales[4]  # Momento Y local
                 Mz_local_i = -fuerzas_locales[5]  # Momento Z local
                 
-                # Para elementos VERTICALES: X_local = Z_global, entonces N_local debería capturar cargas Z_global
-                # Si N_local = 0 pero Qz_local ≠ 0, hay un problema de transformación
+                # CORRECCIÓN para elementos VERTICALES:
+                # OpenSeesPy reporta cargas Z globales como Qz en lugar de N
+                # Intercambiar N y Qz para elementos verticales
                 tipo_elem = data.get('tipo_elemento', 'DESCONOCIDO')
-                if tipo_elem == 'VERTICAL' and abs(N_local_i) < 0.01 and abs(Qz_local_i) > 0.01:
-                    logger.warning(f"Elemento VERTICAL {ni}-{nj}: N={N_local_i:.2f} pero Qz={Qz_local_i:.2f}. Posible error de transformación.")
+                if tipo_elem == 'VERTICAL':
+                    # Para elementos verticales: N_real = Qz_reportado, Qz_real = N_reportado
+                    N_local_i, Qz_local_i = Qz_local_i, N_local_i
+                    logger.debug(f"VERTICAL {ni}-{nj}: Intercambiado N<->Qz: N={N_local_i:.2f}, Qz={Qz_local_i:.2f}")
                 
                 # Nodo j: mantener signos (ya son fuerzas internas)
                 N_local_j = fuerzas_locales[6]
@@ -417,6 +420,10 @@ class AnalizadorEstatico:
                 Mx_local_j = fuerzas_locales[9]
                 My_local_j = fuerzas_locales[10]
                 Mz_local_j = fuerzas_locales[11]
+                
+                # CORRECCIÓN para elementos VERTICALES (nodo j también)
+                if tipo_elem == 'VERTICAL':
+                    N_local_j, Qz_local_j = Qz_local_j, N_local_j
                 
                 # Calcular magnitudes en ejes locales (directo de OpenSeesPy)
                 # Momento Flector = sqrt(My² + Mz²) en ejes locales

@@ -1,0 +1,71 @@
+{
+  "titulo": "Nueva_Comparativa",
+  "fecha_creacion": "2026-01-09T12:01:30.229992",
+  "fecha_modificacion": "2026-01-09T12:03:25.766740",
+  "version": "1.0",
+  "parametros_linea": {
+    "L_vano": 400,
+    "theta": 0,
+    "Vmax": 38.9,
+    "Vmed": 15.56,
+    "t_hielo": 0,
+    "exposicion": "C",
+    "clase": "C",
+    "Zco": 20,
+    "Cf_cable": 1
+  },
+  "configuracion_calculo": {
+    "VANO_DESNIVELADO": true,
+    "H_PIQANTERIOR": 0,
+    "H_PIQPOSTERIOR": 0,
+    "SALTO_PORCENTUAL": 0.05,
+    "PASO_AFINADO": 0.01,
+    "OBJ_CONDUCTOR": "FlechaMin",
+    "RELFLECHA_SIN_VIENTO": true
+  },
+  "estados_climaticos": {
+    "I": {
+      "temperatura": 80,
+      "descripcion": "Tmáx",
+      "viento_velocidad": 0,
+      "hielo_espesor": 0,
+      "restriccion_conductor": 0.25,
+      "restriccion_guardia": 0.7
+    },
+    "II": {
+      "temperatura": -15,
+      "descripcion": "Tmín",
+      "viento_velocidad": 0,
+      "hielo_espesor": 0,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7
+    },
+    "III": {
+      "temperatura": 10,
+      "descripcion": "Vmáx",
+      "viento_velocidad": 38.9,
+      "hielo_espesor": 0,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7
+    },
+    "IV": {
+      "temperatura": -5,
+      "descripcion": "Vmed",
+      "viento_velocidad": 15.56,
+      "hielo_espesor": 0.01,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7
+    },
+    "V": {
+      "temperatura": 16,
+      "descripcion": "TMA",
+      "viento_velocidad": 0,
+      "hielo_espesor": 0,
+      "restriccion_conductor": 0.25,
+      "restriccion_guardia": 0.7
+    }
+  },
+  "cables_seleccionados": [
+    "AlAc 435/55"
+  ]
+}
