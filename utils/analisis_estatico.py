@@ -5,6 +5,7 @@ Calcula esfuerzos en barras de estructura con propiedades E, I, A simuladas
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from mpl_toolkits.mplot3d import Axes3D
 from typing import Dict, List, Tuple, Optional
 import openseespy.opensees as ops
@@ -371,30 +372,16 @@ class AnalizadorEstatico:
                 My_local_j = fuerzas_locales[10]
                 Mz_local_j = fuerzas_locales[11]
                 
-                # Transformar momentos a ejes globales
-                # M_local = [Mx, My, Mz] en sistema local
-                # M_global = R * M_local, donde R = matriz de ejes locales
-                M_local_i = np.array([Mx_local_i, My_local_i, Mz_local_i])
-                M_global_i = ejes_locales @ M_local_i
+                # Calcular magnitudes en ejes locales (directo de OpenSeesPy)
+                # Momento Flector = sqrt(My² + Mz²) en ejes locales
+                M_i = np.sqrt(My_local_i**2 + Mz_local_i**2)
+                M_j = np.sqrt(My_local_j**2 + Mz_local_j**2)
                 
-                M_local_j = np.array([Mx_local_j, My_local_j, Mz_local_j])
-                M_global_j = ejes_locales @ M_local_j
+                # Torsión = Mx en ejes locales
+                T_i = abs(Mx_local_i)
+                T_j = abs(Mx_local_j)
                 
-                # Calcular magnitudes en ejes globales
-                # Momento Flector Global = componentes perpendiculares al eje del elemento
-                vec_x_local = data['vec_x_local']
-                
-                # Proyección del momento en dirección del elemento = Torsión
-                T_i = abs(np.dot(M_global_i, vec_x_local))
-                T_j = abs(np.dot(M_global_j, vec_x_local))
-                
-                # Componente perpendicular = Flexión
-                M_perp_i = M_global_i - T_i * vec_x_local
-                M_perp_j = M_global_j - T_j * vec_x_local
-                M_i = np.linalg.norm(M_perp_i)
-                M_j = np.linalg.norm(M_perp_j)
-                
-                # Cortantes (magnitud)
+                # Cortante = sqrt(Qy² + Qz²) en ejes locales
                 Q_i = np.sqrt(Qy_local_i**2 + Qz_local_i**2)
                 Q_j = np.sqrt(Qy_local_j**2 + Qz_local_j**2)
                 
@@ -474,7 +461,7 @@ class AnalizadorEstatico:
                 mfe[nodo] = float(vals[2])
         return {'valores': mfe, 'reacciones': resultado_analisis.get('reacciones', {})}
     
-    def generar_diagrama_3d(self, resultado_analisis: Dict, tipo: str, hipotesis: str) -> plt.Figure:
+    def generar_diagrama_3d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "logaritmica") -> plt.Figure:
         """Genera diagrama 3D con gradientes"""
         if not resultado_analisis:
             raise ValueError("resultado_analisis vacío - análisis no convergió")
@@ -502,8 +489,10 @@ class AnalizadorEstatico:
         
         vals = list(valores_subnodos.values())
         if vals:
-            vmin, vmax = min(vals), max(vals)
-            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            vmin, vmax = min(vals), max(vals)`n            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")`n            if escala == "logaritmica":
+                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=max(vmax, 0.2))
+            else:
+                norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
             cmap = plt.cm.jet
             
             # Calcular umbral para determinar n_subdiv por conexión
@@ -569,7 +558,7 @@ class AnalizadorEstatico:
         
         return fig
     
-    def generar_diagrama_2d(self, resultado_analisis: Dict, tipo: str, hipotesis: str) -> plt.Figure:
+    def generar_diagrama_2d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "logaritmica") -> plt.Figure:
         """Genera diagrama 2D con gradientes"""
         if not resultado_analisis:
             raise ValueError("resultado_analisis vacío - análisis no convergió")
@@ -594,8 +583,10 @@ class AnalizadorEstatico:
         
         vals = list(valores_subnodos.values())
         if vals:
-            vmin, vmax = min(vals), max(vals)
-            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            vmin, vmax = min(vals), max(vals)`n            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")`n            if escala == "logaritmica":
+                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=max(vmax, 0.2))
+            else:
+                norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
             cmap = plt.cm.jet
             
             # Calcular umbral para determinar n_subdiv por conexión
@@ -659,7 +650,7 @@ class AnalizadorEstatico:
         
         return fig
     
-    def generar_diagrama_mqnt(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False) -> plt.Figure:
+    def generar_diagrama_mqnt(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False, escala: str = "logaritmica") -> plt.Figure:
         """Genera diagrama combinado Mf, Q, N, T en 2x2 (valores directos de OpenSeesPy en ejes locales)"""
         if not resultado_analisis:
             raise ValueError("resultado_analisis vacío - análisis no convergió")
@@ -708,15 +699,15 @@ class AnalizadorEstatico:
         for valores_dict, titulo, unidad, subplot_pos in configs:
             if graficos_3d:
                 ax = fig.add_subplot(subplot_pos, projection='3d')
-                self._dibujar_3d(ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones)
+                self._dibujar_3d(ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala)
             else:
                 ax = fig.add_subplot(subplot_pos)
-                self._dibujar_2d(ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones)
+                self._dibujar_2d(ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala)
         
         plt.tight_layout()
         return fig
     
-    def _dibujar_3d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones):
+    def _dibujar_3d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala="logaritmica"):
         """Dibuja subplot 3D con subelementos y reacciones"""
         # Validar parámetros
         n_corta = self.parametros.get('n_segmentar_conexion_corta')
@@ -735,8 +726,10 @@ class AnalizadorEstatico:
         
         vals = list(valores_dict.values())
         if vals:
-            vmin, vmax = min(vals), max(vals)
-            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            vmin, vmax = min(vals), max(vals)`n            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")`n            if escala == "logaritmica":
+                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=max(vmax, 0.2))
+            else:
+                norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
             cmap = plt.cm.jet
             
             # Encontrar elemento con valor máximo
@@ -816,7 +809,7 @@ class AnalizadorEstatico:
         ax.set_zlabel('Z [m]')
         ax.set_title(f'{titulo} - {hipotesis}')
     
-    def _dibujar_2d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones):
+    def _dibujar_2d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala="logaritmica"):
         """Dibuja subplot 2D con subelementos y reacciones"""
         # Validar parámetros
         n_corta = self.parametros.get('n_segmentar_conexion_corta')
@@ -833,8 +826,10 @@ class AnalizadorEstatico:
         
         vals = list(valores_dict.values())
         if vals:
-            vmin, vmax = min(vals), max(vals)
-            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            vmin, vmax = min(vals), max(vals)`n            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")`n            if escala == "logaritmica":
+                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=max(vmax, 0.2))
+            else:
+                norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
             cmap = plt.cm.jet
             
             # Encontrar elemento con valor máximo
@@ -967,4 +962,9 @@ class AnalizadorEstatico:
         
         return fig
     
+
+
+
+
+
 

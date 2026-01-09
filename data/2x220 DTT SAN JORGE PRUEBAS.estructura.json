@@ -167,7 +167,8 @@
     "GRAFICOS_3D_AEE": true,
     "n_segmentar_conexion_corta": 33,
     "n_segmentar_conexion_larga": 66,
-    "percentil_separacion_corta_larga": 50
+    "percentil_separacion_corta_larga": 50,
+    "escala_graficos": "lineal"
   },
   "estados_climaticos": {
     "I": {
@@ -218,6 +219,6 @@
       "relflecha_max": 0.95
     }
   },
-  "fecha_modificacion": "2026-01-09T10:02:44.247584",
+  "fecha_modificacion": "2026-01-09T11:13:56.877089",
   "nodos_editados": []
 }

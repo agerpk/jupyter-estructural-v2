@@ -30,7 +30,18 @@ def crear_vista_analisis_estatico(estructura_actual=None, calculo_guardado=None)
                         id="aee-graficos-3d",
                         value=aee_params.get('GRAFICOS_3D_AEE', True)
                     )
-                ], width=6),
+                ], width=4),
+                dbc.Col([
+                    html.Label("Escala graficos"),
+                    dbc.Select(
+                        id="aee-escala-graficos",
+                        options=[
+                            {"label": "Lineal", "value": "lineal"},
+                            {"label": "Logaritmica", "value": "logaritmica"}
+                        ],
+                        value=aee_params.get('escala_graficos', 'lineal')
+                    )
+                ], width=4),
                 dbc.Col([
                     html.Label("Elementos conexion corta"),
                     dbc.Input(
@@ -39,7 +50,7 @@ def crear_vista_analisis_estatico(estructura_actual=None, calculo_guardado=None)
                         value=aee_params.get('n_segmentar_conexion_corta', 10),
                         min=5, max=50, step=1
                     )
-                ], width=6)
+                ], width=4)
             ], className="mb-3"),
             dbc.Row([
                 dbc.Col([

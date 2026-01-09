@@ -38,13 +38,14 @@ def register_callbacks(app):
         Input("btn-guardar-params-aee", "n_clicks"),
         [State("estructura-actual", "data"),
          State("aee-graficos-3d", "value"),
+         State("aee-escala-graficos", "value"),
          State("aee-n-corta", "value"),
          State("aee-n-larga", "value"),
          State("aee-percentil", "value"),
          State("aee-diagramas", "value")],
         prevent_initial_call=True
     )
-    def guardar_parametros_aee(n_clicks, estructura_actual, graficos_3d, n_corta, n_larga, percentil, diagramas):
+    def guardar_parametros_aee(n_clicks, estructura_actual, graficos_3d, escala_graficos, n_corta, n_larga, percentil, diagramas):
         """Guarda parametros AEE en estructura"""
         
         if n_clicks is None:
@@ -65,6 +66,7 @@ def register_callbacks(app):
                 estructura_actual['AnalisisEstaticoEsfuerzos'] = {}
             
             estructura_actual['AnalisisEstaticoEsfuerzos']['GRAFICOS_3D_AEE'] = graficos_3d
+            estructura_actual['AnalisisEstaticoEsfuerzos']['escala_graficos'] = escala_graficos
             estructura_actual['AnalisisEstaticoEsfuerzos']['n_segmentar_conexion_corta'] = n_corta
             estructura_actual['AnalisisEstaticoEsfuerzos']['n_segmentar_conexion_larga'] = n_larga
             estructura_actual['AnalisisEstaticoEsfuerzos']['percentil_separacion_corta_larga'] = percentil
@@ -338,6 +340,7 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
     # Analizar cada hipotesis
     diagramas_activos = parametros_aee.get('DIAGRAMAS_ACTIVOS', {})
     graficos_3d = parametros_aee.get('GRAFICOS_3D_AEE', True)
+    escala_graficos = parametros_aee.get('escala_graficos', 'logaritmica')
     
     for hip in hipotesis:
         print(f"  -> Analizando hipotesis: {hip}")
@@ -380,7 +383,7 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
             # Generar diagramas MQNT
             if diagramas_activos.get('MQNT', True):
                 try:
-                    fig = analizador.generar_diagrama_mqnt(esfuerzos, hip, graficos_3d)
+                    fig = analizador.generar_diagrama_mqnt(esfuerzos, hip, graficos_3d, escala_graficos)
                     
                     from pathlib import Path
                     filename = f"AEE_MQNT_{hip}.{hash_params}.png"
@@ -407,9 +410,9 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
                 # Generar grafico estatico (PNG)
                 try:
                     if graficos_3d:
-                        fig = analizador.generar_diagrama_3d(valores_mrt, 'MRT', hip)
+                        fig = analizador.generar_diagrama_3d(valores_mrt, 'MRT', hip, escala_graficos)
                     else:
-                        fig = analizador.generar_diagrama_2d(valores_mrt, 'MRT', hip)
+                        fig = analizador.generar_diagrama_2d(valores_mrt, 'MRT', hip, escala_graficos)
                     
                     # Guardar PNG directamente
                     from pathlib import Path
@@ -432,9 +435,9 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
                 # Generar grafico estatico (PNG)
                 try:
                     if graficos_3d:
-                        fig = analizador.generar_diagrama_3d(valores_mfe, 'MFE', hip)
+                        fig = analizador.generar_diagrama_3d(valores_mfe, 'MFE', hip, escala_graficos)
                     else:
-                        fig = analizador.generar_diagrama_2d(valores_mfe, 'MFE', hip)
+                        fig = analizador.generar_diagrama_2d(valores_mfe, 'MFE', hip, escala_graficos)
                     
                     # Guardar PNG directamente
                     from pathlib import Path
