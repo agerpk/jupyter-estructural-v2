@@ -222,6 +222,20 @@ def generar_resultados_aee(calculo_guardado, estructura_actual):
                     size="sm"
                 ))
             
+            # Tabla de reacciones por hipótesis
+            if resultados.get('df_reacciones'):
+                df_dict = resultados['df_reacciones']
+                df_reacciones = pd.DataFrame(df_dict['data'], columns=df_dict['columns'], index=df_dict['index'])
+                
+                componentes.append(html.H5("Reacciones en Base por Hipótesis", className="mt-4 mb-3"))
+                componentes.append(dbc.Table.from_dataframe(
+                    df_reacciones.reset_index(), 
+                    striped=True, 
+                    bordered=True, 
+                    hover=True, 
+                    size="sm"
+                ))
+            
             if conexiones_info:
                 # Crear DataFrame de conexiones
                 df_conexiones = pd.DataFrame(conexiones_info)

@@ -365,6 +365,8 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
                             'Nodo_Inicio': ni,
                             'Nodo_Fin': nj,
                             'Sub_Idx': subelem['sub_idx'],
+                            'Tipo': subelem.get('tipo_elemento', 'N/A'),
+                            'Eje_Long_Global': subelem.get('eje_longitudinal_global', 'N/A'),
                             'N_daN': round(subelem['N'], 2),
                             'Qy_daN': round(subelem['Qy'], 2),
                             'Qz_daN': round(subelem['Qz'], 2),
@@ -463,6 +465,19 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
             'column_codes': [mecanica.df_cargas_completo.columns.codes[i].tolist() for i in range(mecanica.df_cargas_completo.columns.nlevels)]
         }
         print(f"✅ DataFrame de cargas guardado en resultados")
+    
+    # Generar DataFrame de reacciones
+    try:
+        df_reacciones = analizador.generar_dataframe_reacciones(hipotesis)
+        if not df_reacciones.empty:
+            resultados['df_reacciones'] = {
+                'data': df_reacciones.values.tolist(),
+                'columns': df_reacciones.columns.tolist(),
+                'index': df_reacciones.index.tolist()
+            }
+            print(f"✅ DataFrame de reacciones guardado: {len(df_reacciones)} hipótesis")
+    except Exception as e:
+        print(f"❌ Error generando DataFrame de reacciones: {e}")
     
     print(f"DEBUG: Analisis AEE completado")
     

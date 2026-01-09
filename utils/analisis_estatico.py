@@ -213,17 +213,34 @@ class AnalizadorEstatico:
                 continue
             vec_x_local = (cj - ci) / longitud  # Eje X local = dirección del elemento
             
-            # Determinar transfTag y vector de referencia
-            dz = abs(vec_x_local[2])
-            dx = abs(vec_x_local[0])
-            dy = abs(vec_x_local[1])
+            # CLASIFICACIÓN DE ELEMENTO: Vertical vs Horizontal-X vs Horizontal-Y (umbral 45°)
+            # NOTA: SI SE USAN PIEZAS DIAGONALES (>45°), DEBE CALCULARSE EJE DE ELEMENTO 
+            # EN COMPONENTES XYZ Y LUEGO TRANSFORMAR SUS RESULTADOS A EJES GLOBALES
+            angulo_con_vertical = np.arccos(np.clip(abs(vec_x_local[2]), 0, 1)) * 180 / np.pi  # Ángulo con eje Z
             
-            if dz > max(dx, dy):  # Elemento vertical
+            if angulo_con_vertical < 45:  # ELEMENTO VERTICAL (eje longitudinal ≈ Z global)
                 transfTag = 1
-                vec_ref = np.array([0., 1., 0.])  # Referencia Y global
-            else:  # Elemento horizontal/inclinado
-                transfTag = 2
-                vec_ref = np.array([0., 0., 1.])  # Referencia Z global
+                vec_ref = np.array([1., 0., 0.])  # Referencia X global (en plano horizontal)
+                tipo_elem = "VERTICAL"
+                eje_long_global = "Z"
+                logger.debug(f"Elemento {ni}-{nj} VERTICAL: vec_x_local={vec_x_local}, ángulo={angulo_con_vertical:.1f}°")
+            else:  # ELEMENTO HORIZONTAL (eje longitudinal en plano XY)
+                # Determinar si es predominantemente X o Y comparando componentes del vector
+                comp_x = abs(vec_x_local[0])
+                comp_y = abs(vec_x_local[1])
+                
+                if comp_x > comp_y:  # Predomina componente X
+                    transfTag = 2
+                    vec_ref = np.array([0., 0., 1.])  # Referencia Z global
+                    tipo_elem = "HORIZONTAL_X"
+                    eje_long_global = "X"
+                    logger.debug(f"Elemento {ni}-{nj} HORIZONTAL_X: vec_x_local={vec_x_local}, comp_x={comp_x:.3f} > comp_y={comp_y:.3f}")
+                else:  # Predomina componente Y
+                    transfTag = 3
+                    vec_ref = np.array([0., 0., 1.])  # Referencia Z global
+                    tipo_elem = "HORIZONTAL_Y"
+                    eje_long_global = "Y"
+                    logger.debug(f"Elemento {ni}-{nj} HORIZONTAL_Y: vec_x_local={vec_x_local}, comp_y={comp_y:.3f} > comp_x={comp_x:.3f}")
             
             # Calcular eje Z local (perpendicular a X y referencia)
             vec_z_local = np.cross(vec_x_local, vec_ref)
@@ -247,6 +264,8 @@ class AnalizadorEstatico:
             # Matriz de transformación: columnas = ejes locales en coordenadas globales
             ejes_locales = np.column_stack([vec_x_local, vec_y_local, vec_z_local])
             
+            logger.debug(f"Elemento {ni}-{nj} {tipo_elem}: ángulo_vert={angulo_con_vertical:.1f}°, transfTag={transfTag}, vec_ref={vec_ref}")
+            
             # Secuencia de tags para esta conexión
             tags_secuencia = [nodos_dict[ni]['tag']]
             for k in range(1, n_subdiv):
@@ -263,7 +282,9 @@ class AnalizadorEstatico:
                     'origen': (ni, nj, idx),
                     'n_subdiv': n_subdiv,
                     'ejes_locales': ejes_locales,
-                    'vec_x_local': vec_x_local
+                    'vec_x_local': vec_x_local,
+                    'tipo_elemento': tipo_elem,
+                    'eje_longitudinal_global': 'Z' if tipo_elem == 'VERTICAL' else 'XY'
                 }
                 elem_id += 1
         
@@ -277,6 +298,7 @@ class AnalizadorEstatico:
                 if cargas and any(abs(cargas.get(k, 0)) > 0.01 for k in ['fx', 'fy', 'fz']):
                     tag_nodo = nodos_dict[nombre]['tag']
                     cargas_dict[tag_nodo] = [cargas['fx'], cargas['fy'], cargas['fz'], 0, 0, 0]
+                    logger.debug(f"Carga en nodo {nombre} (tag={tag_nodo}): fx={cargas['fx']:.2f}, fy={cargas['fy']:.2f}, fz={cargas['fz']:.2f}")
         
         logger.debug(f"Cargas preparadas: {len(cargas_dict)} nodos con carga")
         
@@ -295,8 +317,9 @@ class AnalizadorEstatico:
             ops.fix(data['tag'], *data['restriccion'])
         
         # 2.2: Transformaciones
-        ops.geomTransf('Linear', 1, 0., 1., 0.)
-        ops.geomTransf('Linear', 2, 0., 0., 1.)
+        ops.geomTransf('Linear', 1, 1., 0., 0.)  # VERTICAL: vec_ref = X global
+        ops.geomTransf('Linear', 2, 0., 0., 1.)  # HORIZONTAL_X: vec_ref = Z global
+        ops.geomTransf('Linear', 3, 0., 0., 1.)  # HORIZONTAL_Y: vec_ref = Z global
         
         # 2.3: Crear elementos
         for eid, data in elementos_dict.items():
@@ -340,6 +363,21 @@ class AnalizadorEstatico:
         # PASO 4: EXTRAER RESULTADOS Y TRANSFORMAR A EJES GLOBALES
         valores_subnodos = {}
         resultados_por_elemento = {}  # {"ni_nj": [{sub_idx, N, Q, M, T, ...}, ...]}
+        
+        # DEBUG: Verificar fuerzas en primer elemento BASE_V
+        logger.debug("=" * 80)
+        logger.debug("DEBUG: Verificando fuerzas en elementos BASE_V")
+        for eid, data in list(elementos_dict.items())[:3]:
+            ni, nj, sub_idx = data['origen']
+            if 'BASE' in ni and 'V' in nj:
+                fuerzas = ops.eleForce(eid)
+                logger.debug(f"Elemento {ni}-{nj} sub={sub_idx}:")
+                logger.debug(f"  vec_x_local (eje long): {data['vec_x_local']}")
+                logger.debug(f"  tipo: {data['tipo_elemento']}, transfTag: {data['transfTag']}")
+                logger.debug(f"  fuerzas_locales: N={fuerzas[0]:.2f}, Qy={fuerzas[1]:.2f}, Qz={fuerzas[2]:.2f}")
+                logger.debug(f"  momentos_locales: Mx={fuerzas[3]:.2f}, My={fuerzas[4]:.2f}, Mz={fuerzas[5]:.2f}")
+        logger.debug("=" * 80)
+        
         for eid, data in elementos_dict.items():
             try:
                 fuerzas_locales = ops.eleForce(eid)
@@ -356,13 +394,21 @@ class AnalizadorEstatico:
                 
                 # OpenSeesPy devuelve fuerzas en convención de equilibrio (reacciones del elemento sobre nodos)
                 # Para fuerzas internas del elemento, invertir signos del nodo i
+                # IMPORTANTE: Para elementos VERTICALES, verificar que N corresponda a cargas Z globales
+                
                 # Nodo i: invertir signos (fuerzas internas = -reacciones)
-                N_local_i = -fuerzas_locales[0]   # Axial
+                N_local_i = -fuerzas_locales[0]   # Axial (eje X local)
                 Qy_local_i = -fuerzas_locales[1]  # Cortante Y local
                 Qz_local_i = -fuerzas_locales[2]  # Cortante Z local
                 Mx_local_i = -fuerzas_locales[3]  # Momento X local (torsión en eje elemento)
                 My_local_i = -fuerzas_locales[4]  # Momento Y local
                 Mz_local_i = -fuerzas_locales[5]  # Momento Z local
+                
+                # Para elementos VERTICALES: X_local = Z_global, entonces N_local debería capturar cargas Z_global
+                # Si N_local = 0 pero Qz_local ≠ 0, hay un problema de transformación
+                tipo_elem = data.get('tipo_elemento', 'DESCONOCIDO')
+                if tipo_elem == 'VERTICAL' and abs(N_local_i) < 0.01 and abs(Qz_local_i) > 0.01:
+                    logger.warning(f"Elemento VERTICAL {ni}-{nj}: N={N_local_i:.2f} pero Qz={Qz_local_i:.2f}. Posible error de transformación.")
                 
                 # Nodo j: mantener signos (ya son fuerzas internas)
                 N_local_j = fuerzas_locales[6]
@@ -400,7 +446,9 @@ class AnalizadorEstatico:
                     'My': My_local_i,
                     'Mz': Mz_local_i,
                     'M': M_i,
-                    'T': T_i
+                    'T': T_i,
+                    'tipo_elemento': data.get('tipo_elemento', 'DESCONOCIDO'),
+                    'eje_longitudinal_global': data.get('eje_longitudinal_global', 'N/A')
                 })
                 
                 # Almacenar: [N, Q, M, T, componentes corregidos...]
@@ -431,12 +479,56 @@ class AnalizadorEstatico:
                         continue
                     reacciones_base[nombre] = {'Fx': reaccion[0], 'Fy': reaccion[1], 'Fz': reaccion[2],
                                                'Mx': reaccion[3], 'My': reaccion[4], 'Mz': reaccion[5]}
+                    logger.debug(f"Reacción BASE {nombre}: Fx={reaccion[0]:.2f}, Fy={reaccion[1]:.2f}, Fz={reaccion[2]:.2f}")
                 except Exception as e:
                     logger.error(f"Error obteniendo reacciones en nodo {nombre}: {e}", exc_info=True)
                     continue
         
         logger.debug(f"Valores extraídos: {len(valores_subnodos)} subnodos")
         return {'valores': valores_subnodos, 'reacciones': reacciones_base, 'elementos_dict': elementos_dict, 'resultados_por_elemento': resultados_por_elemento}
+    
+    def generar_dataframe_reacciones(self, hipotesis_nombres: List[str]) -> 'pd.DataFrame':
+        """Genera DataFrame con reacciones para múltiples hipótesis"""
+        import pandas as pd
+        
+        datos_reacciones = []
+        for hip_nombre in hipotesis_nombres:
+            try:
+                resultado = self.resolver_sistema(hip_nombre)
+                if not resultado:
+                    continue
+                
+                reacciones = resultado.get('reacciones', {})
+                if not reacciones:
+                    continue
+                
+                # Sumar reacciones de todos los nodos base
+                fx_total = sum(r['Fx'] for r in reacciones.values())
+                fy_total = sum(r['Fy'] for r in reacciones.values())
+                fz_total = sum(r['Fz'] for r in reacciones.values())
+                mx_total = sum(r['Mx'] for r in reacciones.values())
+                my_total = sum(r['My'] for r in reacciones.values())
+                mz_total = sum(r['Mz'] for r in reacciones.values())
+                
+                datos_reacciones.append({
+                    'Hipótesis': hip_nombre,
+                    'Fx [daN]': round(fx_total, 1),
+                    'Fy [daN]': round(fy_total, 1),
+                    'Fz [daN]': round(fz_total, 1),
+                    'Mx [daN·m]': round(mx_total, 1),
+                    'My [daN·m]': round(my_total, 1),
+                    'Mz [daN·m]': round(mz_total, 1)
+                })
+            except Exception as e:
+                logger.error(f"Error procesando hipótesis {hip_nombre}: {e}")
+                continue
+        
+        if not datos_reacciones:
+            return pd.DataFrame()
+        
+        df = pd.DataFrame(datos_reacciones)
+        df = df.set_index('Hipótesis')
+        return df
     
     def calcular_momento_resultante_total(self, resultado_analisis: Dict) -> Dict:
         """MRT = sqrt(M^2 + T^2)"""
