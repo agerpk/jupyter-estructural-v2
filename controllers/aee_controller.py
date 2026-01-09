@@ -259,7 +259,8 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
         estructura_actual.get('L_vano'),
         hipotesis_maestro,
         estructura_actual.get('t_hielo'),
-        resultados_guardia2=state.calculo_mecanico.resultados_guardia2
+        resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
+        estados_climaticos=estructura_actual.get('estados_climaticos')
     )
     
     print(f"DEBUG: Cargas asignadas - {len(geometria.nodos)} nodos")

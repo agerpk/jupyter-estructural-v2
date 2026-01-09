@@ -51,6 +51,7 @@ def filtrar_por_categoria(categoria_seleccionada, estructura_actual):
 
 @callback(
     [Output("estructura-actual", "data", allow_duplicate=True),
+     Output("tabla-parametros", "data", allow_duplicate=True),
      Output("toast-validacion-tabla", "is_open", allow_duplicate=True),
      Output("toast-validacion-tabla", "children", allow_duplicate=True),
      Output("toast-validacion-tabla", "icon", allow_duplicate=True)],
@@ -63,7 +64,7 @@ def guardar_parametros_desde_tabla(n_clicks, tabla_data, estructura_actual):
     """Guarda parámetros editados en tabla"""
     
     if not n_clicks or not tabla_data:
-        return no_update, False, "", "info"
+        return no_update, no_update, False, "", "info"
     
     try:
         # Validar datos de tabla
@@ -77,7 +78,7 @@ def guardar_parametros_desde_tabla(n_clicks, tabla_data, estructura_actual):
             if len(errores) > 3:
                 mensaje_error += f"... y {len(errores) - 3} errores más"
             
-            return no_update, True, mensaje_error, "danger"
+            return no_update, no_update, True, mensaje_error, "danger"
         
         # Convertir tabla a estructura
         estructura_actualizada = ParametrosManager.tabla_a_estructura(tabla_data)
@@ -99,12 +100,16 @@ def guardar_parametros_desde_tabla(n_clicks, tabla_data, estructura_actual):
         # Actualizar el estado interno
         state.set_estructura_actual(estructura_actualizada)
         
-        return estructura_actualizada, True, "Parámetros guardados exitosamente", "success"
+        # Recargar tabla desde archivo guardado para confirmar persistencia
+        estructura_recargada = state.estructura_manager.cargar_estructura(ruta_estructura)
+        tabla_recargada = ParametrosManager.estructura_a_tabla(estructura_recargada)
+        
+        return estructura_actualizada, tabla_recargada, True, "Parámetros guardados exitosamente", "success"
         
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return no_update, True, f"Error al guardar: {str(e)}", "danger"
+        return no_update, no_update, True, f"Error al guardar: {str(e)}", "danger"
 
 @callback(
     Output("tabla-parametros", "data", allow_duplicate=True),

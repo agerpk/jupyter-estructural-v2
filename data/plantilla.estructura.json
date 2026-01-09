@@ -1,5 +1,6 @@
 {
   "TIPO_ESTRUCTURA": "Suspensión Recta",
+  "doble_terna_una_terna_activa": false,
   "Zona_climatica": "D",
   "exposicion": "C",
   "clase": "C",

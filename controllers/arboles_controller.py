@@ -251,13 +251,8 @@ def register_callbacks(app):
             
             # 3. Verificar/ejecutar DME
             if not state.calculo_objetos.estructura_mecanica:
-                # Cargar hipótesis personalizadas
-                estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
-                hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
-                    nombre_estructura,
-                    estructura_json_path,
-                    hipotesis_maestro_base
-                )
+                # Usar hipótesis base directamente
+                from HipotesisMaestro_Especial import hipotesis_maestro
                 
                 estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
                 if state.calculo_objetos.cable_guardia2:

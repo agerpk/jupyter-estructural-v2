@@ -173,6 +173,12 @@ CONTROLES_PARAMETROS = {
         "tipo": "select",
         "opciones": ["Suspensión Recta", "Suspensión angular", "Retención / Ret. Angular", "Terminal", "Especial"]
     },
+    "doble_terna_una_terna_activa": {
+        "tipo": "switch",
+        "label": "Doble terna con una terna activa",
+        "descripcion": "Anula cargas de la terna del lado X- en DME (solo Terminal Doble)",
+        "default": False
+    },
     "clase": {
         "tipo": "select",
         "opciones": ["A", "B", "BB", "C", "D", "E"]

@@ -122,6 +122,15 @@ def register_callbacks(app):
                     calculo_guardado = CalculoCache.cargar_calculo_cmc(nombre_estructura)
                 return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado)
             elif ultima_vista == "ajustar-parametros":
+                from config.app_config import DATA_DIR
+                # Recargar estructura desde archivo
+                if estructura_actual:
+                    titulo = estructura_actual.get('TITULO', 'estructura')
+                    ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
+                    try:
+                        estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
+                    except:
+                        pass
                 cables_disponibles = state.cable_manager.obtener_cables()
                 return crear_vista_ajuste_parametros_con_pestanas(estructura_actual, cables_disponibles)
             elif ultima_vista == "diseno-geometrico":
@@ -154,7 +163,10 @@ def register_callbacks(app):
                     print("❌ (NAV) ERROR FATAL: No se pudo cargar ninguna hipótesis.")
                     # Aquí se podría retornar una vista de error
                 
-                calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
+                calculo_guardado = None
+                if estructura_actual:
+                    nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+                    calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
                 return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro)
             elif ultima_vista == "seleccion-poste":
                 from components.vista_seleccion_poste import crear_vista_seleccion_poste
@@ -223,6 +235,15 @@ def register_callbacks(app):
         
         elif trigger_id == "menu-ajustar-parametros":
             guardar_navegacion_state("ajustar-parametros")
+            from config.app_config import DATA_DIR
+            # Recargar estructura desde archivo
+            if estructura_actual:
+                titulo = estructura_actual.get('TITULO', 'estructura')
+                ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
+                try:
+                    estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
+                except:
+                    pass
             cables_disponibles = state.cable_manager.obtener_cables()
             return crear_vista_ajuste_parametros_con_pestanas(estructura_actual, cables_disponibles)
         

@@ -280,7 +280,8 @@ def register_callbacks(app):
                         dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
                         ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
                         metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
-                        altura_msnm=estructura_actual.get("Altura_MSNM")
+                        altura_msnm=estructura_actual.get("Altura_MSNM"),
+                        parametros=estructura_actual
                     )
                     
                     estructura_geometria.dimensionar_unifilar(
@@ -409,7 +410,8 @@ def register_callbacks(app):
                         dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
                         ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
                         metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
-                        altura_msnm=estructura_actual.get("Altura_MSNM")
+                        altura_msnm=estructura_actual.get("Altura_MSNM"),
+                        parametros=estructura_actual
                     )
                     fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
                     fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])

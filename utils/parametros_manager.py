@@ -26,6 +26,13 @@ class ParametrosManager:
             "tipo": "select",
             "categoria": "General"
         },
+        "doble_terna_una_terna_activa": {
+            "simbolo": "DT1A",
+            "unidad": "-",
+            "descripcion": "Doble terna con una terna activa (anula cargas lado X-)",
+            "tipo": "bool",
+            "categoria": "General"
+        },
         "clase": {
             "simbolo": "CL",
             "unidad": "-",

@@ -50,7 +50,7 @@ class EstructuraAEA_Geometria:
                 dist_reposicionar_hg=0.1, ajustar_por_altura_msnm=None,
                 metodo_altura_msnm=None, altura_msnm=None,
                 defasaje_mensula_hielo=False, lmen_extra_hielo=0.0, mensula_defasar="primera",
-                d_fases_add=0.0):
+                d_fases_add=0.0, parametros=None):
         """
         Inicializa una estructura completa
         
@@ -87,6 +87,10 @@ class EstructuraAEA_Geometria:
         """
         # Parámetros básicos
         self.tipo_estructura = tipo_estructura
+        if parametros:
+            self.doble_terna_una_terna_activa = parametros.get("doble_terna_una_terna_activa", False)
+        else:
+            self.doble_terna_una_terna_activa = False
         self.tension_nominal = tension_nominal
         self.zona_estructura = zona_estructura
         self.disposicion = disposicion.lower()

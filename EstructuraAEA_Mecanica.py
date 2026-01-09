@@ -204,6 +204,13 @@ class EstructuraAEA_Mecanica:
         print(f"   🔍 cable_guardia2: {self.geometria.cable_guardia2.nombre if self.geometria.cable_guardia2 else 'None'}")
         print(f"   🔍 resultados_guardia2: {'SÍ' if resultados_guardia2 else 'NO'}")
         
+        # Verificar si se debe anular cargas de una terna
+        anular_terna_negativa_x = False
+        if (hasattr(self.geometria, 'doble_terna_una_terna_activa') and 
+            self.geometria.doble_terna_una_terna_activa):
+            anular_terna_negativa_x = True
+            print("⚠️  Doble terna con una terna activa: anulando cargas de la terna del lado negativo X")
+        
         # Pesos base globales (fallback)
         peso_conductor_base_global = self.geometria.cable_conductor.peso_unitario_dan_m
         peso_guardia1_base_global = self.geometria.cable_guardia1.peso_unitario_dan_m
@@ -334,6 +341,20 @@ class EstructuraAEA_Mecanica:
                     nodos_conductor = [n for n in nodes_dict.keys() if n.startswith(('C1', 'C2', 'C3')) and not n.startswith('CROSS')]
                     
                     for nodo_nombre in nodos_conductor:
+                        # ANULAR CARGAS SI NODO EN LADO X- Y PARÁMETRO ACTIVO
+                        nodo_obj = self.geometria.nodos.get(nodo_nombre)
+                        if anular_terna_negativa_x and nodo_obj and nodo_obj.x < 0:
+                            # Nodo en lado X negativo - anular todas las cargas
+                            nodo_obj.obtener_carga("Peso").agregar_hipotesis(nombre_completo, 0.0, 0.0, 0.0)
+                            nodo_obj.obtener_carga("Viento").agregar_hipotesis(nombre_completo, 0.0, 0.0, 0.0)
+                            nodo_obj.obtener_carga("Tiro").agregar_hipotesis(nombre_completo, 0.0, 0.0, 0.0)
+                            
+                            if not hasattr(nodo_obj, 'cargas_dict'):
+                                nodo_obj.cargas_dict = {}
+                            nodo_obj.cargas_dict[nombre_completo] = [0.0, 0.0, 0.0]
+                            cargas_hipotesis[nodo_nombre] = [0.0, 0.0, 0.0]
+                            continue  # Saltar al siguiente nodo
+                        
                         peso_x, peso_y, peso_z = 0.0, 0.0, 0.0
                         viento_x, viento_y, viento_z = 0.0, 0.0, 0.0
                         tiro_x, tiro_y, tiro_z = 0.0, 0.0, 0.0
@@ -528,6 +549,20 @@ class EstructuraAEA_Mecanica:
                     nodos_guardia = [n for n in nodes_dict.keys() if n.startswith('HG')]
                     
                     for nodo_nombre in nodos_guardia:
+                        # ANULAR CARGAS SI NODO EN LADO X- Y PARÁMETRO ACTIVO
+                        nodo_obj = self.geometria.nodos.get(nodo_nombre)
+                        if anular_terna_negativa_x and nodo_obj and nodo_obj.x < 0:
+                            # Nodo en lado X negativo - anular todas las cargas
+                            nodo_obj.obtener_carga("Peso").agregar_hipotesis(nombre_completo, 0.0, 0.0, 0.0)
+                            nodo_obj.obtener_carga("Viento").agregar_hipotesis(nombre_completo, 0.0, 0.0, 0.0)
+                            nodo_obj.obtener_carga("Tiro").agregar_hipotesis(nombre_completo, 0.0, 0.0, 0.0)
+                            
+                            if not hasattr(nodo_obj, 'cargas_dict'):
+                                nodo_obj.cargas_dict = {}
+                            nodo_obj.cargas_dict[nombre_completo] = [0.0, 0.0, 0.0]
+                            cargas_hipotesis[nodo_nombre] = [0.0, 0.0, 0.0]
+                            continue  # Saltar al siguiente nodo
+                        
                         peso_x, peso_y, peso_z = 0.0, 0.0, 0.0
                         viento_x, viento_y, viento_z = 0.0, 0.0, 0.0
                         tiro_x, tiro_y, tiro_z = 0.0, 0.0, 0.0

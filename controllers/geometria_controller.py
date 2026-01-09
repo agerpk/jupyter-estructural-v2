@@ -41,6 +41,7 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
         
         # Crear estructura de geometría
         estructura_geometria = EstructuraAEA_Geometria(
+            parametros=estructura_actual,
             tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
             tension_nominal=estructura_actual.get("TENSION"),
             zona_estructura=estructura_actual.get("Zona_estructura"),
