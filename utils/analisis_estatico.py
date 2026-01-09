@@ -404,14 +404,28 @@ class AnalizadorEstatico:
                 My_local_i = -fuerzas_locales[4]  # Momento Y local
                 Mz_local_i = -fuerzas_locales[5]  # Momento Z local
                 
-                # CORRECCIÓN para elementos VERTICALES:
-                # OpenSeesPy reporta cargas Z globales como Qz en lugar de N
-                # Intercambiar N y Qz para elementos verticales
+                # CORRECCIÓN según orientación del elemento:
+                # OpenSeesPy usa convención donde eje X local = eje longitudinal del elemento
+                # Pero para elementos no alineados con X global, hay que reinterpretar
                 tipo_elem = data.get('tipo_elemento', 'DESCONOCIDO')
+                
                 if tipo_elem == 'VERTICAL':
-                    # Para elementos verticales: N_real = Qz_reportado, Qz_real = N_reportado
+                    # Elemento vertical: eje longitudinal = Z global
+                    # N (axial) viene en Qz, Qz viene en N
+                    # T (torsión alrededor Z) viene en Mz, Mz viene en Mx
                     N_local_i, Qz_local_i = Qz_local_i, N_local_i
-                    logger.debug(f"VERTICAL {ni}-{nj}: Intercambiado N<->Qz: N={N_local_i:.2f}, Qz={Qz_local_i:.2f}")
+                    Mx_local_i, Mz_local_i = Mz_local_i, Mx_local_i
+                    logger.debug(f"VERTICAL {ni}-{nj}: N<->Qz, Mx<->Mz: N={N_local_i:.2f}, T={Mx_local_i:.2f}")
+                
+                elif tipo_elem == 'HORIZONTAL_Y':
+                    # Elemento horizontal en Y: eje longitudinal = Y global
+                    # N (axial) viene en Qy, Qy viene en N
+                    # T (torsión alrededor Y) viene en My, My viene en Mx
+                    N_local_i, Qy_local_i = Qy_local_i, N_local_i
+                    Mx_local_i, My_local_i = My_local_i, Mx_local_i
+                    logger.debug(f"HORIZONTAL_Y {ni}-{nj}: N<->Qy, Mx<->My: N={N_local_i:.2f}, T={Mx_local_i:.2f}")
+                
+                # HORIZONTAL_X no necesita corrección (eje X local = X global)
                 
                 # Nodo j: mantener signos (ya son fuerzas internas)
                 N_local_j = fuerzas_locales[6]
@@ -421,16 +435,20 @@ class AnalizadorEstatico:
                 My_local_j = fuerzas_locales[10]
                 Mz_local_j = fuerzas_locales[11]
                 
-                # CORRECCIÓN para elementos VERTICALES (nodo j también)
+                # CORRECCIÓN para nodo j según orientación
                 if tipo_elem == 'VERTICAL':
                     N_local_j, Qz_local_j = Qz_local_j, N_local_j
+                    Mx_local_j, Mz_local_j = Mz_local_j, Mx_local_j
+                elif tipo_elem == 'HORIZONTAL_Y':
+                    N_local_j, Qy_local_j = Qy_local_j, N_local_j
+                    Mx_local_j, My_local_j = My_local_j, Mx_local_j
                 
-                # Calcular magnitudes en ejes locales (directo de OpenSeesPy)
+                # Calcular magnitudes en ejes locales (DESPUÉS de correcciones)
                 # Momento Flector = sqrt(My² + Mz²) en ejes locales
                 M_i = np.sqrt(My_local_i**2 + Mz_local_i**2)
                 M_j = np.sqrt(My_local_j**2 + Mz_local_j**2)
                 
-                # Torsión = Mx en ejes locales
+                # Torsión = Mx en ejes locales (ya corregido para verticales)
                 T_i = abs(Mx_local_i)
                 T_j = abs(Mx_local_j)
                 
