@@ -127,12 +127,12 @@ def generar_resultados_aee(calculo_guardado, estructura_actual):
     """Genera vista de resultados desde cache"""
     from utils.view_helpers import ViewHelpers
     import pandas as pd
+    import json
     
     resultados = calculo_guardado.get('resultados', {})
     hash_params = calculo_guardado.get('hash_parametros', '')
     
     # Alerta de cache - solo mostrar si realmente viene de cache
-    # Si no tiene 'fecha_calculo', es un cálculo fresco
     es_cache = 'fecha_calculo' in calculo_guardado
     
     if es_cache:
@@ -147,8 +147,35 @@ def generar_resultados_aee(calculo_guardado, estructura_actual):
         )
         componentes = [alerta]
     else:
-        # Cálculo fresco - no mostrar alerta de cache
         componentes = []
+    
+    # DataFrame de cargas aplicadas por nodo
+    if resultados.get('df_cargas_completo'):
+        df_dict = resultados['df_cargas_completo']
+        
+        # Reconstruir MultiIndex
+        arrays = []
+        for level_idx in range(len(df_dict['columns'])):
+            level_values = df_dict['columns'][level_idx]
+            codes = df_dict['column_codes'][level_idx]
+            arrays.append([level_values[code] for code in codes])
+        multi_idx = pd.MultiIndex.from_arrays(arrays)
+        df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)
+        
+        # Filtrar y formatear
+        mask = (df_cargas.iloc[:, 2:].abs() > 0.001).any(axis=1)
+        df_cargas = df_cargas[mask]
+        df_cargas_fmt = df_cargas.round(2)
+        
+        componentes.extend([
+            html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
+            ViewHelpers.crear_tabla_html_iframe(
+                df_cargas_fmt,
+                altura_fila=25,
+                altura_min=150,
+                altura_max=600
+            )
+        ])
     
     # Tabla de nodos y conexiones
     if resultados:

@@ -265,6 +265,10 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
     
     print(f"DEBUG: Cargas asignadas - {len(geometria.nodos)} nodos")
     
+    # Generar DataFrame de cargas
+    mecanica.generar_dataframe_cargas()
+    print(f"✅ DataFrame de cargas generado: {mecanica.df_cargas_completo is not None}")
+    
     # Obtener hipótesis desde las cargas asignadas a los nodos (mantener orden)
     hipotesis_set = set()
     for nodo in geometria.nodos.values():
@@ -293,7 +297,8 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
         'esfuerzos': {},
         'diagramas': {},
         'nodos_info': {},
-        'conexiones_info': []
+        'conexiones_info': [],
+        'df_cargas_completo': None
     }
     
     # Guardar info de nodos
@@ -417,6 +422,15 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
         except Exception as e:
             print(f"ERROR en hipotesis {hip}: {e}")
             continue
+    
+    # Guardar DataFrame de cargas en resultados
+    if mecanica.df_cargas_completo is not None:
+        resultados['df_cargas_completo'] = {
+            'data': mecanica.df_cargas_completo.values.tolist(),
+            'columns': [list(mecanica.df_cargas_completo.columns.get_level_values(i)) for i in range(mecanica.df_cargas_completo.columns.nlevels)],
+            'column_codes': [mecanica.df_cargas_completo.columns.codes[i].tolist() for i in range(mecanica.df_cargas_completo.columns.nlevels)]
+        }
+        print(f"✅ DataFrame de cargas guardado en resultados")
     
     print(f"DEBUG: Analisis AEE completado")
     
