@@ -200,18 +200,36 @@ def crear_modal_editor_hipotesis(tipo_estructura, hipotesis_maestro):
         for codigo, datos in hipotesis_tipo.items()
     ]
     
+    # Crear selector de tipo si hay múltiples tipos
+    tipos = list(hipotesis_maestro.keys()) if hipotesis_maestro else []
+    selector = None
+    if tipos:
+        selector = dbc.Row([
+            dbc.Col([
+                dbc.Label("Tipo de estructura"),
+                dbc.Select(
+                    id="hip-modal-tipo-select",
+                    options=[{"label": t, "value": t} for t in tipos],
+                    value=tipo_estructura if tipo_estructura in tipos else tipos[0]
+                )
+            ], md=6)
+        ], className="mb-2")
+
     return dbc.Modal([
         dbc.ModalHeader(dbc.ModalTitle(f"Editar Hipótesis - {tipo_estructura}")),
         dbc.ModalBody([
+            selector if selector is not None else html.Div(),
             dbc.Alert(
                 "Modifica los parámetros de las hipótesis. Los cambios se guardarán en el archivo específico de esta estructura.",
                 color="info",
                 className="mb-3"
             ),
-            html.Div(campos_hipotesis, style={"maxHeight": "60vh", "overflowY": "auto"})
+            html.Div(campos_hipotesis, id="hip-campos-container", style={"maxHeight": "60vh", "overflowY": "auto"})
         ]),
         dbc.ModalFooter([
             dbc.Button("Cancelar", id="btn-cancelar-hipotesis", color="secondary", className="me-2"),
+            dbc.Button("Exportar", id="btn-exportar-hipotesis", color="outline-secondary", className="me-2"),
+            dbc.Button("Eliminar", id="btn-eliminar-hipotesis", color="danger", className="me-2"),
             dbc.Button("Guardar Hipótesis", id="btn-guardar-hipotesis", color="primary")
         ])
     ], id="modal-editor-hipotesis", size="xl", is_open=False, scrollable=True)

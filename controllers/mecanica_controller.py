@@ -318,17 +318,38 @@ def register_callbacks(app):
                     # Guardar DGE
                     import matplotlib.pyplot as plt
                     from EstructuraAEA_Graficos import EstructuraAEA_Graficos
-                    from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_maestro_base
                     from utils.hipotesis_manager import HipotesisManager
                     from config.app_config import DATA_DIR
                     
-                    # Obtener ruta del archivo estructura.json
-                    estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
-                    hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
-                        nombre_estructura,
-                        estructura_json_path,
-                        hipotesis_maestro_base
-                    )
+                    # Cargar la hipótesis activa. Si no existe, usar la plantilla.
+                    datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
+                    hipotesis_maestro = {}
+                    if datos_hipotesis:
+                        print(f"✅ Usando hipótesis activa: {HipotesisManager.obtener_hipotesis_activa()}")
+                        # El archivo puede contener metadatos, extraer el diccionario principal
+                        hipotesis_maestro = datos_hipotesis.get('hipotesis_maestro', datos_hipotesis)
+                    else:
+                        print("⚠️ Hipótesis activa no encontrada. Usando plantilla.")
+                        # La ruta a data es relativa al root del proyecto
+                        plantilla_path = "data/hipotesis/plantilla.hipotesis.json"
+                        try:
+                            with open(plantilla_path, 'r', encoding='utf-8') as f:
+                                datos_plantilla = json.load(f)
+                            # Extraer el diccionario principal
+                            hipotesis_maestro = datos_plantilla.get('hipotesis_maestro', datos_plantilla)
+                        except FileNotFoundError:
+                            print(f"❌ ERROR: No se encontró el archivo de plantilla en {plantilla_path}.")
+                            hipotesis_maestro = {}
+
+                    # Validar la hipótesis cargada
+                    if hipotesis_maestro:
+                        ok, msg = HipotesisManager.validar_hipotesis(hipotesis_maestro)
+                        if not ok:
+                            print(f"❌ ERROR DE VALIDACIÓN DE HIPÓTESIS: {msg}")
+                            # Retornar error visible al usuario
+                            return dbc.Alert(f"Error de validación en la hipótesis cargada: {msg}", color="danger")
+                    else:
+                        return dbc.Alert("No se pudo cargar ninguna hipótesis (ni activa ni plantilla).", color="danger")
                     
                     # Asignar cable_guardia2 si existe
                     if state.calculo_objetos.cable_guardia2:
@@ -431,18 +452,38 @@ def register_callbacks(app):
             else:
                 estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
                 
-                from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_maestro_base
                 from utils.hipotesis_manager import HipotesisManager
                 from config.app_config import DATA_DIR
                 
-                # Obtener ruta del archivo estructura.json
-                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
-                hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
-                    nombre_estructura,
-                    estructura_json_path,
-                    hipotesis_maestro_base
-                )
+                # Cargar la hipótesis activa. Si no existe, usar la plantilla.
+                datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
+                hipotesis_maestro = {}
+                if datos_hipotesis:
+                    print(f"✅ Usando hipótesis activa: {HipotesisManager.obtener_hipotesis_activa()}")
+                    # El archivo puede contener metadatos, extraer el diccionario principal
+                    hipotesis_maestro = datos_hipotesis.get('hipotesis_maestro', datos_hipotesis)
+                else:
+                    print("⚠️ Hipótesis activa no encontrada. Usando plantilla.")
+                    # La ruta a data es relativa al root del proyecto
+                    plantilla_path = "data/hipotesis/plantilla.hipotesis.json"
+                    try:
+                        with open(plantilla_path, 'r', encoding='utf-8') as f:
+                            datos_plantilla = json.load(f)
+                        # Extraer el diccionario principal
+                        hipotesis_maestro = datos_plantilla.get('hipotesis_maestro', datos_plantilla)
+                    except FileNotFoundError:
+                        print(f"❌ ERROR: No se encontró el archivo de plantilla en {plantilla_path}.")
+                        hipotesis_maestro = {}
+
+                # Validar la hipótesis cargada
+                if hipotesis_maestro:
+                    ok, msg = HipotesisManager.validar_hipotesis(hipotesis_maestro)
+                    if not ok:
+                        print(f"❌ ERROR DE VALIDACIÓN DE HIPÓTESIS: {msg}")
+                        # Retornar error visible al usuario
+                        return dbc.Alert(f"Error de validación en la hipótesis cargada: {msg}", color="danger")
+                else:
+                    return dbc.Alert("No se pudo cargar ninguna hipótesis (ni activa ni plantilla).", color="danger")
                 
                 estructura_mecanica.asignar_cargas_hipotesis(
                     state.calculo_mecanico.df_cargas_totales,
@@ -491,14 +532,7 @@ def register_callbacks(app):
             # Guardar en cache ANTES de cerrar figuras
             from utils.calculo_cache import CalculoCache
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-            # Registrar hipótesis activa: preferir la hipótesis global si existe
-            from utils.hipotesis_manager import HipotesisManager
-            hip_activa = HipotesisManager.obtener_hipotesis_activa()
-            if hip_activa:
-                estructura_actual['HIPOTESIS_ACTIVA'] = hip_activa
-            else:
-                estructura_actual['HIPOTESIS_ACTIVA'] = f"{nombre_estructura}.hipotesis.json"
-            print(f"USANDO HIPÓTESIS: {estructura_actual['HIPOTESIS_ACTIVA']}")
+
 
             CalculoCache.guardar_calculo_dme(
                 nombre_estructura,

@@ -96,11 +96,6 @@ La feature "Editor de Hipótesis" permitirá crear, editar, guardar, cargar y ap
 
 ---
 
-## Migración desde `HipotesisMaestro_Especial.py` 📦
-- Script `scripts/migrar_hipotesis_a_data.py` que convierte la variable `hipotesis_maestro` en `data/hipotesis/plantilla.hipotesis.json` (mantener formato idéntico) y lo documenta.
-
----
-
 ## Ejemplo: `doble-terna-una-terna-activa` (implementación sugerida)
 - Flag en la hipótesis: `"doble-terna-una-terna-activa": { "lado": "L" }` o `{ "lado": "R" }`.
 - En `asignar_cargas_hipotesis` antes de aplicar cargas, evaluar flag y si está presente:
@@ -118,7 +113,7 @@ La feature "Editor de Hipótesis" permitirá crear, editar, guardar, cargar y ap
 ---
 
 ## Plan de trabajo sugerido (sprints cortos)
-1. Sprint 1 (1-2 días): Documentación + plantilla (`plantilla.hipotesis.json`) + scripts de migración.
+1. Sprint 1 (1-2 días): Documentación + plantilla (`plantilla.hipotesis.json`).
 2. Sprint 2 (2-3 días): `HipotesisManager` (listar, cargar, guardar, activar) + tests unitarios básicos.
 3. Sprint 3 (3-5 días): UI Editor (lista, modal de edición, guardar/guardar como/importar/exportar) + callbacks.
 4. Sprint 4 (2-3 días): Integración con DME y ajustes en `EstructuraAEA_Mecanica` para flags especiales + tests de integración.

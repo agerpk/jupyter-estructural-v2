@@ -1,0 +1,640 @@
+{
+  "hash_estructura": "799b462ee8e9732bff177b012150c05c",
+  "hipotesis_maestro": {
+    "Suspensión Recta": {
+      "A0": {
+        "desc": "EDS (TMA)",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A1": {
+        "desc": "Vmax Transversal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A2": {
+        "desc": "Vmax Longitudinal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Longitudinal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A3": {
+        "desc": "Vmax Oblicuo",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Oblicua",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A4": {
+        "desc": "Vmed Transversal + hielo",
+        "viento": {
+          "estado": "Vmed",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": true
+        },
+        "sobrecarga": null
+      },
+      "A5": {
+        "desc": "Tiro unilateral reducido",
+        "viento": null,
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "bilateral",
+          "reduccion_cond": 0.2,
+          "reduccion_guardia": 0.4
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": true
+        },
+        "sobrecarga": null
+      },
+      "B1": {
+        "desc": "Pesos x 2.5 - C.S.",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 2.5,
+          "hielo": false
+        },
+        "sobrecarga": 220.0
+      },
+      "C1": {
+        "desc": "Carga longitudinal",
+        "viento": null,
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "dos-unilaterales",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0,
+          "factor_cond": 0.65,
+          "factor_guardia": 0.7
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      }
+    },
+    "Suspensión angular": {
+      "A0": {
+        "desc": "EDS (TMA)",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A1": {
+        "desc": "Vmax Transversal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A2": {
+        "desc": "Vmax Longitudinal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Longitudinal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A3": {
+        "desc": "Vmax Oblicuo",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Oblicua",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A4": {
+        "desc": "Vmed Transversal + hielo",
+        "viento": {
+          "estado": "Vmed",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": true
+        },
+        "sobrecarga": null
+      },
+      "A5": {
+        "desc": "Tiro unilateral reducido",
+        "viento": null,
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "bilateral",
+          "reduccion_cond": 0.2,
+          "reduccion_guardia": 0.4
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": true
+        },
+        "sobrecarga": null
+      },
+      "B1": {
+        "desc": "Pesos x 2.5 - C.S.",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 2.5,
+          "hielo": false
+        },
+        "sobrecarga": 220.0
+      },
+      "C1": {
+        "desc": "Carga longitudinal",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "unilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      }
+    },
+    "Retención / Ret. Angular": {
+      "A0": {
+        "desc": "EDS (TMA)",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A1": {
+        "desc": "Vmax Transversal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A2": {
+        "desc": "Vmax Longitudinal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Longitudinal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A3": {
+        "desc": "Vmax Oblicuo",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Oblicua",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A4": {
+        "desc": "Vmed Transversal + hielo",
+        "viento": {
+          "estado": "Vmed",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": true
+        },
+        "sobrecarga": null
+      },
+      "B1": {
+        "desc": "Pesos x 2.5 - C.S.",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 2.5,
+          "hielo": false
+        },
+        "sobrecarga": 220.0
+      },
+      "B2": {
+        "desc": "Pesos x 2.5 - Unilateral Completo",
+        "viento": null,
+        "tiro": {
+          "estado": "Tmin",
+          "patron": "unilateral",
+          "factor_cond": 1.0,
+          "factor_guardia": 1.0
+        },
+        "peso": {
+          "factor": 2.5,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "C1": {
+        "desc": "Tiro máximo unilateral en dos puntos",
+        "viento": null,
+        "tiro": {
+          "estado": "máximo",
+          "patron": "dos-unilaterales",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      }
+    },
+    "Terminal": {
+      "A0": {
+        "desc": "EDS (TMA)",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "unilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A1": {
+        "desc": "Vmax Transversal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "unilateral",
+          "factor_cond": 1.0,
+          "factor_guardia": 1.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A2": {
+        "desc": "Vmed Transversal + hielo",
+        "viento": {
+          "estado": "Vmed",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "unilateral",
+          "factor_cond": 1.0,
+          "factor_guardia": 1.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": true
+        },
+        "sobrecarga": null
+      },
+      "B1": {
+        "desc": "Pesos x 2.5 + Tiro unilateral (Tiro ma x 0.66)x  1.5",
+        "viento": null,
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "unilateral",
+          "factor_cond": 1.0,
+          "factor_guardia": 1.0
+        },
+        "peso": {
+          "factor": 2.5,
+          "hielo": false
+        },
+        "sobrecarga": 220.0
+      },
+      "C1": {
+        "desc": "Eliminación de una fase",
+        "viento": null,
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "dos-unilaterales",
+          "factor_cond": 1.0,
+          "factor_guardia": 1.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      }
+    },
+    "Especial": {
+      "A0": {
+        "desc": "EDS (TMA) DT a ST",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "doble-terna-a-simple",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A1": {
+        "desc": "Vmax Transversal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "doble-terna-a-simple",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A2": {
+        "desc": "Vmax Longitudinal",
+        "viento": {
+          "estado": "Vmax",
+          "direccion": "Longitudinal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmax",
+          "patron": "doble-terna-a-simple",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "A4": {
+        "desc": "Vmed Transversal + hielo",
+        "viento": {
+          "estado": "Vmed",
+          "direccion": "Transversal",
+          "factor": 1.0
+        },
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "doble-terna-a-simple",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": true
+        },
+        "sobrecarga": null
+      },
+      "B1": {
+        "desc": "Pesos x 2.5 - C.S.",
+        "viento": null,
+        "tiro": {
+          "estado": "TMA",
+          "patron": "doble-terna-a-simple",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 2.5,
+          "hielo": false
+        },
+        "sobrecarga": 220.0
+      },
+      "B2": {
+        "desc": "Pesos x 2.5 - Unilateral Completo",
+        "viento": null,
+        "tiro": {
+          "estado": "Tmin",
+          "patron": "unilateral",
+          "factor_cond": 1.0,
+          "factor_guardia": 1.0
+        },
+        "peso": {
+          "factor": 2.5,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "C1": {
+        "desc": "Tiro máximo unilateral en dos puntos",
+        "viento": null,
+        "tiro": {
+          "estado": "máximo",
+          "patron": "dos-unilaterales",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": false
+        },
+        "sobrecarga": null
+      },
+      "E1": {
+        "desc": "Ret. Ang. DT 90°",
+        "viento": null,
+        "tiro": {
+          "estado": "Vmed",
+          "patron": "bilateral",
+          "reduccion_cond": 0.0,
+          "reduccion_guardia": 0.0
+        },
+        "peso": {
+          "factor": 1.0,
+          "hielo": true
+        },
+        "sobrecarga": null
+      }
+    }
+  }
+}

@@ -8,6 +8,7 @@ from components.vista_home import crear_vista_home
 from components.vista_ajuste_parametros import crear_vista_ajuste_parametros_con_pestanas
 from components.vista_eliminar_estructura import crear_vista_eliminar_estructura
 from components.vista_calculo_mecanico import crear_vista_calculo_mecanico
+from views.vista_editor_hipotesis import crear_vista_editor_hipotesis
 from components.vista_gestion_cables import crear_vista_agregar_cable, crear_vista_modificar_cable, crear_vista_eliminar_cable
 from models.app_state import AppState
 from config.app_config import NAVEGACION_STATE_FILE
@@ -94,6 +95,7 @@ def register_callbacks(app):
         Input("menu-familia-estructuras", "n_clicks"),
         Input("menu-vano-economico", "n_clicks"),
         Input("menu-analisis-estatico", "n_clicks"),
+        Input("menu-editor-hipotesis", "n_clicks"),
         State("estructura-actual", "data"),
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
@@ -102,7 +104,7 @@ def register_callbacks(app):
                        n_clicks_diseno_geom, n_clicks_diseno_mec, n_clicks_arboles, n_clicks_sph, 
                        n_clicks_fundacion, n_clicks_costeo, n_clicks_calcular_todo, n_clicks_consola, 
                        n_clicks_comparativa_cmc, n_clicks_familia, n_clicks_vano_economico, 
-                       n_clicks_aee, estructura_actual):
+                       n_clicks_aee, n_clicks_editor_hip, estructura_actual):
         ctx = callback_context
         
         # Detectar carga inicial (app restart o hot reload)
@@ -129,19 +131,28 @@ def register_callbacks(app):
                 from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
                 from utils.calculo_cache import CalculoCache
                 from utils.hipotesis_manager import HipotesisManager
-                from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_base
-                from config.app_config import DATA_DIR
-                
-                if not estructura_actual:
-                    estructura_actual = state.estructura_manager.cargar_estructura(state.get_estructura_actual_path())
-                
-                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
-                hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
-                    nombre_estructura,
-                    estructura_json_path,
-                    hipotesis_base
-                )
+
+                # Cargar la hipótesis activa. Si no existe, usar la plantilla.
+                datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
+                hipotesis_maestro = {}
+                if datos_hipotesis:
+                    print(f"✅ (NAV) Usando hipótesis activa: {HipotesisManager.obtener_hipotesis_activa()}")
+                    hipotesis_maestro = datos_hipotesis.get('hipotesis_maestro', datos_hipotesis)
+                else:
+                    print("⚠️ (NAV) Hipótesis activa no encontrada. Usando plantilla.")
+                    plantilla_path = "data/hipotesis/plantilla.hipotesis.json"
+                    try:
+                        import json
+                        with open(plantilla_path, 'r', encoding='utf-8') as f:
+                            datos_plantilla = json.load(f)
+                        hipotesis_maestro = datos_plantilla.get('hipotesis_maestro', datos_plantilla)
+                    except FileNotFoundError:
+                        print(f"❌ (NAV) ERROR: No se encontró el archivo de plantilla en {plantilla_path}.")
+                        hipotesis_maestro = {}
+
+                if not hipotesis_maestro:
+                    print("❌ (NAV) ERROR FATAL: No se pudo cargar ninguna hipótesis.")
+                    # Aquí se podría retornar una vista de error
                 
                 calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
                 return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro)
@@ -250,21 +261,33 @@ def register_callbacks(app):
             from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
             from utils.calculo_cache import CalculoCache
             from utils.hipotesis_manager import HipotesisManager
-            from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_base
-            
+
             if not estructura_actual:
                 estructura_actual = state.estructura_manager.cargar_estructura(state.get_estructura_actual_path())
-            
+
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+
+            # Cargar la hipótesis activa. Si no existe, usar la plantilla.
+            datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
+            hipotesis_maestro = {}
+            if datos_hipotesis:
+                print(f"✅ (NAV) Usando hipótesis activa: {HipotesisManager.obtener_hipotesis_activa()}")
+                hipotesis_maestro = datos_hipotesis.get('hipotesis_maestro', datos_hipotesis)
+            else:
+                print("⚠️ (NAV) Hipótesis activa no encontrada. Usando plantilla.")
+                plantilla_path = "data/hipotesis/plantilla.hipotesis.json"
+                try:
+                    import json
+                    with open(plantilla_path, 'r', encoding='utf-8') as f:
+                        datos_plantilla = json.load(f)
+                    hipotesis_maestro = datos_plantilla.get('hipotesis_maestro', datos_plantilla)
+                except FileNotFoundError:
+                    print(f"❌ (NAV) ERROR: No se encontró el archivo de plantilla en {plantilla_path}.")
+                    hipotesis_maestro = {}
             
-            # Cargar hipótesis
-            from config.app_config import DATA_DIR
-            estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
-            hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
-                nombre_estructura,
-                estructura_json_path,
-                hipotesis_base
-            )
+            if not hipotesis_maestro:
+                print("❌ (NAV) ERROR FATAL: No se pudo cargar ninguna hipótesis.")
+                # Aquí se podría retornar una vista de error
             
             # Cargar cálculo guardado
             calculo_guardado = None
@@ -356,6 +379,10 @@ def register_callbacks(app):
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                 calculo_guardado = CalculoCache.cargar_calculo_aee(nombre_estructura)
             return crear_vista_analisis_estatico(estructura_actual, calculo_guardado)
+        
+        elif trigger_id == "menu-editor-hipotesis":
+            guardar_navegacion_state("editor-hipotesis")
+            return crear_vista_editor_hipotesis()
         
         elif "btn-volver" in trigger_id:
             try:

@@ -48,14 +48,7 @@ class EstructuraManager:
         with open(ruta_destino, 'w', encoding='utf-8') as f:
             json.dump(estructura_modificada, f, indent=2, ensure_ascii=False)
         
-        # Actualizar hash de hipótesis si existe
-        try:
-            from utils.hipotesis_manager import HipotesisManager
-            nombre_estructura = estructura.get('TITULO', '')
-            if nombre_estructura:
-                HipotesisManager.actualizar_hash_hipotesis(nombre_estructura, str(ruta_destino))
-        except Exception as e:
-            print(f"⚠️ No se pudo actualizar hash de hipótesis: {e}")
+
     
     def listar_estructuras(self) -> List[str]:
         """Listar todas las estructuras en la base de datos"""

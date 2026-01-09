@@ -16,6 +16,7 @@
 8. No placeholders: never add fake implementations or hardcoded working data—raise `ValueError` or return `None` and clearly mark TODO in docs if a full implementation is out of scope (see `.amazonq/rules/never_placeholders.md`).
 9. No hot reload: app disables hot reload on purpose. When testing changes: stop the server, run `python app.py`, then refresh the browser (see `.amazonq/rules/no_hot_reload.md` and `app.py`).
 10. QA protocol: after implementing a fix mark the issue as `🔧 TESTING PENDIENTE` (do not mark as resolved; the owner will close it). See `.amazonq/rules/qa_testing_protocol.md`.
+11. No ejecutar tests ni correr scripts: no ejecutar pruebas automatizadas ni lanzar scripts (por ejemplo, `pytest`, `python test_*.py`, o cualquier script de mantenimiento) en el entorno; el usuario es el responsable de ejecutar tests y scripts de la aplicación y de validar cambios en su entorno local.
 
 ## How to run & debug (practical commands)
 - Start locally: `python app.py` (app config reads `config/app_config.py`). Hot reload is disabled in code.
