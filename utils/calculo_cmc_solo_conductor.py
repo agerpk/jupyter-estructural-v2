@@ -80,7 +80,10 @@ class CalculoCMCSoloConductor:
             if self.df_conductor is not None:
                 for col in self.df_conductor.columns:
                     if self.df_conductor[col].dtype == 'float64':
-                        self.df_conductor[col] = self.df_conductor[col].round(2)
+                        if 'Hielo' in col:
+                            self.df_conductor[col] = self.df_conductor[col].round(3)
+                        else:
+                            self.df_conductor[col] = self.df_conductor[col].round(2)
             
             return {
                 "exito": True,

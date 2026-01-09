@@ -90,7 +90,10 @@ class CalculoMecanicoCables:
             # Redondear valores
             for col in self.df_conductor.columns:
                 if self.df_conductor[col].dtype == 'float64':
-                    self.df_conductor[col] = self.df_conductor[col].round(2)
+                    if 'Hielo' in col:
+                        self.df_conductor[col] = self.df_conductor[col].round(3)
+                    else:
+                        self.df_conductor[col] = self.df_conductor[col].round(2)
             
             # Calcular guardia 1
             flecha_max_conductor = max([r["flecha_vertical_m"] for r in self.resultados_conductor.values()])
@@ -114,7 +117,10 @@ class CalculoMecanicoCables:
             # Redondear valores
             for col in self.df_guardia1.columns:
                 if self.df_guardia1[col].dtype == 'float64':
-                    self.df_guardia1[col] = self.df_guardia1[col].round(2)
+                    if 'Hielo' in col:
+                        self.df_guardia1[col] = self.df_guardia1[col].round(3)
+                    else:
+                        self.df_guardia1[col] = self.df_guardia1[col].round(2)
             
             # Calcular guardia 2 si existe
             if self.calculo_objetos.cable_guardia2:
@@ -136,7 +142,10 @@ class CalculoMecanicoCables:
                 # Redondear valores
                 for col in self.df_guardia2.columns:
                     if self.df_guardia2[col].dtype == 'float64':
-                        self.df_guardia2[col] = self.df_guardia2[col].round(2)
+                        if 'Hielo' in col:
+                            self.df_guardia2[col] = self.df_guardia2[col].round(3)
+                        else:
+                            self.df_guardia2[col] = self.df_guardia2[col].round(2)
             else:
                 self.df_guardia2 = None
                 self.resultados_guardia2 = None

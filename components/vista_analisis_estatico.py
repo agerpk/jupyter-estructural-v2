@@ -230,13 +230,13 @@ def generar_resultados_aee(calculo_guardado, estructura_actual):
     
     # Seccion de diagramas
     diagramas = resultados.get('diagramas', {})
+    esfuerzos = resultados.get('esfuerzos', {})
     
     if diagramas:
         componentes.append(html.H5("Diagramas de Esfuerzos", className="mt-4 mb-3"))
         
         # Cargar imagenes de diagramas
         for nombre_diagrama in diagramas.keys():
-            # Formato: MRT_HIP_nombre o MFE_HIP_nombre
             img_filename = f"AEE_{nombre_diagrama}.{hash_params}.png"
             img_str = ViewHelpers.cargar_imagen_base64(img_filename)
             
@@ -250,5 +250,24 @@ def generar_resultados_aee(calculo_guardado, estructura_actual):
                 ]))
     else:
         componentes.append(html.P("No se generaron diagramas.", className="text-muted"))
+    
+    # Tablas de resultados por hipótesis
+    if esfuerzos:
+        componentes.append(html.H5("Resultados por Elemento", className="mt-4 mb-3"))
+        
+        for hip_nombre, hip_data in esfuerzos.items():
+            if 'df_resultados' in hip_data:
+                df_dict = hip_data['df_resultados']
+                df = pd.DataFrame(df_dict['data'], columns=df_dict['columns'])
+                
+                componentes.extend([
+                    html.H6(f"Hipótesis: {hip_nombre}", className="mt-3"),
+                    ViewHelpers.crear_tabla_html_iframe(
+                        df,
+                        altura_fila=25,
+                        altura_min=200,
+                        altura_max=600
+                    )
+                ])
     
     return html.Div(componentes, id="resultados-aee")

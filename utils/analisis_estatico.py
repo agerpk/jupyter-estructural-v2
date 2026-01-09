@@ -338,6 +338,7 @@ class AnalizadorEstatico:
         
         # PASO 4: EXTRAER RESULTADOS Y TRANSFORMAR A EJES GLOBALES
         valores_subnodos = {}
+        resultados_por_elemento = {}  # {"ni_nj": [{sub_idx, N, Q, M, T, ...}, ...]}
         for eid, data in elementos_dict.items():
             try:
                 fuerzas_locales = ops.eleForce(eid)
@@ -352,15 +353,17 @@ class AnalizadorEstatico:
                 ni, nj, sub_idx = data['origen']
                 ejes_locales = data['ejes_locales']
                 
-                # Extraer fuerzas/momentos en ejes locales (nodo i)
-                N_local_i = fuerzas_locales[0]   # Axial
-                Qy_local_i = fuerzas_locales[1]  # Cortante Y local
-                Qz_local_i = fuerzas_locales[2]  # Cortante Z local
-                Mx_local_i = fuerzas_locales[3]  # Momento X local (torsión en eje elemento)
-                My_local_i = fuerzas_locales[4]  # Momento Y local
-                Mz_local_i = fuerzas_locales[5]  # Momento Z local
+                # OpenSeesPy devuelve fuerzas en convención de equilibrio (reacciones del elemento sobre nodos)
+                # Para fuerzas internas del elemento, invertir signos del nodo i
+                # Nodo i: invertir signos (fuerzas internas = -reacciones)
+                N_local_i = -fuerzas_locales[0]   # Axial
+                Qy_local_i = -fuerzas_locales[1]  # Cortante Y local
+                Qz_local_i = -fuerzas_locales[2]  # Cortante Z local
+                Mx_local_i = -fuerzas_locales[3]  # Momento X local (torsión en eje elemento)
+                My_local_i = -fuerzas_locales[4]  # Momento Y local
+                Mz_local_i = -fuerzas_locales[5]  # Momento Z local
                 
-                # Extraer fuerzas/momentos en ejes locales (nodo j)
+                # Nodo j: mantener signos (ya son fuerzas internas)
                 N_local_j = fuerzas_locales[6]
                 Qy_local_j = fuerzas_locales[7]
                 Qz_local_j = fuerzas_locales[8]
@@ -395,16 +398,34 @@ class AnalizadorEstatico:
                 Q_i = np.sqrt(Qy_local_i**2 + Qz_local_i**2)
                 Q_j = np.sqrt(Qy_local_j**2 + Qz_local_j**2)
                 
-                # Almacenar: [N, Q, M, T, componentes originales...]
+                # Almacenar resultados completos por elemento
+                elem_key = f"{ni}_{nj}"
+                if elem_key not in resultados_por_elemento:
+                    resultados_por_elemento[elem_key] = []
+                
+                resultados_por_elemento[elem_key].append({
+                    'sub_idx': sub_idx,
+                    'N': abs(N_local_i),
+                    'Qy': Qy_local_i,
+                    'Qz': Qz_local_i,
+                    'Q': Q_i,
+                    'Mx': Mx_local_i,
+                    'My': My_local_i,
+                    'Mz': Mz_local_i,
+                    'M': M_i,
+                    'T': T_i
+                })
+                
+                # Almacenar: [N, Q, M, T, componentes corregidos...]
                 valores_subnodos[f"{ni}_{nj}_{sub_idx}_i"] = np.array([
                     abs(N_local_i), Q_i, M_i, T_i,
-                    fuerzas_locales[0], fuerzas_locales[1], fuerzas_locales[2],
-                    fuerzas_locales[3], fuerzas_locales[4], fuerzas_locales[5]
+                    N_local_i, Qy_local_i, Qz_local_i,
+                    Mx_local_i, My_local_i, Mz_local_i
                 ])
                 valores_subnodos[f"{ni}_{nj}_{sub_idx}_j"] = np.array([
                     abs(N_local_j), Q_j, M_j, T_j,
-                    fuerzas_locales[6], fuerzas_locales[7], fuerzas_locales[8],
-                    fuerzas_locales[9], fuerzas_locales[10], fuerzas_locales[11]
+                    N_local_j, Qy_local_j, Qz_local_j,
+                    Mx_local_j, My_local_j, Mz_local_j
                 ])
             except Exception as e:
                 logger.error(f"Error procesando elemento {eid}: {e}", exc_info=True)
@@ -428,7 +449,7 @@ class AnalizadorEstatico:
                     continue
         
         logger.debug(f"Valores extraídos: {len(valores_subnodos)} subnodos")
-        return {'valores': valores_subnodos, 'reacciones': reacciones_base, 'elementos_dict': elementos_dict}
+        return {'valores': valores_subnodos, 'reacciones': reacciones_base, 'elementos_dict': elementos_dict, 'resultados_por_elemento': resultados_por_elemento}
     
     def calcular_momento_resultante_total(self, resultado_analisis: Dict) -> Dict:
         """MRT = sqrt(M^2 + T^2)"""
@@ -639,7 +660,7 @@ class AnalizadorEstatico:
         return fig
     
     def generar_diagrama_mqnt(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False) -> plt.Figure:
-        """Genera diagrama combinado M, Q, N, T en 2x2 con etiquetas y marcas de máximo"""
+        """Genera diagrama combinado Mf, Q, N, T en 2x2 (valores directos de OpenSeesPy en ejes locales)"""
         if not resultado_analisis:
             raise ValueError("resultado_analisis vacío - análisis no convergió")
         
@@ -648,13 +669,37 @@ class AnalizadorEstatico:
         valores_subnodos = resultado_analisis.get('valores', {})
         reacciones = resultado_analisis.get('reacciones', {})
         
-        valores_m = {k: v[2] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
-        valores_q = {k: v[1] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
-        valores_n = {k: v[0] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
-        valores_t = {k: v[3] for k, v in valores_subnodos.items() if isinstance(v, np.ndarray) and len(v) >= 10}
+        # Extraer valores directos de OpenSeesPy (índices 4-9 son los valores crudos del nodo i)
+        # fuerzas_locales = [N, Qy, Qz, Mx, My, Mz, ...]
+        # Calcular magnitudes:
+        # Mf = sqrt(My² + Mz²)  -> índices [8, 9]
+        # Q = sqrt(Qy² + Qz²)   -> índices [5, 6]
+        # N = N                 -> índice [4]
+        # T = Mx                -> índice [7]
+        
+        valores_mf = {}  # Momento flector: sqrt(My² + Mz²)
+        valores_q = {}   # Cortante: sqrt(Qy² + Qz²)
+        valores_n = {}   # Normal: N
+        valores_t = {}   # Torsor: Mx
+        
+        for k, v in valores_subnodos.items():
+            if isinstance(v, np.ndarray) and len(v) >= 10:
+                # v[0]=N, v[1]=Q, v[2]=M, v[3]=T (ya calculados)
+                # v[4]=N, v[5]=Qy, v[6]=Qz, v[7]=Mx, v[8]=My, v[9]=Mz (componentes)
+                My = v[8]
+                Mz = v[9]
+                Qy = v[5]
+                Qz = v[6]
+                N = v[4]
+                Mx = v[7]
+                
+                valores_mf[k] = float(np.sqrt(My**2 + Mz**2))
+                valores_q[k] = float(np.sqrt(Qy**2 + Qz**2))
+                valores_n[k] = float(abs(N))
+                valores_t[k] = float(abs(Mx))
         
         configs = [
-            (valores_m, 'Momento Flector (M)', 'daN.m', 221),
+            (valores_mf, 'Momento Flector (Mf)', 'daN.m', 221),
             (valores_q, 'Esfuerzo Cortante (Q)', 'daN', 222),
             (valores_n, 'Esfuerzo Normal (N)', 'daN', 223),
             (valores_t, 'Momento Torsor (T)', 'daN.m', 224)

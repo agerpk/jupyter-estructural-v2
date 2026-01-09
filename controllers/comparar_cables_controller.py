@@ -231,11 +231,11 @@ def registrar_callbacks_comparar_cables(app):
         if not comparativa_actual:
             # Crear estados por defecto si no hay comparativa
             estados_default = {
-                "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7},
-                "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
-                "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "hielo_espesor": 0, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
-                "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "hielo_espesor": 0.01, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
-                "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "hielo_espesor": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7}
+                "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7},
+                "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
+                "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "espesor_hielo": 0, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
+                "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01, "restriccion_conductor": 0.4, "restriccion_guardia": 0.7},
+                "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7}
             }
             return _crear_tabla_estados_climaticos(estados_default)
         
@@ -283,7 +283,7 @@ def registrar_callbacks_comparar_cables(app):
         elif "hielo-estado" in trigger_info and hielos:
             for i, hielo in enumerate(hielos):
                 if i < len(estados_ids) and hielo is not None:
-                    estados[estados_ids[i]]["hielo_espesor"] = hielo
+                    estados[estados_ids[i]]["espesor_hielo"] = hielo
         elif "rest-cond-estado" in trigger_info and rest_conds:
             for i, rest in enumerate(rest_conds):
                 if i < len(estados_ids) and rest is not None:

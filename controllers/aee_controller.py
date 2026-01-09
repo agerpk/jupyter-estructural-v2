@@ -348,6 +348,35 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
             esfuerzos_serializables = _make_serializable(esfuerzos)
             resultados['esfuerzos'][hip] = esfuerzos_serializables
             
+            # Generar DataFrame de resultados por elemento
+            if 'resultados_por_elemento' in esfuerzos:
+                import pandas as pd
+                filas = []
+                for elem_key, subelems in esfuerzos['resultados_por_elemento'].items():
+                    partes = elem_key.split('_')
+                    ni = '_'.join(partes[:-1]) if len(partes) > 2 else partes[0]
+                    nj = partes[-1]
+                    for subelem in subelems:
+                        filas.append({
+                            'Elemento': elem_key,
+                            'Nodo_Inicio': ni,
+                            'Nodo_Fin': nj,
+                            'Sub_Idx': subelem['sub_idx'],
+                            'N_daN': round(subelem['N'], 2),
+                            'Qy_daN': round(subelem['Qy'], 2),
+                            'Qz_daN': round(subelem['Qz'], 2),
+                            'Q_daN': round(subelem['Q'], 2),
+                            'Mx_daN_m': round(subelem['Mx'], 2),
+                            'My_daN_m': round(subelem['My'], 2),
+                            'Mz_daN_m': round(subelem['Mz'], 2),
+                            'M_daN_m': round(subelem['M'], 2),
+                            'T_daN_m': round(subelem['T'], 2)
+                        })
+                
+                if filas:
+                    df_resultados = pd.DataFrame(filas)
+                    resultados['esfuerzos'][hip]['df_resultados'] = df_resultados.to_dict(orient='split')
+            
             # Generar diagramas MQNT
             if diagramas_activos.get('MQNT', True):
                 try:

@@ -366,7 +366,7 @@ def _crear_tabla_estados_climaticos(estados_climaticos):
             html.Td([
                 dbc.Input(
                     id={"type": "hielo-estado", "index": estado_id},
-                    type="number", value=estado_data.get("hielo_espesor", 0),
+                    type="number", value=estado_data.get("espesor_hielo", 0),
                     size="sm", step=0.001, min=0, max=0.1, style={"width": "100%"}
                 )
             ]),
