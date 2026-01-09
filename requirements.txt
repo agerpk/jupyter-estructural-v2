@@ -16,6 +16,9 @@ kaleido==0.2.1
 # Archivos Excel
 openpyxl>=3.1.0
 
+# Análisis estructural
+openseespy>=3.5.0
+
 # Servidor WSGI para producción
 gunicorn>=21.2.0
 
