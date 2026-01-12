@@ -9,7 +9,7 @@
   "AUTOAJUSTAR_LMENHG": true,
   "Altura_MSNM": 3000,
   "CANT_HG": 2,
-  "DISPOSICION": "triangular",
+  "DISPOSICION": "vertical",
   "DIST_REPOSICIONAR_HG": 0.1,
   "D_fases_add": 0,
   "HADD": 0.4,
@@ -219,6 +219,6 @@
       "relflecha_max": 0.95
     }
   },
-  "fecha_modificacion": "2026-01-12T08:37:14.316363",
+  "fecha_modificacion": "2026-01-12T09:48:22.656991",
   "nodos_editados": []
 }

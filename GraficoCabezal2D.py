@@ -33,23 +33,31 @@ class GraficoCabezal2D:
         # 3. Dibujar conductores con declinaciones y zonas
         conductores = [(n, nodo) for n, nodo in self.geo.nodos.items() if nodo.tipo_nodo == "conductor"]
         
+        # Encontrar z máxima de conductores
+        z_max_conductor = max(nodo.coordenadas[2] for _, nodo in conductores) if conductores else 0
+        
         for nombre_c, nodo_c in conductores:
             x_amarre, y_amarre, z_amarre = nodo_c.coordenadas
+            es_z_max = abs(z_amarre - z_max_conductor) < 0.01
+            
+            # Determinar dirección de declinación según posición X
+            dir_decmax = 'der' if x_amarre < 0 else 'izq'
+            dir_tormenta = 'der' if x_amarre < 0 else 'izq'
             
             # Posiciones: reposo, tormenta_izq, tormenta_der, decmax_izq, decmax_der
             posiciones = [
-                (x_amarre, z_amarre - Lk, 'reposo', s_reposo, True),
+                (x_amarre, z_amarre - Lk, 'reposo', s_reposo, True, True, True, es_z_max),
                 (x_amarre - Lk * math.sin(math.radians(theta_tormenta)), 
-                 z_amarre - Lk * math.cos(math.radians(theta_tormenta)), 'tormenta_izq', s_tormenta, False),
+                 z_amarre - Lk * math.cos(math.radians(theta_tormenta)), 'tormenta_izq', s_tormenta, False, False, dir_tormenta == 'izq', False),
                 (x_amarre + Lk * math.sin(math.radians(theta_tormenta)), 
-                 z_amarre - Lk * math.cos(math.radians(theta_tormenta)), 'tormenta_der', s_tormenta, False),
+                 z_amarre - Lk * math.cos(math.radians(theta_tormenta)), 'tormenta_der', s_tormenta, False, False, dir_tormenta == 'der', False),
                 (x_amarre - Lk * math.sin(math.radians(theta_max)), 
-                 z_amarre - Lk * math.cos(math.radians(theta_max)), 'decmax_izq', s_decmax, False),
+                 z_amarre - Lk * math.cos(math.radians(theta_max)), 'decmax_izq', s_decmax, False, False, dir_decmax == 'izq', False),
                 (x_amarre + Lk * math.sin(math.radians(theta_max)), 
-                 z_amarre - Lk * math.cos(math.radians(theta_max)), 'decmax_der', s_decmax, False)
+                 z_amarre - Lk * math.cos(math.radians(theta_max)), 'decmax_der', s_decmax, False, False, dir_decmax == 'der', False)
             ]
             
-            for x_cond, z_cond, estado, s_val, visible in posiciones:
+            for x_cond, z_cond, estado, s_val, visible, mostrar_dfases, mostrar_s, mostrar_dhg in posiciones:
                 # Cadena
                 fig.add_trace(go.Scatter(
                     x=[x_amarre, x_cond], y=[z_amarre, z_cond],
@@ -68,34 +76,32 @@ class GraficoCabezal2D:
                     showlegend=False, hoverinfo='skip'
                 ))
                 
-                # Zona s_reposo
-                fig.add_trace(self._crear_circulo(x_cond, z_cond, s_reposo, 'blue', 0.1,
-                    f'{nombre_c}_{estado}_s_reposo', visible))
+                # Zona D_fases (solo en reposo)
+                if mostrar_dfases:
+                    fig.add_trace(self._crear_circulo(x_cond, z_cond, D_fases, 'green', 0.05,
+                        f'{nombre_c}_{estado}_D_fases', False))
                 
-                # Zona s_tormenta
-                fig.add_trace(self._crear_circulo(x_cond, z_cond, s_tormenta, 'orange', 0.1,
-                    f'{nombre_c}_{estado}_s_tormenta', False))
+                # Zona Dhg (solo en reposo de z máxima)
+                if mostrar_dhg:
+                    fig.add_trace(self._crear_circulo(x_cond, z_cond, Dhg, 'purple', 0.05,
+                        f'{nombre_c}_{estado}_Dhg', False))
                 
-                # Zona s_decmax
-                fig.add_trace(self._crear_circulo(x_cond, z_cond, s_decmax, 'red', 0.1,
-                    f'{nombre_c}_{estado}_s_decmax', False))
-                
-                # Zona D_fases
-                fig.add_trace(self._crear_circulo(x_cond, z_cond, D_fases, 'green', 0.05,
-                    f'{nombre_c}_{estado}_D_fases', False))
-                
-                # Zona Dhg
-                fig.add_trace(self._crear_circulo(x_cond, z_cond, Dhg, 'purple', 0.05,
-                    f'{nombre_c}_{estado}_Dhg', False))
+                # Zona s_reposo/s_tormenta/s_decmax (según corresponda)
+                if mostrar_s:
+                    fig.add_trace(self._crear_circulo(x_cond, z_cond, s_val, 'blue', 0.1,
+                        f'{nombre_c}_{estado}_s_zona', False))
         
         # 4. Zona apantallamiento
         if self.geo.cant_hg > 0:
             self._dibujar_zona_apantallamiento(fig)
         
-        # 5. Crear botones de control
+        # 5. Dibujar cotas
+        self._dibujar_cotas(fig)
+        
+        # 6. Crear botones de control
         self._crear_botones_control(fig, conductores)
         
-        # 6. Configurar layout
+        # 7. Configurar layout
         self._configurar_layout(fig)
         
         return fig
@@ -122,76 +128,165 @@ class GraficoCabezal2D:
         return colors.get(hex_color, '128,128,128')
     
     def _crear_botones_control(self, fig, conductores):
-        """Crear botones interactivos por conductor"""
+        """Crear botones de control"""
         buttons = []
         
-        # Botón: Mostrar todo
+        # Botón D_fases
         buttons.append(dict(
-            label='Mostrar Todo',
-            method='update',
-            args=[{'visible': [True] * len(fig.data)}]
+            args=[{"visible": self._toggle_zona(fig, 'D_fases')}],
+            label="D_fases",
+            method="restyle"
         ))
         
-        # Botón: Solo reposo
-        visible_reposo = []
-        for trace in fig.data:
-            visible_reposo.append('reposo' in trace.name or 'conexion' in trace.name or 'nodo' in trace.name)
+        # Botón Dhg
         buttons.append(dict(
-            label='Solo Reposo',
-            method='update',
-            args=[{'visible': visible_reposo}]
+            args=[{"visible": self._toggle_zona(fig, 'Dhg')}],
+            label="Dhg",
+            method="restyle"
         ))
         
-        # Botones por conductor
-        for nombre_c, _ in conductores:
-            # Declinación tormenta
-            visible_tormenta = []
-            for trace in fig.data:
-                visible_tormenta.append(
-                    nombre_c in trace.name and ('tormenta' in trace.name or 'reposo' in trace.name) or
-                    'conexion' in trace.name or 'nodo' in trace.name
-                )
-            buttons.append(dict(
-                label=f'{nombre_c}: Tormenta',
-                method='update',
-                args=[{'visible': visible_tormenta}]
-            ))
-            
-            # Declinación máxima
-            visible_decmax = []
-            for trace in fig.data:
-                visible_decmax.append(
-                    nombre_c in trace.name and ('decmax' in trace.name or 'reposo' in trace.name) or
-                    'conexion' in trace.name or 'nodo' in trace.name
-                )
-            buttons.append(dict(
-                label=f'{nombre_c}: Dec.Máx',
-                method='update',
-                args=[{'visible': visible_decmax}]
-            ))
+        # Botón s_reposo
+        buttons.append(dict(
+            args=[{"visible": self._toggle_s_reposo(fig)}],
+            label="s_reposo",
+            method="restyle"
+        ))
         
-        # Botones de zonas
-        for zona in ['s_reposo', 's_tormenta', 's_decmax', 'D_fases', 'Dhg']:
-            visible_zona = []
-            for trace in fig.data:
-                visible_zona.append(zona in trace.name or 'conexion' in trace.name or 'nodo' in trace.name)
-            buttons.append(dict(
-                label=f'Zona: {zona}',
-                method='update',
-                args=[{'visible': visible_zona}]
-            ))
+        # Botón s_tormenta
+        buttons.append(dict(
+            args=[{"visible": self._toggle_s_tormenta(fig)}],
+            label="s_tormenta",
+            method="restyle"
+        ))
+        
+        # Botón s_decmax
+        buttons.append(dict(
+            args=[{"visible": self._toggle_s_decmax(fig)}],
+            label="s_decmax",
+            method="restyle"
+        ))
+        
+        # Botón Declinar todos (ciclo: ambos -> adentro -> afuera -> ninguno)
+        buttons.append(dict(
+            args=[{"visible": self._cycle_declinacion(fig, 0)}],
+            label="Declinar: Ambos",
+            method="restyle"
+        ))
+        
+        buttons.append(dict(
+            args=[{"visible": self._cycle_declinacion(fig, 1)}],
+            label="Declinar: Adentro",
+            method="restyle"
+        ))
+        
+        buttons.append(dict(
+            args=[{"visible": self._cycle_declinacion(fig, 2)}],
+            label="Declinar: Afuera",
+            method="restyle"
+        ))
+        
+        buttons.append(dict(
+            args=[{"visible": self._cycle_declinacion(fig, 3)}],
+            label="Declinar: Ninguno",
+            method="restyle"
+        ))
         
         fig.update_layout(
             updatemenus=[
                 dict(
-                    type='dropdown',
+                    type='buttons',
                     direction='down',
-                    x=0.02, y=0.98,
-                    xanchor='left', yanchor='top',
-                    buttons=buttons
+                    x=-0.02,
+                    xanchor='right',
+                    y=1,
+                    yanchor='top',
+                    buttons=buttons,
+                    showactive=False
                 )
             ]
         )
+    
+    def _toggle_zona(self, fig, zona_name):
+        """Toggle visibilidad de zona específica"""
+        visibility = []
+        for trace in fig.data:
+            name = trace.name if trace.name else ''
+            if zona_name in name:
+                visibility.append(not trace.visible if trace.visible is not None else True)
+            else:
+                visibility.append(trace.visible if trace.visible is not None else True)
+        return visibility
+    
+    def _toggle_s_reposo(self, fig):
+        """Toggle s_reposo solo en conductores sin declinar"""
+        visibility = []
+        for trace in fig.data:
+            name = trace.name if trace.name else ''
+            if 'reposo_s_zona' in name:
+                visibility.append(not trace.visible if trace.visible is not None else True)
+            else:
+                visibility.append(trace.visible if trace.visible is not None else True)
+        return visibility
+    
+    def _toggle_s_tormenta(self, fig):
+        """Toggle s_tormenta solo en posición correcta"""
+        visibility = []
+        for trace in fig.data:
+            name = trace.name if trace.name else ''
+            if ('tormenta_izq_s_zona' in name or 'tormenta_der_s_zona' in name):
+                visibility.append(not trace.visible if trace.visible is not None else True)
+            else:
+                visibility.append(trace.visible if trace.visible is not None else True)
+        return visibility
+    
+    def _toggle_s_decmax(self, fig):
+        """Toggle s_decmax solo en posición correcta"""
+        visibility = []
+        for trace in fig.data:
+            name = trace.name if trace.name else ''
+            if ('decmax_izq_s_zona' in name or 'decmax_der_s_zona' in name):
+                visibility.append(not trace.visible if trace.visible is not None else True)
+            else:
+                visibility.append(trace.visible if trace.visible is not None else True)
+        return visibility
+    
+    def _cycle_declinacion(self, fig, mode):
+        """Ciclo de declinación: 0=ambos, 1=adentro, 2=afuera, 3=ninguno"""
+        visibility = []
+        for trace in fig.data:
+            name = trace.name if trace.name else ''
+            
+            # Siempre visible: conexiones, nodos, apantallamiento, cotas, zonas
+            if ('conexion' in name or name.startswith('nodo_') or name == 'apantallamiento' or 
+                name == '' or '_D_fases' in name or '_Dhg' in name or '_s_zona' in name):
+                visibility.append(trace.visible if trace.visible is not None else True)
+            # Reposo siempre visible
+            elif 'reposo' in name:
+                visibility.append(True)
+            # Tormenta
+            elif 'tormenta' in name:
+                if mode == 0:  # Ambos
+                    visibility.append(True)
+                elif mode == 1:  # Adentro (izq si X<0, der si X>0)
+                    visibility.append(True)
+                elif mode == 2:  # Afuera (der si X<0, izq si X>0)
+                    visibility.append(True)
+                else:  # Ninguno
+                    visibility.append(False)
+            # Decmax
+            elif 'decmax' in name:
+                if mode == 0:  # Ambos
+                    visibility.append(True)
+                elif mode == 1:  # Adentro
+                    visibility.append(True)
+                elif mode == 2:  # Afuera
+                    visibility.append(True)
+                else:  # Ninguno
+                    visibility.append(False)
+            else:
+                visibility.append(trace.visible if trace.visible is not None else True)
+        
+        return visibility
     
     def _dibujar_conexiones(self, fig):
         """Dibujar conexiones entre nodos con colores por tipo"""
@@ -218,41 +313,42 @@ class GraficoCabezal2D:
     
     def _dibujar_nodos(self, fig):
         """Dibujar nodos con colores por tipo"""
-        colores_nodos = {'base': 'black', 'cruce': 'gray', 'conductor': 'red',
-                        'guardia': 'green', 'general': 'blue', 'viento': 'cyan'}
+        # Solo mostrar conductores, guardias y viento con nombres
+        tipos_visibles = ['conductor', 'guardia', 'viento']
         
-        simbolos = {'base': 'square', 'cruce': 'diamond', 'conductor': 'circle',
-                   'guardia': 'triangle-up', 'general': 'x', 'viento': 'star'}
+        colores_nodos = {'conductor': 'blue', 'guardia': 'green', 'viento': 'cyan'}
         
-        nodos_por_tipo = {}
-        for nombre, nodo in self.geo.nodos.items():
-            tipo = nodo.tipo_nodo
-            if tipo not in nodos_por_tipo:
-                nodos_por_tipo[tipo] = []
-            nodos_por_tipo[tipo].append((nombre, nodo))
-        
-        for tipo, nodos in nodos_por_tipo.items():
-            x_vals, y_vals, text_vals = [], [], []
+        for tipo in tipos_visibles:
+            nodos = [(n, nodo) for n, nodo in self.geo.nodos.items() if nodo.tipo_nodo == tipo]
+            if not nodos:
+                continue
             
+            primera_vez = True
             for nombre, nodo in nodos:
                 x, y, z = nodo.coordenadas
-                x_vals.append(x)
-                y_vals.append(z)
-                text_vals.append(nombre)
-            
-            fig.add_trace(go.Scatter(
-                x=x_vals, y=y_vals,
-                mode='markers+text',
-                marker=dict(size=10, color=colores_nodos.get(tipo, 'gray'),
-                           symbol=simbolos.get(tipo, 'circle'),
-                           line=dict(width=1, color='black')),
-                text=text_vals, textposition='top center',
-                name=f'nodo_{tipo}',
-                hovertemplate='%{text}<br>x=%{x:.2f}m<br>z=%{y:.2f}m<extra></extra>'
-            ))
+                
+                fig.add_trace(go.Scatter(
+                    x=[x],
+                    y=[z],
+                    mode='markers+text',
+                    marker=dict(
+                        size=10,
+                        color=colores_nodos[tipo],
+                        symbol='circle',
+                        line=dict(width=1, color='black')
+                    ),
+                    text=[nombre],
+                    textposition='top center',
+                    textfont=dict(size=9),
+                    name=tipo.capitalize() if primera_vez else None,
+                    showlegend=primera_vez,
+                    legendgroup=tipo,
+                    hovertemplate=f'<b>{nombre}</b><br>x={x:.2f}m<br>z={z:.2f}m<extra></extra>'
+                ))
+                primera_vez = False
     
     def _dibujar_zona_apantallamiento(self, fig):
-        """Dibujar zona de apantallamiento como área sombreada"""
+        """Dibujar zona de apantallamiento como área sombreada sin líneas"""
         guardias = [(n, nodo) for n, nodo in self.geo.nodos.items() if nodo.tipo_nodo == "guardia"]
         if not guardias:
             return
@@ -274,22 +370,223 @@ class GraficoCabezal2D:
             fig.add_trace(go.Scatter(
                 x=[x_g - extension, x_g, x_g + extension],
                 y=[z_min, z_g, z_min],
-                mode='lines', fill='toself',
-                line=dict(color='green', width=1, dash='dash'),
-                fillcolor='rgba(0, 255, 0, 0.1)',
-                name='apantallamiento', showlegend=False, hoverinfo='skip'
+                mode='none',
+                fill='toself',
+                fillcolor='rgba(0, 255, 0, 0.15)',
+                name='apantallamiento',
+                showlegend=False,
+                hoverinfo='skip'
             ))
+    
+    def _dibujar_cotas(self, fig):
+        """Dibujar cotas de distancias horizontales"""
+        # Cotas horizontales entre CROSS y conductores (x positivo)
+        for nombre_cross, nodo_cross in [(n, nodo) for n, nodo in self.geo.nodos.items() if 'CROSS_H' in n]:
+            x_cross, y_cross, z_cross = nodo_cross.coordenadas
+            
+            # Buscar conductores en misma altura (z) con x positivo
+            conductores_altura = [
+                (n, nodo) for n, nodo in self.geo.nodos.items()
+                if nodo.tipo_nodo == 'conductor' and abs(nodo.coordenadas[2] - z_cross) < 0.1 and nodo.coordenadas[0] > 0.01
+            ]
+            
+            if conductores_altura:
+                # Ordenar por x
+                conductores_altura.sort(key=lambda x: x[1].coordenadas[0])
+                
+                # Cota entre CROSS y primer conductor
+                primer_cond = conductores_altura[0][1]
+                x_cond, y_cond, z_cond = primer_cond.coordenadas
+                dist = x_cond - x_cross
+                x_medio = (x_cross + x_cond) / 2
+                
+                fig.add_trace(go.Scatter(
+                    x=[x_medio, x_medio],
+                    y=[z_cross + 0.3, z_cross + 0.6],
+                    mode='lines',
+                    line=dict(color='gray', width=1, dash='dot'),
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
+                
+                fig.add_annotation(
+                    x=x_medio,
+                    y=z_cross + 0.6,
+                    text=f'{dist:.2f}m',
+                    showarrow=False,
+                    yanchor='bottom',
+                    font=dict(size=9, color='black'),
+                    bgcolor='white',
+                    borderpad=2
+                )
+                
+                # Cota entre conductores si hay 2 con x distinta
+                if len(conductores_altura) >= 2:
+                    x1_cond = conductores_altura[0][1].coordenadas[0]
+                    x2_cond = conductores_altura[1][1].coordenadas[0]
+                    if abs(x2_cond - x1_cond) > 0.1:
+                        dist_cond = x2_cond - x1_cond
+                        x_medio_cond = (x1_cond + x2_cond) / 2
+                        
+                        fig.add_trace(go.Scatter(
+                            x=[x_medio_cond, x_medio_cond],
+                            y=[z_cross + 0.3, z_cross + 0.6],
+                            mode='lines',
+                            line=dict(color='gray', width=1, dash='dot'),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
+                        
+                        fig.add_annotation(
+                            x=x_medio_cond,
+                            y=z_cross + 0.6,
+                            text=f'{dist_cond:.2f}m',
+                            showarrow=False,
+                            yanchor='bottom',
+                            font=dict(size=9, color='black'),
+                            bgcolor='white',
+                            borderpad=2
+                        )
+        
+        # Cota horizontal entre TOP y HG (x positivo)
+        if 'TOP' in self.geo.nodos:
+            nodo_top = self.geo.nodos['TOP']
+            x_top, y_top, z_top = nodo_top.coordenadas
+            
+            # Buscar guardias con x positivo
+            guardias_pos = [
+                (n, nodo) for n, nodo in self.geo.nodos.items()
+                if nodo.tipo_nodo == 'guardia' and nodo.coordenadas[0] > 0.01
+            ]
+            
+            if guardias_pos:
+                # Ordenar por x y tomar el más cercano
+                guardias_pos.sort(key=lambda x: x[1].coordenadas[0])
+                primer_hg = guardias_pos[0][1]
+                x_hg, y_hg, z_hg = primer_hg.coordenadas
+                
+                if abs(x_hg - x_top) > 0.1:
+                    dist = x_hg - x_top
+                    x_medio = (x_top + x_hg) / 2
+                    
+                    fig.add_trace(go.Scatter(
+                        x=[x_medio, x_medio],
+                        y=[z_top + 0.3, z_top + 0.6],
+                        mode='lines',
+                        line=dict(color='gray', width=1, dash='dot'),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
+                    
+                    fig.add_annotation(
+                        x=x_medio,
+                        y=z_top + 0.6,
+                        text=f'{dist:.2f}m',
+                        showarrow=False,
+                        yanchor='bottom',
+                        font=dict(size=9, color='black'),
+                        bgcolor='white',
+                        borderpad=2
+                    )
     
     def _configurar_layout(self, fig):
         """Configurar layout del gráfico"""
+        # Calcular límites del área de cabezal
+        x_vals = [nodo.coordenadas[0] for nodo in self.geo.nodos.values()]
+        z_vals = [nodo.coordenadas[2] for nodo in self.geo.nodos.values()]
+        
+        # Límites en X: ancho de estructura + 10% margen
+        x_min, x_max = min(x_vals), max(x_vals)
+        ancho_x = x_max - x_min
+        margen_x = ancho_x * 0.1
+        
+        # Límites en Z: desde conductor más bajo - 2*Lk hasta nodo más alto + 10% margen
+        conductores = [nodo for nodo in self.geo.nodos.values() if nodo.tipo_nodo == "conductor"]
+        z_min_conductor = min(nodo.coordenadas[2] for nodo in conductores) if conductores else min(z_vals)
+        z_min = z_min_conductor - 2 * self.geo.lk
+        z_max = max(z_vals)
+        altura_z = z_max - z_min
+        margen_z = altura_z * 0.1
+        
         fig.update_layout(
             title='Cabezal de Estructura - Vista Lateral (XZ)',
-            xaxis=dict(title='X [m]', scaleanchor='y', scaleratio=1,
-                      zeroline=True, zerolinewidth=2, zerolinecolor='black',
-                      gridcolor='lightgray'),
-            yaxis=dict(title='Z [m]', zeroline=True, zerolinewidth=2,
-                      zerolinecolor='black', gridcolor='lightgray'),
-            hovermode='closest', showlegend=True,
+            xaxis=dict(
+                title='X [m]',
+                scaleanchor='y',
+                scaleratio=1,
+                type='linear',
+                dtick=2.0,
+                range=[x_min - margen_x, x_max + margen_x],
+                zeroline=False,
+                showgrid=True,
+                gridcolor='rgba(200, 200, 200, 0.3)',
+                gridwidth=1
+            ),
+            yaxis=dict(
+                title='Z [m]',
+                type='linear',
+                dtick=2.0,
+                range=[z_min - margen_z, z_max + margen_z],
+                zeroline=False,
+                showgrid=True,
+                gridcolor='rgba(200, 200, 200, 0.3)',
+                gridwidth=1
+            ),
+            hovermode='closest',
+            showlegend=True,
             legend=dict(x=1.02, y=1, xanchor='left', yanchor='top'),
-            width=1200, height=800, plot_bgcolor='white'
+            width=1200,
+            height=800,
+            plot_bgcolor='white',
+            sliders=[{
+                'active': 4,
+                'yanchor': 'top',
+                'y': 0.70,
+                'xanchor': 'left',
+                'x': 1.02,
+                'currentvalue': {
+                    'prefix': 'Grid: ',
+                    'visible': True,
+                    'xanchor': 'left'
+                },
+                'pad': {'b': 10, 't': 10},
+                'len': 0.15,
+                'steps': [
+                    {
+                        'args': [{'xaxis.dtick': 0.1, 'yaxis.dtick': 0.1}],
+                        'label': '0.1m',
+                        'method': 'relayout'
+                    },
+                    {
+                        'args': [{'xaxis.dtick': 0.25, 'yaxis.dtick': 0.25}],
+                        'label': '0.25m',
+                        'method': 'relayout'
+                    },
+                    {
+                        'args': [{'xaxis.dtick': 0.5, 'yaxis.dtick': 0.5}],
+                        'label': '0.5m',
+                        'method': 'relayout'
+                    },
+                    {
+                        'args': [{'xaxis.dtick': 1.0, 'yaxis.dtick': 1.0}],
+                        'label': '1m',
+                        'method': 'relayout'
+                    },
+                    {
+                        'args': [{'xaxis.dtick': 2.0, 'yaxis.dtick': 2.0}],
+                        'label': '2m',
+                        'method': 'relayout'
+                    },
+                    {
+                        'args': [{'xaxis.dtick': 2.5, 'yaxis.dtick': 2.5}],
+                        'label': '2.5m',
+                        'method': 'relayout'
+                    },
+                    {
+                        'args': [{'xaxis.dtick': 5.0, 'yaxis.dtick': 5.0}],
+                        'label': '5m',
+                        'method': 'relayout'
+                    }
+                ]
+            }]
         )
