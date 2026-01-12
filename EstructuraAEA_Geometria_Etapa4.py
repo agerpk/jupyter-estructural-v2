@@ -184,26 +184,10 @@ class GeometriaEtapa4:
             cable_hg2, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
         )
         
-        # Crear nodos TOP1 y TOP2 DESPUÉS y verificar solapamiento
-        pos_top1 = (lmenhg, 0.0, hhg + hadd_hg)
-        pos_hg1 = (lmenhg, defasaje_y, hhg)
-        dist1 = math.sqrt(sum((a - b)**2 for a, b in zip(pos_top1, pos_hg1)))
-        
-        if dist1 >= 0.01:
-            self.geo.nodos["TOP1"] = NodoEstructural("TOP1", pos_top1, "general")
-            print(f"   🔵 Nodo TOP1 creado en ({lmenhg:.2f}, 0, {hhg + hadd_hg:.2f})")
-        else:
-            print(f"   ⚠️  Nodo TOP1 no creado (solapamiento con HG1, dist={dist1:.4f}m < 0.01m)")
-        
-        pos_top2 = (-lmenhg, 0.0, hhg + hadd_hg)
-        pos_hg2 = (-lmenhg, defasaje_y, hhg + hadd_hg)
-        dist2 = math.sqrt(sum((a - b)**2 for a, b in zip(pos_top2, pos_hg2)))
-        
-        if dist2 >= 0.01:
-            self.geo.nodos["TOP2"] = NodoEstructural("TOP2", pos_top2, "general")
-            print(f"   🔵 Nodo TOP2 creado en ({-lmenhg:.2f}, 0, {hhg + hadd_hg:.2f})")
-        else:
-            print(f"   ⚠️  Nodo TOP2 no creado (solapamiento con HG2, dist={dist2:.4f}m < 0.01m)")
+        # Crear UN SOLO nodo TOP en (0, 0, hhg + hadd_hg)
+        pos_top = (0.0, 0.0, hhg + hadd_hg)
+        self.geo.nodos["TOP"] = NodoEstructural("TOP", pos_top, "general")
+        print(f"   🔵 Nodo TOP creado en (0, 0, {hhg + hadd_hg:.2f})")
         
         self.geo.dimensiones["hhg"] = hhg
         self.geo.dimensiones["lmenhg"] = lmenhg

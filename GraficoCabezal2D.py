@@ -128,165 +128,181 @@ class GraficoCabezal2D:
         return colors.get(hex_color, '128,128,128')
     
     def _crear_botones_control(self, fig, conductores):
-        """Crear botones de control"""
-        buttons = []
+        """Crear sliders de control independientes usando updatemenus con botones toggle"""
         
-        # Botón D_fases
-        buttons.append(dict(
-            args=[{"visible": self._toggle_zona(fig, 'D_fases')}],
-            label="D_fases",
-            method="restyle"
-        ))
+        # Crear índices de traces por patrón
+        indices_dfases = [i for i, trace in enumerate(fig.data) if 'D_fases' in (trace.name or '')]
+        indices_dhg = [i for i, trace in enumerate(fig.data) if 'Dhg' in (trace.name or '')]
+        indices_reposo_s = [i for i, trace in enumerate(fig.data) if 'reposo_s_zona' in (trace.name or '')]
+        indices_tormenta = [i for i, trace in enumerate(fig.data) if 'tormenta' in (trace.name or '')]
+        indices_decmax = [i for i, trace in enumerate(fig.data) if 'decmax' in (trace.name or '')]
+        indices_apantallamiento = [i for i, trace in enumerate(fig.data) if 'apantallamiento' in (trace.name or '')]
         
-        # Botón Dhg
-        buttons.append(dict(
-            args=[{"visible": self._toggle_zona(fig, 'Dhg')}],
-            label="Dhg",
-            method="restyle"
-        ))
+        updatemenus = [
+            # Toggle D_fases
+            dict(
+                type='buttons',
+                direction='right',
+                x=1.02,
+                xanchor='left',
+                y=0.70,
+                yanchor='top',
+                buttons=[
+                    dict(
+                        label='D_fases: OFF',
+                        method='restyle',
+                        args=[{'visible': False}, indices_dfases]
+                    ),
+                    dict(
+                        label='D_fases: ON',
+                        method='restyle',
+                        args=[{'visible': True}, indices_dfases]
+                    )
+                ],
+                active=0
+            ),
+            # Toggle Dhg
+            dict(
+                type='buttons',
+                direction='right',
+                x=1.02,
+                xanchor='left',
+                y=0.635,
+                yanchor='top',
+                buttons=[
+                    dict(
+                        label='Dhg: OFF',
+                        method='restyle',
+                        args=[{'visible': False}, indices_dhg]
+                    ),
+                    dict(
+                        label='Dhg: ON',
+                        method='restyle',
+                        args=[{'visible': True}, indices_dhg]
+                    )
+                ],
+                active=0
+            ),
+            # Toggle s_reposo
+            dict(
+                type='buttons',
+                direction='right',
+                x=1.02,
+                xanchor='left',
+                y=0.57,
+                yanchor='top',
+                buttons=[
+                    dict(
+                        label='s_reposo: OFF',
+                        method='restyle',
+                        args=[{'visible': False}, indices_reposo_s]
+                    ),
+                    dict(
+                        label='s_reposo: ON',
+                        method='restyle',
+                        args=[{'visible': True}, indices_reposo_s]
+                    )
+                ],
+                active=0
+            ),
+            # Toggle s_tormenta
+            dict(
+                type='buttons',
+                direction='right',
+                x=1.02,
+                xanchor='left',
+                y=0.505,
+                yanchor='top',
+                buttons=[
+                    dict(
+                        label='s_tormenta: OFF',
+                        method='restyle',
+                        args=[{'visible': False}, indices_tormenta]
+                    ),
+                    dict(
+                        label='s_tormenta: ON',
+                        method='restyle',
+                        args=[{'visible': True}, indices_tormenta]
+                    )
+                ],
+                active=0
+            ),
+            # Toggle s_decmax
+            dict(
+                type='buttons',
+                direction='right',
+                x=1.02,
+                xanchor='left',
+                y=0.44,
+                yanchor='top',
+                buttons=[
+                    dict(
+                        label='s_decmax: OFF',
+                        method='restyle',
+                        args=[{'visible': False}, indices_decmax]
+                    ),
+                    dict(
+                        label='s_decmax: ON',
+                        method='restyle',
+                        args=[{'visible': True}, indices_decmax]
+                    )
+                ],
+                active=0
+            ),
+            # Toggle Apantallamiento
+            dict(
+                type='buttons',
+                direction='right',
+                x=1.02,
+                xanchor='left',
+                y=0.375,
+                yanchor='top',
+                buttons=[
+                    dict(
+                        label='Apantallamiento: OFF',
+                        method='restyle',
+                        args=[{'visible': False}, indices_apantallamiento]
+                    ),
+                    dict(
+                        label='Apantallamiento: ON',
+                        method='restyle',
+                        args=[{'visible': True}, indices_apantallamiento]
+                    )
+                ],
+                active=1
+            )
+        ]
         
-        # Botón s_reposo
-        buttons.append(dict(
-            args=[{"visible": self._toggle_s_reposo(fig)}],
-            label="s_reposo",
-            method="restyle"
-        ))
-        
-        # Botón s_tormenta
-        buttons.append(dict(
-            args=[{"visible": self._toggle_s_tormenta(fig)}],
-            label="s_tormenta",
-            method="restyle"
-        ))
-        
-        # Botón s_decmax
-        buttons.append(dict(
-            args=[{"visible": self._toggle_s_decmax(fig)}],
-            label="s_decmax",
-            method="restyle"
-        ))
-        
-        # Botón Declinar todos (ciclo: ambos -> adentro -> afuera -> ninguno)
-        buttons.append(dict(
-            args=[{"visible": self._cycle_declinacion(fig, 0)}],
-            label="Declinar: Ambos",
-            method="restyle"
-        ))
-        
-        buttons.append(dict(
-            args=[{"visible": self._cycle_declinacion(fig, 1)}],
-            label="Declinar: Adentro",
-            method="restyle"
-        ))
-        
-        buttons.append(dict(
-            args=[{"visible": self._cycle_declinacion(fig, 2)}],
-            label="Declinar: Afuera",
-            method="restyle"
-        ))
-        
-        buttons.append(dict(
-            args=[{"visible": self._cycle_declinacion(fig, 3)}],
-            label="Declinar: Ninguno",
-            method="restyle"
-        ))
-        
-        fig.update_layout(
-            updatemenus=[
-                dict(
-                    type='buttons',
-                    direction='down',
-                    x=-0.02,
-                    xanchor='right',
-                    y=1,
-                    yanchor='top',
-                    buttons=buttons,
-                    showactive=False
-                )
-            ]
-        )
+        fig.update_layout(updatemenus=updatemenus)
     
-    def _toggle_zona(self, fig, zona_name):
-        """Toggle visibilidad de zona específica"""
-        visibility = []
-        for trace in fig.data:
-            name = trace.name if trace.name else ''
-            if zona_name in name:
-                visibility.append(not trace.visible if trace.visible is not None else True)
-            else:
-                visibility.append(trace.visible if trace.visible is not None else True)
-        return visibility
+    def _toggle_only(self, trace, pattern, show):
+        """Mostrar/ocultar solo traces que contienen pattern, mantener resto sin cambios"""
+        name = trace.name if trace.name else ''
+        if pattern in name:
+            return show
+        # Mantener estado actual, si es None significa True (visible por defecto)
+        current = trace.visible
+        return current if current is not None else True
     
-    def _toggle_s_reposo(self, fig):
-        """Toggle s_reposo solo en conductores sin declinar"""
-        visibility = []
-        for trace in fig.data:
-            name = trace.name if trace.name else ''
-            if 'reposo_s_zona' in name:
-                visibility.append(not trace.visible if trace.visible is not None else True)
-            else:
-                visibility.append(trace.visible if trace.visible is not None else True)
-        return visibility
+    def _toggle_tormenta_completo(self, trace, show):
+        """Mostrar/ocultar conductor declinado en tormenta + zona s_tormenta"""
+        name = trace.name if trace.name else ''
+        # Mostrar cadena, punto y zona de tormenta (ambos lados)
+        if 'tormenta' in name:
+            return show
+        # Mantener estado actual, si es None significa True (visible por defecto)
+        current = trace.visible
+        return current if current is not None else True
     
-    def _toggle_s_tormenta(self, fig):
-        """Toggle s_tormenta solo en posición correcta"""
-        visibility = []
-        for trace in fig.data:
-            name = trace.name if trace.name else ''
-            if ('tormenta_izq_s_zona' in name or 'tormenta_der_s_zona' in name):
-                visibility.append(not trace.visible if trace.visible is not None else True)
-            else:
-                visibility.append(trace.visible if trace.visible is not None else True)
-        return visibility
-    
-    def _toggle_s_decmax(self, fig):
-        """Toggle s_decmax solo en posición correcta"""
-        visibility = []
-        for trace in fig.data:
-            name = trace.name if trace.name else ''
-            if ('decmax_izq_s_zona' in name or 'decmax_der_s_zona' in name):
-                visibility.append(not trace.visible if trace.visible is not None else True)
-            else:
-                visibility.append(trace.visible if trace.visible is not None else True)
-        return visibility
-    
-    def _cycle_declinacion(self, fig, mode):
-        """Ciclo de declinación: 0=ambos, 1=adentro, 2=afuera, 3=ninguno"""
-        visibility = []
-        for trace in fig.data:
-            name = trace.name if trace.name else ''
-            
-            # Siempre visible: conexiones, nodos, apantallamiento, cotas, zonas
-            if ('conexion' in name or name.startswith('nodo_') or name == 'apantallamiento' or 
-                name == '' or '_D_fases' in name or '_Dhg' in name or '_s_zona' in name):
-                visibility.append(trace.visible if trace.visible is not None else True)
-            # Reposo siempre visible
-            elif 'reposo' in name:
-                visibility.append(True)
-            # Tormenta
-            elif 'tormenta' in name:
-                if mode == 0:  # Ambos
-                    visibility.append(True)
-                elif mode == 1:  # Adentro (izq si X<0, der si X>0)
-                    visibility.append(True)
-                elif mode == 2:  # Afuera (der si X<0, izq si X>0)
-                    visibility.append(True)
-                else:  # Ninguno
-                    visibility.append(False)
-            # Decmax
-            elif 'decmax' in name:
-                if mode == 0:  # Ambos
-                    visibility.append(True)
-                elif mode == 1:  # Adentro
-                    visibility.append(True)
-                elif mode == 2:  # Afuera
-                    visibility.append(True)
-                else:  # Ninguno
-                    visibility.append(False)
-            else:
-                visibility.append(trace.visible if trace.visible is not None else True)
-        
-        return visibility
+    def _toggle_decmax_completo(self, trace, show):
+        """Mostrar/ocultar conductor declinado en decmax + zona s_decmax"""
+        name = trace.name if trace.name else ''
+        # Mostrar cadena, punto y zona de decmax (ambos lados)
+        if 'decmax' in name:
+            return show
+        # Mantener estado actual, si es None significa True (visible por defecto)
+        current = trace.visible
+        return current if current is not None else True
     
     def _dibujar_conexiones(self, fig):
         """Dibujar conexiones entre nodos con colores por tipo"""
@@ -508,6 +524,62 @@ class GraficoCabezal2D:
         altura_z = z_max - z_min
         margen_z = altura_z * 0.1
         
+        # Obtener sliders existentes (de _crear_botones_control)
+        sliders_existentes = fig.layout.sliders if fig.layout.sliders else []
+        
+        # Agregar slider de Grid
+        sliders_completos = list(sliders_existentes) + [{
+            'active': 4,
+            'yanchor': 'top',
+            'y': 0.15,
+            'xanchor': 'left',
+            'x': 1.02,
+            'currentvalue': {
+                'prefix': 'Grid: ',
+                'visible': True,
+                'xanchor': 'left'
+            },
+            'pad': {'b': 5, 't': 5},
+            'len': 0.15,
+            'steps': [
+                {
+                    'args': [{'xaxis.dtick': 0.1, 'yaxis.dtick': 0.1}],
+                    'label': '0.1m',
+                    'method': 'relayout'
+                },
+                {
+                    'args': [{'xaxis.dtick': 0.25, 'yaxis.dtick': 0.25}],
+                    'label': '0.25m',
+                    'method': 'relayout'
+                },
+                {
+                    'args': [{'xaxis.dtick': 0.5, 'yaxis.dtick': 0.5}],
+                    'label': '0.5m',
+                    'method': 'relayout'
+                },
+                {
+                    'args': [{'xaxis.dtick': 1.0, 'yaxis.dtick': 1.0}],
+                    'label': '1m',
+                    'method': 'relayout'
+                },
+                {
+                    'args': [{'xaxis.dtick': 2.0, 'yaxis.dtick': 2.0}],
+                    'label': '2m',
+                    'method': 'relayout'
+                },
+                {
+                    'args': [{'xaxis.dtick': 2.5, 'yaxis.dtick': 2.5}],
+                    'label': '2.5m',
+                    'method': 'relayout'
+                },
+                {
+                    'args': [{'xaxis.dtick': 5.0, 'yaxis.dtick': 5.0}],
+                    'label': '5m',
+                    'method': 'relayout'
+                }
+            ]
+        }]
+        
         fig.update_layout(
             title='Cabezal de Estructura - Vista Lateral (XZ)',
             xaxis=dict(
@@ -538,55 +610,5 @@ class GraficoCabezal2D:
             width=1200,
             height=800,
             plot_bgcolor='white',
-            sliders=[{
-                'active': 4,
-                'yanchor': 'top',
-                'y': 0.70,
-                'xanchor': 'left',
-                'x': 1.02,
-                'currentvalue': {
-                    'prefix': 'Grid: ',
-                    'visible': True,
-                    'xanchor': 'left'
-                },
-                'pad': {'b': 10, 't': 10},
-                'len': 0.15,
-                'steps': [
-                    {
-                        'args': [{'xaxis.dtick': 0.1, 'yaxis.dtick': 0.1}],
-                        'label': '0.1m',
-                        'method': 'relayout'
-                    },
-                    {
-                        'args': [{'xaxis.dtick': 0.25, 'yaxis.dtick': 0.25}],
-                        'label': '0.25m',
-                        'method': 'relayout'
-                    },
-                    {
-                        'args': [{'xaxis.dtick': 0.5, 'yaxis.dtick': 0.5}],
-                        'label': '0.5m',
-                        'method': 'relayout'
-                    },
-                    {
-                        'args': [{'xaxis.dtick': 1.0, 'yaxis.dtick': 1.0}],
-                        'label': '1m',
-                        'method': 'relayout'
-                    },
-                    {
-                        'args': [{'xaxis.dtick': 2.0, 'yaxis.dtick': 2.0}],
-                        'label': '2m',
-                        'method': 'relayout'
-                    },
-                    {
-                        'args': [{'xaxis.dtick': 2.5, 'yaxis.dtick': 2.5}],
-                        'label': '2.5m',
-                        'method': 'relayout'
-                    },
-                    {
-                        'args': [{'xaxis.dtick': 5.0, 'yaxis.dtick': 5.0}],
-                        'label': '5m',
-                        'method': 'relayout'
-                    }
-                ]
-            }]
+            sliders=sliders_completos
         )
