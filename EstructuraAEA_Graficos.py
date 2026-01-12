@@ -528,9 +528,17 @@ class EstructuraAEA_Graficos:
         
         theta_max = self.geometria.dimensiones.get('theta_max', 0.0)
         D_fases = self.geometria.dimensiones.get('D_fases', 0.0)
-        s_estructura = self.geometria.dimensiones.get('s_estructura', 0.0)
+        s_reposo = self.geometria.dimensiones.get('s_reposo', self.geometria.dimensiones.get('s_estructura', 0.0))
+        s_tormenta = self.geometria.dimensiones.get('s_tormenta', s_reposo)
+        s_decmax = self.geometria.dimensiones.get('s_decmax', s_reposo)
         Dhg = self.geometria.dimensiones.get('Dhg', 0.0)
         altura_total = self.geometria.dimensiones.get('altura_total', 0)
+        
+        # Imprimir valores usados en gráficos
+        print(f"   📏 Distancias usadas en gráficos:")
+        print(f"      s_reposo: {s_reposo:.3f}m")
+        print(f"      s_tormenta: {s_tormenta:.3f}m")
+        print(f"      s_decmax: {s_decmax:.3f}m")
         
         # 2. DIBUJAR POSTE Y MENSULAS - NUEVA LÓGICA
         nodos_estructura = []
@@ -775,6 +783,14 @@ class EstructuraAEA_Graficos:
                     x_conductor = x_amarre + direccion * self.geometria.lk * math.sin(ang_rad)
                     z_conductor = z_amarre - self.geometria.lk * math.cos(ang_rad)
                     
+                    # Determinar qué distancia s usar según ángulo de declinación
+                    if abs(angulo) < 0.01:  # Reposo (0°)
+                        s_actual = s_reposo
+                    elif abs(angulo - theta_max/2) < 0.01:  # Tormenta (θ/2)
+                        s_actual = s_tormenta
+                    else:  # Máxima (θ)
+                        s_actual = s_decmax
+                    
                     # Dibujar cadena
                     plt.plot([x_amarre, x_conductor], [z_amarre, z_conductor], 
                             color=self.COLORES['cadena'], linewidth=2)
@@ -794,16 +810,16 @@ class EstructuraAEA_Graficos:
                                                     linewidth=self.OTROS_CONTROLES_GRAFICOS.get('linewidth_circulo', 1.5), 
                                                     alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_circulo', 0.7)))))
                     
-                    # 2. Área s_estructura (primero, para que quede debajo)
+                    # 2. Área s_actual (primero, para que quede debajo)
                     if dibujar_areas_s:
-                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_actual, 
                                                     color=self.COLORES['area_s_estructura'], fill=True, 
                                                     alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_area_s_estructura', 0.15))),
                                                     zorder=2))
                     
-                    # 3. Círculo s_estructura (encima del área)
+                    # 3. Círculo s_actual (encima del área)
                     if dibujar_circulos_s:
-                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_actual, 
                                                     color=self.COLORES['circulo'], fill=False, 
                                                     linestyle='--', 
                                                     linewidth=self.OTROS_CONTROLES_GRAFICOS.get('linewidth_circulo', 1.5), 
@@ -818,22 +834,30 @@ class EstructuraAEA_Graficos:
                                                     linewidth=self.OTROS_CONTROLES_GRAFICOS.get('linewidth_circulo', 1.5), 
                                                     alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_circulo', 0.7)))))
                 
-                # Dibujar círculos y áreas s_estructura adicionales para trayectoria (sin cadenas ni otros círculos)
+                # Dibujar círculos y áreas s adicionales para trayectoria (sin cadenas ni otros círculos)
                 for direccion, angulo in posiciones_circulos_extra:
                     ang_rad = math.radians(angulo)
                     x_conductor = x_amarre + direccion * self.geometria.lk * math.sin(ang_rad)
                     z_conductor = z_amarre - self.geometria.lk * math.cos(ang_rad)
                     
-                    # Área s_estructura
+                    # Determinar qué distancia s usar según ángulo
+                    if abs(angulo) < 0.01:  # Reposo
+                        s_actual = s_reposo
+                    elif abs(angulo - theta_max/2) < 0.01:  # Tormenta
+                        s_actual = s_tormenta
+                    else:  # Máxima
+                        s_actual = s_decmax
+                    
+                    # Área s_actual
                     if dibujar_areas_s:
-                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_actual, 
                                                     color=self.COLORES['area_s_estructura'], fill=True, 
                                                     alpha=min(1.0, max(0.0, self.OTROS_CONTROLES_GRAFICOS.get('alpha_area_s_estructura', 0.15))),
                                                     zorder=2))
                     
-                    # Círculo s_estructura
+                    # Círculo s_actual
                     if dibujar_circulos_s:
-                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_estructura, 
+                        plt.gca().add_patch(plt.Circle((x_conductor, z_conductor), s_actual, 
                                                     color=self.COLORES['circulo'], fill=False, 
                                                     linestyle='--', 
                                                     linewidth=self.OTROS_CONTROLES_GRAFICOS.get('linewidth_circulo', 1.5), 
@@ -845,14 +869,22 @@ class EstructuraAEA_Graficos:
                     x_conductor = x_amarre + direccion_declinacion * self.geometria.lk * math.sin(math.radians(angulo_cadena))
                     z_conductor = z_amarre - self.geometria.lk * math.cos(math.radians(angulo_cadena))
                     
+                    # Determinar s_actual para etiquetas
+                    if abs(angulo_cadena) < 0.01:
+                        s_actual = s_estructura
+                    elif abs(angulo_cadena - theta_max/2) < 0.01:
+                        s_actual = s_tormenta
+                    else:
+                        s_actual = s_decmax
+                    
                     if es_horizontal_simple:
                         if "C3" in nombre_cond:
-                            plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_estructura), 
+                            plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_actual), 
                                         xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
                                         color=self.COLORES['circulo'], 
                                         bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
                                         horizontalalignment='center', verticalalignment='top')
-                            plt.annotate(f'{s_estructura:.2f} m', xy=(x_conductor, z_conductor - s_estructura), 
+                            plt.annotate(f'{s_actual:.2f} m', xy=(x_conductor, z_conductor - s_actual), 
                                         xytext=(0, -23), textcoords='offset points', fontsize=8, fontweight='bold',
                                         color=self.COLORES['circulo'],
                                         bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),
@@ -868,11 +900,11 @@ class EstructuraAEA_Graficos:
                             plt.scatter(x_c2_vertical, z_c2_vertical, color=self.COLORES['conductor_end'], 
                                     s=80, marker='o', edgecolors='white', linewidth=1.5, zorder=5)
                             
-                            # Círculos en C2 vertical
+                            # Círculos en C2 vertical (usa s_reposo porque está en reposo)
                             plt.gca().add_patch(plt.Circle((x_c2_vertical, z_c2_vertical), D_fases, 
                                                         color=self.COLORES['circulo'], fill=False, 
                                                         linestyle='--', linewidth=1.5, alpha=0.7))
-                            plt.gca().add_patch(plt.Circle((x_c2_vertical, z_c2_vertical), s_estructura, 
+                            plt.gca().add_patch(plt.Circle((x_c2_vertical, z_c2_vertical), s_reposo, 
                                                         color=self.COLORES['circulo'], fill=False, 
                                                         linestyle='--', linewidth=1.5, alpha=0.7))
                             
@@ -890,12 +922,12 @@ class EstructuraAEA_Graficos:
                     else:
                         # Otras configuraciones: etiquetas originales
                         if nombre_cond.endswith('_L') and "C1" in nombre_cond:
-                            plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_estructura), 
+                            plt.annotate('s (fase-estructura)', xy=(x_conductor, z_conductor - s_actual), 
                                         xytext=(0, -8), textcoords='offset points', fontsize=8, fontweight='bold',
                                         color=self.COLORES['circulo'], 
                                         bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8), 
                                         horizontalalignment='center', verticalalignment='top')
-                            plt.annotate(f'{s_estructura:.2f} m', xy=(x_conductor, z_conductor - s_estructura), 
+                            plt.annotate(f'{s_actual:.2f} m', xy=(x_conductor, z_conductor - s_actual), 
                                         xytext=(0, -23), textcoords='offset points', fontsize=8, fontweight='bold',
                                         color=self.COLORES['circulo'],
                                         bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.8),

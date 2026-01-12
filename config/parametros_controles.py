@@ -153,6 +153,27 @@ CONTROLES_PARAMETROS = {
         "step": 0.05,
         "marks": {i*0.2: str(round(i*0.2, 1)) for i in range(6)}
     },
+    "s_reposo": {
+        "tipo": "slider",
+        "min": 0,
+        "max": 3,
+        "step": 0.05,
+        "marks": {i*0.5: str(i*0.5) for i in range(7)}
+    },
+    "s_tormenta": {
+        "tipo": "slider",
+        "min": 0,
+        "max": 3,
+        "step": 0.05,
+        "marks": {i*0.5: str(i*0.5) for i in range(7)}
+    },
+    "s_decmax": {
+        "tipo": "slider",
+        "min": 0,
+        "max": 3,
+        "step": 0.05,
+        "marks": {i*0.5: str(i*0.5) for i in range(7)}
+    },
     "H_PIQANTERIOR": {
         "tipo": "slider_input",
         "min": -15,
@@ -235,6 +256,9 @@ CONTROLES_PARAMETROS = {
         "tipo": "switch"
     },
     "AUTOAJUSTAR_LMENHG": {
+        "tipo": "switch"
+    },
+    "SOBREESCRIBIR_S": {
         "tipo": "switch"
     },
     "RELFLECHA_SIN_VIENTO": {

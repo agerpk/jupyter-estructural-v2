@@ -24,6 +24,28 @@ class GeometriaEtapa1:
         
         distancias = self.geo.calcular_distancias_minimas(flecha_max_conductor, theta_max)
         
+        # SOBREESCRIBIR s si flag está activo
+        if getattr(self.geo, 'sobreescribir_s', False):
+            s_reposo_custom = getattr(self.geo, 's_reposo', None)
+            s_tormenta_custom = getattr(self.geo, 's_tormenta', None)
+            s_decmax_custom = getattr(self.geo, 's_decmax', None)
+            
+            if s_reposo_custom is not None:
+                distancias['s_estructura'] = s_reposo_custom
+                print(f"   🔧 s_estructura sobreescrito: {s_reposo_custom:.3f}m")
+            if s_tormenta_custom is not None:
+                distancias['s_tormenta'] = s_tormenta_custom
+                print(f"   🔧 s_tormenta sobreescrito: {s_tormenta_custom:.3f}m")
+            if s_decmax_custom is not None:
+                distancias['s_decmax'] = s_decmax_custom
+                print(f"   🔧 s_decmax sobreescrito: {s_decmax_custom:.3f}m")
+        
+        # Imprimir valores finales usados en checkeos
+        print(f"   📏 Distancias usadas en checkeos:")
+        print(f"      s_reposo (s_estructura): {distancias['s_estructura']:.3f}m")
+        print(f"      s_tormenta: {distancias.get('s_tormenta', distancias['s_estructura']):.3f}m")
+        print(f"      s_decmax: {distancias.get('s_decmax', distancias['s_estructura']):.3f}m")
+        
         # Calcular h1a con fórmula obligatoria: h1a = a + b + fmax + Lk + HADD
         a = self.geo.ALTURAS_MINIMAS_TERRENO.get(self.geo.zona_estructura, 5.90)
         b = distancias['b']
@@ -39,8 +61,8 @@ class GeometriaEtapa1:
         self.geo.dimensiones.update({
             "h1a": h1a,
             "Lmen1": Lmen1,
-            "s_tormenta": distancias['s_estructura'],
-            "s_decmax": distancias['s_estructura'],
+            "s_tormenta": distancias['s_tormenta'],
+            "s_decmax": distancias['s_decmax'],
             **distancias
         })
         
@@ -76,7 +98,7 @@ class GeometriaEtapa1:
             return Lmen1
         
         # CASO GENERAL: Iterativo con s_decmax
-        s_decmax = distancias['s_estructura']
+        s_decmax = distancias.get('s_decmax', distancias['s_estructura'])
         Lmen_minima = self.geo.long_mensula_min_conductor
         Lk = self.geo.lk
         

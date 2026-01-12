@@ -18,7 +18,7 @@ class GraficoCabezal2D:
         Lk = self.geo.lk
         theta_max = self.geo.dimensiones.get('theta_max', 0)
         theta_tormenta = theta_max / 2.0 if theta_max < 99 else 0
-        s_reposo = self.geo.dimensiones.get('s_estructura', 0)
+        s_reposo = self.geo.dimensiones.get('s_reposo', 0)
         s_tormenta = self.geo.dimensiones.get('s_tormenta', s_reposo)
         s_decmax = self.geo.dimensiones.get('s_decmax', s_tormenta)
         D_fases = self.geo.dimensiones.get('D_fases', 0)
@@ -48,13 +48,13 @@ class GraficoCabezal2D:
             posiciones = [
                 (x_amarre, z_amarre - Lk, 'reposo', s_reposo, True, True, True, es_z_max),
                 (x_amarre - Lk * math.sin(math.radians(theta_tormenta)), 
-                 z_amarre - Lk * math.cos(math.radians(theta_tormenta)), 'tormenta_izq', s_tormenta, False, False, dir_tormenta == 'izq', False),
+                 z_amarre - Lk * math.cos(math.radians(theta_tormenta)), 'tormenta_izq', s_tormenta, False, False, True, False),
                 (x_amarre + Lk * math.sin(math.radians(theta_tormenta)), 
-                 z_amarre - Lk * math.cos(math.radians(theta_tormenta)), 'tormenta_der', s_tormenta, False, False, dir_tormenta == 'der', False),
+                 z_amarre - Lk * math.cos(math.radians(theta_tormenta)), 'tormenta_der', s_tormenta, False, False, True, False),
                 (x_amarre - Lk * math.sin(math.radians(theta_max)), 
-                 z_amarre - Lk * math.cos(math.radians(theta_max)), 'decmax_izq', s_decmax, False, False, dir_decmax == 'izq', False),
+                 z_amarre - Lk * math.cos(math.radians(theta_max)), 'decmax_izq', s_decmax, False, False, True, False),
                 (x_amarre + Lk * math.sin(math.radians(theta_max)), 
-                 z_amarre - Lk * math.cos(math.radians(theta_max)), 'decmax_der', s_decmax, False, False, dir_decmax == 'der', False)
+                 z_amarre - Lk * math.cos(math.radians(theta_max)), 'decmax_der', s_decmax, False, False, True, False)
             ]
             
             for x_cond, z_cond, estado, s_val, visible, mostrar_dfases, mostrar_s, mostrar_dhg in posiciones:
@@ -130,13 +130,24 @@ class GraficoCabezal2D:
     def _crear_botones_control(self, fig, conductores):
         """Crear sliders de control independientes usando updatemenus con botones toggle"""
         
+        # Debug: imprimir todos los nombres de traces
+        print("\n=== DEBUG: Traces en figura ===")
+        for i, trace in enumerate(fig.data):
+            print(f"{i}: {trace.name}")
+        
         # Crear índices de traces por patrón
         indices_dfases = [i for i, trace in enumerate(fig.data) if 'D_fases' in (trace.name or '')]
         indices_dhg = [i for i, trace in enumerate(fig.data) if 'Dhg' in (trace.name or '')]
         indices_reposo_s = [i for i, trace in enumerate(fig.data) if 'reposo_s_zona' in (trace.name or '')]
-        indices_tormenta = [i for i, trace in enumerate(fig.data) if 'tormenta' in (trace.name or '')]
-        indices_decmax = [i for i, trace in enumerate(fig.data) if 'decmax' in (trace.name or '')]
+        indices_tormenta_s = [i for i, trace in enumerate(fig.data) if 'tormenta' in (trace.name or '') and 's_zona' in (trace.name or '')]
+        indices_decmax_s = [i for i, trace in enumerate(fig.data) if 'decmax' in (trace.name or '') and 's_zona' in (trace.name or '')]
+        indices_tormenta = [i for i, trace in enumerate(fig.data) if 'tormenta' in (trace.name or '') and 's_zona' not in (trace.name or '')]
+        indices_decmax = [i for i, trace in enumerate(fig.data) if 'decmax' in (trace.name or '') and 's_zona' not in (trace.name or '')]
         indices_apantallamiento = [i for i, trace in enumerate(fig.data) if 'apantallamiento' in (trace.name or '')]
+        
+        print(f"\nindices_reposo_s: {indices_reposo_s}")
+        print(f"indices_tormenta_s: {indices_tormenta_s}")
+        print(f"indices_decmax_s: {indices_decmax_s}")
         
         updatemenus = [
             # Toggle D_fases
@@ -217,12 +228,12 @@ class GraficoCabezal2D:
                     dict(
                         label='s_tormenta: OFF',
                         method='restyle',
-                        args=[{'visible': False}, indices_tormenta]
+                        args=[{'visible': False}, indices_tormenta_s]
                     ),
                     dict(
                         label='s_tormenta: ON',
                         method='restyle',
-                        args=[{'visible': True}, indices_tormenta]
+                        args=[{'visible': True}, indices_tormenta_s]
                     )
                 ],
                 active=0
@@ -239,12 +250,12 @@ class GraficoCabezal2D:
                     dict(
                         label='s_decmax: OFF',
                         method='restyle',
-                        args=[{'visible': False}, indices_decmax]
+                        args=[{'visible': False}, indices_decmax_s]
                     ),
                     dict(
                         label='s_decmax: ON',
                         method='restyle',
-                        args=[{'visible': True}, indices_decmax]
+                        args=[{'visible': True}, indices_decmax_s]
                     )
                 ],
                 active=0

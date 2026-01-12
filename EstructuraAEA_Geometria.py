@@ -53,7 +53,8 @@ class EstructuraAEA_Geometria:
                 dist_reposicionar_hg=0.1, ajustar_por_altura_msnm=None,
                 metodo_altura_msnm=None, altura_msnm=None,
                 defasaje_mensula_hielo=False, lmen_extra_hielo=0.0, mensula_defasar="primera",
-                d_fases_add=0.0, defasaje_y_guardia=0.0, parametros=None):
+                d_fases_add=0.0, defasaje_y_guardia=0.0, sobreescribir_s=False,
+                s_reposo=None, s_tormenta=None, s_decmax=None, parametros=None):
         """
         Inicializa una estructura completa
         
@@ -88,6 +89,10 @@ class EstructuraAEA_Geometria:
             mensula_defasar (str): Ménsula a defasar ("primera", "segunda", "tercera")
             d_fases_add (float): Distancia adicional a sumar a D_fases calculada
             defasaje_y_guardia (float): Defasaje en Y para nodos guardia (default 0.0)
+            sobreescribir_s (bool): Si True, usa valores custom de s en lugar de calculados
+            s_reposo (float): Distancia s en reposo (si sobreescribir_s=True)
+            s_tormenta (float): Distancia s en tormenta (si sobreescribir_s=True)
+            s_decmax (float): Distancia s en declinación máxima (si sobreescribir_s=True)
         """
         # Parámetros básicos
         self.tipo_estructura = tipo_estructura
@@ -132,6 +137,12 @@ class EstructuraAEA_Geometria:
         
         # Parámetro de defasaje Y guardia
         self.defasaje_y_guardia = defasaje_y_guardia
+        
+        # Parámetros de sobreescritura de s
+        self.sobreescribir_s = sobreescribir_s
+        self.s_reposo = s_reposo
+        self.s_tormenta = s_tormenta
+        self.s_decmax = s_decmax
         
         # Nuevos parámetros
         self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO

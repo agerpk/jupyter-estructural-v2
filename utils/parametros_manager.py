@@ -354,6 +354,34 @@ class ParametrosManager:
             "tipo": "float",
             "categoria": "Cabezal"
         },
+        "SOBREESCRIBIR_S": {
+            "simbolo": "S_OVR",
+            "unidad": "-",
+            "descripcion": "Sobreescribir distancias s calculadas",
+            "tipo": "bool",
+            "categoria": "Cabezal"
+        },
+        "s_reposo": {
+            "simbolo": "s_rep",
+            "unidad": "m",
+            "descripcion": "Distancia mínima en reposo (sobreescritura)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "s_tormenta": {
+            "simbolo": "s_tor",
+            "unidad": "m",
+            "descripcion": "Distancia mínima en tormenta (sobreescritura)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "s_decmax": {
+            "simbolo": "s_dec",
+            "unidad": "m",
+            "descripcion": "Distancia mínima declinación máxima (sobreescritura)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
         "ANCHO_CRUCETA": {
             "simbolo": "Ac",
             "unidad": "m",

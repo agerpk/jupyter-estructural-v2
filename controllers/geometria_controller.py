@@ -68,7 +68,11 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
             metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
             altura_msnm=estructura_actual.get("Altura_MSNM"),
-            d_fases_add=estructura_actual.get("D_fases_add", 0.0)
+            d_fases_add=estructura_actual.get("D_fases_add", 0.0),
+            sobreescribir_s=estructura_actual.get("SOBREESCRIBIR_S", False),
+            s_reposo=estructura_actual.get("s_reposo"),
+            s_tormenta=estructura_actual.get("s_tormenta"),
+            s_decmax=estructura_actual.get("s_decmax")
         )
         
         # Asignar cable_guardia2 ANTES de dimensionar (para que los nodos lo usen)
@@ -1034,7 +1038,11 @@ def register_callbacks(app):
                 d_fases_add=estructura_actual.get("D_fases_add", 0.0),
                 defasaje_mensula_hielo=estructura_actual.get("defasaje_mensula_hielo", False),
                 lmen_extra_hielo=estructura_actual.get("lmen_extra_hielo", 0.0),
-                mensula_defasar=estructura_actual.get("mensula_defasar", "primera")
+                mensula_defasar=estructura_actual.get("mensula_defasar", "primera"),
+                sobreescribir_s=estructura_actual.get("SOBREESCRIBIR_S", False),
+                s_reposo=estructura_actual.get("s_reposo"),
+                s_tormenta=estructura_actual.get("s_tormenta"),
+                s_decmax=estructura_actual.get("s_decmax")
             )
             
             # Asignar cable_guardia2 ANTES de dimensionar (para que los nodos lo usen)

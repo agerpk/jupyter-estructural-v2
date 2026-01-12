@@ -1,5 +1,8 @@
 {
-  "TITULO": "PSJ-2X220-DTV-S_BASE_vano350m",
+  "SOBREESCRIBIR_S": true,
+  "s_decmax": 0.5,
+  "s_reposo": 0.5,
+  "s_tormenta": 0.5,
   "AJUSTAR_POR_ALTURA_MSNM": true,
   "ALTURA_MINIMA_CABLE": 6.5,
   "ANCHO_CRUCETA": 0.3,
@@ -25,6 +28,7 @@
   "defasaje_mensula_hielo": true,
   "lmen_extra_hielo": 2,
   "mensula_defasar": "segunda",
+  "TITULO": "PSJ-2X220-DTV-S_BASE_vano350m",
   "cable_conductor_id": "AlAc 435/55",
   "cable_guardia2_id": "Ac 70",
   "cable_guardia_id": "OPGW FiberHome 24FO 58mm2",
@@ -216,6 +220,6 @@
       "V": 0.7
     }
   },
-  "fecha_modificacion": "2026-01-08T19:11:59.415746",
+  "fecha_modificacion": "2026-01-12T20:32:53.512978",
   "nodos_editados": []
 }
