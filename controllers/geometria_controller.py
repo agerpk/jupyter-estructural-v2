@@ -1,7 +1,7 @@
 """Controlador de diseño geométrico"""
 
 import dash
-from dash import html, Input, Output, State
+from dash import html, Input, Output, State, dcc
 import dash_bootstrap_components as dbc
 from models.app_state import AppState
 
@@ -125,15 +125,17 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             
             estructura_graficos.graficar_estructura(
                 zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
-                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA')),
+                usar_plotly=True
             )
-            fig_estructura = plt.gcf()
+            fig_estructura = estructura_graficos.fig_estructura_plotly
             
             estructura_graficos.graficar_cabezal(
                 zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95) * 1.5,
-                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA')),
+                usar_plotly=True
             )
-            fig_cabezal = plt.gcf()
+            fig_cabezal = estructura_graficos.fig_cabezal_plotly
             
             # Generar gráfico de nodos (retorna figura Plotly)
             fig_nodos = estructura_graficos.graficar_nodos_coordenadas(
@@ -1100,19 +1102,19 @@ def register_callbacks(app):
             # Generar gráficos y capturar figuras
             import matplotlib.pyplot as plt
             
-            # Graficar estructura
-            estructura_graficos.graficar_estructura(
+            # Graficar estructura (Plotly) - capturar retorno
+            fig_estructura = estructura_graficos.graficar_estructura(
                 zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
-                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA')),
+                usar_plotly=True
             )
-            fig_estructura = plt.gcf()
             
-            # Graficar cabezal
-            estructura_graficos.graficar_cabezal(
+            # Graficar cabezal (Plotly) - capturar retorno
+            fig_cabezal = estructura_graficos.graficar_cabezal(
                 zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95) * 1.5,
-                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
+                titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA')),
+                usar_plotly=True
             )
-            fig_cabezal = plt.gcf()
             
             # Graficar nodos (ahora retorna figura Plotly)
             fig_nodos = estructura_graficos.graficar_nodos_coordenadas(
@@ -1300,29 +1302,20 @@ def register_callbacks(app):
             )
             print(f"✅ Cache DGE guardado: {nombre_estructura}")
             
-            # Agregar gráficos usando base64 directo
-            from io import BytesIO
-            import base64
+            # Agregar gráficos interactivos Plotly
+            from dash import dcc
             
             output.extend([
                 html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"),
             ])
             
             if fig_estructura:
-                buf = BytesIO()
-                fig_estructura.savefig(buf, format='png', dpi=150, bbox_inches='tight')
-                buf.seek(0)
-                img_str = base64.b64encode(buf.read()).decode()
-                output.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'}))
+                output.append(dcc.Graph(figure=fig_estructura, config={'displayModeBar': True}, style={'height': '800px'}))
             
             output.append(html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"))
             
             if fig_cabezal:
-                buf = BytesIO()
-                fig_cabezal.savefig(buf, format='png', dpi=150, bbox_inches='tight')
-                buf.seek(0)
-                img_str = base64.b64encode(buf.read()).decode()
-                output.append(html.Img(src=f'data:image/png;base64,{img_str}', style={'width': '100%', 'maxWidth': '800px'}))
+                output.append(dcc.Graph(figure=fig_cabezal, config={'displayModeBar': True}, style={'height': '800px'}))
             
             output.append(html.H5("GRAFICO 3D DE NODOS Y COORDENADAS", className="mb-2 mt-4"))
             
@@ -1357,6 +1350,3 @@ def register_callbacks(app):
             error_detail = traceback.format_exc()
             print(f"ERROR COMPLETO:\n{error_detail}")
             return dbc.Alert(f"Error en cálculo: {str(e)}", color="danger")
-    
-    # Importar dcc para Graph
-    from dash import dcc

@@ -99,8 +99,20 @@ class GeometriaEtapa1:
             
             if infraccion_mensula:
                 if Lk > 0:
-                    print("   ❌ ERROR: Lk longitud cadena oscilante muy corta")
-                    raise ValueError("Lk insuficiente para evitar infracción con ménsula. Aumentar Lk manualmente.")
+                    # Calcular distancia de infracción
+                    dist_mensula = math.sqrt((Lmen1 - x_conductor)**2 + (h1a - z_conductor)**2)
+                    falta = s_decmax - dist_mensula  # Positivo = falta distancia
+                    if falta > 0:
+                        print(f"   ⚠️  Infracción detectada: ménsula a {dist_mensula:.3f}m del conductor declinado")
+                        print(f"      Distancia mínima requerida (s_decmax): {s_decmax:.3f}m")
+                        print(f"      Falta: {falta:.3f}m")
+                        print(f"      Lk actual: {Lk:.3f}m")
+                        print(f"      Lk mínimo necesario: {Lk + falta:.3f}m")
+                        raise ValueError(
+                            f"Lk insuficiente para evitar infracción con ménsula. "
+                            f"Lk actual={Lk:.3f}m, Lk mínimo={Lk + falta:.3f}m, "
+                            f"aumentar {falta:.3f}m"
+                        )
                 else:
                     if not infraccion_columna:
                         break

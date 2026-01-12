@@ -31,6 +31,7 @@ def crear_layout():
         # Almacenamiento de estado
         dcc.Store(id="estructura-actual", data=estructura_actual),
         dcc.Store(id="estructuras-disponibles", data=state.estructura_manager.listar_estructuras()),
+        dcc.Store(id="familia-actual-state", data=None),  # Store para familia de estructuras
         
         # Barra de navegación superior
         dbc.Navbar(

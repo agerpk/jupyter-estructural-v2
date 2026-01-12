@@ -239,29 +239,24 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
         output.append(html.H5("DISTANCIAS", className="mb-2"))
         output.append(html.Pre(dist_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '300px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
         
-        # Cargar imágenes
+        # Cargar gráficos Plotly interactivos
         if hash_params:
-            img_str_estructura = ViewHelpers.cargar_imagen_base64(f"Estructura.{hash_params}.png")
-            if img_str_estructura:
+            fig_estructura_json = ViewHelpers.cargar_figura_plotly_json(f"Estructura.{hash_params}.json")
+            if fig_estructura_json:
                 output.append(html.H5("GRAFICO DE ESTRUCTURA", className="mb-2 mt-4"))
-                output.append(html.Img(src=f'data:image/png;base64,{img_str_estructura}', style={'width': '100%', 'maxWidth': '800px'}))
+                output.append(dcc.Graph(figure=fig_estructura_json, config={'displayModeBar': True}, style={'height': '800px', 'width': '100%'}))
             
-            img_str_cabezal = ViewHelpers.cargar_imagen_base64(f"Cabezal.{hash_params}.png")
-            if img_str_cabezal:
+            fig_cabezal_json = ViewHelpers.cargar_figura_plotly_json(f"Cabezal.{hash_params}.json")
+            if fig_cabezal_json:
                 output.append(html.H5("GRAFICO DE CABEZAL", className="mb-2 mt-4"))
-                output.append(html.Img(src=f'data:image/png;base64,{img_str_cabezal}', style={'width': '100%', 'maxWidth': '800px'}))
+                output.append(dcc.Graph(figure=fig_cabezal_json, config={'displayModeBar': True}, style={'height': '800px', 'width': '100%'}))
             
             # Cargar gráfico 3D de nodos (Plotly JSON)
             try:
                 fig_nodos_json = ViewHelpers.cargar_figura_plotly_json(f"Nodos.{hash_params}.json")
                 if fig_nodos_json and isinstance(fig_nodos_json, dict):
                     output.append(html.H5("GRAFICO 3D DE NODOS Y COORDENADAS", className="mb-2 mt-4"))
-                    grafico_nodos = dcc.Graph(
-                        figure=fig_nodos_json,
-                        config={'displayModeBar': True},
-                        style={'height': '800px', 'width': '100%'}
-                    )
-                    output.append(grafico_nodos)
+                    output.append(dcc.Graph(figure=fig_nodos_json, config={'displayModeBar': True}, style={'height': '800px', 'width': '100%'}))
             except Exception as e:
                 import traceback
                 print(f"Error cargando gráfico 3D nodos: {traceback.format_exc()}")

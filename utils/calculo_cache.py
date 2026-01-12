@@ -99,26 +99,51 @@ class CalculoCache:
         nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
-        # Guardar imágenes matplotlib (estructura y cabezal)
+        # Guardar imágenes Plotly (estructura, cabezal, nodos) - PNG + JSON
         try:
             if fig_estructura:
-                img_path = CACHE_DIR / f"Estructura.{hash_params}.png"
-                fig_estructura.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
+                # PNG para exportar
+                png_path = CACHE_DIR / f"Estructura.{hash_params}.png"
+                fig_estructura.write_image(str(png_path), width=1200, height=800)
+                # JSON para interactividad
+                json_path = CACHE_DIR / f"Estructura.{hash_params}.json"
+                import json
+                fig_dict = fig_estructura.to_dict()
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(fig_dict, f, ensure_ascii=False)
             
             if fig_cabezal:
-                img_path = CACHE_DIR / f"Cabezal.{hash_params}.png"
-                fig_cabezal.savefig(str(img_path), format='png', dpi=150, bbox_inches='tight')
+                # PNG para exportar
+                png_path = CACHE_DIR / f"Cabezal.{hash_params}.png"
+                fig_cabezal.write_image(str(png_path), width=1200, height=800)
+                # JSON para interactividad
+                json_path = CACHE_DIR / f"Cabezal.{hash_params}.json"
+                import json
+                fig_dict = fig_cabezal.to_dict()
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(fig_dict, f, ensure_ascii=False)
         except Exception as e:
-            print(f"Advertencia: No se pudieron guardar imágenes matplotlib DGE: {e}")
+            print(f"Advertencia: No se pudieron guardar imágenes Plotly DGE: {e}")
         
-        # Guardar figura Plotly de nodos (JSON para interactividad)
+        # Guardar figura Plotly de nodos (PNG + JSON)
         if fig_nodos:
             try:
+                # PNG para exportar
+                png_path = CACHE_DIR / f"Nodos.{hash_params}.png"
+                fig_nodos.write_image(str(png_path), width=1200, height=800)
+            except Exception as e:
+                print(f"Advertencia: No se pudo guardar PNG de nodos: {e}")
+            
+            try:
+                # JSON para interactividad - guardar manualmente con encoding UTF-8
                 json_path = CACHE_DIR / f"Nodos.{hash_params}.json"
-                fig_nodos.write_json(str(json_path))
+                import json
+                fig_dict = fig_nodos.to_dict()
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(fig_dict, f, ensure_ascii=False)
                 print(f"✅ Gráfico 3D de nodos guardado: Nodos.{hash_params}.json")
             except Exception as e:
-                print(f"Advertencia: No se pudo guardar gráfico 3D de nodos: {e}")
+                print(f"Advertencia: No se pudo guardar JSON de nodos: {e}")
         
         # Incluir nodos_editados en cache DGE
         nodos_editados = estructura_data.get("nodos_editados", [])
