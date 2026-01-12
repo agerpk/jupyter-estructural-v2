@@ -76,7 +76,16 @@ class EstructuraAEA_Graficos:
         
         print(f"✅ ESTRUCTURA_AEA GRÁFICOS CREADA")
     
-    def graficar_estructura(self, zoom_cabezal=0.95, titulo_reemplazo=None):
+    def graficar_estructura(self, zoom_cabezal=0.95, titulo_reemplazo=None, usar_plotly=True):
+        """Selector de gráfico de estructura: Plotly (nuevo) o Matplotlib (legacy)"""
+        if usar_plotly:
+            from GraficoEstructura2D import GraficoEstructura2D
+            grafico = GraficoEstructura2D(self.geometria)
+            return grafico.generar_completo()
+        else:
+            return self._graficar_estructura_matplotlib(zoom_cabezal, titulo_reemplazo)
+    
+    def _graficar_estructura_matplotlib(self, zoom_cabezal=0.95, titulo_reemplazo=None):
         """Grafica la estructura completa con la nueva lógica de tramos"""
         print(f"\n🎨 GENERANDO GRÁFICO DE ESTRUCTURA...")
         
@@ -494,7 +503,16 @@ class EstructuraAEA_Graficos:
         return x_conductor, z_conductor
     
 
-    def graficar_cabezal(self, zoom_cabezal=0.7, titulo_reemplazo=None):
+    def graficar_cabezal(self, zoom_cabezal=0.7, titulo_reemplazo=None, usar_plotly=True):
+        """Selector de gráfico de cabezal: Plotly (nuevo) o Matplotlib (legacy)"""
+        if usar_plotly:
+            from GraficoCabezal2D import GraficoCabezal2D
+            grafico = GraficoCabezal2D(self.geometria)
+            return grafico.generar_completo()
+        else:
+            return self._graficar_cabezal_matplotlib(zoom_cabezal, titulo_reemplazo)
+    
+    def _graficar_cabezal_matplotlib(self, zoom_cabezal=0.7, titulo_reemplazo=None):
         """Grafica el cabezal usando los parámetros calculados durante el dimensionamiento"""
         print(f"\n🎨 GENERANDO GRÁFICO DE CABEZAL...")
         

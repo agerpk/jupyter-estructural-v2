@@ -61,17 +61,58 @@ class EstructuraAEA_Geometria:
 
 ## 2. Implementación por Etapas
 
-### 2.1 Etapa 0: Nodo Base
+### 2.1 Etapa 0: Nodo Base ✅ COMPLETADA
+
+**Estado**: ✅ Implementada y corregida
 
 **Archivo**: `EstructuraAEA_Geometria_Etapa0.py`
 
+**Implementación**:
 ```python
 class GeometriaEtapa0:
+    """Etapa 0: Creación del nodo BASE"""
+    
+    def __init__(self, geometria):
+        self.geo = geometria
+    
     def ejecutar(self):
+        """Crear nodo BASE en (0, 0, 0)"""
         print("🔧 ETAPA 0: Nodo Base")
-        self.geo.nodos["BASE"] = NodoEstructural("BASE", (0.0, 0.0, 0.0), "base")
+        self.geo.nodos["BASE"] = NodoEstructural(
+            "BASE", (0.0, 0.0, 0.0), "base",
+            tipo_fijacion=self.geo.tipo_fijacion_base
+        )
         print("   ✅ Nodo BASE creado en (0, 0, 0)")
+        
+        # Ejecutar conectador
+        self._ejecutar_conectador()
+    
+    def _ejecutar_conectador(self):
+        """Ejecutar conectador de nodos al finalizar etapa"""
+        print("   🔌 Ejecutando conectador de nodos...")
+        conexiones_anteriores = set(self.geo.conexiones) if hasattr(self.geo, 'conexiones') else set()
+        
+        # Generar conexiones (método existente)
+        self.geo._generar_conexiones()
+        
+        # Listar conexiones NUEVAS
+        conexiones_nuevas = set(self.geo.conexiones) - conexiones_anteriores
+        if conexiones_nuevas:
+            for origen, destino, tipo in conexiones_nuevas:
+                print(f"      INFO: {origen} → {destino} ({tipo})")
 ```
+
+**Modificaciones en EstructuraAEA_Geometria.py**:
+- Importa `GeometriaEtapa0`
+- Validación inicial para terna doble + horizontal
+- Ejecuta Etapa0 al inicio de `dimensionar_unifilar()`
+- Modifica `_crear_nodos_estructurales_nuevo()` para no recrear BASE
+
+**Verificaciones**:
+- ✅ Crea nodo BASE en (0, 0, 0)
+- ✅ Ejecuta conectador al finalizar
+- ✅ Lista conexiones NUEVAS (ninguna en esta etapa)
+- ✅ Validación de terna doble + horizontal antes de ejecutar
 
 ### 2.2 Etapa 1: h1a y Lmen1 (Primer Amarre)
 

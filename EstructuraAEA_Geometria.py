@@ -2,6 +2,9 @@
 import pandas as pd
 import math
 from NodoEstructural import NodoEstructural
+from EstructuraAEA_Geometria_Etapa0 import GeometriaEtapa0
+from EstructuraAEA_Geometria_Etapa1 import GeometriaEtapa1
+from EstructuraAEA_Geometria_Etapa2 import GeometriaEtapa2
 
 
 class EstructuraAEA_Geometria:
@@ -50,7 +53,7 @@ class EstructuraAEA_Geometria:
                 dist_reposicionar_hg=0.1, ajustar_por_altura_msnm=None,
                 metodo_altura_msnm=None, altura_msnm=None,
                 defasaje_mensula_hielo=False, lmen_extra_hielo=0.0, mensula_defasar="primera",
-                d_fases_add=0.0, parametros=None):
+                d_fases_add=0.0, defasaje_y_guardia=0.0, parametros=None):
         """
         Inicializa una estructura completa
         
@@ -84,6 +87,7 @@ class EstructuraAEA_Geometria:
             lmen_extra_hielo (float): Valor a agregar a ménsula seleccionada (puede ser negativo)
             mensula_defasar (str): Ménsula a defasar ("primera", "segunda", "tercera")
             d_fases_add (float): Distancia adicional a sumar a D_fases calculada
+            defasaje_y_guardia (float): Defasaje en Y para nodos guardia (default 0.0)
         """
         # Parámetros básicos
         self.tipo_estructura = tipo_estructura
@@ -125,6 +129,9 @@ class EstructuraAEA_Geometria:
         
         # Parámetro de ajuste de D_fases
         self.d_fases_add = d_fases_add
+        
+        # Parámetro de defasaje Y guardia
+        self.defasaje_y_guardia = defasaje_y_guardia
         
         # Nuevos parámetros
         self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO
@@ -530,7 +537,44 @@ class EstructuraAEA_Geometria:
         print(f"   Vano: {vano}m, Flechas: cond={flecha_max_conductor:.2f}m, guard={flecha_max_guardia:.2f}m")
         print(f"   Autoajustar lmenhg: {'✅ ACTIVADO' if autoajustar_lmenhg else '❌ DESACTIVADO'}")
         
-        # 1. CALCULAR THETA_MAX
+        # VALIDACIÓN INICIAL
+        if self.terna == "Doble" and self.disposicion == "horizontal":
+            print("ERROR: Caso no programado - Terna doble disposición horizontal")
+            raise NotImplementedError("Configuración no soportada")
+        
+        # ETAPA 0: NODO BASE
+        etapa0 = GeometriaEtapa0(self)
+        etapa0.ejecutar()
+        
+        # ETAPA 1: h1a y Lmen1
+        etapa1 = GeometriaEtapa1(self)
+        etapa1.ejecutar(vano, flecha_max_conductor, flecha_max_guardia)
+        
+        # ETAPA 2: h2a
+        etapa2 = GeometriaEtapa2(self)
+        etapa2.ejecutar()
+        
+        # ETAPA 3: h3a
+        from EstructuraAEA_Geometria_Etapa3 import GeometriaEtapa3
+        etapa3 = GeometriaEtapa3(self)
+        etapa3.ejecutar()
+        
+        # ETAPA 4: Cable de Guardia
+        from EstructuraAEA_Geometria_Etapa4 import GeometriaEtapa4
+        etapa4 = GeometriaEtapa4(self)
+        etapa4.ejecutar()
+        
+        # ETAPA 5: Checkeo de Conexiones
+        from EstructuraAEA_Geometria_Etapa5 import GeometriaEtapa5
+        etapa5 = GeometriaEtapa5(self)
+        etapa5.ejecutar()
+        
+        # ETAPA 6: Checkeos Finales
+        from EstructuraAEA_Geometria_Etapa6 import GeometriaEtapa6
+        etapa6 = GeometriaEtapa6(self)
+        etapa6.ejecutar()
+        
+        # 1. CALCULAR THETA_MAX (ya calculado en Etapa1)
         theta_max = self.calcular_theta_max(vano, elemento_cadena)
         
         # 2-3. CALCULAR DISTANCIAS MÍNIMAS Y COMPONENTE b
@@ -603,13 +647,12 @@ class EstructuraAEA_Geometria:
     
     def _crear_nodos_estructurales_nuevo(self, h1a, h2a, h3a, s_estructura=None, D_fases=None, theta_max=None):
         """Crea todos los nodos según el proceso indicado CORREGIDO"""
-        self.nodos = {}
-        
-        # NODO BASE
-        self.nodos["BASE"] = NodoEstructural(
-            "BASE", (0.0, 0.0, 0.0), "base", 
-            tipo_fijacion=self.tipo_fijacion_base
-        )
+        # NOTA: BASE ya fue creado en Etapa0, no recrear
+        if "BASE" not in self.nodos:
+            self.nodos["BASE"] = NodoEstructural(
+                "BASE", (0.0, 0.0, 0.0), "base", 
+                tipo_fijacion=self.tipo_fijacion_base
+            )
         
         # NODOS DE CRUCE (poste-ménsula) - SOLO crear los necesarios
         # Solo crear CROSS_H1 si NO es horizontal simple
