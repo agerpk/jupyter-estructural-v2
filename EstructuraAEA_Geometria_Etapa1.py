@@ -236,7 +236,8 @@ class GeometriaEtapa1:
             's_tormenta': 0,
             'Dhg': 0,
             'theta_max': theta_max,
-            'theta_tormenta': theta_tormenta
+            'theta_tormenta': theta_tormenta,
+            'z_min_corte': h1a
         }
         
         verificador = crear_verificador_desde_nodos(nodos_temp, parametros)

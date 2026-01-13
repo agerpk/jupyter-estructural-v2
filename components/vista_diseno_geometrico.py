@@ -426,6 +426,25 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                     ], md=6),
                 ], className="mb-3"),
                 
+                # Controles de hielo
+                html.H5("Parámetros de Hielo", className="mb-3 mt-4"),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Defasaje Ménsula por Hielo", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(id="switch-defasaje-hielo", value=estructura_actual.get("defasaje_mensula_hielo", False)),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Longitud Extra Hielo (m)", style={"fontSize": "1.125rem"}),
+                        dcc.Slider(id="slider-lmen-extra-hielo", **{k: v for k, v in obtener_config_control("lmen_extra_hielo").items() if k != "tipo"}, value=estructura_actual.get("lmen_extra_hielo", 0.0), tooltip={"placement": "bottom", "always_visible": True}),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Ménsula a Defasar", style={"fontSize": "1.125rem"}),
+                        dbc.Select(id="select-mensula-defasar", value=estructura_actual.get("mensula_defasar", "primera"),
+                                   options=[{"label": opt, "value": opt} for opt in obtener_config_control("mensula_defasar")["opciones"]]),
+                    ], md=4),
+                ], className="mb-3"),
+                
                 dbc.Row([
                     dbc.Col([
                         dbc.Button("Guardar Parámetros", id="btn-guardar-params-geom", color="primary", size="lg", className="w-100"),

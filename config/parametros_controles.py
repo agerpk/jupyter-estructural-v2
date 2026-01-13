@@ -153,6 +153,13 @@ CONTROLES_PARAMETROS = {
         "step": 0.05,
         "marks": {i*0.2: str(round(i*0.2, 1)) for i in range(6)}
     },
+    "lmen_extra_hielo": {
+        "tipo": "slider",
+        "min": 0,
+        "max": 4,
+        "step": 0.1,
+        "marks": {i: str(i) for i in range(5)}
+    },
     "s_reposo": {
         "tipo": "slider",
         "min": 0,
@@ -236,6 +243,10 @@ CONTROLES_PARAMETROS = {
         "tipo": "select",
         "opciones": ["Simple", "Doble"]
     },
+    "mensula_defasar": {
+        "tipo": "select",
+        "opciones": ["primera", "segunda", "tercera", "primera y tercera"]
+    },
     "OBJ_CONDUCTOR": {
         "tipo": "select",
         "opciones": ["FlechaMin", "TiroMin"]
@@ -256,6 +267,9 @@ CONTROLES_PARAMETROS = {
         "tipo": "switch"
     },
     "AUTOAJUSTAR_LMENHG": {
+        "tipo": "switch"
+    },
+    "defasaje_mensula_hielo": {
         "tipo": "switch"
     },
     "SOBREESCRIBIR_S": {

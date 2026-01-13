@@ -60,10 +60,11 @@ class GeometriaEtapa2:
             
             elif mensula_defasar == "segunda":
                 # Lmen2 será incrementada, luego buscar altura óptima
-                Lmen2 = Lmen2 + self.geo.lmen_extra_hielo
+                Lmen2_con_hielo = Lmen2 + self.geo.lmen_extra_hielo
                 # Recheckear altura considerando zonas prohibidas de h1a
-                zoptimo2 = self._buscar_altura_fuera_zonas_prohibidas_h1a(Lmen2, h1a, D_fases, s_reposo, theta_max, theta_tormenta)
+                zoptimo2 = self._buscar_altura_fuera_zonas_prohibidas_h1a(Lmen2_con_hielo, h1a, D_fases, s_reposo, theta_max, theta_tormenta)
                 h2a_final = zoptimo2 + HADD_ENTRE_AMARRES
+                Lmen2 = Lmen2_con_hielo
                 print(f"   ❄️  Defasaje hielo 'segunda': Lmen2 = {Lmen2:.2f}m, h2a = {h2a_final:.2f}m")
         
         # Guardar resultados
@@ -89,50 +90,136 @@ class GeometriaEtapa2:
         print(f"   ✅ h2a={h2a_final:.2f}m, Lmen2={Lmen2:.2f}m")
     
     def _buscar_altura_fuera_zonas_prohibidas_h1a(self, x_linea, h1a, D_fases, s_reposo, theta_max, theta_tormenta):
-        """Buscar altura mínima en línea x=x_linea que no infringe zonas prohibidas de h1a
+        """Buscar altura máxima en línea x=x_linea que no infringe zonas prohibidas de h1a
         
-        Usa el módulo de zonas prohibidas geométricas con estructura de nodos.
+        Baja desde h2a_inicial de a 0.01m hasta encontrar infracción, retorna última altura sin infracción.
+        Verifica D_fases en reposo y s en las 3 declinaciones (reposo, tormenta, máxima).
         """
         Lk = self.geo.lk
         s_decmax = self.geo.dimensiones.get("s_decmax", s_reposo)
-        Lmen1 = self.geo.dimensiones["Lmen1"]
+        s_tormenta = self.geo.dimensiones.get("s_tormenta", s_reposo)
+        HADD = self.geo.hadd_entre_amarres
         
         # Construir estructura de nodos temporal
         nodos_temp = {}
-        
-        # BASE
         nodos_temp["BASE"] = Nodo("BASE", 0, 0, 0, "base")
-        
-        # CROSS_H1
         nodos_temp["CROSS_H1"] = Nodo("CROSS_H1", 0, 0, h1a, "cruce")
         nodos_temp["BASE"].agregar_conexion(nodos_temp["CROSS_H1"], "columna")
         
-        # Nodos conductores h1a
+        # Nodos conductores h1a (coordenadas finales)
         for nombre, nodo in self.geo.nodos.items():
             if nodo.tipo_nodo == "conductor" and abs(nodo.coordenadas[2] - h1a) < 1e-3:
                 x, y, z = nodo.coordenadas
                 nodos_temp[nombre] = Nodo(nombre, x, y, z, "conductor")
                 nodos_temp["CROSS_H1"].agregar_conexion(nodos_temp[nombre], "mensula")
         
-        # Parámetros
-        parametros = {
+        # Crear 3 verificadores: cada uno genera SOLO su franja correspondiente
+        print(f"   📊 DEBUG: s_reposo={s_reposo:.3f}, s_tormenta={s_tormenta:.3f}, s_decmax={s_decmax:.3f}")
+        print(f"   📊 DEBUG: theta_max={theta_max:.2f}°, theta_tormenta={theta_tormenta:.2f}°")
+        
+        # 1. Verificador reposo: genera franjas s_reposo (las otras en 0)
+        parametros_reposo = {
             'Lk': Lk,
             'D_fases': D_fases,
             's_reposo': s_reposo,
-            's_decmax': s_decmax,
-            's_tormenta': self.geo.dimensiones.get('s_tormenta', 0),
+            's_decmax': 0,  # NO generar franja s_decmax
+            's_tormenta': 0,  # NO generar franja s_tormenta
+            'Dhg': 0,
+            'theta_max': 0,
+            'theta_tormenta': 0,
+            'd_fases_solo_reposo': True
+        }
+        verificador_reposo = crear_verificador_desde_nodos(nodos_temp, parametros_reposo)
+        
+        # 2. Verificador tormenta: genera SOLO franjas s_tormenta
+        parametros_tormenta = {
+            'Lk': Lk,
+            'D_fases': 0,  # NO verificar D_fases en tormenta
+            's_reposo': 0,  # NO generar franja s_reposo
+            's_decmax': 0,
+            's_tormenta': s_tormenta,  # SOLO generar franja s_tormenta
+            'Dhg': 0,
+            'theta_max': 0,
+            'theta_tormenta': theta_tormenta,
+            'd_fases_solo_reposo': True
+        }
+        verificador_tormenta = crear_verificador_desde_nodos(nodos_temp, parametros_tormenta)
+        
+        # 3. Verificador máxima: genera SOLO franjas s_decmax
+        parametros_max = {
+            'Lk': Lk,
+            'D_fases': 0,
+            's_reposo': 0,
+            's_decmax': s_decmax,  # SOLO generar franja s_decmax
+            's_tormenta': 0,
             'Dhg': 0,
             'theta_max': theta_max,
-            'theta_tormenta': theta_tormenta
+            'theta_tormenta': 0,
+            'd_fases_solo_reposo': True
         }
+        verificador_max = crear_verificador_desde_nodos(nodos_temp, parametros_max)
         
-        # Crear verificador y buscar altura mínima
-        verificador = crear_verificador_desde_nodos(nodos_temp, parametros)
-        z_minima, razon = verificador.buscar_altura_minima(x_linea)
+        # Calcular h2a_inicial
+        if Lk > 0:
+            h2a_inicial = max(
+                h1a + D_fases + HADD,
+                h1a + s_reposo + Lk + HADD
+            )
+        else:
+            h2a_inicial = h1a + D_fases + HADD
         
-        print(f"   🔍 Altura óptima en x={x_linea:.2f}m: z={z_minima:.3f}m (razón: {razon})")
+        # Bajar desde h2a_inicial hasta encontrar infracción
+        h2a = h2a_inicial
+        incremento = 0.01
+        max_iteraciones = 1000
+        ultima_sin_infraccion = h2a_inicial
+        razon_detencion = None
         
-        return z_minima
+        for i in range(max_iteraciones):
+            # Verificar cada declinación contra SU franja correspondiente
+            # 1. Reposo (θ=0): verificar contra franja s_reposo + D_fases
+            x_reposo = x_linea
+            z_reposo = h2a - Lk
+            resultado_reposo = verificador_reposo.verificar_punto(x_reposo, z_reposo)
+            
+            # 2. Tormenta (θ_tormenta): verificar contra franja s_tormenta
+            x_tormenta = x_linea - Lk * math.sin(math.radians(theta_tormenta))
+            z_tormenta = h2a - Lk * math.cos(math.radians(theta_tormenta))
+            resultado_tormenta = verificador_tormenta.verificar_punto(x_tormenta, z_tormenta)
+            
+            if i == 0:  # Solo primera iteración
+                print(f"   📍 h2a={h2a:.3f}: Reposo=({x_reposo:.3f},{z_reposo:.3f}), Tormenta=({x_tormenta:.3f},{z_tormenta:.3f})")
+            
+            # 3. Máxima (θ_max): verificar contra franja s_decmax
+            x_max = x_linea - Lk * math.sin(math.radians(theta_max))
+            z_max = h2a - Lk * math.cos(math.radians(theta_max))
+            resultado_max = verificador_max.verificar_punto(x_max, z_max)
+            
+            # Detectar infracciones
+            if resultado_reposo['infringe']:
+                razon_detencion = f"Reposo (θ=0°): {', '.join(resultado_reposo['zonas_infringidas'])}"
+            elif resultado_tormenta['infringe']:
+                razon_detencion = f"Tormenta (θ={theta_tormenta:.1f}°): {', '.join(resultado_tormenta['zonas_infringidas'])}"
+            elif resultado_max['infringe']:
+                razon_detencion = f"Máxima (θ={theta_max:.1f}°): {', '.join(resultado_max['zonas_infringidas'])}"
+            
+            if razon_detencion:
+                # Encontró infracción, retornar última altura sin infracción
+                print(f"   🔍 Altura óptima en x={x_linea:.2f}m: z={ultima_sin_infraccion:.3f}m (bajó {h2a_inicial - ultima_sin_infraccion:.3f}m)")
+                print(f"   🛑 Detenido por: {razon_detencion}")
+                return ultima_sin_infraccion
+            
+            # Sin infracción, guardar y seguir bajando
+            ultima_sin_infraccion = h2a
+            h2a -= incremento
+            
+            # No bajar más allá de h1a
+            if h2a <= h1a:
+                print(f"   🔍 Altura óptima en x={x_linea:.2f}m: z={ultima_sin_infraccion:.3f}m (límite h1a alcanzado)")
+                return ultima_sin_infraccion
+        
+        print(f"   🔍 Altura óptima en x={x_linea:.2f}m: z={ultima_sin_infraccion:.3f}m (sin infracciones)")
+        return ultima_sin_infraccion
     
     def _buscar_altura_fuera_zonas_dfases(self, x_linea, h1a, D_fases):
         """Buscar altura mínima en línea x=x_linea que no infringe zonas D_fases de h1a

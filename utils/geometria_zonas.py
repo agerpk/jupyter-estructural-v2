@@ -128,17 +128,26 @@ class FranjaHorizontal(ZonaProhibida):
 class Circulo(ZonaProhibida):
     """Zona circular (D_fases, Dhg, s_reposo en nodos)"""
     
-    def __init__(self, centro_x: float, centro_z: float, radio: float, tipo_zona: str, descripcion: str = ""):
+    def __init__(self, centro_x: float, centro_z: float, radio: float, tipo_zona: str, descripcion: str = "", z_min_corte: float = None):
         super().__init__(descripcion or f"Círculo r={radio:.2f}m", tipo_zona)
         self.centro_x = centro_x
         self.centro_z = centro_z
         self.radio = radio
+        self.z_min_corte = z_min_corte  # Si se especifica, solo considera puntos con z >= z_min_corte
     
     def contiene_punto(self, x: float, z: float) -> bool:
+        # Si hay corte inferior, ignorar puntos por debajo
+        if self.z_min_corte is not None and z < self.z_min_corte:
+            return False
+        
         dist = math.sqrt((x - self.centro_x)**2 + (z - self.centro_z)**2)
         return dist < self.radio
     
     def distancia_a_punto(self, x: float, z: float) -> Tuple[float, float, float]:
+        # Si hay corte inferior y el punto está por debajo, retornar distancia infinita
+        if self.z_min_corte is not None and z < self.z_min_corte:
+            return (float('inf'), float('inf'), float('inf'))
+        
         dx = x - self.centro_x
         dz = z - self.centro_z
         dist = math.sqrt(dx**2 + dz**2)
@@ -176,7 +185,9 @@ class GeneradorZonasProhibidas:
                 's_tormenta': float,
                 'Dhg': float,
                 'theta_max': float,  # Ángulo declinación máxima (grados)
-                'theta_tormenta': float  # Ángulo declinación tormenta (grados)
+                'theta_tormenta': float,  # Ángulo declinación tormenta (grados)
+                'd_fases_solo_reposo': bool,  # Si True, D_fases solo en reposo
+                'z_min_corte': float  # Altura de corte para círculos de ménsula
             }
         """
         self.nodos = nodos
@@ -188,6 +199,8 @@ class GeneradorZonasProhibidas:
         self.Dhg = parametros.get('Dhg', 0)
         self.theta_max = parametros.get('theta_max', 0)
         self.theta_tormenta = parametros.get('theta_tormenta', 0)
+        self.d_fases_solo_reposo = parametros.get('d_fases_solo_reposo', False)
+        self.z_min_corte = parametros.get('z_min_corte', None)
         self.zonas = []
     
     def generar_todas_zonas(self) -> List[ZonaProhibida]:
@@ -231,32 +244,94 @@ class GeneradorZonasProhibidas:
                     ))
     
     def _generar_zonas_mensula(self):
-        """Generar franjas horizontales defasadas s_reposo por encima de mensulas"""
+        """Generar zonas prohibidas alrededor de ménsulas
+        
+        Para cada ménsula genera:
+        1. Franja horizontal sobre la ménsula (offset s)
+        2. Círculo en la punta del conductor (radio s)
+        
+        SOLO genera las zonas del parámetro s activo (> 0).
+        """
         for nombre, nodo in self.nodos.items():
             for nodo_destino, tipo_conexion in nodo.conexiones:
                 if tipo_conexion == "mensula":
-                    # Franja horizontal entre nodo origen y destino
                     x_min = min(nodo.x, nodo_destino.x)
                     x_max = max(nodo.x, nodo_destino.x)
-                    z_centro = max(nodo.z, nodo_destino.z)
-                    altura = self.s_reposo
+                    z_mensula = max(nodo.z, nodo_destino.z)
                     
-                    self.zonas.append(FranjaHorizontal(
-                        x_min=x_min,
-                        x_max=x_max,
-                        z_centro=z_centro,
-                        altura=altura,
-                        descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre}"
-                    ))
+                    # Posición del conductor (Lk debajo del amarre)
+                    x_conductor = nodo_destino.x
+                    z_conductor = nodo_destino.z - self.Lk
+                    
+                    # Franja s_reposo
+                    if self.s_reposo > 0:
+                        # Franja rectangular
+                        self.zonas.append(FranjaHorizontal(
+                            x_min=x_min,
+                            x_max=x_max,
+                            z_centro=z_mensula,
+                            altura=self.s_reposo,
+                            descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_reposo)"
+                        ))
+                        # Círculo en la punta (solo parte superior, cortado en z_min_corte o z_mensula)
+                        self.zonas.append(Circulo(
+                            centro_x=x_conductor,
+                            centro_z=z_conductor,
+                            radio=self.s_reposo,
+                            tipo_zona="mensula",
+                            descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_reposo)",
+                            z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula
+                        ))
+                    
+                    # Franja s_tormenta
+                    if self.s_tormenta > 0:
+                        # Franja rectangular
+                        self.zonas.append(FranjaHorizontal(
+                            x_min=x_min,
+                            x_max=x_max,
+                            z_centro=z_mensula,
+                            altura=self.s_tormenta,
+                            descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_tormenta)"
+                        ))
+                        # Círculo en la punta (solo parte superior, cortado en z_min_corte o z_mensula)
+                        self.zonas.append(Circulo(
+                            centro_x=x_conductor,
+                            centro_z=z_conductor,
+                            radio=self.s_tormenta,
+                            tipo_zona="mensula",
+                            descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_tormenta)",
+                            z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula
+                        ))
+                    
+                    # Franja s_decmax
+                    if self.s_decmax > 0:
+                        # Franja rectangular
+                        self.zonas.append(FranjaHorizontal(
+                            x_min=x_min,
+                            x_max=x_max,
+                            z_centro=z_mensula,
+                            altura=self.s_decmax,
+                            descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_decmax)"
+                        ))
+                        # Círculo en la punta (solo parte superior, cortado en z_min_corte o z_mensula)
+                        self.zonas.append(Circulo(
+                            centro_x=x_conductor,
+                            centro_z=z_conductor,
+                            radio=self.s_decmax,
+                            tipo_zona="mensula",
+                            descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_decmax)",
+                            z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula
+                        ))
     
     def _generar_zonas_d_fases(self):
         """Generar círculos D_fases en posición -Lk de nodos conductor
         
-        Genera 3 círculos por conductor: reposo, tormenta, máxima
+        Si d_fases_solo_reposo=True, solo genera en reposo.
+        Si False, genera 3 círculos por conductor: reposo, tormenta, máxima
         """
         for nombre, nodo in self.nodos.items():
             if nodo.tipo == "conductor":
-                # Reposo
+                # Reposo (siempre)
                 z_reposo = nodo.z - self.Lk
                 self.zonas.append(Circulo(
                     centro_x=nodo.x,
@@ -266,29 +341,31 @@ class GeneradorZonasProhibidas:
                     descripcion=f"D_fases de {nombre} (reposo)"
                 ))
                 
-                # Tormenta
-                if self.theta_tormenta > 0:
-                    x_tormenta = nodo.x + self.Lk * math.sin(math.radians(self.theta_tormenta))
-                    z_tormenta = nodo.z - self.Lk * math.cos(math.radians(self.theta_tormenta))
-                    self.zonas.append(Circulo(
-                        centro_x=x_tormenta,
-                        centro_z=z_tormenta,
-                        radio=self.D_fases,
-                        tipo_zona="d_fases",
-                        descripcion=f"D_fases de {nombre} (tormenta)"
-                    ))
-                
-                # Máxima
-                if self.theta_max > 0:
-                    x_max = nodo.x + self.Lk * math.sin(math.radians(self.theta_max))
-                    z_max = nodo.z - self.Lk * math.cos(math.radians(self.theta_max))
-                    self.zonas.append(Circulo(
-                        centro_x=x_max,
-                        centro_z=z_max,
-                        radio=self.D_fases,
-                        tipo_zona="d_fases",
-                        descripcion=f"D_fases de {nombre} (máxima)"
-                    ))
+                # Tormenta y Máxima solo si no es solo_reposo
+                if not self.d_fases_solo_reposo:
+                    # Tormenta
+                    if self.theta_tormenta > 0:
+                        x_tormenta = nodo.x + self.Lk * math.sin(math.radians(self.theta_tormenta))
+                        z_tormenta = nodo.z - self.Lk * math.cos(math.radians(self.theta_tormenta))
+                        self.zonas.append(Circulo(
+                            centro_x=x_tormenta,
+                            centro_z=z_tormenta,
+                            radio=self.D_fases,
+                            tipo_zona="d_fases",
+                            descripcion=f"D_fases de {nombre} (tormenta)"
+                        ))
+                    
+                    # Máxima
+                    if self.theta_max > 0:
+                        x_max = nodo.x + self.Lk * math.sin(math.radians(self.theta_max))
+                        z_max = nodo.z - self.Lk * math.cos(math.radians(self.theta_max))
+                        self.zonas.append(Circulo(
+                            centro_x=x_max,
+                            centro_z=z_max,
+                            radio=self.D_fases,
+                            tipo_zona="d_fases",
+                            descripcion=f"D_fases de {nombre} (máxima)"
+                        ))
     
     def _generar_zonas_dhg(self):
         """Generar círculos Dhg en posición -Lk de nodos guardia"""
@@ -306,41 +383,37 @@ class GeneradorZonasProhibidas:
                 ))
     
     def _generar_zonas_s_reposo_nodos(self):
-        """Generar círculos s alrededor de cables conductor
+        """Generar círculos s alrededor de NODOS AMARRE conductor
         
         Genera 3 círculos por conductor: s_reposo, s_tormenta, s_decmax
+        Centrados en el NODO AMARRE (nodo.z), NO en el cable (nodo.z - Lk)
         """
         for nombre, nodo in self.nodos.items():
             if nodo.tipo == "conductor":
-                # s_reposo (reposo)
-                z_reposo = nodo.z - self.Lk
+                # s_reposo (reposo) - centrado en NODO AMARRE
                 self.zonas.append(Circulo(
                     centro_x=nodo.x,
-                    centro_z=z_reposo,
+                    centro_z=nodo.z,
                     radio=self.s_reposo,
                     tipo_zona="s_reposo",
                     descripcion=f"s_reposo de {nombre}"
                 ))
                 
-                # s_tormenta (tormenta)
-                if self.theta_tormenta > 0 and self.s_tormenta > 0:
-                    x_tormenta = nodo.x + self.Lk * math.sin(math.radians(self.theta_tormenta))
-                    z_tormenta = nodo.z - self.Lk * math.cos(math.radians(self.theta_tormenta))
+                # s_tormenta (tormenta) - centrado en NODO AMARRE
+                if self.s_tormenta > 0:
                     self.zonas.append(Circulo(
-                        centro_x=x_tormenta,
-                        centro_z=z_tormenta,
+                        centro_x=nodo.x,
+                        centro_z=nodo.z,
                         radio=self.s_tormenta,
                         tipo_zona="s_tormenta",
                         descripcion=f"s_tormenta de {nombre}"
                     ))
                 
-                # s_decmax (máxima)
-                if self.theta_max > 0 and self.s_decmax > 0:
-                    x_max = nodo.x + self.Lk * math.sin(math.radians(self.theta_max))
-                    z_max = nodo.z - self.Lk * math.cos(math.radians(self.theta_max))
+                # s_decmax (máxima) - centrado en NODO AMARRE
+                if self.s_decmax > 0:
                     self.zonas.append(Circulo(
-                        centro_x=x_max,
-                        centro_z=z_max,
+                        centro_x=nodo.x,
+                        centro_z=nodo.z,
                         radio=self.s_decmax,
                         tipo_zona="s_decmax",
                         descripcion=f"s_decmax de {nombre}"

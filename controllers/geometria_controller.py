@@ -832,12 +832,15 @@ def register_callbacks(app):
         State("slider-dist-repos-hg", "value"),
         State("switch-hg-centrado", "value"),
         State("switch-autoajustar-lmenhg", "value"),
+        State("switch-defasaje-hielo", "value"),
+        State("slider-lmen-extra-hielo", "value"),
+        State("select-mensula-defasar", "value"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
     def guardar_parametros_geometria(n_clicks, tension, zona, lk, ang_apant, disposicion, terna, cant_hg,
                                      altura_min, lmen_cond, lmen_guard, hadd, hadd_amarres, hadd_hg, hadd_lmen,
-                                     ancho_cruceta, dist_repos, hg_centrado, autoajustar, estructura_actual):
+                                     ancho_cruceta, dist_repos, hg_centrado, autoajustar, defasaje_hielo, lmen_extra_hielo, mensula_defasar, estructura_actual):
         if not n_clicks:
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         
@@ -866,7 +869,10 @@ def register_callbacks(app):
                 "ANCHO_CRUCETA": ancho_cruceta,
                 "DIST_REPOSICIONAR_HG": dist_repos,
                 "HG_CENTRADO": hg_centrado,
-                "AUTOAJUSTAR_LMENHG": autoajustar
+                "AUTOAJUSTAR_LMENHG": autoajustar,
+                "defasaje_mensula_hielo": defasaje_hielo,
+                "lmen_extra_hielo": lmen_extra_hielo,
+                "mensula_defasar": mensula_defasar
             })
             
             # Guardar usando el manager
