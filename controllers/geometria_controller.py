@@ -832,6 +832,18 @@ def register_callbacks(app):
         State("slider-hadd-lmen-geom", "value"),
         State("slider-ancho-cruceta-geom", "value"),
         State("slider-dist-repos-hg", "value"),
+        State("switch-offset-columna-base", "value"),
+        State("select-offset-columna-base-tipo", "value"),
+        State("slider-offset-columna-base-inicio", "value"),
+        State("slider-offset-columna-base-fin", "value"),
+        State("switch-offset-columna-inter", "value"),
+        State("select-offset-columna-inter-tipo", "value"),
+        State("slider-offset-columna-inter-inicio", "value"),
+        State("slider-offset-columna-inter-fin", "value"),
+        State("switch-offset-mensula", "value"),
+        State("select-offset-mensula-tipo", "value"),
+        State("slider-offset-mensula-inicio", "value"),
+        State("slider-offset-mensula-fin", "value"),
         State("switch-hg-centrado", "value"),
         State("switch-autoajustar-lmenhg", "value"),
         State("switch-defasaje-hielo", "value"),
@@ -842,7 +854,11 @@ def register_callbacks(app):
     )
     def guardar_parametros_geometria(n_clicks, tension, zona, lk, ang_apant, disposicion, terna, cant_hg,
                                      altura_min, lmen_cond, sobreescribir_altura_a, altura_a_sobreescrita, lmen_guard, hadd, hadd_amarres, hadd_hg, hadd_lmen,
-                                     ancho_cruceta, dist_repos, hg_centrado, autoajustar, defasaje_hielo, lmen_extra_hielo, mensula_defasar, estructura_actual):
+                                     ancho_cruceta, dist_repos,
+                                     offset_col_base, offset_col_base_tipo, offset_col_base_inicio, offset_col_base_fin,
+                                     offset_col_inter, offset_col_inter_tipo, offset_col_inter_inicio, offset_col_inter_fin,
+                                     offset_men, offset_men_tipo, offset_men_inicio, offset_men_fin,
+                                     hg_centrado, autoajustar, defasaje_hielo, lmen_extra_hielo, mensula_defasar, estructura_actual):
         if not n_clicks:
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         
@@ -872,6 +888,18 @@ def register_callbacks(app):
                 "HADD_LMEN": hadd_lmen,
                 "ANCHO_CRUCETA": ancho_cruceta,
                 "DIST_REPOSICIONAR_HG": dist_repos,
+                "OFFSET_COLUMNA_BASE": offset_col_base,
+                "OFFSET_COLUMNA_BASE_TIPO": offset_col_base_tipo,
+                "OFFSET_COLUMNA_BASE_INICIO": offset_col_base_inicio,
+                "OFFSET_COLUMNA_BASE_FIN": offset_col_base_fin,
+                "OFFSET_COLUMNA_INTER": offset_col_inter,
+                "OFFSET_COLUMNA_INTER_TIPO": offset_col_inter_tipo,
+                "OFFSET_COLUMNA_INTER_INICIO": offset_col_inter_inicio,
+                "OFFSET_COLUMNA_INTER_FIN": offset_col_inter_fin,
+                "OFFSET_MENSULA": offset_men,
+                "OFFSET_MENSULA_TIPO": offset_men_tipo,
+                "OFFSET_MENSULA_INICIO": offset_men_inicio,
+                "OFFSET_MENSULA_FIN": offset_men_fin,
                 "HG_CENTRADO": hg_centrado,
                 "AUTOAJUSTAR_LMENHG": autoajustar,
                 "defasaje_mensula_hielo": defasaje_hielo,
@@ -1019,6 +1047,7 @@ def register_callbacks(app):
             
             # Crear estructura de geometría
             estructura_geometria = EstructuraAEA_Geometria(
+                parametros=estructura_actual,
                 tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
                 tension_nominal=estructura_actual.get("TENSION"),
                 zona_estructura=estructura_actual.get("Zona_estructura"),

@@ -426,6 +426,71 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                     ], md=6),
                 ], className="mb-3"),
                 
+                html.H5("Offsets de Columna y Ménsula", className="mb-3 mt-4"),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Offset Columna Base", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(id="switch-offset-columna-base", value=estructura_actual.get("OFFSET_COLUMNA_BASE", False)),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Tipo Offset Columna Base", style={"fontSize": "1.125rem"}),
+                        dbc.Select(id="select-offset-columna-base-tipo", value=estructura_actual.get("OFFSET_COLUMNA_BASE_TIPO", "Recto"),
+                                   options=[{"label": opt, "value": opt} for opt in ["Recto", "Trapezoidal", "Triangular"]]),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Offset Col. Base Inicio (m)", style={"fontSize": "1.125rem"}),
+                        dcc.Slider(id="slider-offset-columna-base-inicio", min=0.0, max=10.0, step=0.1, value=estructura_actual.get("OFFSET_COLUMNA_BASE_INICIO", 0.0), tooltip={"placement": "bottom", "always_visible": True}),
+                    ], md=4),
+                ], className="mb-3"),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Offset Col. Base Fin (m)", style={"fontSize": "1.125rem"}),
+                        dcc.Slider(id="slider-offset-columna-base-fin", min=0.0, max=10.0, step=0.1, value=estructura_actual.get("OFFSET_COLUMNA_BASE_FIN", 0.0), tooltip={"placement": "bottom", "always_visible": True}),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Offset Columna Inter", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(id="switch-offset-columna-inter", value=estructura_actual.get("OFFSET_COLUMNA_INTER", False)),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Tipo Offset Columna Inter", style={"fontSize": "1.125rem"}),
+                        dbc.Select(id="select-offset-columna-inter-tipo", value=estructura_actual.get("OFFSET_COLUMNA_INTER_TIPO", "Recto"),
+                                   options=[{"label": opt, "value": opt} for opt in ["Recto", "Trapezoidal", "Triangular"]]),
+                    ], md=4),
+                ], className="mb-3"),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Offset Col. Inter Inicio (m)", style={"fontSize": "1.125rem"}),
+                        dcc.Slider(id="slider-offset-columna-inter-inicio", min=0.0, max=10.0, step=0.1, value=estructura_actual.get("OFFSET_COLUMNA_INTER_INICIO", 0.0), tooltip={"placement": "bottom", "always_visible": True}),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Offset Col. Inter Fin (m)", style={"fontSize": "1.125rem"}),
+                        dcc.Slider(id="slider-offset-columna-inter-fin", min=0.0, max=10.0, step=0.1, value=estructura_actual.get("OFFSET_COLUMNA_INTER_FIN", 0.0), tooltip={"placement": "bottom", "always_visible": True}),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Offset Ménsula", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(id="switch-offset-mensula", value=estructura_actual.get("OFFSET_MENSULA", False)),
+                    ], md=4),
+                ], className="mb-3"),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Tipo Offset Ménsula", style={"fontSize": "1.125rem"}),
+                        dbc.Select(id="select-offset-mensula-tipo", value=estructura_actual.get("OFFSET_MENSULA_TIPO", "Recto"),
+                                   options=[{"label": opt, "value": opt} for opt in ["Recto", "Trapezoidal", "Triangular"]]),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Offset Ménsula Inicio (m)", style={"fontSize": "1.125rem"}),
+                        dcc.Slider(id="slider-offset-mensula-inicio", min=0.0, max=10.0, step=0.1, value=estructura_actual.get("OFFSET_MENSULA_INICIO", 0.0), tooltip={"placement": "bottom", "always_visible": True}),
+                    ], md=4),
+                    dbc.Col([
+                        dbc.Label("Offset Ménsula Fin (m)", style={"fontSize": "1.125rem"}),
+                        dcc.Slider(id="slider-offset-mensula-fin", min=0.0, max=10.0, step=0.1, value=estructura_actual.get("OFFSET_MENSULA_FIN", 0.0), tooltip={"placement": "bottom", "always_visible": True}),
+                    ], md=4),
+                ], className="mb-3"),
+                
                 dbc.Row([
                     dbc.Col([
                         dbc.Label("HG Centrado", style={"fontSize": "1.125rem"}),

@@ -216,6 +216,20 @@
       "V": 0.7
     }
   },
-  "fecha_modificacion": "2026-01-13T12:27:34.405379",
-  "nodos_editados": []
+  "fecha_modificacion": "2026-01-13T14:21:11.365646",
+  "nodos_editados": [],
+  "SOBREESCRIBIR_ALTURA_a_CABLE": false,
+  "ALTURA_a_CABLE_SOBREESCRITA": 0,
+  "OFFSET_COLUMNA_BASE": true,
+  "OFFSET_COLUMNA_BASE_TIPO": "Trapezoidal",
+  "OFFSET_COLUMNA_BASE_INICIO": 3.3,
+  "OFFSET_COLUMNA_BASE_FIN": 0.7,
+  "OFFSET_COLUMNA_INTER": true,
+  "OFFSET_COLUMNA_INTER_TIPO": "Recto",
+  "OFFSET_COLUMNA_INTER_INICIO": 0.7,
+  "OFFSET_COLUMNA_INTER_FIN": 0.7,
+  "OFFSET_MENSULA": true,
+  "OFFSET_MENSULA_TIPO": "Triangular",
+  "OFFSET_MENSULA_INICIO": 1.5,
+  "OFFSET_MENSULA_FIN": 0
 }

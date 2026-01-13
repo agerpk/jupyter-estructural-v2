@@ -144,6 +144,34 @@ class EstructuraAEA_Geometria:
         self.s_tormenta = s_tormenta
         self.s_decmax = s_decmax
         
+        # Parámetros de offset
+        if parametros:
+            self.offset_columna_base = parametros.get("OFFSET_COLUMNA_BASE", False)
+            self.offset_columna_inter = parametros.get("OFFSET_COLUMNA_INTER", False)
+            self.offset_mensula = parametros.get("OFFSET_MENSULA", False)
+            self.offset_columna_base_tipo = parametros.get("OFFSET_COLUMNA_BASE_TIPO", "Trapezoidal")
+            self.offset_columna_inter_tipo = parametros.get("OFFSET_COLUMNA_INTER_TIPO", "Recto")
+            self.offset_mensula_tipo = parametros.get("OFFSET_MENSULA_TIPO", "Triangular")
+            self.offset_columna_base_inicio = parametros.get("OFFSET_COLUMNA_BASE_INICIO", 3.3)
+            self.offset_columna_base_fin = parametros.get("OFFSET_COLUMNA_BASE_FIN", 0.65)
+            self.offset_columna_inter_inicio = parametros.get("OFFSET_COLUMNA_INTER_INICIO", 0.65)
+            self.offset_columna_inter_fin = parametros.get("OFFSET_COLUMNA_INTER_FIN", 0.65)
+            self.offset_mensula_inicio = parametros.get("OFFSET_MENSULA_INICIO", 1.48)
+            self.offset_mensula_fin = parametros.get("OFFSET_MENSULA_FIN", 0.0)
+        else:
+            self.offset_columna_base = False
+            self.offset_columna_inter = False
+            self.offset_mensula = False
+            self.offset_columna_base_tipo = "Trapezoidal"
+            self.offset_columna_inter_tipo = "Recto"
+            self.offset_mensula_tipo = "Triangular"
+            self.offset_columna_base_inicio = 3.3
+            self.offset_columna_base_fin = 0.65
+            self.offset_columna_inter_inicio = 0.65
+            self.offset_columna_inter_fin = 0.65
+            self.offset_mensula_inicio = 1.48
+            self.offset_mensula_fin = 0.0
+        
         # Parámetros de sobreescritura de altura_a
         if parametros:
             self.sobreescribir_altura_a_cable = parametros.get("SOBREESCRIBIR_ALTURA_a_CABLE", False)

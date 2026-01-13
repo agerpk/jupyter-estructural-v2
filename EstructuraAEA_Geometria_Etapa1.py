@@ -2,7 +2,6 @@
 import math
 from NodoEstructural import NodoEstructural
 from utils.geometria_zonas import Nodo, crear_verificador_desde_nodos
-from utils.offset_geometria import calcular_offset_columna, calcular_offset_mensula
 
 
 class GeometriaEtapa1:
@@ -210,26 +209,21 @@ class GeometriaEtapa1:
         # Conexión columna
         nodos_temp["BASE"].agregar_conexion(nodos_temp["CROSS_H1"], "columna")
         
-        # Calcular offset columna base si está activado
-        offset_col = 0.0
-        if self.geo.offset_columna_base:
-            offset_col = calcular_offset_columna(
-                z_conductor, 0, h1a,
-                self.geo.offset_columna_base_inicio,
-                self.geo.offset_columna_base_fin,
-                self.geo.offset_columna_base_tipo
-            )
-        
         # Parámetros
         parametros = {
             'Lk': self.geo.lk,
             'D_fases': self.geo.dimensiones.get('D_fases', 0),
-            's_reposo': self.geo.dimensiones.get('s_reposo', 0) + offset_col,
-            's_decmax': s_decmax + offset_col,
-            's_tormenta': self.geo.dimensiones.get('s_tormenta', 0) + offset_col,
+            's_reposo': self.geo.dimensiones.get('s_reposo', 0),
+            's_decmax': s_decmax,
+            's_tormenta': self.geo.dimensiones.get('s_tormenta', 0),
             'Dhg': 0,
             'theta_max': theta_max,
-            'theta_tormenta': theta_tormenta
+            'theta_tormenta': theta_tormenta,
+            'offset_columna_base': self.geo.offset_columna_base,
+            'offset_columna_base_tipo': self.geo.offset_columna_base_tipo,
+            'offset_columna_base_inicio': self.geo.offset_columna_base_inicio,
+            'offset_columna_base_fin': self.geo.offset_columna_base_fin,
+            'h_cross_h1': h1a
         }
         
         # Crear verificador y verificar punto
@@ -259,7 +253,11 @@ class GeometriaEtapa1:
             'Dhg': 0,
             'theta_max': theta_max,
             'theta_tormenta': theta_tormenta,
-            'z_min_corte': h1a
+            'z_min_corte': h1a,
+            'offset_mensula': self.geo.offset_mensula,
+            'offset_mensula_tipo': self.geo.offset_mensula_tipo,
+            'offset_mensula_inicio': self.geo.offset_mensula_inicio,
+            'offset_mensula_fin': self.geo.offset_mensula_fin
         }
         
         verificador = crear_verificador_desde_nodos(nodos_temp, parametros)

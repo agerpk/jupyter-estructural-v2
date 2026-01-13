@@ -8,6 +8,7 @@ basadas en tipos de conexión (columna, mensula) y tipos de nodo (conductor, gua
 
 import math
 from typing import List, Tuple, Optional, Dict
+from utils.offset_geometria import calcular_offset_columna, calcular_offset_mensula
 
 
 class Nodo:
@@ -184,10 +185,23 @@ class GeneradorZonasProhibidas:
                 's_decmax': float,
                 's_tormenta': float,
                 'Dhg': float,
-                'theta_max': float,  # Ángulo declinación máxima (grados)
-                'theta_tormenta': float,  # Ángulo declinación tormenta (grados)
-                'd_fases_solo_reposo': bool,  # Si True, D_fases solo en reposo
-                'z_min_corte': float  # Altura de corte para círculos de ménsula
+                'theta_max': float,
+                'theta_tormenta': float,
+                'd_fases_solo_reposo': bool,
+                'z_min_corte': float,
+                'offset_columna_base': bool,
+                'offset_columna_inter': bool,
+                'offset_mensula': bool,
+                'offset_columna_base_tipo': str,
+                'offset_columna_inter_tipo': str,
+                'offset_mensula_tipo': str,
+                'offset_columna_base_inicio': float,
+                'offset_columna_base_fin': float,
+                'offset_columna_inter_inicio': float,
+                'offset_columna_inter_fin': float,
+                'offset_mensula_inicio': float,
+                'offset_mensula_fin': float,
+                'h_cross_h1': float  # Altura de CROSS_H1 para separar base/inter
             }
         """
         self.nodos = nodos
@@ -201,6 +215,22 @@ class GeneradorZonasProhibidas:
         self.theta_tormenta = parametros.get('theta_tormenta', 0)
         self.d_fases_solo_reposo = parametros.get('d_fases_solo_reposo', False)
         self.z_min_corte = parametros.get('z_min_corte', None)
+        
+        # Parámetros de offset
+        self.offset_columna_base = parametros.get('offset_columna_base', False)
+        self.offset_columna_inter = parametros.get('offset_columna_inter', False)
+        self.offset_mensula = parametros.get('offset_mensula', False)
+        self.offset_columna_base_tipo = parametros.get('offset_columna_base_tipo', 'Trapezoidal')
+        self.offset_columna_inter_tipo = parametros.get('offset_columna_inter_tipo', 'Recto')
+        self.offset_mensula_tipo = parametros.get('offset_mensula_tipo', 'Triangular')
+        self.offset_columna_base_inicio = parametros.get('offset_columna_base_inicio', 3.3)
+        self.offset_columna_base_fin = parametros.get('offset_columna_base_fin', 0.65)
+        self.offset_columna_inter_inicio = parametros.get('offset_columna_inter_inicio', 0.65)
+        self.offset_columna_inter_fin = parametros.get('offset_columna_inter_fin', 0.65)
+        self.offset_mensula_inicio = parametros.get('offset_mensula_inicio', 1.48)
+        self.offset_mensula_fin = parametros.get('offset_mensula_fin', 0.0)
+        self.h_cross_h1 = parametros.get('h_cross_h1', 0)
+        
         self.zonas = []
     
     def generar_todas_zonas(self) -> List[ZonaProhibida]:
@@ -229,11 +259,50 @@ class GeneradorZonasProhibidas:
         for nombre, nodo in self.nodos.items():
             for nodo_destino, tipo_conexion in nodo.conexiones:
                 if tipo_conexion == "columna":
-                    # Franja vertical entre nodo origen y destino
                     x_centro = (nodo.x + nodo_destino.x) / 2
                     z_min = min(nodo.z, nodo_destino.z)
                     z_max = max(nodo.z, nodo_destino.z)
-                    ancho = 2 * self.s_decmax
+                    
+                    # Determinar si es columna base o inter
+                    # Base: z_min < h_cross_h1, Inter: z_min >= h_cross_h1
+                    es_base = z_min < self.h_cross_h1 if self.h_cross_h1 > 0 else True
+                    
+                    # Calcular offset en z_min y z_max
+                    if es_base and self.offset_columna_base:
+                        offset_min = calcular_offset_columna(
+                            z_min, 0, self.h_cross_h1,
+                            self.offset_columna_base_inicio,
+                            self.offset_columna_base_fin,
+                            self.offset_columna_base_tipo
+                        )
+                        offset_max = calcular_offset_columna(
+                            z_max, 0, self.h_cross_h1,
+                            self.offset_columna_base_inicio,
+                            self.offset_columna_base_fin,
+                            self.offset_columna_base_tipo
+                        )
+                    elif not es_base and self.offset_columna_inter:
+                        # Encontrar z_max_estructura
+                        z_max_estructura = max(n.z for n in self.nodos.values())
+                        offset_min = calcular_offset_columna(
+                            z_min, self.h_cross_h1, z_max_estructura,
+                            self.offset_columna_inter_inicio,
+                            self.offset_columna_inter_fin,
+                            self.offset_columna_inter_tipo
+                        )
+                        offset_max = calcular_offset_columna(
+                            z_max, self.h_cross_h1, z_max_estructura,
+                            self.offset_columna_inter_inicio,
+                            self.offset_columna_inter_fin,
+                            self.offset_columna_inter_tipo
+                        )
+                    else:
+                        offset_min = 0
+                        offset_max = 0
+                    
+                    # Usar el offset mayor para el ancho
+                    offset = max(offset_min, offset_max)
+                    ancho = 2 * (self.s_decmax + offset)
                     
                     self.zonas.append(FranjaVertical(
                         x_centro=x_centro,
@@ -263,21 +332,47 @@ class GeneradorZonasProhibidas:
                     x_conductor = nodo_destino.x
                     z_conductor = nodo_destino.z - self.Lk
                     
+                    # Calcular offset ménsula si está activado
+                    if self.offset_mensula:
+                        offset_inicio = calcular_offset_mensula(
+                            abs(x_min), abs(x_min), abs(x_max),
+                            self.offset_mensula_inicio,
+                            self.offset_mensula_fin,
+                            self.offset_mensula_tipo
+                        )
+                        offset_fin = calcular_offset_mensula(
+                            abs(x_max), abs(x_min), abs(x_max),
+                            self.offset_mensula_inicio,
+                            self.offset_mensula_fin,
+                            self.offset_mensula_tipo
+                        )
+                        offset_conductor = calcular_offset_mensula(
+                            abs(x_conductor), abs(x_min), abs(x_max),
+                            self.offset_mensula_inicio,
+                            self.offset_mensula_fin,
+                            self.offset_mensula_tipo
+                        )
+                    else:
+                        offset_inicio = 0
+                        offset_fin = 0
+                        offset_conductor = 0
+                    
+                    # Usar el offset mayor para la altura de franja
+                    offset_franja = max(offset_inicio, offset_fin)
+                    
                     # Franja s_reposo
                     if self.s_reposo > 0:
-                        # Franja rectangular
                         self.zonas.append(FranjaHorizontal(
                             x_min=x_min,
                             x_max=x_max,
                             z_centro=z_mensula,
-                            altura=self.s_reposo,
+                            altura=self.s_reposo + offset_franja,
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_reposo)"
                         ))
-                        # Círculo en la punta (solo parte superior, cortado en z_min_corte o z_mensula)
                         self.zonas.append(Circulo(
                             centro_x=x_conductor,
                             centro_z=z_conductor,
-                            radio=self.s_reposo,
+                            radio=self.s_reposo + offset_conductor,
                             tipo_zona="mensula",
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_reposo)",
                             z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula
@@ -285,19 +380,17 @@ class GeneradorZonasProhibidas:
                     
                     # Franja s_tormenta
                     if self.s_tormenta > 0:
-                        # Franja rectangular
                         self.zonas.append(FranjaHorizontal(
                             x_min=x_min,
                             x_max=x_max,
                             z_centro=z_mensula,
-                            altura=self.s_tormenta,
+                            altura=self.s_tormenta + offset_franja,
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_tormenta)"
                         ))
-                        # Círculo en la punta (solo parte superior, cortado en z_min_corte o z_mensula)
                         self.zonas.append(Circulo(
                             centro_x=x_conductor,
                             centro_z=z_conductor,
-                            radio=self.s_tormenta,
+                            radio=self.s_tormenta + offset_conductor,
                             tipo_zona="mensula",
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_tormenta)",
                             z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula
@@ -305,19 +398,17 @@ class GeneradorZonasProhibidas:
                     
                     # Franja s_decmax
                     if self.s_decmax > 0:
-                        # Franja rectangular
                         self.zonas.append(FranjaHorizontal(
                             x_min=x_min,
                             x_max=x_max,
                             z_centro=z_mensula,
-                            altura=self.s_decmax,
+                            altura=self.s_decmax + offset_franja,
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_decmax)"
                         ))
-                        # Círculo en la punta (solo parte superior, cortado en z_min_corte o z_mensula)
                         self.zonas.append(Circulo(
                             centro_x=x_conductor,
                             centro_z=z_conductor,
-                            radio=self.s_decmax,
+                            radio=self.s_decmax + offset_conductor,
                             tipo_zona="mensula",
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_decmax)",
                             z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula

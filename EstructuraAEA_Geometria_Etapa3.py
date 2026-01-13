@@ -137,7 +137,20 @@ class GeometriaEtapa3:
             'theta_max': 0,
             'theta_tormenta': 0,
             'd_fases_solo_reposo': True,
-            'z_min_corte': h2a
+            'z_min_corte': h2a,
+            'offset_columna_base': self.geo.offset_columna_base,
+            'offset_columna_base_tipo': self.geo.offset_columna_base_tipo,
+            'offset_columna_base_inicio': self.geo.offset_columna_base_inicio,
+            'offset_columna_base_fin': self.geo.offset_columna_base_fin,
+            'offset_columna_inter': self.geo.offset_columna_inter,
+            'offset_columna_inter_tipo': self.geo.offset_columna_inter_tipo,
+            'offset_columna_inter_inicio': self.geo.offset_columna_inter_inicio,
+            'offset_columna_inter_fin': self.geo.offset_columna_inter_fin,
+            'offset_mensula': self.geo.offset_mensula,
+            'offset_mensula_tipo': self.geo.offset_mensula_tipo,
+            'offset_mensula_inicio': self.geo.offset_mensula_inicio,
+            'offset_mensula_fin': self.geo.offset_mensula_fin,
+            'h_cross_h1': h1a
         }
         verificador_reposo = crear_verificador_desde_nodos(nodos_temp, parametros_reposo)
         
@@ -152,7 +165,20 @@ class GeometriaEtapa3:
             'theta_max': 0,
             'theta_tormenta': theta_tormenta,
             'd_fases_solo_reposo': True,
-            'z_min_corte': h2a
+            'z_min_corte': h2a,
+            'offset_columna_base': self.geo.offset_columna_base,
+            'offset_columna_base_tipo': self.geo.offset_columna_base_tipo,
+            'offset_columna_base_inicio': self.geo.offset_columna_base_inicio,
+            'offset_columna_base_fin': self.geo.offset_columna_base_fin,
+            'offset_columna_inter': self.geo.offset_columna_inter,
+            'offset_columna_inter_tipo': self.geo.offset_columna_inter_tipo,
+            'offset_columna_inter_inicio': self.geo.offset_columna_inter_inicio,
+            'offset_columna_inter_fin': self.geo.offset_columna_inter_fin,
+            'offset_mensula': self.geo.offset_mensula,
+            'offset_mensula_tipo': self.geo.offset_mensula_tipo,
+            'offset_mensula_inicio': self.geo.offset_mensula_inicio,
+            'offset_mensula_fin': self.geo.offset_mensula_fin,
+            'h_cross_h1': h1a
         }
         verificador_tormenta = crear_verificador_desde_nodos(nodos_temp, parametros_tormenta)
         
@@ -167,7 +193,20 @@ class GeometriaEtapa3:
             'theta_max': theta_max,
             'theta_tormenta': 0,
             'd_fases_solo_reposo': True,
-            'z_min_corte': h2a
+            'z_min_corte': h2a,
+            'offset_columna_base': self.geo.offset_columna_base,
+            'offset_columna_base_tipo': self.geo.offset_columna_base_tipo,
+            'offset_columna_base_inicio': self.geo.offset_columna_base_inicio,
+            'offset_columna_base_fin': self.geo.offset_columna_base_fin,
+            'offset_columna_inter': self.geo.offset_columna_inter,
+            'offset_columna_inter_tipo': self.geo.offset_columna_inter_tipo,
+            'offset_columna_inter_inicio': self.geo.offset_columna_inter_inicio,
+            'offset_columna_inter_fin': self.geo.offset_columna_inter_fin,
+            'offset_mensula': self.geo.offset_mensula,
+            'offset_mensula_tipo': self.geo.offset_mensula_tipo,
+            'offset_mensula_inicio': self.geo.offset_mensula_inicio,
+            'offset_mensula_fin': self.geo.offset_mensula_fin,
+            'h_cross_h1': h1a
         }
         verificador_max = crear_verificador_desde_nodos(nodos_temp, parametros_max)
         
@@ -323,7 +362,20 @@ class GeometriaEtapa3:
             'Dhg': 0,
             'theta_max': theta_max,
             'theta_tormenta': theta_tormenta,
-            'z_min_corte': h2a
+            'z_min_corte': h2a,
+            'offset_columna_base': self.geo.offset_columna_base,
+            'offset_columna_base_tipo': self.geo.offset_columna_base_tipo,
+            'offset_columna_base_inicio': self.geo.offset_columna_base_inicio,
+            'offset_columna_base_fin': self.geo.offset_columna_base_fin,
+            'offset_columna_inter': self.geo.offset_columna_inter,
+            'offset_columna_inter_tipo': self.geo.offset_columna_inter_tipo,
+            'offset_columna_inter_inicio': self.geo.offset_columna_inter_inicio,
+            'offset_columna_inter_fin': self.geo.offset_columna_inter_fin,
+            'offset_mensula': self.geo.offset_mensula,
+            'offset_mensula_tipo': self.geo.offset_mensula_tipo,
+            'offset_mensula_inicio': self.geo.offset_mensula_inicio,
+            'offset_mensula_fin': self.geo.offset_mensula_fin,
+            'h_cross_h1': h1a
         }
         
         # Verificar en REPOSO

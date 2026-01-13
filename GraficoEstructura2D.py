@@ -17,6 +17,9 @@ class GraficoEstructura2D:
         # 1. Dibujar conexiones (estructura)
         self._dibujar_conexiones(fig)
         
+        # 1.5. Dibujar offsets (líneas punteadas grises)
+        self._dibujar_offsets(fig)
+        
         # 2. Dibujar nodos
         self._dibujar_nodos(fig)
         
@@ -81,6 +84,92 @@ class GraficoEstructura2D:
                     showlegend=False,
                     hoverinfo='skip'
                 ))
+    
+    def _dibujar_offsets(self, fig):
+        """Dibujar offsets de columnas y ménsulas como líneas punteadas grises"""
+        from utils.offset_geometria import calcular_offset_columna, calcular_offset_mensula
+        
+        if not hasattr(self.geo, 'conexiones'):
+            return
+        
+        h_cross_h1 = self.geo.dimensiones.get('h1a', 0)
+        
+        for origen, destino, tipo in self.geo.conexiones:
+            if origen not in self.geo.nodos or destino not in self.geo.nodos:
+                continue
+            
+            nodo_o = self.geo.nodos[origen]
+            nodo_d = self.geo.nodos[destino]
+            x_o, y_o, z_o = nodo_o.coordenadas
+            x_d, y_d, z_d = nodo_d.coordenadas
+            
+            if tipo == 'columna':
+                # Determinar si es base o inter
+                z_min = min(z_o, z_d)
+                es_base = z_min < h_cross_h1
+                
+                if es_base and self.geo.offset_columna_base:
+                    # Dibujar offset columna base
+                    z_vals = [z_o, z_d]
+                    for z in z_vals:
+                        offset = calcular_offset_columna(
+                            z, 0, h_cross_h1,
+                            self.geo.offset_columna_base_inicio,
+                            self.geo.offset_columna_base_fin,
+                            self.geo.offset_columna_base_tipo
+                        )
+                        if offset > 0:
+                            fig.add_trace(go.Scatter(
+                                x=[x_o - offset, x_o + offset],
+                                y=[z, z],
+                                mode='lines',
+                                line=dict(color='lightgray', width=1, dash='dot'),
+                                showlegend=False,
+                                hoverinfo='skip'
+                            ))
+                
+                elif not es_base and self.geo.offset_columna_inter:
+                    # Dibujar offset columna inter
+                    z_max = max(z_o, z_d)
+                    z_vals = [z_o, z_d]
+                    for z in z_vals:
+                        offset = calcular_offset_columna(
+                            z, h_cross_h1, z_max,
+                            self.geo.offset_columna_inter_inicio,
+                            self.geo.offset_columna_inter_fin,
+                            self.geo.offset_columna_inter_tipo
+                        )
+                        if offset > 0:
+                            fig.add_trace(go.Scatter(
+                                x=[x_o - offset, x_o + offset],
+                                y=[z, z],
+                                mode='lines',
+                                line=dict(color='lightgray', width=1, dash='dot'),
+                                showlegend=False,
+                                hoverinfo='skip'
+                            ))
+            
+            elif tipo == 'mensula' and self.geo.offset_mensula:
+                # Dibujar offset ménsula (solo +Z)
+                x_min = min(abs(x_o), abs(x_d))
+                x_max = max(abs(x_o), abs(x_d))
+                
+                for x, z in [(x_o, z_o), (x_d, z_d)]:
+                    offset = calcular_offset_mensula(
+                        abs(x), x_min, x_max,
+                        self.geo.offset_mensula_inicio,
+                        self.geo.offset_mensula_fin,
+                        self.geo.offset_mensula_tipo
+                    )
+                    if offset > 0:
+                        fig.add_trace(go.Scatter(
+                            x=[x, x],
+                            y=[z, z + offset],
+                            mode='lines',
+                            line=dict(color='lightgray', width=1, dash='dot'),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
     
     def _dibujar_nodos(self, fig):
         """Dibujar nodos con colores y símbolos por tipo"""
@@ -235,10 +324,22 @@ class GraficoEstructura2D:
             hoverinfo='skip'
         ))
         
-        # Obtener datos de geometría
-        flecha_max = self.geo.dimensiones.get('termino_flecha', 0) - Lk  # termino_flecha = flecha + Lk
-        altura_electrica = self.geo.dimensiones.get('h_base_electrica', 0)  # a + b
-        hadd = self.geo.hadd
+        # Obtener datos de geometría - con valores por defecto
+        termino_flecha = self.geo.dimensiones.get('termino_flecha', 0)
+        if termino_flecha > 0:
+            flecha_max = termino_flecha - Lk
+        else:
+            flecha_max = 0
+        
+        altura_electrica = self.geo.dimensiones.get('h_base_electrica', 0)
+        if altura_electrica == 0:
+            altura_electrica = self.geo.dimensiones.get('altura_base_electrica', 0)
+        
+        hadd = self.geo.hadd if hasattr(self.geo, 'hadd') else 0
+        
+        # Solo dibujar si hay datos válidos
+        if flecha_max == 0 or altura_electrica == 0:
+            return
         
         # Posición base para cotas (debajo del cable)
         z_base_cable = z_extremo - flecha_cable
@@ -286,8 +387,32 @@ class GraficoEstructura2D:
             borderpad=2
         )
         
-        # 3. Línea negra horizontal (terreno)
-        z_terreno = z_electrica
+        # 3. HADD (línea naranja punteada) - debajo de altura eléctrica
+        if hadd > 0:
+            z_hadd = z_electrica - hadd
+            fig.add_trace(go.Scatter(
+                x=[x_ref - 0.5, x_ref + 0.5],
+                y=[z_hadd, z_hadd],
+                mode='lines',
+                line=dict(color='orange', width=2, dash='dash'),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+            fig.add_annotation(
+                x=x_cota,
+                y=z_hadd,
+                text=f'HADD={hadd:.2f}m',
+                showarrow=False,
+                xanchor='left',
+                font=dict(size=9, color='orange'),
+                bgcolor='white',
+                borderpad=2
+            )
+            z_terreno = z_hadd
+        else:
+            z_terreno = z_electrica
+        
+        # 4. Línea negra horizontal (terreno)
         fig.add_trace(go.Scatter(
             x=[x_ref - 0.6, x_ref + 0.6],
             y=[z_terreno, z_terreno],
@@ -296,27 +421,6 @@ class GraficoEstructura2D:
             showlegend=False,
             hoverinfo='skip'
         ))
-        
-        # 4. HADD (línea naranja punteada)
-        z_hadd = z_terreno - hadd
-        fig.add_trace(go.Scatter(
-            x=[x_ref - 0.5, x_ref + 0.5],
-            y=[z_hadd, z_hadd],
-            mode='lines',
-            line=dict(color='orange', width=2, dash='dash'),
-            showlegend=False,
-            hoverinfo='skip'
-        ))
-        fig.add_annotation(
-            x=x_cota,
-            y=z_hadd,
-            text=f'HADD={hadd:.2f}m',
-            showarrow=False,
-            xanchor='left',
-            font=dict(size=9, color='orange'),
-            bgcolor='white',
-            borderpad=2
-        )
     
     def _dibujar_zona_apantallamiento(self, fig):
         """Dibujar zona de apantallamiento"""

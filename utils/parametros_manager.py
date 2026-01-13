@@ -389,6 +389,93 @@ class ParametrosManager:
             "tipo": "float",
             "categoria": "Cabezal"
         },
+        "OFFSET_COLUMNA_BASE": {
+            "simbolo": "OffColB",
+            "unidad": "-",
+            "descripcion": "Activar offset columna base",
+            "tipo": "bool",
+            "categoria": "Cabezal"
+        },
+        "OFFSET_COLUMNA_BASE_TIPO": {
+            "simbolo": "TipoOffColB",
+            "unidad": "-",
+            "descripcion": "Tipo offset columna base (Recto/Trapezoidal/Triangular)",
+            "tipo": "opcion",
+            "opciones": ["Recto", "Trapezoidal", "Triangular"],
+            "categoria": "Cabezal"
+        },
+        "OFFSET_COLUMNA_BASE_INICIO": {
+            "simbolo": "OffColB_i",
+            "unidad": "m",
+            "descripcion": "Offset columna base inicio (z=0)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "OFFSET_COLUMNA_BASE_FIN": {
+            "simbolo": "OffColB_f",
+            "unidad": "m",
+            "descripcion": "Offset columna base fin (z=CROSS_H1)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "OFFSET_COLUMNA_INTER": {
+            "simbolo": "OffColI",
+            "unidad": "-",
+            "descripcion": "Activar offset columna inter",
+            "tipo": "bool",
+            "categoria": "Cabezal"
+        },
+        "OFFSET_COLUMNA_INTER_TIPO": {
+            "simbolo": "TipoOffColI",
+            "unidad": "-",
+            "descripcion": "Tipo offset columna inter (Recto/Trapezoidal/Triangular)",
+            "tipo": "opcion",
+            "opciones": ["Recto", "Trapezoidal", "Triangular"],
+            "categoria": "Cabezal"
+        },
+        "OFFSET_COLUMNA_INTER_INICIO": {
+            "simbolo": "OffColI_i",
+            "unidad": "m",
+            "descripcion": "Offset columna inter inicio (z=CROSS_H1)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "OFFSET_COLUMNA_INTER_FIN": {
+            "simbolo": "OffColI_f",
+            "unidad": "m",
+            "descripcion": "Offset columna inter fin (z=max)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "OFFSET_MENSULA": {
+            "simbolo": "OffMen",
+            "unidad": "-",
+            "descripcion": "Activar offset ménsula",
+            "tipo": "bool",
+            "categoria": "Cabezal"
+        },
+        "OFFSET_MENSULA_TIPO": {
+            "simbolo": "TipoOffMen",
+            "unidad": "-",
+            "descripcion": "Tipo offset ménsula (Recto/Trapezoidal/Triangular)",
+            "tipo": "opcion",
+            "opciones": ["Recto", "Trapezoidal", "Triangular"],
+            "categoria": "Cabezal"
+        },
+        "OFFSET_MENSULA_INICIO": {
+            "simbolo": "OffMen_i",
+            "unidad": "m",
+            "descripcion": "Offset ménsula inicio (menor |x|)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "OFFSET_MENSULA_FIN": {
+            "simbolo": "OffMen_f",
+            "unidad": "m",
+            "descripcion": "Offset ménsula fin (mayor |x|)",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
         "AUTOAJUSTAR_LMENHG": {
             "simbolo": "AutoLHG",
             "unidad": "-",

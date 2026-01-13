@@ -170,7 +170,20 @@ class GeometriaEtapa6:
                 's_tormenta': s_tormenta,
                 'Dhg': 0,
                 'theta_max': theta_max,
-                'theta_tormenta': theta_tormenta
+                'theta_tormenta': theta_tormenta,
+                'offset_columna_base': self.geo.offset_columna_base,
+                'offset_columna_base_tipo': self.geo.offset_columna_base_tipo,
+                'offset_columna_base_inicio': self.geo.offset_columna_base_inicio,
+                'offset_columna_base_fin': self.geo.offset_columna_base_fin,
+                'offset_columna_inter': self.geo.offset_columna_inter,
+                'offset_columna_inter_tipo': self.geo.offset_columna_inter_tipo,
+                'offset_columna_inter_inicio': self.geo.offset_columna_inter_inicio,
+                'offset_columna_inter_fin': self.geo.offset_columna_inter_fin,
+                'offset_mensula': self.geo.offset_mensula,
+                'offset_mensula_tipo': self.geo.offset_mensula_tipo,
+                'offset_mensula_inicio': self.geo.offset_mensula_inicio,
+                'offset_mensula_fin': self.geo.offset_mensula_fin,
+                'h_cross_h1': self.geo.dimensiones.get('h1a', 0)
             }
             
             # Buscar altura mínima posible
