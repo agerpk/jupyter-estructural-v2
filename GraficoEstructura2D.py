@@ -198,8 +198,125 @@ class GraficoEstructura2D:
             ))
     
     def _dibujar_cables(self, fig):
-        """Método deshabilitado - no dibujar líneas hacia vanos"""
-        pass
+        """Dibujar cables suspendidos y cotas de alturas para primera altura"""
+        # Detectar nodos conductor de primera altura (menor z)
+        conductores = [(n, nodo) for n, nodo in self.geo.nodos.items() if nodo.tipo_nodo == "conductor"]
+        if not conductores:
+            return
+        
+        # Encontrar menor z
+        z_min = min(nodo.coordenadas[2] for _, nodo in conductores)
+        
+        # Filtrar conductores en primera altura
+        primera_altura = [(n, nodo) for n, nodo in conductores if abs(nodo.coordenadas[2] - z_min) < 0.01]
+        
+        if not primera_altura:
+            return
+        
+        # Seleccionar el de mayor x
+        nodo_ref_nombre, nodo_ref = max(primera_altura, key=lambda item: item[1].coordenadas[0])
+        x_ref, y_ref, z_ref = nodo_ref.coordenadas
+        
+        Lk = self.geo.lk
+        z_extremo = z_ref - Lk
+        
+        # Dibujar patch de cable suspendido (arco)
+        import numpy as np
+        x_cable = np.linspace(x_ref - 0.5, x_ref + 0.5, 20)
+        flecha_cable = 0.3  # Flecha visual del patch
+        z_cable = z_extremo - flecha_cable * (1 - ((x_cable - x_ref) / 0.5)**2)
+        
+        fig.add_trace(go.Scatter(
+            x=x_cable,
+            y=z_cable,
+            mode='lines',
+            line=dict(color='black', width=2),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        
+        # Obtener datos de geometría
+        flecha_max = self.geo.dimensiones.get('termino_flecha', 0) - Lk  # termino_flecha = flecha + Lk
+        altura_electrica = self.geo.dimensiones.get('h_base_electrica', 0)  # a + b
+        hadd = self.geo.hadd
+        
+        # Posición base para cotas (debajo del cable)
+        z_base_cable = z_extremo - flecha_cable
+        x_cota = x_ref + 0.8
+        
+        # 1. Flecha máxima (línea roja punteada)
+        z_flecha = z_base_cable - flecha_max
+        fig.add_trace(go.Scatter(
+            x=[x_ref - 0.5, x_ref + 0.5],
+            y=[z_flecha, z_flecha],
+            mode='lines',
+            line=dict(color='red', width=2, dash='dash'),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        fig.add_annotation(
+            x=x_cota,
+            y=z_flecha,
+            text=f'f={flecha_max:.2f}m',
+            showarrow=False,
+            xanchor='left',
+            font=dict(size=9, color='red'),
+            bgcolor='white',
+            borderpad=2
+        )
+        
+        # 2. Altura eléctrica (línea gris punteada)
+        z_electrica = z_flecha - altura_electrica
+        fig.add_trace(go.Scatter(
+            x=[x_ref - 0.5, x_ref + 0.5],
+            y=[z_electrica, z_electrica],
+            mode='lines',
+            line=dict(color='gray', width=2, dash='dash'),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        fig.add_annotation(
+            x=x_cota,
+            y=z_electrica,
+            text=f'a+b={altura_electrica:.2f}m',
+            showarrow=False,
+            xanchor='left',
+            font=dict(size=9, color='gray'),
+            bgcolor='white',
+            borderpad=2
+        )
+        
+        # 3. Línea negra horizontal (terreno)
+        z_terreno = z_electrica
+        fig.add_trace(go.Scatter(
+            x=[x_ref - 0.6, x_ref + 0.6],
+            y=[z_terreno, z_terreno],
+            mode='lines',
+            line=dict(color='black', width=3),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        
+        # 4. HADD (línea naranja punteada)
+        z_hadd = z_terreno - hadd
+        fig.add_trace(go.Scatter(
+            x=[x_ref - 0.5, x_ref + 0.5],
+            y=[z_hadd, z_hadd],
+            mode='lines',
+            line=dict(color='orange', width=2, dash='dash'),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        fig.add_annotation(
+            x=x_cota,
+            y=z_hadd,
+            text=f'HADD={hadd:.2f}m',
+            showarrow=False,
+            xanchor='left',
+            font=dict(size=9, color='orange'),
+            bgcolor='white',
+            borderpad=2
+        )
     
     def _dibujar_zona_apantallamiento(self, fig):
         """Dibujar zona de apantallamiento"""
