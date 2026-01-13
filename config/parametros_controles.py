@@ -146,6 +146,16 @@ CONTROLES_PARAMETROS = {
         "step": 0.1,
         "marks": {i: str(i) for i in range(0, 11, 2)}
     },
+    "SOBREESCRIBIR_ALTURA_a_CABLE": {
+        "tipo": "switch"
+    },
+    "ALTURA_a_CABLE_SOBREESCRITA": {
+        "tipo": "slider",
+        "min": 0,
+        "max": 10,
+        "step": 0.1,
+        "marks": {i: str(i) for i in range(0, 11, 2)}
+    },
     "DIST_REPOSICIONAR_HG": {
         "tipo": "slider",
         "min": 0,

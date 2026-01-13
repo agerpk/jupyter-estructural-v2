@@ -823,6 +823,8 @@ def register_callbacks(app):
         State("slider-cant-hg-geom", "value"),
         State("slider-altura-min-cable", "value"),
         State("slider-lmen-min-cond", "value"),
+        State("switch-sobreescribir-altura-a", "value"),
+        State("slider-altura-a-sobreescrita", "value"),
         State("slider-lmen-min-guard", "value"),
         State("slider-hadd-geom", "value"),
         State("slider-hadd-entre-amarres", "value"),
@@ -839,7 +841,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def guardar_parametros_geometria(n_clicks, tension, zona, lk, ang_apant, disposicion, terna, cant_hg,
-                                     altura_min, lmen_cond, lmen_guard, hadd, hadd_amarres, hadd_hg, hadd_lmen,
+                                     altura_min, lmen_cond, sobreescribir_altura_a, altura_a_sobreescrita, lmen_guard, hadd, hadd_amarres, hadd_hg, hadd_lmen,
                                      ancho_cruceta, dist_repos, hg_centrado, autoajustar, defasaje_hielo, lmen_extra_hielo, mensula_defasar, estructura_actual):
         if not n_clicks:
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
@@ -860,6 +862,8 @@ def register_callbacks(app):
                 "TERNA": terna,
                 "CANT_HG": cant_hg,
                 "ALTURA_MINIMA_CABLE": altura_min,
+                "SOBREESCRIBIR_ALTURA_a_CABLE": sobreescribir_altura_a,
+                "ALTURA_a_CABLE_SOBREESCRITA": altura_a_sobreescrita,
                 "LONGITUD_MENSULA_MINIMA_CONDUCTOR": lmen_cond,
                 "LONGITUD_MENSULA_MINIMA_GUARDIA": lmen_guard,
                 "HADD": hadd,

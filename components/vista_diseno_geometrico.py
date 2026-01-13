@@ -380,6 +380,17 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                 
                 dbc.Row([
                     dbc.Col([
+                        dbc.Label("Sobreescribir Altura 'a' Cable", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(id="switch-sobreescribir-altura-a", value=estructura_actual.get("SOBREESCRIBIR_ALTURA_a_CABLE", False)),
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Label("Altura 'a' Cable Sobreescrita (m)", style={"fontSize": "1.125rem"}),
+                        dcc.Slider(id="slider-altura-a-sobreescrita", **{k: v for k, v in obtener_config_control("ALTURA_a_CABLE_SOBREESCRITA").items() if k != "tipo"}, value=estructura_actual.get("ALTURA_a_CABLE_SOBREESCRITA", 0), tooltip={"placement": "bottom", "always_visible": True}),
+                    ], md=6),
+                ], className="mb-3"),
+                
+                dbc.Row([
+                    dbc.Col([
                         dbc.Label("Long. Ménsula Mín. Guardia (m)", style={"fontSize": "1.125rem"}),
                         dcc.Slider(id="slider-lmen-min-guard", **{k: v for k, v in obtener_config_control("LONGITUD_MENSULA_MINIMA_GUARDIA").items() if k != "tipo"}, value=estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA", 0.2), tooltip={"placement": "bottom", "always_visible": True}),
                     ], md=6),

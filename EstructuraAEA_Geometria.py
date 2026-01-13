@@ -144,6 +144,14 @@ class EstructuraAEA_Geometria:
         self.s_tormenta = s_tormenta
         self.s_decmax = s_decmax
         
+        # Parámetros de sobreescritura de altura_a
+        if parametros:
+            self.sobreescribir_altura_a_cable = parametros.get("SOBREESCRIBIR_ALTURA_a_CABLE", False)
+            self.altura_a_cable_sobreescrita = parametros.get("ALTURA_a_CABLE_SOBREESCRITA", 0)
+        else:
+            self.sobreescribir_altura_a_cable = False
+            self.altura_a_cable_sobreescrita = 0
+        
         # Nuevos parámetros
         self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO
         self.ang_apantallamiento = ang_apantallamiento if ang_apantallamiento is not None else self.ANG_APANTALLAMIENTO
@@ -218,8 +226,11 @@ class EstructuraAEA_Geometria:
     
     def _calcular_altura_base_electrica(self, b):
         """Calcula la altura base eléctrica: a + b >= altura_minima_cable"""
-        # a = altura mínima según zona
-        a = self.ALTURAS_MINIMAS_TERRENO.get(self.zona_estructura, 99)
+        # a = altura mínima según zona (o sobreescrita)
+        if getattr(self, 'sobreescribir_altura_a_cable', False):
+            a = getattr(self, 'altura_a_cable_sobreescrita', 0)
+        else:
+            a = self.ALTURAS_MINIMAS_TERRENO.get(self.zona_estructura, 99)
         
         # Calcular a + b
         h_base = a + b

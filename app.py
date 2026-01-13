@@ -187,6 +187,8 @@ def inicializar_datos():
             "CANT_HG": 2,
             "HG_CENTRADO": False,
             "ALTURA_MINIMA_CABLE": 6.5,
+            "SOBREESCRIBIR_ALTURA_a_CABLE": False,
+            "ALTURA_a_CABLE_SOBREESCRITA": 0,
             "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
             "LONGITUD_MENSULA_MINIMA_GUARDIA": 0.2,
             "HADD": 0.4,

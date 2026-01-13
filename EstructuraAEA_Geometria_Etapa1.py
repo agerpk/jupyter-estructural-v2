@@ -77,7 +77,18 @@ class GeometriaEtapa1:
         h1a = a + b + fmax + Lk + HADD
         
         # Calcular Lmen1 iterativamente
-        Lmen1 = self._calcular_lmen1_iterativo(h1a, distancias, theta_max)
+        Lmen1_iterado = self._calcular_lmen1_iterativo(h1a, distancias, theta_max)
+        
+        # Agregar HADD_LMEN al valor final
+        HADD_LMEN = getattr(self.geo, 'hadd_lmen', 0.0)
+        Lmen1 = Lmen1_iterado + HADD_LMEN
+        
+        # Agregar defasaje por hielo si corresponde
+        if self.geo.defasaje_mensula_hielo and ("primera" in self.geo.mensula_defasar):
+            Lmen1 += self.geo.lmen_extra_hielo
+            print(f"   ➕ HADD_LMEN + hielo: {Lmen1_iterado:.3f}m + {HADD_LMEN:.3f}m + {self.geo.lmen_extra_hielo:.3f}m = {Lmen1:.3f}m")
+        elif HADD_LMEN > 0:
+            print(f"   ➕ HADD_LMEN aplicado: {Lmen1_iterado:.3f}m + {HADD_LMEN:.3f}m = {Lmen1:.3f}m")
         
         # Guardar resultados (s_reposo, s_tormenta, s_decmax ya están en distancias)
         self.geo.dimensiones.update({
@@ -248,48 +259,43 @@ class GeometriaEtapa1:
     def _crear_nodos_conductores_h1a(self, h1a, Lmen1):
         """Crear nodos conductores en primera altura según disposición/terna"""
         
-        # Horizontal simple: NO aplica defasaje por hielo
+        # Horizontal simple: NO aplica defasaje por hielo (ya está incluido en Lmen1)
         if self.geo.disposicion == "horizontal" and self.geo.terna == "Simple":
             self._crear_horizontal_simple(h1a, Lmen1)
             return
         
-        # Aplicar defasaje por hielo si corresponde (para todos los demás casos)
-        Lmen1_con_hielo = Lmen1
-        if self.geo.defasaje_mensula_hielo and ("primera" in self.geo.mensula_defasar):
-            Lmen1_con_hielo += self.geo.lmen_extra_hielo
-            print(f"   ❄️  Defasaje hielo aplicado: Lmen1_con_hielo = {Lmen1_con_hielo:.2f}m")
-        
+        # Para todos los demás casos, Lmen1 ya incluye HADD_LMEN + defasaje hielo
         if self.geo.terna == "Simple" and self.geo.disposicion == "vertical":
             # Vertical simple: C1
             self.geo.nodos["C1"] = NodoEstructural(
-                "C1", (Lmen1_con_hielo, 0.0, h1a), "conductor",
+                "C1", (Lmen1, 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
-            print(f"   🔵 Nodo C1 creado en ({Lmen1_con_hielo:.2f}, 0, {h1a:.2f})")
+            print(f"   🔵 Nodo C1 creado en ({Lmen1:.2f}, 0, {h1a:.2f})")
         
         elif self.geo.terna == "Simple" and self.geo.disposicion == "triangular":
             # Triangular simple: C1, C2
             self.geo.nodos["C1"] = NodoEstructural(
-                "C1", (Lmen1_con_hielo, 0.0, h1a), "conductor",
+                "C1", (Lmen1, 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
             self.geo.nodos["C2"] = NodoEstructural(
-                "C2", (-Lmen1_con_hielo, 0.0, h1a), "conductor",
+                "C2", (-Lmen1, 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
-            print(f"   🔵 Nodos C1, C2 creados en (±{Lmen1_con_hielo:.2f}, 0, {h1a:.2f})")
+            print(f"   🔵 Nodos C1, C2 creados en (±{Lmen1:.2f}, 0, {h1a:.2f})")
         
         elif self.geo.terna == "Doble" and self.geo.disposicion == "vertical":
             # Doble vertical: C1_R, C1_L
             self.geo.nodos["C1_R"] = NodoEstructural(
-                "C1_R", (Lmen1_con_hielo, 0.0, h1a), "conductor",
+                "C1_R", (Lmen1, 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
             self.geo.nodos["C1_L"] = NodoEstructural(
-                "C1_L", (-Lmen1_con_hielo, 0.0, h1a), "conductor",
+                "C1_L", (-Lmen1, 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
-            print(f"   🔵 Nodos C1_R, C1_L creados en (±{Lmen1_con_hielo:.2f}, 0, {h1a:.2f})")
+            print(f"   🔵 Nodos C1_R, C1_L creados en (±{Lmen1:.2f}, 0, {h1a:.2f})")
         
         elif self.geo.terna == "Doble" and self.geo.disposicion == "triangular":
             # Doble triangular: C1_R, C2_R, C1_L, C2_L
@@ -300,19 +306,19 @@ class GeometriaEtapa1:
             self.geo.dimensiones['Lmen12'] = Lmen12
             
             self.geo.nodos["C1_R"] = NodoEstructural(
-                "C1_R", (Lmen1_con_hielo, 0.0, h1a), "conductor",
+                "C1_R", (Lmen1, 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
             self.geo.nodos["C2_R"] = NodoEstructural(
-                "C2_R", (Lmen1_con_hielo + Lmen12, 0.0, h1a), "conductor",
+                "C2_R", (Lmen1 + Lmen12, 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
             self.geo.nodos["C1_L"] = NodoEstructural(
-                "C1_L", (-Lmen1_con_hielo, 0.0, h1a), "conductor",
+                "C1_L", (-Lmen1, 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
             self.geo.nodos["C2_L"] = NodoEstructural(
-                "C2_L", (-(Lmen1_con_hielo + Lmen12), 0.0, h1a), "conductor",
+                "C2_L", (-(Lmen1 + Lmen12), 0.0, h1a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
             print(f"   🔵 Nodos C1_R, C2_R, C1_L, C2_L creados en h1a={h1a:.2f}m, Lmen12={Lmen12:.2f}m")
