@@ -30,19 +30,41 @@ class GeometriaEtapa1:
             s_tormenta_custom = getattr(self.geo, 's_tormenta', None)
             s_decmax_custom = getattr(self.geo, 's_decmax', None)
             
+            # Validar que no sean 0
+            if s_reposo_custom is not None and s_reposo_custom <= 0:
+                raise ValueError(f"Error: s_reposo no puede valer {s_reposo_custom}. Debe ser mayor a 0.")
+            if s_tormenta_custom is not None and s_tormenta_custom <= 0:
+                raise ValueError(f"Error: s_tormenta no puede valer {s_tormenta_custom}. Debe ser mayor a 0.")
+            if s_decmax_custom is not None and s_decmax_custom <= 0:
+                raise ValueError(f"Error: s_decmax no puede valer {s_decmax_custom}. Debe ser mayor a 0.")
+            
             if s_reposo_custom is not None:
-                distancias['s_estructura'] = s_reposo_custom
-                print(f"   🔧 s_estructura sobreescrito: {s_reposo_custom:.3f}m")
+                distancias['s_reposo'] = s_reposo_custom
+                print(f"   🔧 s_reposo sobreescrito: {s_reposo_custom:.3f}m")
+            else:
+                distancias['s_reposo'] = distancias['s_estructura']
+            
             if s_tormenta_custom is not None:
                 distancias['s_tormenta'] = s_tormenta_custom
                 print(f"   🔧 s_tormenta sobreescrito: {s_tormenta_custom:.3f}m")
+            else:
+                distancias['s_tormenta'] = distancias['s_estructura']
+            
             if s_decmax_custom is not None:
                 distancias['s_decmax'] = s_decmax_custom
                 print(f"   🔧 s_decmax sobreescrito: {s_decmax_custom:.3f}m")
+            else:
+                distancias['s_decmax'] = distancias['s_estructura']
+        else:
+            # Si no se sobreescribe, usar s_estructura para todos
+            distancias['s_reposo'] = distancias['s_estructura']
+            distancias['s_tormenta'] = distancias['s_estructura']
+            distancias['s_decmax'] = distancias['s_estructura']
         
         # Imprimir valores finales usados en checkeos
         print(f"   📏 Distancias usadas en checkeos:")
-        print(f"      s_reposo (s_estructura): {distancias['s_estructura']:.3f}m")
+        print(f"      s_estructura (calculado): {distancias['s_estructura']:.3f}m")
+        print(f"      s_reposo: {distancias.get('s_reposo', distancias['s_estructura']):.3f}m")
         print(f"      s_tormenta: {distancias.get('s_tormenta', distancias['s_estructura']):.3f}m")
         print(f"      s_decmax: {distancias.get('s_decmax', distancias['s_estructura']):.3f}m")
         
@@ -57,14 +79,18 @@ class GeometriaEtapa1:
         # Calcular Lmen1 iterativamente
         Lmen1 = self._calcular_lmen1_iterativo(h1a, distancias, theta_max)
         
-        # Guardar resultados
+        # Guardar resultados (s_reposo, s_tormenta, s_decmax ya están en distancias)
         self.geo.dimensiones.update({
             "h1a": h1a,
             "Lmen1": Lmen1,
-            "s_tormenta": distancias['s_tormenta'],
-            "s_decmax": distancias['s_decmax'],
             **distancias
         })
+        
+        # DEBUG: Verificar que se guardaron correctamente
+        print(f"   💾 DEBUG: Valores guardados en dimensiones:")
+        print(f"      s_reposo: {self.geo.dimensiones.get('s_reposo', 'NO EXISTE')}")
+        print(f"      s_tormenta: {self.geo.dimensiones.get('s_tormenta', 'NO EXISTE')}")
+        print(f"      s_decmax: {self.geo.dimensiones.get('s_decmax', 'NO EXISTE')}")
         
         # Crear nodos conductores según disposición/terna
         self._crear_nodos_conductores_h1a(h1a, Lmen1)
@@ -97,51 +123,68 @@ class GeometriaEtapa1:
             print(f"   🔵 Horizontal Simple Lk=0: Lmen1 = max(D_fases={D_fases:.2f}, Lmen_min={Lmen_minima:.2f}) = {Lmen1:.2f}m")
             return Lmen1
         
-        # CASO GENERAL: Iterativo con s_decmax
+        # CASO GENERAL: Iterativo verificando 3 condiciones
+        s_reposo = distancias.get('s_reposo', distancias['s_estructura'])
+        s_tormenta = distancias.get('s_tormenta', distancias['s_estructura'])
         s_decmax = distancias.get('s_decmax', distancias['s_estructura'])
         Lmen_minima = self.geo.long_mensula_min_conductor
         Lk = self.geo.lk
         
-        Lmen1 = Lmen_minima
-        max_iteraciones = 100
-        incremento = 0.05
+        Lmen1 = 0.0
+        max_iteraciones = 1000
+        incremento = 0.01
+        
+        print(f"   🔍 Lmen1 iterativo: Lmen_min={Lmen_minima:.3f}m, Lk={Lk:.3f}m")
+        print(f"      s_reposo={s_reposo:.3f}m, s_tormenta={s_tormenta:.3f}m, s_decmax={s_decmax:.3f}m")
+        print(f"      theta_max={theta_max:.2f}°, theta_tormenta={theta_tormenta:.2f}°")
         
         for i in range(max_iteraciones):
-            # Calcular posición conductor declinado
-            x_conductor = Lmen1 + Lk * math.sin(math.radians(theta_max))
-            z_conductor = h1a - Lk * math.cos(math.radians(theta_max))
+            # Verificar 3 condiciones en paralelo
+            # 1. Reposo (theta=0, conductor cuelga verticalmente)
+            x_reposo = Lmen1
+            z_reposo = h1a - Lk
+            infr_col_reposo = self._verificar_infraccion_columna(x_reposo, z_reposo, s_reposo, h1a, 0, 0)
+            infr_men_reposo = self._verificar_infraccion_mensula(Lmen1, h1a, x_reposo, z_reposo, s_reposo, 0, 0)
             
-            # Verificar infracciones con elementos fijos
-            infraccion_columna = self._verificar_infraccion_columna(x_conductor, z_conductor, s_decmax, h1a, theta_max, theta_tormenta)
-            infraccion_mensula = self._verificar_infraccion_mensula(Lmen1, h1a, x_conductor, z_conductor, s_decmax, theta_max, theta_tormenta)
+            # 2. Tormenta (theta=theta_tormenta)
+            x_tormenta = Lmen1 - Lk * math.sin(math.radians(theta_tormenta))
+            z_tormenta = h1a - Lk * math.cos(math.radians(theta_tormenta))
+            infr_col_tormenta = self._verificar_infraccion_columna(x_tormenta, z_tormenta, s_tormenta, h1a, theta_tormenta, theta_tormenta)
+            infr_men_tormenta = self._verificar_infraccion_mensula(Lmen1, h1a, x_tormenta, z_tormenta, s_tormenta, theta_tormenta, theta_tormenta)
             
-            if infraccion_columna:
+            # 3. Declinación máxima (theta=theta_max)
+            x_decmax = Lmen1 - Lk * math.sin(math.radians(theta_max))
+            z_decmax = h1a - Lk * math.cos(math.radians(theta_max))
+            infr_col_decmax = self._verificar_infraccion_columna(x_decmax, z_decmax, s_decmax, h1a, theta_max, theta_tormenta)
+            infr_men_decmax = self._verificar_infraccion_mensula(Lmen1, h1a, x_decmax, z_decmax, s_decmax, theta_max, theta_tormenta)
+            
+            # Si hay cualquier infracción columna, incrementar
+            if infr_col_reposo or infr_col_tormenta or infr_col_decmax:
                 Lmen1 += incremento
                 continue
             
-            if infraccion_mensula:
-                if Lk > 0:
-                    # Calcular distancia de infracción
-                    dist_mensula = math.sqrt((Lmen1 - x_conductor)**2 + (h1a - z_conductor)**2)
-                    falta = s_decmax - dist_mensula  # Positivo = falta distancia
-                    if falta > 0:
-                        print(f"   ⚠️  Infracción detectada: ménsula a {dist_mensula:.3f}m del conductor declinado")
-                        print(f"      Distancia mínima requerida (s_decmax): {s_decmax:.3f}m")
-                        print(f"      Falta: {falta:.3f}m")
-                        print(f"      Lk actual: {Lk:.3f}m")
-                        print(f"      Lk mínimo necesario: {Lk + falta:.3f}m")
-                        raise ValueError(
-                            f"Lk insuficiente para evitar infracción con ménsula. "
-                            f"Lk actual={Lk:.3f}m, Lk mínimo={Lk + falta:.3f}m, "
-                            f"aumentar {falta:.3f}m"
-                        )
-                else:
-                    if not infraccion_columna:
-                        break
+            # Si hay infracción ménsula - verificar distancia mínima (cateto vertical)
+            dist_vertical_reposo = Lk  # En reposo, distancia vertical es Lk completo
+            if dist_vertical_reposo < s_reposo:
+                raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_reposo:.3f}m < s_reposo={s_reposo:.3f}m")
+            
+            dist_vertical_tormenta = Lk * math.cos(math.radians(theta_tormenta))
+            if dist_vertical_tormenta < s_tormenta:
+                raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_tormenta:.3f}m < s_tormenta={s_tormenta:.3f}m")
+            
+            dist_vertical_decmax = Lk * math.cos(math.radians(theta_max))
+            if dist_vertical_decmax < s_decmax:
+                raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_decmax:.3f}m < s_decmax={s_decmax:.3f}m")
+            
+            if infr_men_reposo or infr_men_tormenta or infr_men_decmax:
+                Lmen1 += incremento
+                continue
             
             break
         
-        return max(Lmen1, Lmen_minima)
+        resultado = max(Lmen1, Lmen_minima)
+        print(f"   ✅ Lmen1={resultado:.3f}m ({i+1} iter)")
+        return resultado
     
     def _verificar_infraccion_columna(self, x_conductor, z_conductor, s_decmax, h1a, theta_max, theta_tormenta):
         """Verificar si conductor infringe zonas prohibidas usando geometria_zonas"""
@@ -159,7 +202,7 @@ class GeometriaEtapa1:
         parametros = {
             'Lk': self.geo.lk,
             'D_fases': self.geo.dimensiones.get('D_fases', 0),
-            's_reposo': self.geo.dimensiones.get('s_estructura', 0),
+            's_reposo': self.geo.dimensiones.get('s_reposo', 0),
             's_decmax': s_decmax,
             's_tormenta': self.geo.dimensiones.get('s_tormenta', 0),
             'Dhg': 0,
@@ -184,10 +227,11 @@ class GeometriaEtapa1:
         nodos_temp["C1_TEMP"] = Nodo("C1_TEMP", Lmen1, 0, h1a, "conductor")
         nodos_temp["CROSS_H1"].agregar_conexion(nodos_temp["C1_TEMP"], "mensula")
         
+        # Ménsula usa s_decmax (conductor en theta_max)
         parametros = {
             'Lk': self.geo.lk,
             'D_fases': 0,
-            's_reposo': self.geo.dimensiones.get('s_estructura', 0),
+            's_reposo': 0,
             's_decmax': s_decmax,
             's_tormenta': 0,
             'Dhg': 0,

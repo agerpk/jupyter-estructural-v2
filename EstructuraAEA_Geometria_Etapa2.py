@@ -28,7 +28,7 @@ class GeometriaEtapa2:
         # Calcular h2a_inicial
         h1a = self.geo.dimensiones["h1a"]
         D_fases = self.geo.dimensiones["D_fases"]
-        s_reposo = self.geo.dimensiones["s_estructura"]
+        s_reposo = self.geo.dimensiones.get("s_reposo", 0)
         Lk = self.geo.lk
         HADD_ENTRE_AMARRES = self.geo.hadd_entre_amarres
         
@@ -209,9 +209,9 @@ class GeometriaEtapa2:
         Verifica en 3 declinaciones: reposo, tormenta, máxima
         """
         Lk = self.geo.lk
-        s_reposo = self.geo.dimensiones["s_estructura"]
-        s_decmax = self.geo.dimensiones.get("s_decmax", s_reposo)
-        s_tormenta = self.geo.dimensiones.get("s_tormenta", s_reposo)
+        s_reposo = self.geo.dimensiones.get("s_reposo", 0)
+        s_decmax = self.geo.dimensiones.get("s_decmax", 0)
+        s_tormenta = self.geo.dimensiones.get("s_tormenta", 0)
         D_fases = self.geo.dimensiones["D_fases"]
         Lmen1 = self.geo.dimensiones["Lmen1"]
         

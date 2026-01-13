@@ -143,7 +143,7 @@ class GeometriaEtapa6:
         # Parámetros
         Lk = self.geo.lk
         D_fases = self.geo.dimensiones.get('D_fases', 0)
-        s_reposo = self.geo.dimensiones.get('s_estructura', 0)
+        s_reposo = self.geo.dimensiones.get('s_reposo', 0)
         s_decmax = self.geo.dimensiones.get('s_decmax', s_reposo)
         s_tormenta = self.geo.dimensiones.get('s_tormenta', s_reposo)
         
@@ -193,7 +193,7 @@ class GeometriaEtapa6:
         
         # Obtener parámetros
         Lk = self.geo.lk
-        s_reposo = self.geo.dimensiones.get('s_estructura', 0)
+        s_reposo = self.geo.dimensiones.get('s_reposo', 0)
         s_tormenta = self.geo.dimensiones.get('s_tormenta', s_reposo)
         s_decmax = self.geo.dimensiones.get('s_decmax', s_tormenta)
         D_fases = self.geo.dimensiones.get('D_fases', 0)

@@ -19,10 +19,25 @@ class GraficoCabezal2D:
         theta_max = self.geo.dimensiones.get('theta_max', 0)
         theta_tormenta = theta_max / 2.0 if theta_max < 99 else 0
         s_reposo = self.geo.dimensiones.get('s_reposo', 0)
-        s_tormenta = self.geo.dimensiones.get('s_tormenta', s_reposo)
-        s_decmax = self.geo.dimensiones.get('s_decmax', s_tormenta)
+        s_tormenta = self.geo.dimensiones.get('s_tormenta', 0)
+        s_decmax = self.geo.dimensiones.get('s_decmax', 0)
         D_fases = self.geo.dimensiones.get('D_fases', 0)
         Dhg = self.geo.dimensiones.get('Dhg', 0)
+        
+        # Validar que s_reposo, s_tormenta, s_decmax no sean 0
+        if s_reposo <= 0:
+            raise ValueError(f"Error: s_reposo no puede ser {s_reposo}")
+        if s_tormenta <= 0:
+            raise ValueError(f"Error: s_tormenta no puede ser {s_tormenta}")
+        if s_decmax <= 0:
+            raise ValueError(f"Error: s_decmax no puede ser {s_decmax}")
+        
+        print(f"\n=== DEBUG RADIOS ===")
+        print(f"s_reposo: {s_reposo}")
+        print(f"s_tormenta: {s_tormenta}")
+        print(f"s_decmax: {s_decmax}")
+        print(f"D_fases: {D_fases}")
+        print(f"Dhg: {Dhg}")
         
         # 1. Dibujar estructura base
         self._dibujar_conexiones(fig)
@@ -130,45 +145,34 @@ class GraficoCabezal2D:
     def _crear_botones_control(self, fig, conductores):
         """Crear sliders de control independientes usando updatemenus con botones toggle"""
         
-        # Debug: imprimir todos los nombres de traces
-        print("\n=== DEBUG: Traces en figura ===")
-        for i, trace in enumerate(fig.data):
-            print(f"{i}: {trace.name}")
-        
         # Crear índices de traces por patrón
         indices_dfases = [i for i, trace in enumerate(fig.data) if 'D_fases' in (trace.name or '')]
         indices_dhg = [i for i, trace in enumerate(fig.data) if 'Dhg' in (trace.name or '')]
         indices_reposo_s = [i for i, trace in enumerate(fig.data) if 'reposo_s_zona' in (trace.name or '')]
         indices_tormenta_s = [i for i, trace in enumerate(fig.data) if 'tormenta' in (trace.name or '') and 's_zona' in (trace.name or '')]
         indices_decmax_s = [i for i, trace in enumerate(fig.data) if 'decmax' in (trace.name or '') and 's_zona' in (trace.name or '')]
-        indices_tormenta = [i for i, trace in enumerate(fig.data) if 'tormenta' in (trace.name or '') and 's_zona' not in (trace.name or '')]
-        indices_decmax = [i for i, trace in enumerate(fig.data) if 'decmax' in (trace.name or '') and 's_zona' not in (trace.name or '')]
         indices_apantallamiento = [i for i, trace in enumerate(fig.data) if 'apantallamiento' in (trace.name or '')]
         
-        print(f"\nindices_reposo_s: {indices_reposo_s}")
-        print(f"indices_tormenta_s: {indices_tormenta_s}")
-        print(f"indices_decmax_s: {indices_decmax_s}")
+        # Crear lista de visibilidad base (mantener estado actual de cada trace)
+        def crear_visibility(indices_mostrar):
+            return [i in indices_mostrar or (trace.visible if trace.visible is not None else True) 
+                    for i, trace in enumerate(fig.data)]
+        
+        def crear_visibility_ocultar(indices_ocultar):
+            return [False if i in indices_ocultar else (trace.visible if trace.visible is not None else True)
+                    for i, trace in enumerate(fig.data)]
         
         updatemenus = [
             # Toggle D_fases
             dict(
                 type='buttons',
                 direction='right',
-                x=1.02,
-                xanchor='left',
-                y=0.70,
-                yanchor='top',
+                x=1.02, xanchor='left', y=0.70, yanchor='top',
                 buttons=[
-                    dict(
-                        label='D_fases: OFF',
-                        method='restyle',
-                        args=[{'visible': False}, indices_dfases]
-                    ),
-                    dict(
-                        label='D_fases: ON',
-                        method='restyle',
-                        args=[{'visible': True}, indices_dfases]
-                    )
+                    dict(label='D_fases: OFF', method='update', 
+                         args=[{'visible': crear_visibility_ocultar(indices_dfases)}]),
+                    dict(label='D_fases: ON', method='update',
+                         args=[{'visible': crear_visibility(indices_dfases)}])
                 ],
                 active=0
             ),
@@ -176,21 +180,12 @@ class GraficoCabezal2D:
             dict(
                 type='buttons',
                 direction='right',
-                x=1.02,
-                xanchor='left',
-                y=0.635,
-                yanchor='top',
+                x=1.02, xanchor='left', y=0.635, yanchor='top',
                 buttons=[
-                    dict(
-                        label='Dhg: OFF',
-                        method='restyle',
-                        args=[{'visible': False}, indices_dhg]
-                    ),
-                    dict(
-                        label='Dhg: ON',
-                        method='restyle',
-                        args=[{'visible': True}, indices_dhg]
-                    )
+                    dict(label='Dhg: OFF', method='update',
+                         args=[{'visible': crear_visibility_ocultar(indices_dhg)}]),
+                    dict(label='Dhg: ON', method='update',
+                         args=[{'visible': crear_visibility(indices_dhg)}])
                 ],
                 active=0
             ),
@@ -198,21 +193,12 @@ class GraficoCabezal2D:
             dict(
                 type='buttons',
                 direction='right',
-                x=1.02,
-                xanchor='left',
-                y=0.57,
-                yanchor='top',
+                x=1.02, xanchor='left', y=0.57, yanchor='top',
                 buttons=[
-                    dict(
-                        label='s_reposo: OFF',
-                        method='restyle',
-                        args=[{'visible': False}, indices_reposo_s]
-                    ),
-                    dict(
-                        label='s_reposo: ON',
-                        method='restyle',
-                        args=[{'visible': True}, indices_reposo_s]
-                    )
+                    dict(label='s_reposo: OFF', method='update',
+                         args=[{'visible': crear_visibility_ocultar(indices_reposo_s)}]),
+                    dict(label='s_reposo: ON', method='update',
+                         args=[{'visible': crear_visibility(indices_reposo_s)}])
                 ],
                 active=0
             ),
@@ -220,21 +206,12 @@ class GraficoCabezal2D:
             dict(
                 type='buttons',
                 direction='right',
-                x=1.02,
-                xanchor='left',
-                y=0.505,
-                yanchor='top',
+                x=1.02, xanchor='left', y=0.505, yanchor='top',
                 buttons=[
-                    dict(
-                        label='s_tormenta: OFF',
-                        method='restyle',
-                        args=[{'visible': False}, indices_tormenta_s]
-                    ),
-                    dict(
-                        label='s_tormenta: ON',
-                        method='restyle',
-                        args=[{'visible': True}, indices_tormenta_s]
-                    )
+                    dict(label='s_tormenta: OFF', method='update',
+                         args=[{'visible': crear_visibility_ocultar(indices_tormenta_s + [i for i, t in enumerate(fig.data) if 'tormenta' in (t.name or '') and ('cadena' in (t.name or '') or 'punto' in (t.name or ''))])}]),
+                    dict(label='s_tormenta: ON', method='update',
+                         args=[{'visible': crear_visibility(indices_tormenta_s + [i for i, t in enumerate(fig.data) if 'tormenta' in (t.name or '') and ('cadena' in (t.name or '') or 'punto' in (t.name or ''))])}])
                 ],
                 active=0
             ),
@@ -242,21 +219,12 @@ class GraficoCabezal2D:
             dict(
                 type='buttons',
                 direction='right',
-                x=1.02,
-                xanchor='left',
-                y=0.44,
-                yanchor='top',
+                x=1.02, xanchor='left', y=0.44, yanchor='top',
                 buttons=[
-                    dict(
-                        label='s_decmax: OFF',
-                        method='restyle',
-                        args=[{'visible': False}, indices_decmax_s]
-                    ),
-                    dict(
-                        label='s_decmax: ON',
-                        method='restyle',
-                        args=[{'visible': True}, indices_decmax_s]
-                    )
+                    dict(label='s_decmax: OFF', method='update',
+                         args=[{'visible': crear_visibility_ocultar(indices_decmax_s + [i for i, t in enumerate(fig.data) if 'decmax' in (t.name or '') and ('cadena' in (t.name or '') or 'punto' in (t.name or ''))])}]),
+                    dict(label='s_decmax: ON', method='update',
+                         args=[{'visible': crear_visibility(indices_decmax_s + [i for i, t in enumerate(fig.data) if 'decmax' in (t.name or '') and ('cadena' in (t.name or '') or 'punto' in (t.name or ''))])}])
                 ],
                 active=0
             ),
@@ -264,21 +232,12 @@ class GraficoCabezal2D:
             dict(
                 type='buttons',
                 direction='right',
-                x=1.02,
-                xanchor='left',
-                y=0.375,
-                yanchor='top',
+                x=1.02, xanchor='left', y=0.375, yanchor='top',
                 buttons=[
-                    dict(
-                        label='Apantallamiento: OFF',
-                        method='restyle',
-                        args=[{'visible': False}, indices_apantallamiento]
-                    ),
-                    dict(
-                        label='Apantallamiento: ON',
-                        method='restyle',
-                        args=[{'visible': True}, indices_apantallamiento]
-                    )
+                    dict(label='Apantallamiento: OFF', method='update',
+                         args=[{'visible': crear_visibility_ocultar(indices_apantallamiento)}]),
+                    dict(label='Apantallamiento: ON', method='update',
+                         args=[{'visible': crear_visibility(indices_apantallamiento)}])
                 ],
                 active=1
             )

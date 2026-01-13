@@ -1,8 +1,6 @@
 {
-  "doble_terna_una_terna_activa": true,
-  "pendiente_postes_multiples": 4,
   "TITULO": "2x220 DTT SAN JORGE PRUEBAS",
-  "AJUSTAR_POR_ALTURA_MSNM": false,
+  "AJUSTAR_POR_ALTURA_MSNM": true,
   "ALTURA_MINIMA_CABLE": 6.5,
   "ANCHO_CRUCETA": 0.3,
   "ANG_APANTALLAMIENTO": 30,
@@ -13,20 +11,24 @@
   "DIST_REPOSICIONAR_HG": 0.1,
   "D_fases_add": 0,
   "HADD": 0.4,
-  "HADD_ENTRE_AMARRES": 2,
-  "HADD_HG": 0.2,
-  "HADD_LMEN": 0,
+  "HADD_ENTRE_AMARRES": 0.2,
+  "HADD_HG": 1.5,
+  "HADD_LMEN": 0.5,
   "HG_CENTRADO": false,
   "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
-  "LONGITUD_MENSULA_MINIMA_GUARDIA": 0,
-  "Lk": 2.5,
+  "LONGITUD_MENSULA_MINIMA_GUARDIA": 0.2,
+  "Lk": 3.5,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
+  "SOBREESCRIBIR_S": false,
   "TENSION": 220,
   "TERNA": "Doble",
   "Zona_estructura": "Rural",
   "defasaje_mensula_hielo": false,
-  "lmen_extra_hielo": 0,
+  "lmen_extra_hielo": 1,
   "mensula_defasar": "primera",
+  "s_decmax": 0.5,
+  "s_reposo": 0.5,
+  "s_tormenta": 0.5,
   "cable_conductor_id": "AlAc 435/55",
   "cable_guardia2_id": "",
   "cable_guardia_id": "OPGW FiberHome 24FO 58mm2",
@@ -34,6 +36,7 @@
   "Vn": 220,
   "Zona_climatica": "D",
   "clase": "C",
+  "doble_terna_una_terna_activa": false,
   "exposicion": "C",
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
@@ -91,6 +94,7 @@
   "longitud_colineal_inferior": 1.3,
   "longitud_transversal_inferior": 1.3,
   "metodo_fundacion": "sulzberger",
+  "pendiente_postes_multiples": 4,
   "presion_admisible": 50000,
   "profundidad_propuesta": 1.7,
   "relacion_max_sin_armadura": 1.25,
@@ -160,15 +164,14 @@
   "AnalisisEstaticoEsfuerzos": {
     "DIAGRAMAS_ACTIVOS": {
       "MQNT": true,
-      "MRT": false,
-      "MFE": false
+      "MRT": true,
+      "MFE": true
     },
     "ACTIVAR_AEE": true,
     "GRAFICOS_3D_AEE": true,
-    "n_segmentar_conexion_corta": 33,
-    "n_segmentar_conexion_larga": 66,
-    "percentil_separacion_corta_larga": 50,
-    "escala_graficos": "lineal"
+    "n_segmentar_conexion_corta": 10,
+    "n_segmentar_conexion_larga": 30,
+    "percentil_separacion_corta_larga": 50
   },
   "estados_climaticos": {
     "I": {
@@ -215,10 +218,9 @@
       "II": 0.7,
       "III": 0.7,
       "IV": 0.7,
-      "V": 0.7,
-      "relflecha_max": 0.95
+      "V": 0.7
     }
   },
-  "fecha_modificacion": "2026-01-12T12:05:12.651478",
+  "fecha_modificacion": "2026-01-13T10:17:55.589022",
   "nodos_editados": []
 }

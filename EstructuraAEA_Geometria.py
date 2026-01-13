@@ -585,21 +585,24 @@ class EstructuraAEA_Geometria:
         etapa6 = GeometriaEtapa6(self)
         etapa6.ejecutar()
         
-        # 1. CALCULAR THETA_MAX (ya calculado en Etapa1)
-        theta_max = self.calcular_theta_max(vano, elemento_cadena)
-        
-        # 2-3. CALCULAR DISTANCIAS MÍNIMAS Y COMPONENTE b
-        distancias = self.calcular_distancias_minimas(flecha_max_conductor, theta_max)
-        
-        # Extraer valores
-        D_fases = distancias['D_fases']
-        s_estructura = distancias['s_estructura']
-        Dhg = distancias['Dhg']
-        b = distancias['b']
-        self.h_base_electrica = distancias['h_base_electrica']
+        # Extraer valores ya calculados en Etapa1 (NO recalcular)
+        theta_max = self.dimensiones.get('theta_max', 0)
+        D_fases = self.dimensiones.get('D_fases', 0)
+        s_estructura = self.dimensiones.get('s_estructura', 0)
+        s_reposo = self.dimensiones.get('s_reposo', s_estructura)
+        s_tormenta = self.dimensiones.get('s_tormenta', s_estructura)
+        s_decmax = self.dimensiones.get('s_decmax', s_estructura)
+        Dhg = self.dimensiones.get('Dhg', 0)
+        b = self.dimensiones.get('b', 0)
+        k = self.dimensiones.get('k', 0)
+        Ka = self.dimensiones.get('Ka', 1.0)
         
         # 4. Altura base eléctrica ya calculada en _calcular_altura_base_electrica
         
+        # COMENTADO: Dimensionamiento unifilar antiguo (reemplazado por Etapas 1-6)
+        # Este código recalculaba alturas y ménsulas con fórmulas antiguas
+        # Ahora las Etapas 1-6 hacen el dimensionamiento correcto NO REACTIVAR
+        """
         # 5. CALCULAR ALTURAS DE FASES
         h1a, h2a, h3a = self._calcular_alturas_fases(D_fases, s_estructura, flecha_max_conductor)
         
@@ -623,28 +626,27 @@ class EstructuraAEA_Geometria:
         
         # 16. APLICAR DEFASAJE POR HIELO
         self._aplicar_defasaje_hielo()
+        """
         
-        # GUARDAR DIMENSIONES
-        self.dimensiones = {
+        # Extraer valores ya calculados por las Etapas
+        h1a = self.dimensiones.get('h1a', 0)
+        h2a = self.dimensiones.get('h2a', 0)
+        h3a = self.dimensiones.get('h3a', 0)
+        self.lmen = self.dimensiones.get('Lmen1', 0)
+        self.lmen2c = self.dimensiones.get('Lmen2', self.lmen)
+        self.hhg = self.dimensiones.get('hhg', 0)
+        self.lmenhg = self.dimensiones.get('lmenhg', 0)
+        
+        # GUARDAR DIMENSIONES (actualizar con valores calculados en unifilar)
+        self.dimensiones.update({
             "h1a": h1a, "h2a": h2a, "h3a": h3a, "hhg": self.hhg,
             "lmen": self.lmen, "lmen2c": self.lmen2c, "lmenhg": self.lmenhg,
             "pcma_x": self.pcma[0], "pcma_y": self.pcma[1],
             "phg1_x": self.phg1[0], "phg1_y": self.phg1[1],
             "phg2_x": self.phg2[0], "phg2_y": self.phg2[1],
-            "D_fases": D_fases, "s_estructura": s_estructura, "Dhg": Dhg,
-            "theta_max": theta_max, "k": distancias['k'],
-            "Ka": distancias['Ka'],  # Asegurar que Ka se guarde
-            "h_base_electrica": self.h_base_electrica,
-            "hg_centrado": self.hg_centrado,
-            "ang_apantallamiento": self.ang_apantallamiento,
-            "b": b,
             "altura_total": max(h3a, h2a, h1a, self.hhg),
-            "autoajustar_lmenhg": autoajustar_lmenhg,
-            "defasaje_mensula_hielo": self.defasaje_mensula_hielo,
-            "lmen_extra_hielo": self.lmen_extra_hielo,
-            "mensula_defasar": self.mensula_defasar,
-            "d_fases_add": self.d_fases_add
-        }
+            "autoajustar_lmenhg": autoajustar_lmenhg
+        })
         
         # CREAR DATAFRAME CON PARÁMETROS DEL CABEZAL
         self.parametros_cabezal = pd.DataFrame([self.dimensiones])
