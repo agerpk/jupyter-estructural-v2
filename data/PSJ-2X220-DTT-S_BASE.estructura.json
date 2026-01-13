@@ -1,83 +1,46 @@
 {
-  "D_fases_add": 0,
-  "SOBREESCRIBIR_S": true,
-  "s_decmax": 1.73,
-  "s_reposo": 2.6,
-  "s_tormenta": 2.2,
-  "pendiente_postes_multiples": 4,
-  "separacion_postes_cima": 0.3,
-  "parametros_graficos": {
-    "colores": {
-      "conductor": "#1f77b4",
-      "guardia": "#2ca02c",
-      "poste": "#000000",
-      "cadena": "#717170",
-      "conductor_end": "red",
-      "circulo": "gray",
-      "apantallamiento": "#84FF6B",
-      "texto_verde": "#006400",
-      "dhg_circulo": "gray",
-      "terreno": "#8B4513",
-      "area_s_estructura": "lightblue"
-    },
-    "controles": {
-      "declinar_todos": false,
-      "dibujar_solo_circulos_declinados_trayectoria": true,
-      "dibujar_circulos_s_estructura": true,
-      "dibujar_areas_s_estructura": true,
-      "dibujar_circulos_d_fases": true,
-      "dibujar_circulos_dhg": true,
-      "linewidth_cadena": 2,
-      "linewidth_estructura": 4,
-      "linewidth_cruceta": 3,
-      "linewidth_circulo": 1.5,
-      "alpha_cruceta": 0.8,
-      "alpha_circulo": 0.7,
-      "alpha_circulo_trayectoria": 0.4,
-      "alpha_apantallamiento": 0.7,
-      "alpha_area_s_estructura": 0.15,
-      "size_nodo_conductor": 100,
-      "size_nodo_guardia": 100,
-      "size_nodo_estructura": 80,
-      "size_conductor_end": 80,
-      "zoom_cabezal_default": 0.7,
-      "zoom_estructura_default": 0.95,
-      "mostrar_c2": false
-    }
-  },
-  "AnalisisEstaticoEsfuerzos": {
-    "DIAGRAMAS_ACTIVOS": {
-      "MQNT": true,
-      "MRT": true,
-      "MFE": true
-    },
-    "GRAFICOS_3D_AEE": true
-  },
   "TITULO": "PSJ-2X220-DTT-S_BASE",
   "AJUSTAR_POR_ALTURA_MSNM": true,
-  "ALTURA_MINIMA_CABLE": 6,
+  "ALTURA_MINIMA_CABLE": 9.5,
   "ANCHO_CRUCETA": 0.3,
   "ANG_APANTALLAMIENTO": 30,
   "AUTOAJUSTAR_LMENHG": true,
-  "Altura_MSNM": 3000,
+  "Altura_MSNM": 3200,
   "CANT_HG": 2,
   "DISPOSICION": "vertical",
   "DIST_REPOSICIONAR_HG": 0.1,
+  "D_fases_add": 0,
   "HADD": 0.4,
   "HADD_ENTRE_AMARRES": 0,
-  "HADD_HG": 0.5,
-  "HADD_LMEN": 0.5,
+  "HADD_HG": 2,
+  "HADD_LMEN": 0,
   "HG_CENTRADO": false,
   "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
-  "LONGITUD_MENSULA_MINIMA_GUARDIA": 0.2,
+  "LONGITUD_MENSULA_MINIMA_GUARDIA": 0,
   "Lk": 3.5,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
+  "OFFSET_COLUMNA_BASE": true,
+  "OFFSET_COLUMNA_BASE_FIN": 0.7,
+  "OFFSET_COLUMNA_BASE_INICIO": 3.3,
+  "OFFSET_COLUMNA_BASE_TIPO": "Trapezoidal",
+  "OFFSET_COLUMNA_INTER": true,
+  "OFFSET_COLUMNA_INTER_FIN": 0.7,
+  "OFFSET_COLUMNA_INTER_INICIO": 0.7,
+  "OFFSET_COLUMNA_INTER_TIPO": "Recto",
+  "OFFSET_MENSULA": true,
+  "OFFSET_MENSULA_FIN": 0,
+  "OFFSET_MENSULA_INICIO": 1.5,
+  "OFFSET_MENSULA_TIPO": "Triangular",
+  "SOBREESCRIBIR_S": true,
   "TENSION": 220,
   "TERNA": "Doble",
   "Zona_estructura": "Rural",
   "defasaje_mensula_hielo": true,
   "lmen_extra_hielo": 2,
   "mensula_defasar": "segunda",
+  "s_decmax": 1.73,
+  "s_reposo": 2.6,
+  "s_tormenta": 2.2,
   "cable_conductor_id": "AlAc 435/55",
   "cable_guardia2_id": "Ac 70",
   "cable_guardia_id": "OPGW FiberHome 24FO 58mm2",
@@ -85,6 +48,7 @@
   "Vn": 220,
   "Zona_climatica": "D",
   "clase": "C",
+  "doble_terna_una_terna_activa": false,
   "exposicion": "C",
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
@@ -96,7 +60,7 @@
   "Cf_cadena": 0.9,
   "Cf_estructura": 0.9,
   "Cf_guardia": 1,
-  "L_vano": 350,
+  "L_vano": 375,
   "Q": 0.0613,
   "Vmax": 38.9,
   "Vmed": 15.56,
@@ -142,11 +106,52 @@
   "longitud_colineal_inferior": 1.3,
   "longitud_transversal_inferior": 1.3,
   "metodo_fundacion": "sulzberger",
+  "pendiente_postes_multiples": 4,
   "presion_admisible": 50000,
   "profundidad_propuesta": 1.7,
   "relacion_max_sin_armadura": 1.25,
+  "separacion_postes_cima": 0.3,
   "superacion_presion_admisible": 1.33,
   "tipo_base_fundacion": "Rombica",
+  "parametros_graficos": {
+    "colores": {
+      "conductor": "#1f77b4",
+      "guardia": "#2ca02c",
+      "poste": "#000000",
+      "cadena": "#717170",
+      "conductor_end": "red",
+      "circulo": "gray",
+      "apantallamiento": "#84FF6B",
+      "texto_verde": "#006400",
+      "dhg_circulo": "gray",
+      "terreno": "#8B4513",
+      "area_s_estructura": "lightblue"
+    },
+    "controles": {
+      "declinar_todos": false,
+      "dibujar_solo_circulos_declinados_trayectoria": true,
+      "dibujar_circulos_s_estructura": true,
+      "dibujar_areas_s_estructura": true,
+      "dibujar_circulos_d_fases": true,
+      "dibujar_circulos_dhg": true,
+      "linewidth_cadena": 2,
+      "linewidth_estructura": 4,
+      "linewidth_cruceta": 3,
+      "linewidth_circulo": 1.5,
+      "alpha_cruceta": 0.8,
+      "alpha_circulo": 0.7,
+      "alpha_circulo_trayectoria": 0.4,
+      "alpha_apantallamiento": 0.7,
+      "alpha_area_s_estructura": 0.15,
+      "size_nodo_conductor": 100,
+      "size_nodo_guardia": 100,
+      "size_nodo_estructura": 80,
+      "size_conductor_end": 80,
+      "zoom_cabezal_default": 0.7,
+      "zoom_estructura_default": 0.95,
+      "mostrar_c2": false
+    }
+  },
   "costeo": {
     "postes": {
       "coef_a": 267.9232,
@@ -154,19 +159,31 @@
       "coef_c": -2662.3376
     },
     "accesorios": {
+      "vinculos": 320,
       "crucetas": 580,
-      "mensulas": 320,
-      "vinculos": 320
+      "mensulas": 320
     },
     "fundaciones": {
-      "factor_hierro": 1.2,
-      "precio_m3_hormigon": 250
+      "precio_m3_hormigon": 250,
+      "factor_hierro": 1.2
     },
     "montaje": {
-      "factor_terreno": 1,
-      "precio_por_estructura": 5000
+      "precio_por_estructura": 5000,
+      "factor_terreno": 1
     },
     "adicional_estructura": 2000
+  },
+  "AnalisisEstaticoEsfuerzos": {
+    "DIAGRAMAS_ACTIVOS": {
+      "MQNT": true,
+      "MRT": false,
+      "MFE": false
+    },
+    "ACTIVAR_AEE": true,
+    "GRAFICOS_3D_AEE": true,
+    "n_segmentar_conexion_corta": 10,
+    "n_segmentar_conexion_larga": 30,
+    "percentil_separacion_corta_larga": 50
   },
   "estados_climaticos": {
     "I": {
@@ -216,20 +233,8 @@
       "V": 0.7
     }
   },
-  "fecha_modificacion": "2026-01-13T14:28:52.275733",
+  "fecha_modificacion": "2026-01-13T15:37:07.225022",
   "nodos_editados": [],
   "SOBREESCRIBIR_ALTURA_a_CABLE": false,
-  "ALTURA_a_CABLE_SOBREESCRITA": 0,
-  "OFFSET_COLUMNA_BASE": true,
-  "OFFSET_COLUMNA_BASE_TIPO": "Trapezoidal",
-  "OFFSET_COLUMNA_BASE_INICIO": 3.3,
-  "OFFSET_COLUMNA_BASE_FIN": 0.7,
-  "OFFSET_COLUMNA_INTER": true,
-  "OFFSET_COLUMNA_INTER_TIPO": "Recto",
-  "OFFSET_COLUMNA_INTER_INICIO": 0.7,
-  "OFFSET_COLUMNA_INTER_FIN": 0.7,
-  "OFFSET_MENSULA": true,
-  "OFFSET_MENSULA_TIPO": "Triangular",
-  "OFFSET_MENSULA_INICIO": 1.5,
-  "OFFSET_MENSULA_FIN": 0
+  "ALTURA_a_CABLE_SOBREESCRITA": 0
 }

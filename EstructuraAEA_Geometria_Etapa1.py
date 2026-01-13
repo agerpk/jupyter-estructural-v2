@@ -157,6 +157,11 @@ class GeometriaEtapa1:
             infr_col_reposo = self._verificar_infraccion_columna(x_reposo, z_reposo, s_reposo, h1a, 0, 0)
             infr_men_reposo = self._verificar_infraccion_mensula(Lmen1, h1a, x_reposo, z_reposo, s_reposo, 0, 0)
             
+            # DEBUG: Imprimir cada 100 iteraciones
+            if i % 100 == 0:
+                print(f"      Iter {i}: Lmen1={Lmen1:.3f}m, x_rep={x_reposo:.3f}, z_rep={z_reposo:.3f}")
+                print(f"         infr_col={infr_col_reposo}, infr_men={infr_men_reposo}")
+            
             # 2. Tormenta (theta=theta_tormenta)
             x_tormenta = Lmen1 - Lk * math.sin(math.radians(theta_tormenta))
             z_tormenta = h1a - Lk * math.cos(math.radians(theta_tormenta))

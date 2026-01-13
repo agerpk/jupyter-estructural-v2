@@ -279,6 +279,9 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual, omitir_vigencia=
 def crear_tabla_estados_climaticos(estructura_actual):
     """Crear tabla editable de estados climáticos con restricciones"""
     
+    # Cargar estados desde estructura_actual si existen, sino usar defaults
+    estados_guardados = estructura_actual.get("estados_climaticos", {})
+    
     # Valores por defecto
     estados_default = {
         "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
@@ -288,9 +291,21 @@ def crear_tabla_estados_climaticos(estructura_actual):
         "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
     }
     
-    # Restricciones por defecto
-    restricciones_conductor = {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}
-    restricciones_guardia = {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
+    # Mezclar estados guardados con defaults
+    for estado_id in estados_default.keys():
+        if estado_id in estados_guardados:
+            estados_default[estado_id].update(estados_guardados[estado_id])
+    
+    # Cargar restricciones desde estructura_actual si existen
+    restricciones_guardadas = estructura_actual.get("restricciones_cables", {})
+    restricciones_conductor = restricciones_guardadas.get("conductor", {}).get("tension_max_porcentaje", {})
+    restricciones_guardia = restricciones_guardadas.get("guardia", {}).get("tension_max_porcentaje", {})
+    
+    # Defaults si no existen
+    if not restricciones_conductor:
+        restricciones_conductor = {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}
+    if not restricciones_guardia:
+        restricciones_guardia = {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
     
     # Encabezado
     header = dbc.Row([

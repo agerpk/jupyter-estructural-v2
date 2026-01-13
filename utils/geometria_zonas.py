@@ -53,28 +53,40 @@ class ZonaProhibida:
 
 
 class FranjaVertical(ZonaProhibida):
-    """Franja vertical (columna con defasaje s_decmax)"""
+    """Franja vertical (columna con offset variable según altura)"""
     
-    def __init__(self, x_centro: float, z_min: float, z_max: float, ancho: float, descripcion: str = ""):
+    def __init__(self, x_centro: float, z_min: float, z_max: float, ancho_base: float, 
+                 offset_params: dict = None, descripcion: str = ""):
         super().__init__(descripcion or f"Columna x={x_centro:.2f}m", "columna")
         self.x_centro = x_centro
-        self.x_min = x_centro - ancho / 2
-        self.x_max = x_centro + ancho / 2
         self.z_min = z_min
         self.z_max = z_max
+        self.ancho_base = ancho_base  # s_decmax sin offset
+        self.offset_params = offset_params  # {'z_ref_min', 'z_ref_max', 'offset_inicio', 'offset_fin', 'tipo'}
+    
+    def _calcular_offset(self, z: float) -> float:
+        """Calcular offset interpolado para altura z"""
+        if not self.offset_params:
+            return 0
+        return calcular_offset_columna(
+            z, 
+            self.offset_params['z_ref_min'],
+            self.offset_params['z_ref_max'],
+            self.offset_params['offset_inicio'],
+            self.offset_params['offset_fin'],
+            self.offset_params['tipo']
+        )
     
     def contiene_punto(self, x: float, z: float) -> bool:
-        return (self.x_min <= x <= self.x_max and self.z_min <= z <= self.z_max)
+        if not (self.z_min <= z <= self.z_max):
+            return False
+        offset = self._calcular_offset(z)
+        ancho_total = self.ancho_base + offset
+        x_min = self.x_centro - ancho_total
+        x_max = self.x_centro + ancho_total
+        return x_min <= x <= x_max
     
     def distancia_a_punto(self, x: float, z: float) -> Tuple[float, float, float]:
-        # Distancia horizontal
-        if x < self.x_min:
-            dx = self.x_min - x
-        elif x > self.x_max:
-            dx = x - self.x_max
-        else:
-            dx = 0
-        
         # Distancia vertical
         if z < self.z_min:
             dz = self.z_min - z
@@ -83,9 +95,20 @@ class FranjaVertical(ZonaProhibida):
         else:
             dz = 0
         
-        # Distancia mínima
-        dist_min = math.sqrt(dx**2 + dz**2)
+        # Distancia horizontal con offset interpolado
+        offset = self._calcular_offset(z)
+        ancho_total = self.ancho_base + offset
+        x_min = self.x_centro - ancho_total
+        x_max = self.x_centro + ancho_total
         
+        if x < x_min:
+            dx = x_min - x
+        elif x > x_max:
+            dx = x - x_max
+        else:
+            dx = 0
+        
+        dist_min = math.sqrt(dx**2 + dz**2)
         return (dx, dz, dist_min)
 
 
@@ -264,51 +287,34 @@ class GeneradorZonasProhibidas:
                     z_max = max(nodo.z, nodo_destino.z)
                     
                     # Determinar si es columna base o inter
-                    # Base: z_min < h_cross_h1, Inter: z_min >= h_cross_h1
                     es_base = z_min < self.h_cross_h1 if self.h_cross_h1 > 0 else True
                     
-                    # Calcular offset en z_min y z_max
+                    # Preparar parámetros de offset para interpolación
+                    offset_params = None
                     if es_base and self.offset_columna_base:
-                        offset_min = calcular_offset_columna(
-                            z_min, 0, self.h_cross_h1,
-                            self.offset_columna_base_inicio,
-                            self.offset_columna_base_fin,
-                            self.offset_columna_base_tipo
-                        )
-                        offset_max = calcular_offset_columna(
-                            z_max, 0, self.h_cross_h1,
-                            self.offset_columna_base_inicio,
-                            self.offset_columna_base_fin,
-                            self.offset_columna_base_tipo
-                        )
+                        offset_params = {
+                            'z_ref_min': 0,
+                            'z_ref_max': self.h_cross_h1,
+                            'offset_inicio': self.offset_columna_base_inicio,
+                            'offset_fin': self.offset_columna_base_fin,
+                            'tipo': self.offset_columna_base_tipo
+                        }
                     elif not es_base and self.offset_columna_inter:
-                        # Encontrar z_max_estructura
                         z_max_estructura = max(n.z for n in self.nodos.values())
-                        offset_min = calcular_offset_columna(
-                            z_min, self.h_cross_h1, z_max_estructura,
-                            self.offset_columna_inter_inicio,
-                            self.offset_columna_inter_fin,
-                            self.offset_columna_inter_tipo
-                        )
-                        offset_max = calcular_offset_columna(
-                            z_max, self.h_cross_h1, z_max_estructura,
-                            self.offset_columna_inter_inicio,
-                            self.offset_columna_inter_fin,
-                            self.offset_columna_inter_tipo
-                        )
-                    else:
-                        offset_min = 0
-                        offset_max = 0
-                    
-                    # Usar el offset mayor para el ancho
-                    offset = max(offset_min, offset_max)
-                    ancho = 2 * (self.s_decmax + offset)
+                        offset_params = {
+                            'z_ref_min': self.h_cross_h1,
+                            'z_ref_max': z_max_estructura,
+                            'offset_inicio': self.offset_columna_inter_inicio,
+                            'offset_fin': self.offset_columna_inter_fin,
+                            'tipo': self.offset_columna_inter_tipo
+                        }
                     
                     self.zonas.append(FranjaVertical(
                         x_centro=x_centro,
                         z_min=z_min,
                         z_max=z_max,
-                        ancho=ancho,
+                        ancho_base=self.s_decmax,
+                        offset_params=offset_params,
                         descripcion=f"Columna {nodo.nombre}-{nodo_destino.nombre}"
                     ))
     
@@ -371,11 +377,11 @@ class GeneradorZonasProhibidas:
                         ))
                         self.zonas.append(Circulo(
                             centro_x=x_conductor,
-                            centro_z=z_conductor,
+                            centro_z=z_mensula,
                             radio=self.s_reposo + offset_conductor,
                             tipo_zona="mensula",
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_reposo)",
-                            z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula
+                            z_min_corte=z_mensula
                         ))
                     
                     # Franja s_tormenta
@@ -389,11 +395,11 @@ class GeneradorZonasProhibidas:
                         ))
                         self.zonas.append(Circulo(
                             centro_x=x_conductor,
-                            centro_z=z_conductor,
+                            centro_z=z_mensula,
                             radio=self.s_tormenta + offset_conductor,
                             tipo_zona="mensula",
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_tormenta)",
-                            z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula
+                            z_min_corte=z_mensula
                         ))
                     
                     # Franja s_decmax
@@ -407,11 +413,11 @@ class GeneradorZonasProhibidas:
                         ))
                         self.zonas.append(Circulo(
                             centro_x=x_conductor,
-                            centro_z=z_conductor,
+                            centro_z=z_mensula,
                             radio=self.s_decmax + offset_conductor,
                             tipo_zona="mensula",
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} punta (s_decmax)",
-                            z_min_corte=self.z_min_corte if self.z_min_corte is not None else z_mensula
+                            z_min_corte=z_mensula
                         ))
     
     def _generar_zonas_d_fases(self):

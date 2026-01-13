@@ -79,6 +79,7 @@ def register_callbacks(app):
         Output("toast-notificacion", "icon", allow_duplicate=True),
         Output("toast-notificacion", "color", allow_duplicate=True),
         Input("guardar-parametros", "n_clicks"),
+        Input("btn-guardar-params-cmc", "n_clicks"),
         State({"type": "param-input", "index": ALL}, "id"),
         State({"type": "param-input", "index": ALL}, "value"),
         State({"type": "estado-temp-ajuste", "index": ALL}, "value"),
@@ -87,17 +88,49 @@ def register_callbacks(app):
         State({"type": "restriccion-conductor-ajuste", "index": ALL}, "value"),
         State({"type": "restriccion-guardia-ajuste", "index": ALL}, "value"),
         State({"type": "estado-temp-ajuste", "index": ALL}, "id"),
+        State({"type": "estado-temp", "index": ALL}, "value"),
+        State({"type": "estado-viento", "index": ALL}, "value"),
+        State({"type": "estado-hielo", "index": ALL}, "value"),
+        State({"type": "restriccion-conductor", "index": ALL}, "value"),
+        State({"type": "restriccion-guardia", "index": ALL}, "value"),
+        State({"type": "estado-temp", "index": ALL}, "id"),
+        State("param-L_vano", "value"),
+        State("param-Vmax", "value"),
+        State("param-Vmed", "value"),
+        State("param-VANO_DESNIVELADO", "value"),
+        State("param-H_PIQANTERIOR", "value"),
+        State("param-H_PIQPOSTERIOR", "value"),
+        State("param-OBJ_CONDUCTOR", "value"),
+        State("param-OBJ_GUARDIA", "value"),
+        State("param-RELFLECHA_SIN_VIENTO", "value"),
+        State("slider-alpha", "value"),
+        State("slider-theta", "value"),
+        State("slider-t_hielo", "value"),
+        State("slider-SALTO_PORCENTUAL", "value"),
+        State("slider-PASO_AFINADO", "value"),
+        State("slider-RELFLECHA_MAX_GUARDIA", "value"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def guardar_parametros_ajustados(n_clicks, param_ids, param_values, 
-                                     estado_temps, estado_vientos, estado_hielos,
-                                     restriccion_conductores, restriccion_guardias,
-                                     estado_ids, estructura_actual):
-        if n_clicks is None:
+    def guardar_parametros_ajustados(n_clicks_ajuste, n_clicks_cmc, param_ids, param_values, 
+                                     estado_temps_ajuste, estado_vientos_ajuste, estado_hielos_ajuste,
+                                     restriccion_conductores_ajuste, restriccion_guardias_ajuste,
+                                     estado_ids_ajuste,
+                                     estado_temps_cmc, estado_vientos_cmc, estado_hielos_cmc,
+                                     restriccion_conductores_cmc, restriccion_guardias_cmc,
+                                     estado_ids_cmc,
+                                     L_vano, Vmax, Vmed, VANO_DESNIVELADO, H_PIQANTERIOR, H_PIQPOSTERIOR,
+                                     OBJ_CONDUCTOR, OBJ_GUARDIA, RELFLECHA_SIN_VIENTO,
+                                     alpha, theta, t_hielo, SALTO_PORCENTUAL, PASO_AFINADO, RELFLECHA_MAX_GUARDIA,
+                                     estructura_actual):
+        if n_clicks_ajuste is None and n_clicks_cmc is None:
             raise dash.exceptions.PreventUpdate
         
-        print(f"\n🔵 Guardando parámetros...")
+        ctx = dash.callback_context
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
+        es_vista_cmc = trigger_id == "btn-guardar-params-cmc"
+        
+        print(f"\n🔵 Guardando parámetros desde: {'CMC' if es_vista_cmc else 'Ajuste'}")
         
         try:
             from config.app_config import DATA_DIR
@@ -110,6 +143,39 @@ def register_callbacks(app):
             print(f"📁 Archivo: {ruta_archivo.name}")
             
             estructura_actualizada = state.estructura_manager.cargar_estructura(ruta_archivo)
+            
+            # Guardar parámetros específicos de CMC si viene de esa vista
+            if es_vista_cmc:
+                if L_vano is not None:
+                    estructura_actualizada["L_vano"] = float(L_vano)
+                if Vmax is not None:
+                    estructura_actualizada["Vmax"] = float(Vmax)
+                if Vmed is not None:
+                    estructura_actualizada["Vmed"] = float(Vmed)
+                if VANO_DESNIVELADO is not None:
+                    estructura_actualizada["VANO_DESNIVELADO"] = bool(VANO_DESNIVELADO)
+                if H_PIQANTERIOR is not None:
+                    estructura_actualizada["H_PIQANTERIOR"] = float(H_PIQANTERIOR)
+                if H_PIQPOSTERIOR is not None:
+                    estructura_actualizada["H_PIQPOSTERIOR"] = float(H_PIQPOSTERIOR)
+                if OBJ_CONDUCTOR is not None:
+                    estructura_actualizada["OBJ_CONDUCTOR"] = OBJ_CONDUCTOR
+                if OBJ_GUARDIA is not None:
+                    estructura_actualizada["OBJ_GUARDIA"] = OBJ_GUARDIA
+                if RELFLECHA_SIN_VIENTO is not None:
+                    estructura_actualizada["RELFLECHA_SIN_VIENTO"] = bool(RELFLECHA_SIN_VIENTO)
+                if alpha is not None:
+                    estructura_actualizada["alpha"] = float(alpha)
+                if theta is not None:
+                    estructura_actualizada["theta"] = float(theta)
+                if t_hielo is not None:
+                    estructura_actualizada["t_hielo"] = float(t_hielo)
+                if SALTO_PORCENTUAL is not None:
+                    estructura_actualizada["SALTO_PORCENTUAL"] = float(SALTO_PORCENTUAL)
+                if PASO_AFINADO is not None:
+                    estructura_actualizada["PASO_AFINADO"] = float(PASO_AFINADO)
+                if RELFLECHA_MAX_GUARDIA is not None:
+                    estructura_actualizada["RELFLECHA_MAX_GUARDIA"] = float(RELFLECHA_MAX_GUARDIA)
             
             for param_id, param_value in zip(param_ids, param_values):
                 if param_id and "index" in param_id:
@@ -173,14 +239,18 @@ def register_callbacks(app):
                     else:
                         estructura_actualizada[param_key] = param_value
             
+            # Seleccionar estados según vista
+            estado_ids = estado_ids_cmc if es_vista_cmc else estado_ids_ajuste
+            estado_temps = estado_temps_cmc if es_vista_cmc else estado_temps_ajuste
+            estado_vientos = estado_vientos_cmc if es_vista_cmc else estado_vientos_ajuste
+            estado_hielos = estado_hielos_cmc if es_vista_cmc else estado_hielos_ajuste
+            restriccion_conductores = restriccion_conductores_cmc if es_vista_cmc else restriccion_conductores_ajuste
+            restriccion_guardias = restriccion_guardias_cmc if es_vista_cmc else restriccion_guardias_ajuste
+            
             # Guardar estados climáticos si existen
             print(f"\n📊 DEBUG ESTADOS CLIMÁTICOS:")
             print(f"  - estado_ids recibidos: {len(estado_ids) if estado_ids else 0}")
             print(f"  - estado_temps recibidos: {len(estado_temps) if estado_temps else 0}")
-            print(f"  - estado_vientos recibidos: {len(estado_vientos) if estado_vientos else 0}")
-            print(f"  - estado_hielos recibidos: {len(estado_hielos) if estado_hielos else 0}")
-            print(f"  - restriccion_conductores recibidos: {len(restriccion_conductores) if restriccion_conductores else 0}")
-            print(f"  - restriccion_guardias recibidos: {len(restriccion_guardias) if restriccion_guardias else 0}")
             
             if estado_ids and estado_temps:
                 estados_climaticos = {}
@@ -199,14 +269,12 @@ def register_callbacks(app):
                         "viento_velocidad": viento,
                         "espesor_hielo": hielo
                     }
-                    print(f"  Estado {estado_id}: T={temp}°C, V={viento}km/h, H={hielo}mm")
+                    print(f"  Estado {estado_id}: T={temp}°C, V={viento}m/s, H={hielo}m")
                 
                 estructura_actualizada["estados_climaticos"] = estados_climaticos
-                print(f"\n✅ Estados climáticos escritos en estructura_actualizada[\"estados_climaticos\"]")
-                print(f"   Total estados guardados: {len(estados_climaticos)}")
+                print(f"\n✅ Estados climáticos guardados: {len(estados_climaticos)}")
                 
-                # SIEMPRE guardar restricciones
-                print(f"\n🔄 Procesando restricciones:")
+                # Guardar restricciones
                 restricciones_conductor = {}
                 restricciones_guardia = {}
                 
@@ -217,28 +285,17 @@ def register_callbacks(app):
                     
                     restricciones_conductor[estado_id] = rest_cond
                     restricciones_guardia[estado_id] = rest_guard
-                    print(f"  Estado {estado_id}: Conductor={rest_cond*100}%, Guardia={rest_guard*100}%")
                 
                 estructura_actualizada["restricciones_cables"] = {
                     "conductor": {"tension_max_porcentaje": restricciones_conductor},
                     "guardia": {"tension_max_porcentaje": restricciones_guardia}
                 }
-                print(f"\n✅ Restricciones escritas en estructura_actualizada[\"restricciones_cables\"]")
-            else:
-                print(f"\n⚠️  DEBUG: NO se guardaron estados desde inputs (listas vacías)")
-                # Si ya existen estados_climaticos en el archivo, crear restricciones basadas en ellos
-                if "estados_climaticos" in estructura_actualizada:
-                    print(f"   Creando restricciones desde estados existentes en archivo")
-                    print(f"   Estados encontrados: {list(estructura_actualizada['estados_climaticos'].keys())}")
-                    estructura_actualizada["restricciones_cables"] = {
-                        "conductor": {
-                            "tension_max_porcentaje": {estado_id: 0.25 for estado_id in estructura_actualizada["estados_climaticos"].keys()}
-                        },
-                        "guardia": {
-                            "tension_max_porcentaje": {estado_id: 0.7 for estado_id in estructura_actualizada["estados_climaticos"].keys()}
-                        }
-                    }
-                    print(f"   ✅ Restricciones creadas con valores por defecto (Conductor=25%, Guardia=70%)")
+                print(f"✅ Restricciones guardadas")
+            elif "estados_climaticos" in estructura_actualizada:
+                estructura_actualizada["restricciones_cables"] = {
+                    "conductor": {"tension_max_porcentaje": {estado_id: 0.25 for estado_id in estructura_actualizada["estados_climaticos"].keys()}},
+                    "guardia": {"tension_max_porcentaje": {estado_id: 0.7 for estado_id in estructura_actualizada["estados_climaticos"].keys()}}
+                }
             
             print(f"\n💾 Guardando archivo: {ruta_archivo}")
             print(f"   Claves en estructura_actualizada: {list(estructura_actualizada.keys())}")

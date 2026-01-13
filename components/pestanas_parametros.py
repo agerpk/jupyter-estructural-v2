@@ -9,6 +9,9 @@ from dash import html, dcc
 def crear_tabla_estados_climaticos_ajuste(estructura_actual):
     """Crear tabla editable de estados climáticos con restricciones para vista ajuste parámetros"""
     
+    # Cargar estados desde estructura_actual si existen
+    estados_guardados = estructura_actual.get("estados_climaticos", {})
+    
     # Valores por defecto
     estados_default = {
         "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
@@ -18,12 +21,21 @@ def crear_tabla_estados_climaticos_ajuste(estructura_actual):
         "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
     }
     
-    # Restricciones por defecto
-    restricciones_conductor = {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}
-    restricciones_guardia = {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
+    # Mezclar estados guardados con defaults
+    for estado_id in estados_default.keys():
+        if estado_id in estados_guardados:
+            estados_default[estado_id].update(estados_guardados[estado_id])
     
-    # Obtener valores actuales si existen
-    estados_actuales = estructura_actual.get("estados_climaticos", estados_default)
+    # Cargar restricciones desde estructura_actual si existen
+    restricciones_guardadas = estructura_actual.get("restricciones_cables", {})
+    restricciones_conductor = restricciones_guardadas.get("conductor", {}).get("tension_max_porcentaje", {})
+    restricciones_guardia = restricciones_guardadas.get("guardia", {}).get("tension_max_porcentaje", {})
+    
+    # Defaults si no existen
+    if not restricciones_conductor:
+        restricciones_conductor = {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}
+    if not restricciones_guardia:
+        restricciones_guardia = {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
     
     # Encabezado
     header = dbc.Row([
@@ -38,34 +50,31 @@ def crear_tabla_estados_climaticos_ajuste(estructura_actual):
     
     filas = [header]
     for estado_id, valores in estados_default.items():
-        # Usar valores actuales si existen, sino usar defaults
-        valores_actuales = estados_actuales.get(estado_id, valores)
-        
         fila = dbc.Row([
             dbc.Col(html.Strong(estado_id), md=1),
             dbc.Col(
                 dbc.Input(id={"type": "estado-temp-ajuste", "index": estado_id}, type="number", 
-                         value=valores_actuales.get("temperatura", valores["temperatura"]), size="sm"), md=1
+                         value=valores.get("temperatura"), size="sm"), md=1
             ),
             dbc.Col(
                 dbc.Input(id={"type": "estado-desc-ajuste", "index": estado_id}, type="text",
-                         value=valores_actuales.get("descripcion", valores["descripcion"]), size="sm", disabled=True), md=2
+                         value=valores.get("descripcion"), size="sm", disabled=True), md=2
             ),
             dbc.Col(
                 dbc.Input(id={"type": "estado-viento-ajuste", "index": estado_id}, type="number",
-                         value=valores_actuales.get("viento_velocidad", valores["viento_velocidad"]), size="sm"), md=2
+                         value=valores.get("viento_velocidad"), size="sm"), md=2
             ),
             dbc.Col(
                 dbc.Input(id={"type": "estado-hielo-ajuste", "index": estado_id}, type="number",
-                         value=valores_actuales.get("espesor_hielo", valores["espesor_hielo"]), size="sm"), md=2
+                         value=valores.get("espesor_hielo"), size="sm"), md=2
             ),
             dbc.Col(
                 dbc.Input(id={"type": "restriccion-conductor-ajuste", "index": estado_id}, type="number",
-                         value=restricciones_conductor[estado_id], size="sm", step=0.01, min=0, max=1), md=2
+                         value=restricciones_conductor.get(estado_id, 0.25), size="sm", step=0.01, min=0, max=1), md=2
             ),
             dbc.Col(
                 dbc.Input(id={"type": "restriccion-guardia-ajuste", "index": estado_id}, type="number",
-                         value=restricciones_guardia[estado_id], size="sm", step=0.01, min=0, max=1), md=2
+                         value=restricciones_guardia.get(estado_id, 0.7), size="sm", step=0.01, min=0, max=1), md=2
             ),
         ], className="mb-2")
         filas.append(fila)
