@@ -304,10 +304,21 @@ class GraficoCabezal2D:
         """Dibujar offsets de columnas y ménsulas como líneas punteadas grises"""
         from utils.offset_geometria import calcular_offset_columna, calcular_offset_mensula
         
+        print(f"\n🎨 DEBUG OFFSETS - GraficoCabezal2D")
+        print(f"   offset_columna_base: {getattr(self.geo, 'offset_columna_base', 'NO EXISTE')}")
+        print(f"   offset_columna_inter: {getattr(self.geo, 'offset_columna_inter', 'NO EXISTE')}")
+        print(f"   offset_mensula: {getattr(self.geo, 'offset_mensula', 'NO EXISTE')}")
+        
         if not hasattr(self.geo, 'conexiones'):
+            print(f"   ❌ No hay conexiones")
             return
         
+        print(f"   Total conexiones: {len(self.geo.conexiones)}")
+        
         h_cross_h1 = self.geo.dimensiones.get('h1a', 0)
+        print(f"   h_cross_h1: {h_cross_h1:.3f}m")
+        
+        offsets_dibujados = 0
         
         for origen, destino, tipo in self.geo.conexiones:
             if origen not in self.geo.nodos or destino not in self.geo.nodos:
@@ -322,8 +333,16 @@ class GraficoCabezal2D:
                 z_min = min(z_o, z_d)
                 es_base = z_min < h_cross_h1
                 
+                print(f"   Columna {origen}-{destino}: z_min={z_min:.3f}, es_base={es_base}")
+                
                 if es_base and self.geo.offset_columna_base:
-                    z_vals = [z_o, z_d]
+                    print(f"      ✅ Dibujando offset columna base")
+                    # Dibujar offset columna base con interpolación
+                    import numpy as np
+                    z_vals = np.linspace(z_o, z_d, 10)
+                    x_left = []
+                    x_right = []
+                    z_plot = []
                     for z in z_vals:
                         offset = calcular_offset_columna(
                             z, 0, h_cross_h1,
@@ -332,18 +351,41 @@ class GraficoCabezal2D:
                             self.geo.offset_columna_base_tipo
                         )
                         if offset > 0:
-                            fig.add_trace(go.Scatter(
-                                x=[x_o - offset, x_o + offset],
-                                y=[z, z],
-                                mode='lines',
-                                line=dict(color='lightgray', width=1, dash='dot'),
-                                showlegend=False,
-                                hoverinfo='skip'
-                            ))
+                            x_left.append(-offset)
+                            x_right.append(offset)
+                            z_plot.append(z)
+                    
+                    if x_left:
+                        print(f"         Dibujando {len(z_plot)} puntos interpolados")
+                        # Línea izquierda
+                        fig.add_trace(go.Scatter(
+                            x=x_left,
+                            y=z_plot,
+                            mode='lines',
+                            line=dict(color='gray', width=1, dash='dot'),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
+                        # Línea derecha
+                        fig.add_trace(go.Scatter(
+                            x=x_right,
+                            y=z_plot,
+                            mode='lines',
+                            line=dict(color='gray', width=1, dash='dot'),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
+                        offsets_dibujados += 2
                 
                 elif not es_base and self.geo.offset_columna_inter:
+                    print(f"      ✅ Dibujando offset columna inter")
+                    # Dibujar offset columna inter con interpolación
+                    import numpy as np
                     z_max = max(z_o, z_d)
-                    z_vals = [z_o, z_d]
+                    z_vals = np.linspace(z_o, z_d, 10)
+                    x_left = []
+                    x_right = []
+                    z_plot = []
                     for z in z_vals:
                         offset = calcular_offset_columna(
                             z, h_cross_h1, z_max,
@@ -352,35 +394,71 @@ class GraficoCabezal2D:
                             self.geo.offset_columna_inter_tipo
                         )
                         if offset > 0:
-                            fig.add_trace(go.Scatter(
-                                x=[x_o - offset, x_o + offset],
-                                y=[z, z],
-                                mode='lines',
-                                line=dict(color='lightgray', width=1, dash='dot'),
-                                showlegend=False,
-                                hoverinfo='skip'
-                            ))
-            
-            elif tipo == 'mensula' and self.geo.offset_mensula:
-                x_min = min(abs(x_o), abs(x_d))
-                x_max = max(abs(x_o), abs(x_d))
-                
-                for x, z in [(x_o, z_o), (x_d, z_d)]:
-                    offset = calcular_offset_mensula(
-                        abs(x), x_min, x_max,
-                        self.geo.offset_mensula_inicio,
-                        self.geo.offset_mensula_fin,
-                        self.geo.offset_mensula_tipo
-                    )
-                    if offset > 0:
+                            x_left.append(-offset)
+                            x_right.append(offset)
+                            z_plot.append(z)
+                    
+                    if x_left:
+                        print(f"         Dibujando {len(z_plot)} puntos interpolados")
+                        # Línea izquierda
                         fig.add_trace(go.Scatter(
-                            x=[x, x],
-                            y=[z, z + offset],
+                            x=x_left,
+                            y=z_plot,
                             mode='lines',
-                            line=dict(color='lightgray', width=1, dash='dot'),
+                            line=dict(color='gray', width=1, dash='dot'),
                             showlegend=False,
                             hoverinfo='skip'
                         ))
+                        # Línea derecha
+                        fig.add_trace(go.Scatter(
+                            x=x_right,
+                            y=z_plot,
+                            mode='lines',
+                            line=dict(color='gray', width=1, dash='dot'),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
+                        offsets_dibujados += 2
+            
+            elif tipo == 'mensula' and self.geo.offset_mensula:
+                print(f"   Ménsula {origen}-{destino}")
+                print(f"      ✅ Dibujando offset ménsula")
+                # Dibujar offset ménsula (solo +Z) con interpolación
+                import numpy as np
+                x_min = min(abs(x_o), abs(x_d))
+                x_max = max(abs(x_o), abs(x_d))
+                
+                # Interpolar a lo largo de la ménsula
+                if abs(x_d - x_o) > 0.01:
+                    x_vals = np.linspace(x_o, x_d, 10)
+                    z_vals = np.linspace(z_o, z_d, 10)
+                    
+                    x_plot = []
+                    z_plot = []
+                    for x, z in zip(x_vals, z_vals):
+                        offset = calcular_offset_mensula(
+                            abs(x), x_min, x_max,
+                            self.geo.offset_mensula_inicio,
+                            self.geo.offset_mensula_fin,
+                            self.geo.offset_mensula_tipo
+                        )
+                        if offset > 0:
+                            x_plot.append(x)
+                            z_plot.append(z + offset)
+                    
+                    if x_plot:
+                        print(f"         Dibujando {len(x_plot)} puntos interpolados")
+                        fig.add_trace(go.Scatter(
+                            x=x_plot,
+                            y=z_plot,
+                            mode='lines',
+                            line=dict(color='gray', width=1, dash='dot'),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
+                        offsets_dibujados += 1
+        
+        print(f"   ✅ Total offsets dibujados: {offsets_dibujados}")
     
     def _dibujar_nodos(self, fig):
         """Dibujar nodos con colores por tipo"""
