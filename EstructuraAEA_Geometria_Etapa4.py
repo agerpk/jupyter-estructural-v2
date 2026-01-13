@@ -40,7 +40,7 @@ class GeometriaEtapa4:
         # Ejecutar conectador
         self._ejecutar_conectador()
         
-        print(f"   ✅ Cable guardia configurado: hhg={self.geo.dimensiones.get('hhg', 0):.2f}m")
+        print(f"   ✅ Cable guardia configurado: hhg={self.geo.dimensiones.get('hhg', 0):.2f}m, lmenhg={self.geo.dimensiones.get('lmenhg', 0):.2f}m")
     
     def _obtener_posiciones_conductores(self):
         """Obtener posiciones de conductores (Lk debajo del nodo)"""
@@ -65,19 +65,22 @@ class GeometriaEtapa4:
         # Calcular hhg
         hhg = z_max + x_max * math.tan(math.radians(ang_apant))
         
+        # Altura final de nodos HG
+        hhg_final = hhg + hadd_hg
+        
         # Obtener defasaje_y_guardia del objeto geometria
         defasaje_y = getattr(self.geo, 'defasaje_y_guardia', 0.0)
         
         # Crear nodo HG1
         self.geo.nodos["HG1"] = NodoEstructural(
-            "HG1", (0.0, defasaje_y, hhg), "guardia",
+            "HG1", (0.0, defasaje_y, hhg_final), "guardia",
             self.geo.cable_guardia1, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
         )
         
-        self.geo.dimensiones["hhg"] = hhg
+        self.geo.dimensiones["hhg"] = hhg_final
         self.geo.dimensiones["lmenhg"] = 0.0
         
-        print(f"   🛡️  Guardia centrado: HG1 en (0, {defasaje_y}, {hhg:.2f})")
+        print(f"   🛡️  Guardia centrado: HG1 en (0, {defasaje_y}, {hhg_final:.2f})")
     
     def _crear_guardia_no_centrado(self, conductores, ang_apant, hadd_hg, lmenhg_min, defasaje_y):
         """CANT_HG=1, HG_CENTRADO=False - Solo para disposición triangular terna simple"""
@@ -88,60 +91,48 @@ class GeometriaEtapa4:
             return
         
         # Calcular recta de apantallamiento para cada conductor
-        # Pendiente: -tan(ang_apant) para x>0, +tan(ang_apant) para x<0
-        pendiente_neg = -math.tan(math.radians(ang_apant))
-        pendiente_pos = math.tan(math.radians(ang_apant))
+        # Pendiente: ang_apant es respecto a la VERTICAL, convertir a pendiente respecto a horizontal
+        # Para x>0: pendiente negativa (recta baja hacia derecha)
+        # Para x<0: pendiente positiva (recta baja hacia izquierda)
+        pendiente_neg = -1.0 / math.tan(math.radians(ang_apant))
+        pendiente_pos = 1.0 / math.tan(math.radians(ang_apant))
         
-        # Encontrar recta con mayor distancia al origen
-        dist_max = 0
-        x_opt = 0
-        z_opt = 0
+        # Altura inicial: z más alto de estructura preexistente
+        h_max = max(self.geo.dimensiones.get("h1a", 0), 
+                   self.geo.dimensiones.get("h2a", 0),
+                   self.geo.dimensiones.get("h3a", 0))
         
-        for nombre, x_c, y_c, z_c in conductores:
-            if x_c > 0:
-                # Recta: z = z_c + pendiente_neg * (x - x_c)
-                # En x=0: z_intercept = z_c - pendiente_neg * x_c
-                z_intercept = z_c - pendiente_neg * x_c
-                dist = abs(z_intercept)
-                if dist > dist_max:
-                    dist_max = dist
-                    # Calcular punto en recta a distancia lmenhg_min
-                    x_opt = lmenhg_min
-                    z_opt = z_c + pendiente_neg * (x_opt - x_c)
-            elif x_c < 0:
-                # Recta: z = z_c + pendiente_pos * (x - x_c)
-                z_intercept = z_c - pendiente_pos * x_c
-                dist = abs(z_intercept)
-                if dist > dist_max:
-                    dist_max = dist
-                    x_opt = -lmenhg_min
-                    z_opt = z_c + pendiente_pos * (x_opt - x_c)
+        # Iterar para encontrar lmenhg y hhg que cumplan Dhg y apantallamiento
+        # Usar pendiente negativa (para x>0)
+        lmenhg, hhg = self._iterar_guardia_dhg_apantallamiento(
+            lmenhg_min, h_max, conductores, pendiente_neg, ang_apant
+        )
         
-        # Iterar para evitar zonas Dhg
-        lmenhg, hhg = self._iterar_posicion_guardia(x_opt, z_opt, lmenhg_min, hadd_hg, conductores)
+        # Altura final de nodos HG
+        hhg_final = hhg + hadd_hg
         
         # Crear nodo HG1 PRIMERO
         defasaje_y = getattr(self.geo, 'defasaje_y_guardia', 0.0)
         self.geo.nodos["HG1"] = NodoEstructural(
-            "HG1", (lmenhg, defasaje_y, hhg), "guardia",
+            "HG1", (lmenhg, defasaje_y, hhg_final), "guardia",
             self.geo.cable_guardia1, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
         )
         
         # Crear nodo TOP DESPUÉS y verificar solapamiento
-        pos_top = (0.0, 0.0, hhg + hadd_hg)
-        pos_hg1 = (lmenhg, defasaje_y, hhg)
+        pos_top = (0.0, 0.0, hhg_final)
+        pos_hg1 = (lmenhg, defasaje_y, hhg_final)
         dist = math.sqrt(sum((a - b)**2 for a, b in zip(pos_top, pos_hg1)))
         
         if dist >= 0.01:
             self.geo.nodos["TOP"] = NodoEstructural("TOP", pos_top, "general")
-            print(f"   🔵 Nodo TOP creado en (0, 0, {hhg + hadd_hg:.2f})")
+            print(f"   🔵 Nodo TOP creado en (0, 0, {hhg_final:.2f})")
         else:
             print(f"   ⚠️  Nodo TOP no creado (solapamiento con HG1, dist={dist:.4f}m < 0.01m)")
         
-        self.geo.dimensiones["hhg"] = hhg
+        self.geo.dimensiones["hhg"] = hhg_final
         self.geo.dimensiones["lmenhg"] = lmenhg
         
-        print(f"   🛡️  Guardia no centrado: HG1 en ({lmenhg:.2f}, {defasaje_y}, {hhg:.2f})")
+        print(f"   🛡️  Guardia no centrado: HG1 en ({lmenhg:.2f}, {defasaje_y}, {hhg_final:.2f})")
     
     def _crear_dos_guardias(self, conductores, ang_apant, hadd_hg, lmenhg_min, defasaje_y):
         """CANT_HG=2"""
@@ -153,73 +144,80 @@ class GeometriaEtapa4:
             conductores_der = conductores
         
         # Calcular recta de apantallamiento (pendiente negativa)
-        pendiente = -math.tan(math.radians(ang_apant))
+        # ang_apant es respecto a la VERTICAL, convertir a pendiente respecto a horizontal
+        pendiente = -1.0 / math.tan(math.radians(ang_apant))
         
-        dist_max = 0
-        x_opt = 0
-        z_opt = 0
+        # Altura inicial: z más alto de estructura preexistente
+        h_max = max(self.geo.dimensiones.get("h1a", 0), 
+                   self.geo.dimensiones.get("h2a", 0),
+                   self.geo.dimensiones.get("h3a", 0))
         
-        for nombre, x_c, y_c, z_c in conductores_der:
-            # Recta: z = z_c + pendiente * (x - x_c)
-            z_intercept = z_c - pendiente * x_c
-            dist = abs(z_intercept)
-            if dist > dist_max:
-                dist_max = dist
-                x_opt = lmenhg_min
-                z_opt = z_c + pendiente * (x_opt - x_c)
+        # Iterar para encontrar lmenhg y hhg que cumplan Dhg y apantallamiento
+        lmenhg, hhg = self._iterar_guardia_dhg_apantallamiento(
+            lmenhg_min, h_max, conductores, pendiente, ang_apant
+        )
         
-        # Iterar para evitar zonas Dhg
-        lmenhg, hhg = self._iterar_posicion_guardia(x_opt, z_opt, lmenhg_min, hadd_hg, conductores)
+        # Altura final de nodos HG
+        hhg_final = hhg + hadd_hg
         
         # Crear nodos HG1 y HG2 PRIMERO
         defasaje_y = getattr(self.geo, 'defasaje_y_guardia', 0.0)
         self.geo.nodos["HG1"] = NodoEstructural(
-            "HG1", (lmenhg, defasaje_y, hhg), "guardia",
+            "HG1", (lmenhg, defasaje_y, hhg_final), "guardia",
             self.geo.cable_guardia1, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
         )
         
         cable_hg2 = self.geo.cable_guardia2 if self.geo.cable_guardia2 else self.geo.cable_guardia1
         self.geo.nodos["HG2"] = NodoEstructural(
-            "HG2", (-lmenhg, defasaje_y, hhg + hadd_hg), "guardia",
+            "HG2", (-lmenhg, defasaje_y, hhg_final), "guardia",
             cable_hg2, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
         )
         
-        # Crear UN SOLO nodo TOP en (0, 0, hhg + hadd_hg)
-        pos_top = (0.0, 0.0, hhg + hadd_hg)
-        self.geo.nodos["TOP"] = NodoEstructural("TOP", pos_top, "general")
-        print(f"   🔵 Nodo TOP creado en (0, 0, {hhg + hadd_hg:.2f})")
+        # Crear nodos TOP1 y TOP2 DESPUÉS y verificar solapamiento
+        pos_top1 = (lmenhg, 0.0, hhg_final)
+        pos_top2 = (-lmenhg, 0.0, hhg_final)
+        pos_hg1 = (lmenhg, defasaje_y, hhg_final)
+        pos_hg2 = (-lmenhg, defasaje_y, hhg_final)
         
-        self.geo.dimensiones["hhg"] = hhg
+        dist1 = math.sqrt(sum((a - b)**2 for a, b in zip(pos_top1, pos_hg1)))
+        dist2 = math.sqrt(sum((a - b)**2 for a, b in zip(pos_top2, pos_hg2)))
+        
+        if dist1 >= 0.01:
+            self.geo.nodos["TOP1"] = NodoEstructural("TOP1", pos_top1, "general")
+            print(f"   🔵 Nodo TOP1 creado en ({lmenhg:.2f}, 0, {hhg_final:.2f})")
+        else:
+            print(f"   ⚠️  Nodo TOP1 no creado (solapamiento con HG1, dist={dist1:.4f}m < 0.01m)")
+        
+        if dist2 >= 0.01:
+            self.geo.nodos["TOP2"] = NodoEstructural("TOP2", pos_top2, "general")
+            print(f"   🔵 Nodo TOP2 creado en ({-lmenhg:.2f}, 0, {hhg_final:.2f})")
+        else:
+            print(f"   ⚠️  Nodo TOP2 no creado (solapamiento con HG2, dist={dist2:.4f}m < 0.01m)")
+        
+        self.geo.dimensiones["hhg"] = hhg_final
         self.geo.dimensiones["lmenhg"] = lmenhg
         
-        print(f"   🛡️  Dos guardias: HG1 en ({lmenhg:.2f}, {defasaje_y}, {hhg:.2f}), HG2 en ({-lmenhg:.2f}, {defasaje_y}, {hhg + hadd_hg:.2f})")
+        print(f"   🛡️  Dos guardias: HG1 en ({lmenhg:.2f}, {defasaje_y}, {hhg_final:.2f}), HG2 en ({-lmenhg:.2f}, {defasaje_y}, {hhg_final:.2f})")
     
-    def _iterar_posicion_guardia(self, x_inicial, z_inicial, lmenhg_min, hadd_hg, conductores):
-        """Iterar para encontrar posición que no infrinja zonas Dhg"""
-        # Altura inicial
+    def _iterar_posicion_guardia_simple(self, x_inicial, z_inicial, lmenhg_min, hadd_hg, conductores):
+        """Iterar para encontrar posición que no infrinja zonas Dhg (solo sube hhg)"""
         h_max = max(self.geo.dimensiones.get("h1a", 0), 
                    self.geo.dimensiones.get("h2a", 0),
                    self.geo.dimensiones.get("h3a", 0))
         
         z_inicial = max(z_inicial, h_max + hadd_hg)
         
-        # Parámetros
         Dhg = self.geo.dimensiones.get("Dhg", 0)
-        Lk = self.geo.lk
         
-        # Iterar en altura
         lmenhg = max(abs(x_inicial), lmenhg_min)
         hhg = z_inicial
-        max_iter = 100
-        incremento = 0.1
+        max_iter = 10000
+        incremento = 0.01
         
         for i in range(max_iter):
-            # Verificar distancia a todos los conductores (EN REPOSO, sin declinar)
             infraccion = False
             for nombre, x_c, y_c, z_c in conductores:
-                # Distancia 3D entre guardia y conductor
                 dist = math.sqrt((lmenhg - x_c)**2 + (hhg - z_c)**2)
-                
                 if dist < Dhg:
                     infraccion = True
                     break
@@ -228,6 +226,52 @@ class GeometriaEtapa4:
                 break
             
             hhg += incremento
+        
+        return lmenhg, hhg
+    
+    def _iterar_guardia_dhg_apantallamiento(self, lmenhg_inicial, hhg_inicial, conductores, pendiente, ang_apant):
+        """Iterar para encontrar lmenhg y hhg que cumplan Dhg y apantallamiento
+        
+        - Si infringe solo Dhg: sube hhg
+        - Si infringe solo apantallamiento: aumenta lmenhg
+        - Si infringe ambos: aumenta ambos
+        """
+        Dhg = self.geo.dimensiones.get("Dhg", 0)
+        
+        lmenhg = lmenhg_inicial
+        hhg = hhg_inicial
+        max_iter = 10000
+        incremento = 0.01
+        
+        for i in range(max_iter):
+            # Verificar Dhg: distancia entre guardia y conductores
+            infringe_dhg = False
+            for nombre, x_c, y_c, z_c in conductores:
+                dist = math.sqrt((lmenhg - x_c)**2 + (hhg - z_c)**2)
+                if dist < Dhg:
+                    infringe_dhg = True
+                    break
+            
+            # Verificar apantallamiento: todos los conductores bajo la recta
+            infringe_apant = False
+            for nombre, x_c, y_c, z_c in conductores:
+                # Recta de apantallamiento desde (lmenhg, hhg) con pendiente
+                # z_recta = hhg + pendiente * (x_c - lmenhg)
+                z_recta = hhg + pendiente * (x_c - lmenhg)
+                if z_c > z_recta:
+                    infringe_apant = True
+                    break
+            
+            # Decidir qué incrementar
+            if not infringe_dhg and not infringe_apant:
+                break
+            elif infringe_dhg and infringe_apant:
+                hhg += incremento
+                lmenhg += incremento
+            elif infringe_dhg:
+                hhg += incremento
+            elif infringe_apant:
+                lmenhg += incremento
         
         return lmenhg, hhg
     
