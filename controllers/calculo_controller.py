@@ -100,63 +100,7 @@ def register_callbacks(app):
     
 
     
-    @app.callback(
-        Output("estructura-actual", "data", allow_duplicate=True),
-        Output("toast-notificacion", "is_open", allow_duplicate=True),
-        Output("toast-notificacion", "header", allow_duplicate=True),
-        Output("toast-notificacion", "children", allow_duplicate=True),
-        Output("toast-notificacion", "icon", allow_duplicate=True),
-        Output("toast-notificacion", "color", allow_duplicate=True),
-        Input("btn-guardar-params-cmc", "n_clicks"),
-        State("param-L_vano", "value"),
-        State("slider-alpha", "value"),
-        State("slider-theta", "value"),
-        State("param-Vmax", "value"),
-        State("param-Vmed", "value"),
-        State("slider-t_hielo", "value"),
-        State("param-VANO_DESNIVELADO", "value"),
-        State("param-H_PIQANTERIOR", "value"),
-        State("param-H_PIQPOSTERIOR", "value"),
-        State("slider-SALTO_PORCENTUAL", "value"),
-        State("slider-PASO_AFINADO", "value"),
-        State("param-OBJ_CONDUCTOR", "value"),
-        State("param-OBJ_GUARDIA", "value"),
-        State("slider-RELFLECHA_MAX_GUARDIA", "value"),
-        State("param-RELFLECHA_SIN_VIENTO", "value"),
-        State("estructura-actual", "data"),
-        prevent_initial_call=True
-    )
-    def guardar_params_cmc(n_clicks, L_vano, alpha, theta, Vmax, Vmed, t_hielo,
-                           VANO_DESNIVELADO, H_PIQANTERIOR, H_PIQPOSTERIOR,
-                           SALTO_PORCENTUAL, PASO_AFINADO, OBJ_CONDUCTOR, OBJ_GUARDIA,
-                           RELFLECHA_MAX_GUARDIA, RELFLECHA_SIN_VIENTO,
-                           estructura_actual):
-        if not n_clicks:
-            raise dash.exceptions.PreventUpdate
-        
-        try:
-            estructura_actualizada = estructura_actual.copy()
-            estructura_actualizada.update({
-                "L_vano": float(L_vano),
-                "alpha": float(alpha),
-                "theta": float(theta),
-                "Vmax": float(Vmax),
-                "Vmed": float(Vmed),
-                "t_hielo": float(t_hielo),
-                "VANO_DESNIVELADO": bool(VANO_DESNIVELADO),
-                "H_PIQANTERIOR": float(H_PIQANTERIOR) if H_PIQANTERIOR else 0.0,
-                "H_PIQPOSTERIOR": float(H_PIQPOSTERIOR) if H_PIQPOSTERIOR else 0.0,
-                "SALTO_PORCENTUAL": float(SALTO_PORCENTUAL),
-                "PASO_AFINADO": float(PASO_AFINADO),
-                "OBJ_CONDUCTOR": OBJ_CONDUCTOR,
-                "OBJ_GUARDIA": OBJ_GUARDIA,
-                "RELFLECHA_MAX_GUARDIA": float(RELFLECHA_MAX_GUARDIA),
-                "RELFLECHA_SIN_VIENTO": bool(RELFLECHA_SIN_VIENTO)
-            })
-            
-            return estructura_actualizada, True, "Éxito", "Parámetros guardados", "success", "success"
-        except Exception as e:
-            return dash.no_update, True, "Error", f"Error: {str(e)}", "danger", "danger"
+    # Callback eliminado - ahora manejado por parametros_controller.py
     
     @app.callback(
         Output("resultados-cmc", "children", allow_duplicate=True),

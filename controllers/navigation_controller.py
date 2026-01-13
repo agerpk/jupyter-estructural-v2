@@ -116,6 +116,18 @@ def register_callbacks(app):
             print(f"DEBUG: Carga inicial detectada, restaurando vista: {ultima_vista}")
             if ultima_vista == "calculo-mecanico":
                 from utils.calculo_cache import CalculoCache
+                from config.app_config import DATA_DIR
+                
+                # Recargar estructura desde archivo para tener datos actualizados
+                if estructura_actual:
+                    titulo = estructura_actual.get('TITULO', 'estructura')
+                    ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
+                    try:
+                        estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
+                        print(f"✅ (F5) Estructura recargada desde archivo: {titulo}")
+                    except Exception as e:
+                        print(f"⚠️ (F5) Error recargando estructura: {e}")
+                
                 calculo_guardado = None
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
@@ -253,6 +265,18 @@ def register_callbacks(app):
         elif trigger_id == "menu-calculo-mecanico":
             guardar_navegacion_state("calculo-mecanico")
             from utils.calculo_cache import CalculoCache
+            from config.app_config import DATA_DIR
+            
+            # Recargar estructura desde archivo para tener datos actualizados
+            if estructura_actual:
+                titulo = estructura_actual.get('TITULO', 'estructura')
+                ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
+                try:
+                    estructura_actual = state.estructura_manager.cargar_estructura(ruta_estructura)
+                    print(f"✅ Estructura recargada desde archivo: {titulo}")
+                except Exception as e:
+                    print(f"⚠️ Error recargando estructura: {e}")
+            
             calculo_guardado = None
             if estructura_actual:
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')

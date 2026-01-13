@@ -207,18 +207,22 @@
   },
   "restricciones_cables": {
     "conductor": {
-      "I": 0.25,
-      "II": 0.4,
-      "III": 0.4,
-      "IV": 0.4,
-      "V": 0.25
+      "tension_max_porcentaje": {
+        "I": 0.25,
+        "II": 0.4,
+        "III": 0.4,
+        "IV": 0.4,
+        "V": 0.25
+      }
     },
     "guardia": {
-      "I": 0.7,
-      "II": 0.7,
-      "III": 0.7,
-      "IV": 0.7,
-      "V": 0.7
+      "tension_max_porcentaje": {
+        "I": 0.7,
+        "II": 0.7,
+        "III": 0.7,
+        "IV": 0.7,
+        "V": 0.7
+      }
     }
   },
   "fecha_modificacion": "2026-01-13T11:23:56.008564",

@@ -350,7 +350,10 @@ def register_callbacks(app):
             # Construir estados climáticos
             estados_ids = ["I", "II", "III", "IV", "V"]
             estados_climaticos = {}
-            restricciones_cables = {"conductor": {}, "guardia": {}}
+            restricciones_cables = {
+                "conductor": {"tension_max_porcentaje": {}},
+                "guardia": {"tension_max_porcentaje": {}}
+            }
             
             for i, estado_id in enumerate(estados_ids):
                 estados_climaticos[estado_id] = {
@@ -359,8 +362,8 @@ def register_callbacks(app):
                     "viento_velocidad": vientos[i] if i < len(vientos) else 0,
                     "espesor_hielo": hielos[i] if i < len(hielos) else 0
                 }
-                restricciones_cables["conductor"][estado_id] = rest_cond[i] if i < len(rest_cond) else 0.25
-                restricciones_cables["guardia"][estado_id] = rest_guard[i] if i < len(rest_guard) else 0.7
+                restricciones_cables["conductor"]["tension_max_porcentaje"][estado_id] = rest_cond[i] if i < len(rest_cond) else 0.25
+                restricciones_cables["guardia"]["tension_max_porcentaje"][estado_id] = rest_guard[i] if i < len(rest_guard) else 0.7
             
             print(f"   📊 Estados climáticos construidos: {list(estados_climaticos.keys())}")
             print(f"   📊 Estado I: {estados_climaticos['I']}")

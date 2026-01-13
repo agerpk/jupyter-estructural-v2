@@ -187,7 +187,7 @@
   },
   "estados_climaticos": {
     "I": {
-      "temperatura": 35,
+      "temperatura": 80,
       "descripcion": "Tmáx",
       "viento_velocidad": 0,
       "espesor_hielo": 0
@@ -219,21 +219,25 @@
   },
   "restricciones_cables": {
     "conductor": {
-      "I": 0.25,
-      "II": 0.4,
-      "III": 0.4,
-      "IV": 0.4,
-      "V": 0.25
+      "tension_max_porcentaje": {
+        "I": 0.25,
+        "II": 0.4,
+        "III": 0.4,
+        "IV": 0.4,
+        "V": 0.25
+      }
     },
     "guardia": {
-      "I": 0.7,
-      "II": 0.7,
-      "III": 0.7,
-      "IV": 0.7,
-      "V": 0.7
+      "tension_max_porcentaje": {
+        "I": 0.7,
+        "II": 0.7,
+        "III": 0.7,
+        "IV": 0.7,
+        "V": 0.7
+      }
     }
   },
-  "fecha_modificacion": "2026-01-13T15:37:07.225022",
+  "fecha_modificacion": "2026-01-13T16:06:29.900249",
   "nodos_editados": [],
   "SOBREESCRIBIR_ALTURA_a_CABLE": false,
   "ALTURA_a_CABLE_SOBREESCRITA": 0
