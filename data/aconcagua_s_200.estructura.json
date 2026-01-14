@@ -1,40 +1,42 @@
 {
   "TITULO": "aconcagua_s_200",
   "AJUSTAR_POR_ALTURA_MSNM": false,
-  "ALTURA_MINIMA_CABLE": 2,
+  "ALTURA_MINIMA_CABLE": 6.5,
   "ANCHO_CRUCETA": 0.2,
   "ANG_APANTALLAMIENTO": 30,
   "AUTOAJUSTAR_LMENHG": false,
   "Altura_MSNM": 900,
-  "CANT_HG": 2,
+  "CANT_HG": 1,
   "DISPOSICION": "vertical",
   "DIST_REPOSICIONAR_HG": 0.05,
   "D_fases_add": 0,
-  "HADD": 0,
-  "HADD_ENTRE_AMARRES": 0,
-  "HADD_HG": 1,
+  "HADD": 3.35,
+  "HADD_ENTRE_AMARRES": 0.25,
+  "HADD_HG": 0,
   "HADD_LMEN": 0,
-  "HG_CENTRADO": false,
-  "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 0.5,
+  "HG_CENTRADO": true,
+  "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
   "LONGITUD_MENSULA_MINIMA_GUARDIA": 0,
-  "Lk": 1.8,
+  "Lk": 0.75,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
   "OFFSET_COLUMNA_BASE": true,
-  "OFFSET_COLUMNA_BASE_FIN": 0.4,
-  "OFFSET_COLUMNA_BASE_INICIO": 0.6,
+  "OFFSET_COLUMNA_BASE_FIN": 0.65,
+  "OFFSET_COLUMNA_BASE_INICIO": 3.3,
   "OFFSET_COLUMNA_BASE_TIPO": "Trapezoidal",
   "OFFSET_COLUMNA_INTER": true,
-  "OFFSET_COLUMNA_INTER_FIN": 0.3,
-  "OFFSET_COLUMNA_INTER_INICIO": 0.4,
-  "OFFSET_COLUMNA_INTER_TIPO": "Trapezoidal",
+  "OFFSET_COLUMNA_INTER_FIN": 0.65,
+  "OFFSET_COLUMNA_INTER_INICIO": 0.65,
+  "OFFSET_COLUMNA_INTER_TIPO": "Recto",
   "OFFSET_MENSULA": true,
-  "OFFSET_MENSULA_FIN": 0.3,
-  "OFFSET_MENSULA_INICIO": 0.4,
-  "OFFSET_MENSULA_TIPO": "Trapezoidal",
+  "OFFSET_MENSULA_FIN": 0,
+  "OFFSET_MENSULA_INICIO": 1.48,
+  "OFFSET_MENSULA_TIPO": "Triangular",
+  "SOBREESCRIBIR_ALTURA_A_CABLE": false,
   "SOBREESCRIBIR_S": false,
-  "TENSION": 132,
+  "TENSION": 33,
   "TERNA": "Doble",
-  "Zona_estructura": "Autopista",
+  "Zona_estructura": "Rural",
+  "altura_a_cable_sobreescrita": 5.9,
   "defasaje_mensula_hielo": false,
   "lmen_extra_hielo": 0,
   "mensula_defasar": "primera",
@@ -60,7 +62,7 @@
   "Cf_cadena": 0.9,
   "Cf_estructura": 0.9,
   "Cf_guardia": 1,
-  "L_vano": 200,
+  "L_vano": 180,
   "Q": 0.0613,
   "Vmax": 38.9,
   "Vmed": 15.56,
@@ -185,8 +187,6 @@
     "n_segmentar_conexion_larga": 30,
     "percentil_separacion_corta_larga": 50
   },
-  "SOBREESCRIBIR_ALTURA_A_CABLE": false,
-  "altura_a_cable_sobreescrita": 5.9,
   "estados_climaticos": {
     "1": {
       "temperatura": 40,
@@ -234,7 +234,7 @@
       "relflecha": 0.9
     },
     "6": {
-      "temperatura": 85,
+      "temperatura": 80,
       "descripcion": "TcondMax",
       "viento_velocidad": 0,
       "espesor_hielo": 0,
@@ -243,7 +243,7 @@
       "relflecha": 0.9
     }
   },
-  "fecha_modificacion": "2026-01-14T13:21:14.063593",
+  "fecha_modificacion": "2026-01-14T13:24:28.482512",
   "nodos_editados": [],
   "fundacion": {
     "metodo": "sulzberger",
@@ -282,7 +282,5 @@
     "configuracion_calculo": {
       "incremento": 0.01
     }
-  },
-  "SOBREESCRIBIR_ALTURA_a_CABLE": false,
-  "ALTURA_a_CABLE_SOBREESCRITA": 0
+  }
 }

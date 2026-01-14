@@ -1,7 +1,20 @@
 {
+  "Lk": 1.8,
+  "Cf_cadena": 0.9,
+  "Zca": 13,
+  "A_cadena": 0.03,
+  "PCADENA": 80,
+  "parametros_graficos": {
+    "colores": {
+      "cadena": "#717170"
+    },
+    "controles": {
+      "linewidth_cadena": 2
+    }
+  },
   "TITULO": "aconcagua_s_180",
   "AJUSTAR_POR_ALTURA_MSNM": false,
-  "ALTURA_MINIMA_CABLE": 2,
+  "ALTURA_MINIMA_CABLE": 6.5,
   "ANCHO_CRUCETA": 0.2,
   "ANG_APANTALLAMIENTO": 30,
   "AUTOAJUSTAR_LMENHG": false,
@@ -15,9 +28,8 @@
   "HADD_HG": 1,
   "HADD_LMEN": 0,
   "HG_CENTRADO": false,
-  "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 0.5,
+  "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
   "LONGITUD_MENSULA_MINIMA_GUARDIA": 0,
-  "Lk": 1.8,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
   "OFFSET_COLUMNA_BASE": true,
   "OFFSET_COLUMNA_BASE_FIN": 0.4,
@@ -30,7 +42,7 @@
   "OFFSET_MENSULA": true,
   "OFFSET_MENSULA_FIN": 0.3,
   "OFFSET_MENSULA_INICIO": 0.4,
-  "OFFSET_MENSULA_TIPO": "Trapezoidal",
+  "OFFSET_MENSULA_TIPO": "Triangular",
   "SOBREESCRIBIR_ALTURA_A_CABLE": false,
   "SOBREESCRIBIR_S": false,
   "TENSION": 132,
@@ -59,7 +71,6 @@
   "REEMPLAZAR_TITULO_GRAFICO": false,
   "ZOOM_CABEZAL": 0.95,
   "Cf_cable": 1,
-  "Cf_cadena": 0.9,
   "Cf_estructura": 0.9,
   "Cf_guardia": 1,
   "L_vano": 180,
@@ -67,14 +78,12 @@
   "Vmax": 38.9,
   "Vmed": 15.56,
   "Vtormenta": 20,
-  "Zca": 13,
   "Zcg": 13,
   "Zco": 13,
   "Zes": 10,
   "alpha": 0,
   "t_hielo": 0.01,
   "theta": 45,
-  "A_cadena": 0.03,
   "A_estr_long": 4.482,
   "A_estr_trans": 2.982,
   "H_PIQANTERIOR": 0,
@@ -82,7 +91,6 @@
   "OBJ_CONDUCTOR": "FlechaMin",
   "OBJ_GUARDIA": "TiroMin",
   "PASO_AFINADO": 0.005,
-  "PCADENA": 10.5,
   "PESTRUCTURA": 3900,
   "RELFLECHA_MAX_GUARDIA": 0.95,
   "RELFLECHA_SIN_VIENTO": true,
@@ -115,45 +123,6 @@
   "separacion_postes_cima": 0.3,
   "superacion_presion_admisible": 1.33,
   "tipo_base_fundacion": "Rombica",
-  "parametros_graficos": {
-    "colores": {
-      "conductor": "#1f77b4",
-      "guardia": "#2ca02c",
-      "poste": "#000000",
-      "cadena": "#717170",
-      "conductor_end": "red",
-      "circulo": "gray",
-      "apantallamiento": "#84FF6B",
-      "texto_verde": "#006400",
-      "dhg_circulo": "gray",
-      "terreno": "#8B4513",
-      "area_s_estructura": "lightblue"
-    },
-    "controles": {
-      "declinar_todos": false,
-      "dibujar_solo_circulos_declinados_trayectoria": true,
-      "dibujar_circulos_s_estructura": true,
-      "dibujar_areas_s_estructura": true,
-      "dibujar_circulos_d_fases": true,
-      "dibujar_circulos_dhg": true,
-      "linewidth_cadena": 2,
-      "linewidth_estructura": 4,
-      "linewidth_cruceta": 3,
-      "linewidth_circulo": 1.5,
-      "alpha_cruceta": 0.8,
-      "alpha_circulo": 0.7,
-      "alpha_circulo_trayectoria": 0.4,
-      "alpha_apantallamiento": 0.7,
-      "alpha_area_s_estructura": 0.15,
-      "size_nodo_conductor": 100,
-      "size_nodo_guardia": 100,
-      "size_nodo_estructura": 80,
-      "size_conductor_end": 80,
-      "zoom_cabezal_default": 0.7,
-      "zoom_estructura_default": 0.95,
-      "mostrar_c2": false
-    }
-  },
   "costeo": {
     "postes": {
       "coef_a": 267.9232,
@@ -243,7 +212,7 @@
       "relflecha": 0.9
     }
   },
-  "fecha_modificacion": "2026-01-14T13:19:57.569380",
+  "fecha_modificacion": "2026-01-14T13:46:11.041423",
   "nodos_editados": [],
   "fundacion": {
     "metodo": "sulzberger",

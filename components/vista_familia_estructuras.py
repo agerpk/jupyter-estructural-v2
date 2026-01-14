@@ -7,6 +7,8 @@ from dash.dash_table import DataTable
 import dash_bootstrap_components as dbc
 from typing import Dict, List, Any
 import json
+from components.modal_estados_climaticos import crear_modal_estados_climaticos
+from components.modal_copiar_estados import crear_modal_copiar_estados
 
 def crear_vista_familia_estructuras(familia_actual=None):
     """Crear vista principal de Familias de Estructuras"""
@@ -84,11 +86,10 @@ def crear_vista_familia_estructuras(familia_actual=None):
                 
                 # Estados Climáticos (compartidos por toda la familia)
                 dbc.Card([
-                    dbc.CardHeader(html.H5("Estados Climáticos (Compartidos por toda la familia)")),
-                    dbc.CardBody([
-                        dbc.Button("Modificar Estados Climáticos y Restricciones", 
-                                  id="btn-modificar-estados-familia", 
-                                  color="info", size="sm")
+                    dbc.CardHeader([
+                        dbc.Button("Editar Estados Climaticos y Restricciones", id="btn-abrir-estados-familia", 
+                                  color="info", size="sm", className="me-2"),
+                        html.H5("Estados Climáticos (Compartidos)", className="d-inline")
                     ])
                 ], className="mb-3"),
                 
@@ -122,15 +123,9 @@ def crear_vista_familia_estructuras(familia_actual=None):
                 # Modal para edición
                 crear_modal_familia(),
                 
-                # Modal para estados climáticos
-                dbc.Modal([
-                    dbc.ModalHeader(dbc.ModalTitle("Estados Climáticos y Restricciones")),
-                    dbc.ModalBody(id="modal-estados-body"),
-                    dbc.ModalFooter([
-                        dbc.Button("Cancelar", id="modal-estados-cancelar", color="secondary", className="me-2"),
-                        dbc.Button("Guardar", id="modal-estados-guardar", color="primary")
-                    ])
-                ], id="modal-estados-familia", is_open=False, size="xl")
+                # Modal para estados climáticos de familia
+                crear_modal_estados_climaticos("modal-estados-familia"),
+                crear_modal_copiar_estados("modal-copiar-estados-familia")
             ])
         ])
     ])

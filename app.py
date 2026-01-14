@@ -43,7 +43,8 @@ from controllers import (
     familia_controller,
     vano_economico_controller,
     aee_controller,
-    hipotesis_controller
+    hipotesis_controller,
+    estados_climaticos_controller
 )
 
 # Inicializar la aplicación Dash
@@ -110,6 +111,7 @@ comparar_cables_controller.registrar_callbacks_comparar_cables(app)
 familia_controller.register_callbacks(app)
 vano_economico_controller.register_callbacks(app)
 aee_controller.register_callbacks(app)
+estados_climaticos_controller.register_callbacks(app)
 # Comentado temporalmente para aislar fallo de navegación (deshabilitar callbacks de Editor de Hipótesis)
 # hipotesis_controller.register_callbacks(app)
 # borrar_cache_controller no requiere register_callbacks - usa decorador @callback directo

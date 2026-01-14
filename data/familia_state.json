@@ -1,3 +1,10 @@
 {
-  "estructura_activa": "aconcagua_s_200"
+  "estructura_activa": "aconcagua_s_180",
+  "calculos_activos": [
+    "cmc",
+    "dge",
+    "dme",
+    "arboles",
+    "sph"
+  ]
 }

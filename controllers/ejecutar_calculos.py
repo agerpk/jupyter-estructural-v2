@@ -6,28 +6,13 @@ def ejecutar_calculo_dme(estructura_actual, state, generar_plots=True):
         from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
         from EstructuraAEA_Graficos import EstructuraAEA_Graficos
         from utils.calculo_cache import CalculoCache
-        from HipotesisMaestro_Especial import hipotesis_maestro as hipotesis_maestro_base
-        from utils.hipotesis_manager import HipotesisManager
-        from config.app_config import DATA_DIR
+        from HipotesisMaestro_Especial import hipotesis_maestro
         import matplotlib.pyplot as plt
         
         estructura_geometria = state.calculo_objetos.estructura_geometria
         estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
         
         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-        estructura_json_path = str(DATA_DIR / f"{nombre_estructura}.estructura.json")
-        hipotesis_maestro = HipotesisManager.cargar_o_crear_hipotesis(
-            nombre_estructura, estructura_json_path, hipotesis_maestro_base
-        )
-        # Registrar hipótesis activa en los parámetros de estructura para metadata
-        # Preferir una hipótesis global activa si existe
-        hip_activa = HipotesisManager.obtener_hipotesis_activa()
-        if hip_activa:
-            estructura_actual['HIPOTESIS_ACTIVA'] = hip_activa
-        else:
-            # Fallback: usar hipótesis local por convención de nombre
-            estructura_actual['HIPOTESIS_ACTIVA'] = HipotesisManager.obtener_ruta_hipotesis(nombre_estructura).name
-        print(f"USANDO HIPÓTESIS: {estructura_actual['HIPOTESIS_ACTIVA']}")
         
         estructura_mecanica.asignar_cargas_hipotesis(
             state.calculo_mecanico.df_cargas_totales,
@@ -46,10 +31,8 @@ def ejecutar_calculo_dme(estructura_actual, state, generar_plots=True):
         
         if generar_plots:
             estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
-            estructura_graficos.diagrama_polar_tiros()
-            fig_polar = plt.gcf()
-            estructura_graficos.diagrama_barras_tiros(mostrar_c2=estructura_actual.get('MOSTRAR_C2', False))
-            fig_barras = plt.gcf()
+            fig_polar = estructura_graficos.diagrama_polar_tiros()
+            fig_barras = estructura_graficos.diagrama_barras_tiros(mostrar_c2=estructura_actual.get('MOSTRAR_C2', False))
         else:
             fig_polar = None
             fig_barras = None

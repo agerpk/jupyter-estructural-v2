@@ -107,7 +107,6 @@ class CalculoCache:
                 fig_estructura.write_image(str(png_path), width=1200, height=800)
                 # JSON para interactividad
                 json_path = CACHE_DIR / f"Estructura.{hash_params}.json"
-                import json
                 fig_dict = fig_estructura.to_dict()
                 with open(json_path, 'w', encoding='utf-8') as f:
                     json.dump(fig_dict, f, ensure_ascii=False)
@@ -118,7 +117,6 @@ class CalculoCache:
                 fig_cabezal.write_image(str(png_path), width=1200, height=800)
                 # JSON para interactividad
                 json_path = CACHE_DIR / f"Cabezal.{hash_params}.json"
-                import json
                 fig_dict = fig_cabezal.to_dict()
                 with open(json_path, 'w', encoding='utf-8') as f:
                     json.dump(fig_dict, f, ensure_ascii=False)
@@ -137,7 +135,6 @@ class CalculoCache:
             try:
                 # JSON para interactividad - guardar manualmente con encoding UTF-8
                 json_path = CACHE_DIR / f"Nodos.{hash_params}.json"
-                import json
                 fig_dict = fig_nodos.to_dict()
                 with open(json_path, 'w', encoding='utf-8') as f:
                     json.dump(fig_dict, f, ensure_ascii=False)

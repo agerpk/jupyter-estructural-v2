@@ -1,6 +1,7 @@
 """Controlador de diseño geométrico"""
 
 import dash
+import json
 from dash import html, Input, Output, State, dcc
 import dash_bootstrap_components as dbc
 from models.app_state import AppState
@@ -116,7 +117,8 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             hipotesis_maestro,
             estructura_actual.get('t_hielo'),
             hipotesis_a_incluir="Todas",
-            resultados_guardia2=state.calculo_mecanico.resultados_guardia2
+            resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
+            estados_climaticos=estructura_actual.get('estados_climaticos')
         )
         
         # Generar gráficos
@@ -127,19 +129,17 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
                 config_graficos=estructura_actual.get('parametros_graficos')
             )
             
-            estructura_graficos.graficar_estructura(
+            fig_estructura = estructura_graficos.graficar_estructura(
                 zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
                 titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA')),
                 usar_plotly=True
             )
-            fig_estructura = estructura_graficos.fig_estructura_plotly
             
-            estructura_graficos.graficar_cabezal(
+            fig_cabezal = estructura_graficos.graficar_cabezal(
                 zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95) * 1.5,
                 titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA')),
                 usar_plotly=True
             )
-            fig_cabezal = estructura_graficos.fig_cabezal_plotly
             
             # Generar gráfico de nodos (retorna figura Plotly)
             fig_nodos = estructura_graficos.graficar_nodos_coordenadas(
@@ -177,6 +177,8 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             "fmax_guardia": fmax_guardia
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return {"exito": False, "mensaje": str(e)}
 
 
@@ -191,11 +193,9 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state, generar_plots=True
         if not resultado_objetos["exito"]:
             return {"exito": False, "mensaje": resultado_objetos["mensaje"]}
         
-        # Estados climáticos desde estructura - OBLIGATORIOS si no existen
-        if "estados_climaticos" not in estructura_actual:
+        estados_climaticos = estructura_actual.get("estados_climaticos", {})
+        if not estados_climaticos:
             raise KeyError("Debe configurar estados climáticos en la familia antes de calcular (botón 'Modificar Estados Climáticos y Restricciones')")
-        
-        estados_climaticos = estructura_actual["estados_climaticos"]
         
         # Restricciones desde estructura - extraer de estados climáticos
         if "restricciones_cables" in estructura_actual:
