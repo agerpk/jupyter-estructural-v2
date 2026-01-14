@@ -1,53 +1,41 @@
 {
-  "Lk": 1.8,
-  "Cf_cadena": 0.9,
-  "Zca": 13,
-  "A_cadena": 0.03,
-  "PCADENA": 80,
-  "parametros_graficos": {
-    "colores": {
-      "cadena": "#717170"
-    },
-    "controles": {
-      "linewidth_cadena": 2
-    }
-  },
-  "TITULO": "aconcagua_s_180",
+  "TITULO": "aconcagua_s_200",
   "AJUSTAR_POR_ALTURA_MSNM": false,
   "ALTURA_MINIMA_CABLE": 6.5,
   "ANCHO_CRUCETA": 0.2,
   "ANG_APANTALLAMIENTO": 30,
   "AUTOAJUSTAR_LMENHG": false,
   "Altura_MSNM": 900,
-  "CANT_HG": 2,
+  "CANT_HG": 1,
   "DISPOSICION": "vertical",
   "DIST_REPOSICIONAR_HG": 0.05,
   "D_fases_add": 0,
-  "HADD": 0,
-  "HADD_ENTRE_AMARRES": 0,
-  "HADD_HG": 1,
+  "HADD": 3.35,
+  "HADD_ENTRE_AMARRES": 0.25,
+  "HADD_HG": 0,
   "HADD_LMEN": 0,
-  "HG_CENTRADO": false,
+  "HG_CENTRADO": true,
   "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
   "LONGITUD_MENSULA_MINIMA_GUARDIA": 0,
+  "Lk": 0.75,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
   "OFFSET_COLUMNA_BASE": true,
-  "OFFSET_COLUMNA_BASE_FIN": 0.4,
-  "OFFSET_COLUMNA_BASE_INICIO": 0.6,
+  "OFFSET_COLUMNA_BASE_FIN": 0.65,
+  "OFFSET_COLUMNA_BASE_INICIO": 3.3,
   "OFFSET_COLUMNA_BASE_TIPO": "Trapezoidal",
   "OFFSET_COLUMNA_INTER": true,
-  "OFFSET_COLUMNA_INTER_FIN": 0.3,
-  "OFFSET_COLUMNA_INTER_INICIO": 0.4,
-  "OFFSET_COLUMNA_INTER_TIPO": "Trapezoidal",
+  "OFFSET_COLUMNA_INTER_FIN": 0.65,
+  "OFFSET_COLUMNA_INTER_INICIO": 0.65,
+  "OFFSET_COLUMNA_INTER_TIPO": "Recto",
   "OFFSET_MENSULA": true,
-  "OFFSET_MENSULA_FIN": 0.3,
-  "OFFSET_MENSULA_INICIO": 0.4,
+  "OFFSET_MENSULA_FIN": 0,
+  "OFFSET_MENSULA_INICIO": 1.48,
   "OFFSET_MENSULA_TIPO": "Triangular",
   "SOBREESCRIBIR_ALTURA_A_CABLE": false,
   "SOBREESCRIBIR_S": false,
-  "TENSION": 132,
+  "TENSION": 33,
   "TERNA": "Doble",
-  "Zona_estructura": "Autopista",
+  "Zona_estructura": "Rural",
   "altura_a_cable_sobreescrita": 5.9,
   "defasaje_mensula_hielo": false,
   "lmen_extra_hielo": 0,
@@ -71,6 +59,7 @@
   "REEMPLAZAR_TITULO_GRAFICO": false,
   "ZOOM_CABEZAL": 0.95,
   "Cf_cable": 1,
+  "Cf_cadena": 0.9,
   "Cf_estructura": 0.9,
   "Cf_guardia": 1,
   "L_vano": 180,
@@ -78,12 +67,14 @@
   "Vmax": 38.9,
   "Vmed": 15.56,
   "Vtormenta": 20,
+  "Zca": 13,
   "Zcg": 13,
   "Zco": 13,
   "Zes": 10,
   "alpha": 0,
   "t_hielo": 0.01,
   "theta": 45,
+  "A_cadena": 0.03,
   "A_estr_long": 4.482,
   "A_estr_trans": 2.982,
   "H_PIQANTERIOR": 0,
@@ -91,6 +82,7 @@
   "OBJ_CONDUCTOR": "FlechaMin",
   "OBJ_GUARDIA": "TiroMin",
   "PASO_AFINADO": 0.005,
+  "PCADENA": 10.5,
   "PESTRUCTURA": 3900,
   "RELFLECHA_MAX_GUARDIA": 0.95,
   "RELFLECHA_SIN_VIENTO": true,
@@ -123,6 +115,45 @@
   "separacion_postes_cima": 0.3,
   "superacion_presion_admisible": 1.33,
   "tipo_base_fundacion": "Rombica",
+  "parametros_graficos": {
+    "colores": {
+      "conductor": "#1f77b4",
+      "guardia": "#2ca02c",
+      "poste": "#000000",
+      "cadena": "#717170",
+      "conductor_end": "red",
+      "circulo": "gray",
+      "apantallamiento": "#84FF6B",
+      "texto_verde": "#006400",
+      "dhg_circulo": "gray",
+      "terreno": "#8B4513",
+      "area_s_estructura": "lightblue"
+    },
+    "controles": {
+      "declinar_todos": false,
+      "dibujar_solo_circulos_declinados_trayectoria": true,
+      "dibujar_circulos_s_estructura": true,
+      "dibujar_areas_s_estructura": true,
+      "dibujar_circulos_d_fases": true,
+      "dibujar_circulos_dhg": true,
+      "linewidth_cadena": 2,
+      "linewidth_estructura": 4,
+      "linewidth_cruceta": 3,
+      "linewidth_circulo": 1.5,
+      "alpha_cruceta": 0.8,
+      "alpha_circulo": 0.7,
+      "alpha_circulo_trayectoria": 0.4,
+      "alpha_apantallamiento": 0.7,
+      "alpha_area_s_estructura": 0.15,
+      "size_nodo_conductor": 100,
+      "size_nodo_guardia": 100,
+      "size_nodo_estructura": 80,
+      "size_conductor_end": 80,
+      "zoom_cabezal_default": 0.7,
+      "zoom_estructura_default": 0.95,
+      "mostrar_c2": false
+    }
+  },
   "costeo": {
     "postes": {
       "coef_a": 267.9232,
@@ -203,7 +234,7 @@
       "relflecha": 0.9
     },
     "6": {
-      "temperatura": 85,
+      "temperatura": 80,
       "descripcion": "TcondMax",
       "viento_velocidad": 0,
       "espesor_hielo": 0,
@@ -212,7 +243,7 @@
       "relflecha": 0.9
     }
   },
-  "fecha_modificacion": "2026-01-14T13:46:11.041423",
+  "fecha_modificacion": "2026-01-14T13:24:28.482512",
   "nodos_editados": [],
   "fundacion": {
     "metodo": "sulzberger",
@@ -251,7 +282,5 @@
     "configuracion_calculo": {
       "incremento": 0.01
     }
-  },
-  "SOBREESCRIBIR_ALTURA_a_CABLE": false,
-  "ALTURA_a_CABLE_SOBREESCRITA": 0
+  }
 }

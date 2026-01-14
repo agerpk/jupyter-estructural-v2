@@ -212,62 +212,45 @@ def register_callbacks(app):
                 return dbc.Alert(f"Error en cálculo automático CMC: {resultado_auto['mensaje']}", color="danger")
             
             # SIEMPRE ejecutar DGE automáticamente (sin gráficos)
-            from controllers.geometria_controller import ejecutar_calculo_dge
             resultado_dge = ejecutar_calculo_dge(estructura_actual, state, generar_plots=False)
             if not resultado_dge["exito"]:
                 return dbc.Alert(f"Error en cálculo automático DGE: {resultado_dge['mensaje']}", color="danger")
             
-            # Usar estructura_mecanica del state si existe y es válida, sino crear nueva
-            if state.calculo_objetos.estructura_mecanica and state.calculo_objetos.estructura_mecanica.geometria:
-                estructura_mecanica = state.calculo_objetos.estructura_mecanica
+            # Crear estructura_mecanica y asignar cargas
+            estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
+            
+            from utils.hipotesis_manager import HipotesisManager
+            datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
+            hipotesis_maestro = {}
+            if datos_hipotesis:
+                hipotesis_maestro = datos_hipotesis.get('hipotesis_maestro', datos_hipotesis)
             else:
-                estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
-                
-                from utils.hipotesis_manager import HipotesisManager
-                from config.app_config import DATA_DIR
-                
-                # Cargar la hipótesis activa. Si no existe, usar la plantilla.
-                datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
-                hipotesis_maestro = {}
-                if datos_hipotesis:
-                    print(f"✅ Usando hipótesis activa: {HipotesisManager.obtener_hipotesis_activa()}")
-                    # El archivo puede contener metadatos, extraer el diccionario principal
-                    hipotesis_maestro = datos_hipotesis.get('hipotesis_maestro', datos_hipotesis)
-                else:
-                    print("⚠️ Hipótesis activa no encontrada. Usando plantilla.")
-                    # La ruta a data es relativa al root del proyecto
-                    plantilla_path = "data/hipotesis/plantilla.hipotesis.json"
-                    try:
-                        with open(plantilla_path, 'r', encoding='utf-8') as f:
-                            datos_plantilla = json.load(f)
-                        # Extraer el diccionario principal
-                        hipotesis_maestro = datos_plantilla.get('hipotesis_maestro', datos_plantilla)
-                    except FileNotFoundError:
-                        print(f"❌ ERROR: No se encontró el archivo de plantilla en {plantilla_path}.")
-                        hipotesis_maestro = {}
-
-                # Validar la hipótesis cargada
-                if hipotesis_maestro:
-                    ok, msg = HipotesisManager.validar_hipotesis(hipotesis_maestro)
-                    if not ok:
-                        print(f"❌ ERROR DE VALIDACIÓN DE HIPÓTESIS: {msg}")
-                        # Retornar error visible al usuario
-                        return dbc.Alert(f"Error de validación en la hipótesis cargada: {msg}", color="danger")
-                else:
-                    return dbc.Alert("No se pudo cargar ninguna hipótesis (ni activa ni plantilla).", color="danger")
-                
-                estructura_mecanica.asignar_cargas_hipotesis(
-                    state.calculo_mecanico.df_cargas_totales,
-                    state.calculo_mecanico.resultados_conductor,
-                    state.calculo_mecanico.resultados_guardia1,
-                    estructura_actual.get('L_vano'),
-                    hipotesis_maestro,
-                    estructura_actual.get('t_hielo'),
-                    resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
-                    estados_climaticos=estructura_actual.get('estados_climaticos', {})
-                )
-                
-                state.calculo_objetos.estructura_mecanica = estructura_mecanica
+                plantilla_path = "data/hipotesis/plantilla.hipotesis.json"
+                try:
+                    with open(plantilla_path, 'r', encoding='utf-8') as f:
+                        datos_plantilla = json.load(f)
+                    hipotesis_maestro = datos_plantilla.get('hipotesis_maestro', datos_plantilla)
+                except FileNotFoundError:
+                    return dbc.Alert("No se encontró archivo de hipótesis", color="danger")
+            
+            if hipotesis_maestro:
+                ok, msg = HipotesisManager.validar_hipotesis(hipotesis_maestro)
+                if not ok:
+                    return dbc.Alert(f"Error de validación en la hipótesis: {msg}", color="danger")
+            else:
+                return dbc.Alert("No se pudo cargar ninguna hipótesis", color="danger")
+            
+            estructura_mecanica.asignar_cargas_hipotesis(
+                state.calculo_mecanico.df_cargas_totales,
+                state.calculo_mecanico.resultados_conductor,
+                state.calculo_mecanico.resultados_guardia1,
+                estructura_actual.get('L_vano'),
+                hipotesis_maestro,
+                estructura_actual.get('t_hielo'),
+                resultados_guardia2=state.calculo_mecanico.resultados_guardia2
+            )
+            
+            state.calculo_objetos.estructura_mecanica = estructura_mecanica
             
             # Determinar nodo cima
             nodes_key = state.calculo_objetos.estructura_geometria.nodes_key
