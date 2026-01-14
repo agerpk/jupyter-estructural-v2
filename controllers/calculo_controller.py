@@ -256,7 +256,8 @@ def register_callbacks(app):
                             state.calculo_objetos.cable_conductor,
                             state.calculo_objetos.cable_guardia,
                             float(L_vano),
-                            state.calculo_objetos.cable_guardia2
+                            state.calculo_objetos.cable_guardia2,
+                            estados_climaticos
                         )
                         fig_combinado = figs[0]
                         fig_conductor = figs[1]

@@ -62,8 +62,8 @@
   "Cf_guardia": 1,
   "L_vano": 350,
   "Q": 0.0613,
-  "Vmax": 38.9,
-  "Vmed": 15.56,
+  "Vmax": 40,
+  "Vmed": 16,
   "Vtormenta": 20,
   "Zca": 13,
   "Zcg": 13,
@@ -187,7 +187,7 @@
   },
   "estados_climaticos": {
     "1": {
-      "temperatura": 80,
+      "temperatura": 40,
       "descripcion": "Tmáx",
       "viento_velocidad": 0,
       "espesor_hielo": 0,
@@ -270,7 +270,7 @@
       }
     }
   },
-  "fecha_modificacion": "2026-01-14T11:10:19.978934",
+  "fecha_modificacion": "2026-01-14T11:52:33.043469",
   "nodos_editados": [],
   "SOBREESCRIBIR_ALTURA_a_CABLE": false,
   "ALTURA_a_CABLE_SOBREESCRITA": 0

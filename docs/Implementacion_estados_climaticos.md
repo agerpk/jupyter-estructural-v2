@@ -677,7 +677,7 @@ def migrar_estados_antiguos(estados_antiguos):
 
 ## ESTADO ACTUALIZADO - 2026-01-14
 
-### ✅ COMPLETADO (10/13 tareas - 77%)
+### ✅ COMPLETADO (12/13 tareas - 92%)
 
 **Prioridad 1 (Base) - 2/2**:
 1. ✅ `utils/selector_estados.py` creado con 6 funciones
@@ -695,16 +695,19 @@ def migrar_estados_antiguos(estados_antiguos):
 11. ✅ Eliminado código legacy de tabla estados en vista CMC
 12. ✅ Sin defaults - falla limpiamente si no hay estados definidos
 
-### ⏳ PENDIENTE (3/13 tareas - 23%)
-
-**Prioridad 3 (Cálculos) - 0/3**:
-13. ⏳ FASE 3.2: Modificar `utils/plot_flechas.py` para colores dinámicos
-14. ⏳ FASE 4.1: Modificar `EstructuraAEA_Geometria.py` para selección inteligente
+**Prioridad 3 (Cálculos) - 2/3**:
+13. ✅ FASE 3.2: `utils/plot_flechas.py` - Colores dinámicos con colormap
+14. ✅ FASE 4.1: DGE ya compatible - recibe flecha_max como parámetro
 15. ⏳ FASE 5.1: Modificar `HipotesisMaestro_Especial.py` para referencias a funciones
 
-### 📊 Progreso: 77% (10/13)
+### ⏳ PENDIENTE (1/13 tareas - 8%)
 
-### 📝 Archivos (11 total)
+**Prioridad 3 (Cálculos) - 1/3**:
+16. ⏳ FASE 5.1: Modificar `HipotesisMaestro_Especial.py` - Cambiar nombres hardcodeados ("TMA", "Vmax") por referencias a funciones ("buscar_tma_equivalente", "buscar_vmax_equivalente")
+
+### 📊 Progreso: 92% (12/13)
+
+### 📝 Archivos (12 total)
 
 **Creados (4)**:
 - utils/selector_estados.py
@@ -712,8 +715,9 @@ def migrar_estados_antiguos(estados_antiguos):
 - components/modal_copiar_estados.py
 - controllers/estados_climaticos_controller.py
 
-**Modificados (7)**:
-- EstructuraAEA_Mecanica.py
+**Modificados (8)**:
+- EstructuraAEA_Mecanica.py (usa SelectorEstados)
+- utils/plot_flechas.py (colores dinámicos)
 - vista_calculo_mecanico.py (eliminada tabla legacy)
 - vista_ajuste_parametros.py
 - vista_familia_estructuras.py
