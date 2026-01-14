@@ -186,35 +186,68 @@
     "percentil_separacion_corta_larga": 50
   },
   "estados_climaticos": {
-    "I": {
+    "1": {
       "temperatura": 80,
       "descripcion": "Tmáx",
       "viento_velocidad": 0,
-      "espesor_hielo": 0
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.25,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
     },
-    "II": {
+    "2": {
       "temperatura": -30,
       "descripcion": "Tmín",
       "viento_velocidad": 0,
-      "espesor_hielo": 0
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
     },
-    "III": {
+    "3": {
       "temperatura": 10,
       "descripcion": "Vmáx",
       "viento_velocidad": 40,
-      "espesor_hielo": 0
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
     },
-    "IV": {
+    "4": {
       "temperatura": -5,
       "descripcion": "Vmed",
       "viento_velocidad": 16,
-      "espesor_hielo": 0.0125
+      "espesor_hielo": 0.0125,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
     },
-    "V": {
+    "5": {
       "temperatura": 16,
       "descripcion": "TMA",
       "viento_velocidad": 0,
-      "espesor_hielo": 0
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.25,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
+    },
+    "6": {
+      "temperatura": -5,
+      "descripcion": "Hielo",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0.025,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
+    },
+    "7": {
+      "temperatura": 80,
+      "descripcion": "TMAXCOND",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.25,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
     }
   },
   "restricciones_cables": {
@@ -237,7 +270,7 @@
       }
     }
   },
-  "fecha_modificacion": "2026-01-13T16:45:06.600330",
+  "fecha_modificacion": "2026-01-14T11:10:19.978934",
   "nodos_editados": [],
   "SOBREESCRIBIR_ALTURA_a_CABLE": false,
   "ALTURA_a_CABLE_SOBREESCRITA": 0

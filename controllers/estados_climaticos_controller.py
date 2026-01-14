@@ -75,8 +75,20 @@ def register_callbacks(app):
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
+        # Mapeo legacy romano a numérico
+        mapeo_romano = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5}
+        
         # Encontrar primer ID disponible
-        ids_usados = [int(id) for id in estados_actuales.keys()]
+        ids_usados = []
+        for id_str in estados_actuales.keys():
+            if id_str in mapeo_romano:
+                ids_usados.append(mapeo_romano[id_str])
+            else:
+                try:
+                    ids_usados.append(int(id_str))
+                except ValueError:
+                    pass
+        
         nuevo_id = 1
         while nuevo_id in ids_usados:
             nuevo_id += 1
@@ -233,13 +245,219 @@ def register_callbacks(app):
         
         return tabla, estados_nuevos, False
     
-    # Cancelar sub-modal copiar
+    # Abrir modal - AJUSTE
     @app.callback(
-        Output("modal-copiar-estados", "is_open", allow_duplicate=True),
-        Input("modal-copiar-estados-btn-cancelar", "n_clicks"),
+        [Output("modal-estados-ajuste", "is_open"),
+         Output("modal-estados-ajuste-tabla-container", "children"),
+         Output("modal-estados-ajuste-estados-data", "data")],
+        Input("btn-abrir-estados-ajuste", "n_clicks"),
+        State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def cancelar_modal_copiar(n_clicks):
+    def abrir_modal_ajuste(n_clicks, estructura_actual):
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        # Cargar estados actuales
+        estados = estructura_actual.get("estados_climaticos", {
+            "1": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, 
+                  "espesor_hielo": 0, "restriccion_conductor": 0.25, 
+                  "restriccion_guardia": 0.7, "relflecha": 0.9}
+        })
+        
+        tabla = generar_tabla_estados(estados, "modal-estados-ajuste")
+        
+        return True, tabla, estados
+    
+    # Agregar estado - AJUSTE
+    @app.callback(
+        [Output("modal-estados-ajuste-tabla-container", "children", allow_duplicate=True),
+         Output("modal-estados-ajuste-estados-data", "data", allow_duplicate=True)],
+        Input("modal-estados-ajuste-btn-agregar", "n_clicks"),
+        State("modal-estados-ajuste-estados-data", "data"),
+        prevent_initial_call=True
+    )
+    def agregar_estado_ajuste(n_clicks, estados_actuales):
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        # Mapeo legacy romano a numérico
+        mapeo_romano = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5}
+        
+        # Encontrar primer ID disponible
+        ids_usados = []
+        for id_str in estados_actuales.keys():
+            if id_str in mapeo_romano:
+                ids_usados.append(mapeo_romano[id_str])
+            else:
+                try:
+                    ids_usados.append(int(id_str))
+                except ValueError:
+                    pass
+        
+        nuevo_id = 1
+        while nuevo_id in ids_usados:
+            nuevo_id += 1
+        
+        # Copiar datos del último estado
+        ultimo_estado = list(estados_actuales.values())[-1]
+        estados_actuales[str(nuevo_id)] = ultimo_estado.copy()
+        
+        tabla = generar_tabla_estados(estados_actuales, "modal-estados-ajuste")
+        
+        return tabla, estados_actuales
+    
+    # Eliminar estado - AJUSTE
+    @app.callback(
+        [Output("modal-estados-ajuste-tabla-container", "children", allow_duplicate=True),
+         Output("modal-estados-ajuste-estados-data", "data", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input({"type": "btn-eliminar", "modal": "modal-estados-ajuste", "id": ALL}, "n_clicks"),
+        State("modal-estados-ajuste-estados-data", "data"),
+        prevent_initial_call=True
+    )
+    def eliminar_estado_ajuste(n_clicks_list, estados_actuales):
+        ctx = callback_context
+        if not ctx.triggered or not any(n_clicks_list):
+            raise dash.exceptions.PreventUpdate
+        
+        # Validar mínimo 1 estado
+        if len(estados_actuales) <= 1:
+            return (dash.no_update, dash.no_update, True, "Advertencia", 
+                    "Debe haber al menos 1 estado climático", "warning", "warning")
+        
+        # Obtener ID del estado a eliminar
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        estado_id = eval(trigger_id)["id"]
+        
+        # Eliminar estado
+        if estado_id in estados_actuales:
+            del estados_actuales[estado_id]
+        
+        tabla = generar_tabla_estados(estados_actuales, "modal-estados-ajuste")
+        
+        return tabla, estados_actuales, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    
+    # Guardar estados - AJUSTE
+    @app.callback(
+        [Output("estructura-actual", "data", allow_duplicate=True),
+         Output("modal-estados-ajuste", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("modal-estados-ajuste-btn-guardar", "n_clicks"),
+        [State({"type": "input-temp", "modal": "modal-estados-ajuste", "id": ALL}, "value"),
+         State({"type": "input-desc", "modal": "modal-estados-ajuste", "id": ALL}, "value"),
+         State({"type": "input-viento", "modal": "modal-estados-ajuste", "id": ALL}, "value"),
+         State({"type": "input-hielo", "modal": "modal-estados-ajuste", "id": ALL}, "value"),
+         State({"type": "input-rest-cond", "modal": "modal-estados-ajuste", "id": ALL}, "value"),
+         State({"type": "input-rest-guard", "modal": "modal-estados-ajuste", "id": ALL}, "value"),
+         State({"type": "input-relflecha", "modal": "modal-estados-ajuste", "id": ALL}, "value"),
+         State("estructura-actual", "data")],
+        prevent_initial_call=True
+    )
+    def guardar_estados_ajuste(n_clicks, temps, descs, vientos, hielos, rest_conds, rest_guards, relflechas, estructura_actual):
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        # Extraer estados de inputs
+        estados = extraer_estados_de_inputs(temps, descs, vientos, hielos, rest_conds, rest_guards, relflechas)
+        
+        # Actualizar estructura
+        estructura_actual["estados_climaticos"] = estados
+        
+        # Guardar archivo
+        nombre = estructura_actual.get("TITULO", "estructura")
+        archivo = DATA_DIR / f"{nombre}.estructura.json"
+        with open(archivo, 'w', encoding='utf-8') as f:
+            json.dump(estructura_actual, f, indent=2, ensure_ascii=False)
+        
+        return (estructura_actual, False, True, "Éxito", 
+                f"Estados climáticos guardados ({len(estados)} estados)", "success", "success")
+    
+    # Cancelar - AJUSTE
+    @app.callback(
+        Output("modal-estados-ajuste", "is_open", allow_duplicate=True),
+        Input("modal-estados-ajuste-btn-cancelar", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def cancelar_modal_ajuste(n_clicks):
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        return False
+    
+    # Abrir sub-modal copiar estados - AJUSTE
+    @app.callback(
+        [Output("modal-copiar-estados-ajuste", "is_open"),
+         Output("modal-copiar-estados-ajuste-dropdown-estructuras", "options")],
+        Input("modal-estados-ajuste-btn-copiar", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def abrir_modal_copiar_ajuste(n_clicks):
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        # Listar archivos .estructura.json en DATA_DIR
+        estructuras = []
+        for archivo in DATA_DIR.glob("*.estructura.json"):
+            nombre = archivo.stem.replace(".estructura", "")
+            estructuras.append({"label": nombre, "value": str(archivo)})
+        
+        return True, estructuras
+    
+    # Confirmar copiar estados - AJUSTE
+    @app.callback(
+        [Output("modal-estados-ajuste-tabla-container", "children", allow_duplicate=True),
+         Output("modal-estados-ajuste-estados-data", "data", allow_duplicate=True),
+         Output("modal-copiar-estados-ajuste", "is_open", allow_duplicate=True)],
+        Input("modal-copiar-estados-ajuste-btn-confirmar", "n_clicks"),
+        State("modal-copiar-estados-ajuste-dropdown-estructuras", "value"),
+        prevent_initial_call=True
+    )
+    def confirmar_copiar_estados_ajuste(n_clicks, archivo_origen):
+        if n_clicks is None or not archivo_origen:
+            raise dash.exceptions.PreventUpdate
+        
+        # Cargar estructura origen
+        with open(archivo_origen, 'r', encoding='utf-8') as f:
+            estructura_origen = json.load(f)
+        
+        estados_origen = estructura_origen.get("estados_climaticos", {})
+        
+        # Detectar y convertir legacy (I, II, III, IV, V)
+        if any(id in ["I", "II", "III", "IV", "V"] for id in estados_origen.keys()):
+            estados_nuevos = {}
+            nuevo_id = 1
+            for id_origen, datos in estados_origen.items():
+                if id_origen not in ["I", "II", "III", "IV", "V"]:
+                    estados_nuevos[str(nuevo_id)] = datos
+                    nuevo_id += 1
+        else:
+            # Copiar con IDs numéricos secuenciales
+            estados_nuevos = {}
+            nuevo_id = 1
+            for datos in estados_origen.values():
+                estados_nuevos[str(nuevo_id)] = datos
+                nuevo_id += 1
+        
+        # Generar nueva tabla
+        tabla = generar_tabla_estados(estados_nuevos, "modal-estados-ajuste")
+        
+        return tabla, estados_nuevos, False
+    
+    # Cancelar sub-modal copiar - AJUSTE
+    @app.callback(
+        Output("modal-copiar-estados-ajuste", "is_open", allow_duplicate=True),
+        Input("modal-copiar-estados-ajuste-btn-cancelar", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def cancelar_modal_copiar_ajuste(n_clicks):
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         return False

@@ -151,17 +151,13 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
             ])
         ], className="mb-3"),
         
-        # Estados Climáticos
-        dbc.Card([
-            dbc.CardHeader([
-                dbc.Button("⚙️ Editar Estados Climáticos", id="btn-abrir-estados-estructura", 
-                          color="info", size="sm", className="me-2"),
-                html.H5("Estados Climáticos", className="d-inline")
-            ]),
-            dbc.CardBody([
-                html.Div(crear_tabla_estados_climaticos(estructura_actual))
+        # Botón Estados Climáticos
+        dbc.Row([
+            dbc.Col([
+                dbc.Button("Editar Estados Climaticos y Restricciones", id="btn-abrir-estados-estructura", 
+                          color="info", size="lg", className="mb-3")
             ])
-        ], className="mb-3"),
+        ]),
         
         # Modales
         crear_modal_estados_climaticos("modal-estados-estructura"),
@@ -286,77 +282,4 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual, omitir_vigencia=
         return dbc.Alert(f"Error cargando resultados: {str(e)}", color="warning")
 
 
-def crear_tabla_estados_climaticos(estructura_actual):
-    """Crear tabla editable de estados climáticos con restricciones"""
-    
-    # Cargar estados desde estructura_actual si existen, sino usar defaults
-    estados_guardados = estructura_actual.get("estados_climaticos", {})
-    
-    # Valores por defecto
-    estados_default = {
-        "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
-        "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
-        "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": estructura_actual.get("Vmax", 38.9), "espesor_hielo": 0},
-        "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": estructura_actual.get("Vmed", 15.56), "espesor_hielo": estructura_actual.get("t_hielo", 0.01)},
-        "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
-    }
-    
-    # Mezclar estados guardados con defaults
-    for estado_id in estados_default.keys():
-        if estado_id in estados_guardados:
-            estados_default[estado_id].update(estados_guardados[estado_id])
-    
-    # Cargar restricciones desde estructura_actual si existen
-    restricciones_guardadas = estructura_actual.get("restricciones_cables", {})
-    restricciones_conductor = restricciones_guardadas.get("conductor", {}).get("tension_max_porcentaje", {})
-    restricciones_guardia = restricciones_guardadas.get("guardia", {}).get("tension_max_porcentaje", {})
-    
-    # Defaults si no existen
-    if not restricciones_conductor:
-        restricciones_conductor = {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25}
-    if not restricciones_guardia:
-        restricciones_guardia = {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
-    
-    # Encabezado
-    header = dbc.Row([
-        dbc.Col(html.Strong("Estado"), md=1),
-        dbc.Col(html.Strong("Temp (°C)"), md=1),
-        dbc.Col(html.Strong("Descripción"), md=2),
-        dbc.Col(html.Strong("Viento (m/s)"), md=2),
-        dbc.Col(html.Strong("Hielo (m)"), md=2),
-        dbc.Col(html.Strong("Restricción Conductor (%)"), md=2),
-        dbc.Col(html.Strong("Restricción Guardia (%)"), md=2),
-    ], className="mb-2 fw-bold")
-    
-    filas = [header]
-    for estado_id, valores in estados_default.items():
-        fila = dbc.Row([
-            dbc.Col(html.Strong(estado_id), md=1),
-            dbc.Col(
-                dbc.Input(id={"type": "estado-temp", "index": estado_id}, type="number", 
-                         value=valores["temperatura"], size="sm"), md=1
-            ),
-            dbc.Col(
-                dbc.Input(id={"type": "estado-desc", "index": estado_id}, type="text",
-                         value=valores["descripcion"], size="sm", disabled=True), md=2
-            ),
-            dbc.Col(
-                dbc.Input(id={"type": "estado-viento", "index": estado_id}, type="number",
-                         value=valores["viento_velocidad"], size="sm"), md=2
-            ),
-            dbc.Col(
-                dbc.Input(id={"type": "estado-hielo", "index": estado_id}, type="number",
-                         value=valores["espesor_hielo"], size="sm"), md=2
-            ),
-            dbc.Col(
-                dbc.Input(id={"type": "restriccion-conductor", "index": estado_id}, type="number",
-                         value=restricciones_conductor[estado_id], size="sm", step=0.01, min=0, max=1), md=2
-            ),
-            dbc.Col(
-                dbc.Input(id={"type": "restriccion-guardia", "index": estado_id}, type="number",
-                         value=restricciones_guardia[estado_id], size="sm", step=0.01, min=0, max=1), md=2
-            ),
-        ], className="mb-2")
-        filas.append(fila)
-    
-    return html.Div(filas)
+

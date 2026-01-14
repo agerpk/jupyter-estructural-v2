@@ -4,7 +4,6 @@ import dash
 from dash import html, dcc, Input, Output, State, ALL
 import dash_bootstrap_components as dbc
 from models.app_state import AppState
-from components.vista_calculo_mecanico import crear_tabla_estados_climaticos
 from utils.plot_flechas import crear_grafico_flechas
 
 
@@ -125,19 +124,13 @@ def register_callbacks(app):
         State("param-OBJ_GUARDIA", "value"),
         State("slider-RELFLECHA_MAX_GUARDIA", "value"),
         State("param-RELFLECHA_SIN_VIENTO", "value"),
-        State({"type": "estado-temp", "index": ALL}, "value"),
-        State({"type": "estado-viento", "index": ALL}, "value"),
-        State({"type": "estado-hielo", "index": ALL}, "value"),
-        State({"type": "restriccion-conductor", "index": ALL}, "value"),
-        State({"type": "restriccion-guardia", "index": ALL}, "value"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
     def calcular_cmc(n_clicks, L_vano, alpha, theta, Vmax, Vmed, t_hielo,
                     VANO_DESNIVELADO, H_PIQANTERIOR, H_PIQPOSTERIOR,
                     SALTO_PORCENTUAL, PASO_AFINADO, OBJ_CONDUCTOR, OBJ_GUARDIA,
-                    RELFLECHA_MAX_GUARDIA, RELFLECHA_SIN_VIENTO,
-                    temps, vientos, hielos, restricciones_cond, restricciones_guard, estructura_actual):
+                    RELFLECHA_MAX_GUARDIA, RELFLECHA_SIN_VIENTO, estructura_actual):
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
@@ -167,24 +160,19 @@ def register_callbacks(app):
             if not resultado_objetos["exito"]:
                 return dash.no_update, True, "Error", resultado_objetos["mensaje"], "danger", "danger"
             
-            estados_ids = ["I", "II", "III", "IV", "V"]
-            descripciones = ["Tmáx", "Tmín", "Vmáx", "Vmed", "TMA"]
-            estados_climaticos = {}
-            for i, estado_id in enumerate(estados_ids):
-                estados_climaticos[estado_id] = {
-                    "temperatura": float(temps[i]),
-                    "descripcion": descripciones[i],
-                    "viento_velocidad": float(vientos[i]),
-                    "espesor_hielo": float(hielos[i])
-                }
+            # Usar estados climáticos desde estructura_actual (guardados por modal)
+            estados_climaticos = estructura_actual.get("estados_climaticos")
+            if not estados_climaticos:
+                return dash.no_update, True, "Error", "Debe definir estados climáticos usando el botón 'Editar Estados Climaticos y Restricciones'", "danger", "danger"
             
+            # Construir restricciones desde estados_climaticos
             restricciones_dict = {
                 "conductor": {"tension_max_porcentaje": {}},
                 "guardia": {"tension_max_porcentaje": {}, "relflecha_max": float(RELFLECHA_MAX_GUARDIA)}
             }
-            for i, estado_id in enumerate(estados_ids):
-                restricciones_dict["conductor"]["tension_max_porcentaje"][estado_id] = float(restricciones_cond[i])
-                restricciones_dict["guardia"]["tension_max_porcentaje"][estado_id] = float(restricciones_guard[i])
+            for estado_id, datos in estados_climaticos.items():
+                restricciones_dict["conductor"]["tension_max_porcentaje"][estado_id] = datos.get("restriccion_conductor", 0.25)
+                restricciones_dict["guardia"]["tension_max_porcentaje"][estado_id] = datos.get("restriccion_guardia", 0.7)
             
             params = {
                 "L_vano": float(L_vano),

@@ -671,3 +671,52 @@ def migrar_estados_antiguos(estados_antiguos):
 - ✅ Toast con 5 outputs incluyendo "icon"
 - ✅ `allow_duplicate=True` donde corresponde
 - ✅ `prevent_initial_call=True` en todos los callbacks
+
+
+---
+
+## ESTADO ACTUALIZADO - 2026-01-14
+
+### ✅ COMPLETADO (10/13 tareas - 77%)
+
+**Prioridad 1 (Base) - 2/2**:
+1. ✅ `utils/selector_estados.py` creado con 6 funciones
+2. ✅ `EstructuraAEA_Mecanica.py` modificado para usar SelectorEstados
+
+**Prioridad 2 (UI) - 8/8**:
+3. ✅ `modal_estados_climaticos.py` (estilos oscuros #1e1e1e/#2d2d2d, sin emojis, texto legible)
+4. ✅ `modal_copiar_estados.py` creado con estilos oscuros
+5. ✅ Integrado en `vista_calculo_mecanico.py` (ID: modal-estados-estructura)
+6. ✅ Integrado en `vista_ajuste_parametros.py` (ID: modal-estados-ajuste)
+7. ✅ Integrado en `vista_familia_estructuras.py` (ID: modal-estados-familia)
+8. ✅ `estados_climaticos_controller.py` con callbacks para todas las vistas
+9. ✅ Callbacks familia en `familia_controller.py`
+10. ✅ Registrado en `app.py`
+11. ✅ Eliminado código legacy de tabla estados en vista CMC
+12. ✅ Sin defaults - falla limpiamente si no hay estados definidos
+
+### ⏳ PENDIENTE (3/13 tareas - 23%)
+
+**Prioridad 3 (Cálculos) - 0/3**:
+13. ⏳ FASE 3.2: Modificar `utils/plot_flechas.py` para colores dinámicos
+14. ⏳ FASE 4.1: Modificar `EstructuraAEA_Geometria.py` para selección inteligente
+15. ⏳ FASE 5.1: Modificar `HipotesisMaestro_Especial.py` para referencias a funciones
+
+### 📊 Progreso: 77% (10/13)
+
+### 📝 Archivos (11 total)
+
+**Creados (4)**:
+- utils/selector_estados.py
+- components/modal_estados_climaticos.py
+- components/modal_copiar_estados.py
+- controllers/estados_climaticos_controller.py
+
+**Modificados (7)**:
+- EstructuraAEA_Mecanica.py
+- vista_calculo_mecanico.py (eliminada tabla legacy)
+- vista_ajuste_parametros.py
+- vista_familia_estructuras.py
+- calculo_controller.py (sin defaults, sin imports legacy)
+- familia_controller.py
+- app.py

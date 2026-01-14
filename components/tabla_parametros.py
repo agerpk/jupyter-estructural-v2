@@ -26,16 +26,6 @@ def crear_tabla_parametros(estructura_actual: Dict, cables_disponibles: List[str
     return html.Div([
         html.H5("Parámetros de Estructura", className="mb-3"),
         
-        # Botón para modificar estados climáticos
-        dbc.Card([
-            dbc.CardHeader(html.H6("Estados Climáticos y Restricciones")),
-            dbc.CardBody([
-                dbc.Button("Modificar Estados Climáticos y Restricciones", 
-                          id="btn-modificar-estados-tabla", 
-                          color="info", size="sm")
-            ])
-        ], className="mb-3"),
-        
         # Modal para edición
         dbc.Modal([
             dbc.ModalHeader(dbc.ModalTitle("Editar Parámetro")),
@@ -45,16 +35,6 @@ def crear_tabla_parametros(estructura_actual: Dict, cables_disponibles: List[str
                 dbc.Button("Confirmar", id="modal-confirmar", color="primary")
             ])
         ], id="modal-parametro", is_open=False),
-        
-        # Modal para estados climáticos
-        dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle("Estados Climáticos y Restricciones")),
-            dbc.ModalBody(id="modal-estados-tabla-body"),
-            dbc.ModalFooter([
-                dbc.Button("Cancelar", id="modal-estados-tabla-cancelar", color="secondary", className="me-2"),
-                dbc.Button("Guardar", id="modal-estados-tabla-guardar", color="primary")
-            ])
-        ], id="modal-estados-tabla", is_open=False, size="xl"),
         
         dcc.Store(id="modal-celda-info", data=None),
         

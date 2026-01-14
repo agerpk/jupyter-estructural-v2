@@ -3,6 +3,8 @@
 from dash import html
 import dash_bootstrap_components as dbc
 import json
+from components.modal_estados_climaticos import crear_modal_estados_climaticos
+from components.modal_copiar_estados import crear_modal_copiar_estados
 
 def crear_vista_ajuste_parametros_con_pestanas(estructura_actual=None, cables_disponibles=None):
     """Crear vista de ajuste de parámetros - solo modo tabla"""
@@ -27,7 +29,11 @@ def crear_vista_ajuste_parametros_con_pestanas(estructura_actual=None, cables_di
     return html.Div([
         indicador,
         dbc.Card([
-            dbc.CardHeader(html.H4("Ajustar Parámetros de Estructura", className="mb-0")),
+            dbc.CardHeader([
+                dbc.Button("Editar Estados Climaticos y Restricciones", id="btn-abrir-estados-ajuste", 
+                          color="info", size="sm", className="me-2"),
+                html.H4("Ajustar Parámetros de Estructura", className="d-inline mb-0")
+            ]),
             dbc.CardBody([
                 # Botones de acción
                 dbc.Row([
@@ -56,5 +62,9 @@ def crear_vista_ajuste_parametros_con_pestanas(estructura_actual=None, cables_di
                 crear_tabla_parametros(estructura_actual, cables_disponibles),
                 crear_toast_validacion()
             ])
-        ])
+        ]),
+        
+        # Modales
+        crear_modal_estados_climaticos("modal-estados-ajuste"),
+        crear_modal_copiar_estados("modal-copiar-estados-ajuste")
     ])

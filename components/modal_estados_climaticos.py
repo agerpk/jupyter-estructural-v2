@@ -17,7 +17,10 @@ def crear_modal_estados_climaticos(modal_id="modal-estados-climaticos"):
     """
     
     return dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Estados Climáticos y Restricciones"), style={"backgroundColor": "#1e1e1e", "color": "#ffffff"}),
+        dbc.ModalHeader(
+            dbc.ModalTitle("Estados Climáticos y Restricciones", style={"color": "#ffffff"}), 
+            style={"backgroundColor": "#1e1e1e"}
+        ),
         dbc.ModalBody([
             # Botones de control
             dbc.Row([
@@ -48,7 +51,7 @@ def crear_modal_estados_climaticos(modal_id="modal-estados-climaticos"):
             dbc.Button("Cancelar", id=f"{modal_id}-btn-cancelar", color="secondary", className="me-2"),
             dbc.Button("Guardar", id=f"{modal_id}-btn-guardar", color="primary")
         ], style={"backgroundColor": "#1e1e1e"})
-    ], id=modal_id, is_open=False, size="xl", scrollable=True, style={"backgroundColor": "#2d2d2d"})
+    ], id=modal_id, is_open=False, size="xl", scrollable=True)
 
 
 def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos"):
@@ -64,7 +67,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
     """
     
     if not estados_climaticos:
-        return html.Div("No hay estados definidos", className="text-muted")
+        return html.Div("No hay estados definidos", 
+                       style={"color": "#ffffff", "backgroundColor": "#2d2d2d", "padding": "20px"})
     
     # Ordenar por ID (manejar legacy romanos y numéricos)
     def sort_key(item):
@@ -85,7 +89,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
     for estado_id, datos in estados_ordenados:
         fila = html.Tr([
             # ID (no editable)
-            html.Td(estado_id, className="text-center fw-bold", style={"color": "#ffffff"}),
+            html.Td(estado_id, className="text-center fw-bold", 
+                   style={"color": "#ffffff", "backgroundColor": "#2d2d2d"}),
             
             # Temperatura
             html.Td(
@@ -98,7 +103,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
                     step=1,
                     size="sm",
                     style={"backgroundColor": "#1e1e1e", "color": "#ffffff", "borderColor": "#555"}
-                )
+                ),
+                style={"backgroundColor": "#2d2d2d"}
             ),
             
             # Descripción
@@ -109,7 +115,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
                     value=datos.get("descripcion", ""),
                     size="sm",
                     style={"backgroundColor": "#1e1e1e", "color": "#ffffff", "borderColor": "#555"}
-                )
+                ),
+                style={"backgroundColor": "#2d2d2d"}
             ),
             
             # Viento
@@ -122,7 +129,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
                     step=0.1,
                     size="sm",
                     style={"backgroundColor": "#1e1e1e", "color": "#ffffff", "borderColor": "#555"}
-                )
+                ),
+                style={"backgroundColor": "#2d2d2d"}
             ),
             
             # Hielo
@@ -135,7 +143,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
                     step=0.001,
                     size="sm",
                     style={"backgroundColor": "#1e1e1e", "color": "#ffffff", "borderColor": "#555"}
-                )
+                ),
+                style={"backgroundColor": "#2d2d2d"}
             ),
             
             # Restricción conductor
@@ -149,7 +158,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
                     step=0.01,
                     size="sm",
                     style={"backgroundColor": "#1e1e1e", "color": "#ffffff", "borderColor": "#555"}
-                )
+                ),
+                style={"backgroundColor": "#2d2d2d"}
             ),
             
             # Restricción guardia
@@ -163,7 +173,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
                     step=0.01,
                     size="sm",
                     style={"backgroundColor": "#1e1e1e", "color": "#ffffff", "borderColor": "#555"}
-                )
+                ),
+                style={"backgroundColor": "#2d2d2d"}
             ),
             
             # Relación flecha
@@ -176,7 +187,8 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
                     step=0.01,
                     size="sm",
                     style={"backgroundColor": "#1e1e1e", "color": "#ffffff", "borderColor": "#555"}
-                )
+                ),
+                style={"backgroundColor": "#2d2d2d"}
             ),
             
             # Botón eliminar
@@ -188,25 +200,29 @@ def generar_tabla_estados(estados_climaticos, modal_id="modal-estados-climaticos
                     size="sm",
                     outline=True
                 ),
-                className="text-center"
+                className="text-center",
+                style={"backgroundColor": "#2d2d2d"}
             )
         ], style={"backgroundColor": "#2d2d2d"})
         filas.append(fila)
     
-    # Tabla completa
-    tabla = dbc.Table([
-        html.Thead(html.Tr([
-            html.Th("ID", className="text-center", style={"color": "#ffffff"}),
-            html.Th("Temp (°C)", style={"color": "#ffffff"}),
-            html.Th("Descripción", style={"color": "#ffffff"}),
-            html.Th("Viento (m/s)", style={"color": "#ffffff"}),
-            html.Th("Hielo (m)", style={"color": "#ffffff"}),
-            html.Th("Rest. Cond.", style={"color": "#ffffff"}),
-            html.Th("Rest. Guard.", style={"color": "#ffffff"}),
-            html.Th("Relflecha", style={"color": "#ffffff"}),
-            html.Th("", className="text-center", style={"color": "#ffffff"})
-        ]), style={"backgroundColor": "#1e1e1e"}),
-        html.Tbody(filas)
-    ], bordered=True, hover=True, responsive=True, size="sm", style={"backgroundColor": "#2d2d2d", "color": "#ffffff"})
+    # Tabla completa con contenedor oscuro
+    tabla = html.Div([
+        dbc.Table([
+            html.Thead(html.Tr([
+                html.Th("ID", className="text-center", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"}),
+                html.Th("Temp (°C)", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"}),
+                html.Th("Descripción", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"}),
+                html.Th("Viento (m/s)", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"}),
+                html.Th("Hielo (m)", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"}),
+                html.Th("Rest. Cond.", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"}),
+                html.Th("Rest. Guard.", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"}),
+                html.Th("Relflecha", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"}),
+                html.Th("", className="text-center", style={"color": "#ffffff", "backgroundColor": "#1e1e1e"})
+            ])),
+            html.Tbody(filas, style={"backgroundColor": "#2d2d2d"})
+        ], bordered=True, hover=True, responsive=True, size="sm", 
+           style={"backgroundColor": "#2d2d2d", "color": "#ffffff", "marginBottom": "0"})
+    ], style={"backgroundColor": "#2d2d2d", "padding": "0"})
     
     return tabla
