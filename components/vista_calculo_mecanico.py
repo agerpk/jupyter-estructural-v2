@@ -9,6 +9,8 @@ from config.app_config import DATA_DIR
 from utils.view_helpers import ViewHelpers
 from utils.calculo_cache import CalculoCache
 from config.parametros_controles import obtener_config_control
+from components.modal_estados_climaticos import crear_modal_estados_climaticos
+from components.modal_copiar_estados import crear_modal_copiar_estados
 
 
 def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
@@ -151,11 +153,19 @@ def crear_vista_calculo_mecanico(estructura_actual, calculo_guardado=None):
         
         # Estados Climáticos
         dbc.Card([
-            dbc.CardHeader(html.H5("Estados Climáticos")),
+            dbc.CardHeader([
+                dbc.Button("⚙️ Editar Estados Climáticos", id="btn-abrir-estados-estructura", 
+                          color="info", size="sm", className="me-2"),
+                html.H5("Estados Climáticos", className="d-inline")
+            ]),
             dbc.CardBody([
                 html.Div(crear_tabla_estados_climaticos(estructura_actual))
             ])
         ], className="mb-3"),
+        
+        # Modales
+        crear_modal_estados_climaticos("modal-estados-estructura"),
+        crear_modal_copiar_estados("modal-copiar-estados"),
         
         # Botones de acción
         dbc.Row([

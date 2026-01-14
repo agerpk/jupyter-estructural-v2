@@ -266,17 +266,17 @@ def register_callbacks(app):
     
     @app.callback(
         [Output("modal-estados-familia", "is_open"),
-         Output("modal-estados-body", "children")],
-        [Input("btn-modificar-estados-familia", "n_clicks"),
-         Input("modal-estados-cancelar", "n_clicks"),
-         Input("modal-estados-guardar", "n_clicks")],
+         Output("modal-estados-familia-tabla-container", "children")],
+        [Input("btn-abrir-estados-familia", "n_clicks"),
+         Input("modal-estados-familia-btn-cancelar", "n_clicks"),
+         Input("modal-estados-familia-btn-guardar", "n_clicks")],
         [State("modal-estados-familia", "is_open"),
          State("input-nombre-familia", "value")],
         prevent_initial_call=True
     )
-    def toggle_modal_estados(n_abrir, n_cancelar, n_guardar, is_open, nombre_familia):
-        """Abrir/cerrar modal de estados climáticos"""
-        from components.vista_familia_estructuras import crear_tabla_estados_climaticos_familia
+    def toggle_modal_estados_familia(n_abrir, n_cancelar, n_guardar, is_open, nombre_familia):
+        """Abrir/cerrar modal de estados climáticos de familia"""
+        from components.modal_estados_climaticos import generar_tabla_estados
         
         ctx = dash.callback_context
         if not ctx.triggered:
@@ -284,7 +284,7 @@ def register_callbacks(app):
         
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         
-        if trigger_id == "btn-modificar-estados-familia":
+        if trigger_id == "btn-abrir-estados-familia":
             if n_abrir is None:
                 raise dash.exceptions.PreventUpdate
             
@@ -296,13 +296,92 @@ def register_callbacks(app):
                 except:
                     pass
             
-            tabla = crear_tabla_estados_climaticos_familia(familia_actual)
+            estados = familia_actual.get("estados_climaticos", {
+                "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
+                "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
+                "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "espesor_hielo": 0},
+                "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01},
+                "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
+            })
+            
+            tabla = generar_tabla_estados(estados, "modal-estados-familia")
             return True, tabla
         
-        elif trigger_id in ["modal-estados-cancelar", "modal-estados-guardar"]:
+        elif trigger_id in ["modal-estados-familia-btn-cancelar", "modal-estados-familia-btn-guardar"]:
             return False, no_update
         
         raise dash.exceptions.PreventUpdate
+    
+    @app.callback(
+        [Output("modal-estados-familia-tabla-container", "children", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("modal-estados-familia-btn-agregar", "n_clicks"),
+        [State({"type": "input-temp", "modal": "modal-estados-familia", "id": ALL}, "id"),
+         State({"type": "input-temp", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-desc", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-viento", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-hielo", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-rest-cond", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-rest-guard", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-relflecha", "modal": "modal-estados-familia", "id": ALL}, "value")],
+        prevent_initial_call=True
+    )
+    def agregar_estado_familia(n_clicks, ids, temps, descs, vientos, hielos, rest_cond, rest_guard, relflechas):
+        """Agregar nuevo estado"""
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        from components.modal_estados_climaticos import generar_tabla_estados
+        
+        # Reconstruir estados actuales
+        estados = {}
+        for i, id_dict in enumerate(ids):
+            estado_id = id_dict["id"]
+            estados[estado_id] = {
+                "temperatura": temps[i],
+                "descripcion": descs[i],
+                "viento_velocidad": vientos[i],
+                "espesor_hielo": hielos[i],
+                "restriccion_conductor": rest_cond[i],
+                "restriccion_guardia": rest_guard[i],
+                "relflecha": relflechas[i]
+            }
+        
+        # Encontrar próximo ID disponible
+        ids_numericos = []
+        for k in estados.keys():
+            try:
+                ids_numericos.append(int(k))
+            except:
+                pass
+        
+        if ids_numericos:
+            nuevo_id = str(max(ids_numericos) + 1)
+        else:
+            nuevo_id = "1"
+        
+        # Agregar nuevo estado (copiar último)
+        if estados:
+            ultimo_estado = list(estados.values())[-1]
+            estados[nuevo_id] = ultimo_estado.copy()
+            estados[nuevo_id]["descripcion"] = f"Estado {nuevo_id}"
+        else:
+            estados[nuevo_id] = {
+                "temperatura": 0,
+                "descripcion": f"Estado {nuevo_id}",
+                "viento_velocidad": 0,
+                "espesor_hielo": 0,
+                "restriccion_conductor": 0.25,
+                "restriccion_guardia": 0.7,
+                "relflecha": 0.9
+            }
+        
+        tabla = generar_tabla_estados(estados, "modal-estados-familia")
+        return tabla, True, "Éxito", f"Estado {nuevo_id} agregado", "success", "success"
     
     @app.callback(
         [Output("toast-notificacion", "is_open", allow_duplicate=True),
@@ -310,81 +389,55 @@ def register_callbacks(app):
          Output("toast-notificacion", "children", allow_duplicate=True),
          Output("toast-notificacion", "icon", allow_duplicate=True),
          Output("toast-notificacion", "color", allow_duplicate=True)],
-        Input("modal-estados-guardar", "n_clicks"),
+        Input("modal-estados-familia-btn-guardar", "n_clicks"),
         [State("input-nombre-familia", "value"),
-         State({"type": "familia-estado-temp", "index": ALL}, "value"),
-         State({"type": "familia-estado-desc", "index": ALL}, "value"),
-         State({"type": "familia-estado-viento", "index": ALL}, "value"),
-         State({"type": "familia-estado-hielo", "index": ALL}, "value"),
-         State({"type": "familia-restriccion-conductor", "index": ALL}, "value"),
-         State({"type": "familia-restriccion-guardia", "index": ALL}, "value")],
+         State({"type": "input-temp", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-desc", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-viento", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-hielo", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-rest-cond", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-rest-guard", "modal": "modal-estados-familia", "id": ALL}, "value"),
+         State({"type": "input-relflecha", "modal": "modal-estados-familia", "id": ALL}, "value")],
         prevent_initial_call=True
     )
-    def guardar_estados_climaticos(n_clicks, nombre_familia, temps, descs, vientos, hielos, rest_cond, rest_guard):
+    def guardar_estados_familia(n_clicks, nombre_familia, temps, descs, vientos, hielos, rest_cond, rest_guard, relflechas):
         """Guardar estados climáticos en archivo .familia.json"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
-        
-        print(f"\n💾 DEBUG GUARDAR ESTADOS CLIMÁTICOS:")
-        print(f"   nombre_familia: {nombre_familia}")
-        print(f"   temps: {temps}")
-        print(f"   descs: {descs}")
-        print(f"   vientos: {vientos}")
-        print(f"   hielos: {hielos}")
-        print(f"   rest_cond: {rest_cond}")
-        print(f"   rest_guard: {rest_guard}")
         
         if not nombre_familia:
             return True, "Error", "Debe especificar un nombre de familia", "danger", "danger"
         
         try:
-            # Cargar familia existente o crear nueva
-            try:
-                familia_data = FamiliaManager.cargar_familia(nombre_familia)
-                print(f"   ✅ Familia cargada: {list(familia_data.keys())}")
-            except:
-                familia_data = FamiliaManager.crear_familia_nueva()
-                familia_data["nombre_familia"] = nombre_familia
-                print(f"   ⚠️ Familia nueva creada")
-            
-            # Construir estados climáticos
-            estados_ids = ["I", "II", "III", "IV", "V"]
-            estados_climaticos = {}
-            restricciones_cables = {
-                "conductor": {"tension_max_porcentaje": {}},
-                "guardia": {"tension_max_porcentaje": {}}
+            familia_data = FamiliaManager.cargar_familia(nombre_familia)
+        except:
+            return True, "Error", "Familia no encontrada", "danger", "danger"
+        
+        # Construir estados y restricciones
+        estados_climaticos = {}
+        restricciones_cables = {
+            "conductor": {"tension_max_porcentaje": {}},
+            "guardia": {"tension_max_porcentaje": {}}
+        }
+        
+        for i in range(len(temps)):
+            estado_id = str(i + 1)
+            estados_climaticos[estado_id] = {
+                "temperatura": temps[i],
+                "descripcion": descs[i],
+                "viento_velocidad": vientos[i],
+                "espesor_hielo": hielos[i],
+                "relflecha": relflechas[i]
             }
-            
-            for i, estado_id in enumerate(estados_ids):
-                estados_climaticos[estado_id] = {
-                    "temperatura": temps[i] if i < len(temps) else 0,
-                    "descripcion": descs[i] if i < len(descs) else "",
-                    "viento_velocidad": vientos[i] if i < len(vientos) else 0,
-                    "espesor_hielo": hielos[i] if i < len(hielos) else 0
-                }
-                restricciones_cables["conductor"]["tension_max_porcentaje"][estado_id] = rest_cond[i] if i < len(rest_cond) else 0.25
-                restricciones_cables["guardia"]["tension_max_porcentaje"][estado_id] = rest_guard[i] if i < len(rest_guard) else 0.7
-            
-            print(f"   📊 Estados climáticos construidos: {list(estados_climaticos.keys())}")
-            print(f"   📊 Estado I: {estados_climaticos['I']}")
-            print(f"   📊 Restricciones conductor: {restricciones_cables['conductor']}")
-            print(f"   📊 Restricciones guardia: {restricciones_cables['guardia']}")
-            
-            # Actualizar familia
-            familia_data["estados_climaticos"] = estados_climaticos
-            familia_data["restricciones_cables"] = restricciones_cables
-            
-            print(f"   💾 Guardando familia con keys: {list(familia_data.keys())}")
-            
-            # Guardar
-            FamiliaManager.guardar_familia(familia_data)
-            
-            print(f"   ✅ Familia guardada exitosamente\n")
-            
-            return True, "Éxito", "Estados climáticos guardados correctamente", "success", "success"
-            
-        except Exception as e:
-            return True, "Error", f"Error guardando estados: {str(e)}", "danger", "danger"
+            restricciones_cables["conductor"]["tension_max_porcentaje"][estado_id] = rest_cond[i]
+            restricciones_cables["guardia"]["tension_max_porcentaje"][estado_id] = rest_guard[i]
+        
+        familia_data["estados_climaticos"] = estados_climaticos
+        familia_data["restricciones_cables"] = restricciones_cables
+        
+        FamiliaManager.guardar_familia(familia_data)
+        
+        return True, "Éxito", "Estados climáticos guardados", "success", "success"
 
     @app.callback(
         [Output("tabla-familia", "data"),

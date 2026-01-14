@@ -1,7 +1,10 @@
 # EstructuraAEA_Mecanica.py
 import pandas as pd
 import math
+import logging
 from NodoEstructural import Carga
+
+logger = logging.getLogger(__name__)
 
 class EstructuraAEA_Mecanica:
     """
@@ -263,12 +266,29 @@ class EstructuraAEA_Mecanica:
                             if not nodo.obtener_carga("Tiro"):
                                 nodo.agregar_carga(Carga(nombre="Tiro"))
                     
-                    # Obtener estados
-                    estado_viento_config = config["viento"]["estado"] if config["viento"] else None
-                    estado_viento = self.geometria.ESTADOS_MAPEO.get(estado_viento_config, estado_viento_config) if estado_viento_config else None
+                    # Obtener estados usando SelectorEstados
+                    from utils.selector_estados import SelectorEstados
                     
-                    estado_tiro_config = config["tiro"]["estado"] if config["tiro"] else None
-                    estado_tiro = self.geometria.ESTADOS_MAPEO.get(estado_tiro_config, estado_tiro_config) if estado_tiro_config else None
+                    estado_viento = None
+                    if config["viento"]:
+                        estado_viento_config = config["viento"]["estado"]
+                        if not hasattr(SelectorEstados, estado_viento_config):
+                            raise ValueError(f"Función '{estado_viento_config}' no existe en SelectorEstados")
+                        funcion_viento = getattr(SelectorEstados, estado_viento_config)
+                        estado_viento = funcion_viento(self.geometria.estados_climaticos)
+                    
+                    estado_tiro = None
+                    if config["tiro"]:
+                        estado_tiro_config = config["tiro"]["estado"]
+                        if not hasattr(SelectorEstados, estado_tiro_config):
+                            raise ValueError(f"Función '{estado_tiro_config}' no existe en SelectorEstados")
+                        funcion_tiro = getattr(SelectorEstados, estado_tiro_config)
+                        
+                        # buscar_max_tiro requiere resultados CMC
+                        if estado_tiro_config == "buscar_max_tiro":
+                            estado_tiro = funcion_tiro(resultados_conductor)
+                        else:
+                            estado_tiro = funcion_tiro(self.geometria.estados_climaticos)
                     
                     config_tiro = config["tiro"] if config["tiro"] else None
                     patron_tiro = config_tiro["patron"] if config_tiro else "bilateral"
@@ -285,20 +305,24 @@ class EstructuraAEA_Mecanica:
                         if self.geometria.cable_guardia2:
                             peso_guardia2 = peso_guardia2_base * vano * factor_peso
                     
-                    # Obtener tiros
+                    # Obtener tiros usando estado resuelto
                     tiro_guardia2_base = None
                     
-                    if estado_tiro == "máximo":
-                        tiro_cond_base = max([d["tiro_daN"] for d in resultados_conductor.values()])
-                        tiro_guardia1_base = max([d["tiro_daN"] for d in resultados_guardia1.values()])
-                        if resultados_guardia2:
-                            tiro_guardia2_base = max([d["tiro_daN"] for d in resultados_guardia2.values()])
-                    elif estado_tiro in resultados_conductor and estado_tiro in resultados_guardia1:
+                    if estado_tiro:
+                        if estado_tiro not in resultados_conductor:
+                            raise ValueError(f"Estado {estado_tiro} no encontrado en resultados de conductor")
+                        if estado_tiro not in resultados_guardia1:
+                            raise ValueError(f"Estado {estado_tiro} no encontrado en resultados de guardia1")
+                        
                         tiro_cond_base = resultados_conductor[estado_tiro]["tiro_daN"]
                         tiro_guardia1_base = resultados_guardia1[estado_tiro]["tiro_daN"]
-                        if resultados_guardia2 and estado_tiro in resultados_guardia2:
+                        
+                        if resultados_guardia2:
+                            if estado_tiro not in resultados_guardia2:
+                                raise ValueError(f"Estado {estado_tiro} no encontrado en resultados de guardia2")
                             tiro_guardia2_base = resultados_guardia2[estado_tiro]["tiro_daN"]
                     else:
+                        logger.warning(f"HIPÓTESIS {nombre_completo} NO TIENE TIROS")
                         tiro_cond_base = 0.0
                         tiro_guardia1_base = 0.0
                         if resultados_guardia2:

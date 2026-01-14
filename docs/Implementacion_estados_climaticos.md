@@ -609,4 +609,65 @@ def migrar_estados_antiguos(estados_antiguos):
 
 **Fecha**: 2024-01-15  
 **Versión**: 2.0  
-**Estado**: Diseño completo - IDs numéricos autogenerados
+**Estado**: En implementación
+
+---
+
+## Estado de Implementación
+
+### ✅ Completado
+
+**Prioridad 1 (Base del sistema)**:
+1. ✅ FASE 2.1: Creado `utils/selector_estados.py` con 6 funciones de selección
+2. ✅ FASE 2.2: Modificado `EstructuraAEA_Mecanica.py` para usar SelectorEstados con getattr()
+
+**Prioridad 2 (UI)**:
+3. ✅ FASE 1.1: Creado `components/modal_estados_climaticos.py` con tabla dinámica
+4. ✅ FASE 1.1.1: Creado `components/modal_copiar_estados.py` como sub-modal separado
+5. ✅ FASE 1.2: Integrado modal en `vista_calculo_mecanico.py` con botón de apertura
+6. ✅ FASE 1.3: Creado `controllers/estados_climaticos_controller.py` con todos los callbacks
+7. ✅ Registrado controller en `app.py`
+
+### 🔄 Pendiente
+
+**Prioridad 3 (Cálculos)**:
+8. ⏳ FASE 3.2: Modificar `utils/plot_flechas.py` para colores dinámicos
+9. ⏳ FASE 4.1: Modificar `EstructuraAEA_Geometria.py` para DGE
+10. ⏳ FASE 5.1: Modificar `HipotesisMaestro_Especial.py` para referencias a funciones
+
+**Prioridad 4 (Avanzado)**:
+11. ⏳ FASE 6: Modificar `controllers/familia_controller.py` para estados en familias
+
+**Prioridad 5 (Validación)**:
+12. ⏳ FASE 7: Testing completo
+13. ⏳ FASE 8: Documentación
+
+### 📝 Archivos Creados
+
+1. ✅ `utils/selector_estados.py` - Módulo de selección inteligente de estados
+2. ✅ `components/modal_estados_climaticos.py` - Modal principal con tabla dinámica
+3. ✅ `components/modal_copiar_estados.py` - Sub-modal para copiar estados
+4. ✅ `controllers/estados_climaticos_controller.py` - Controller con callbacks completos
+
+### 📝 Archivos Modificados
+
+1. ✅ `EstructuraAEA_Mecanica.py` - Resolución dinámica de estados con SelectorEstados
+2. ✅ `components/vista_calculo_mecanico.py` - Agregado botón y modales
+3. ✅ `app.py` - Registrado estados_climaticos_controller
+
+### 🎯 Listo para Testing
+
+**Funcionalidad disponible**:
+- ✅ Abrir modal de estados climáticos desde vista CMC
+- ✅ Agregar estados (reutiliza IDs)
+- ✅ Eliminar estados (validación mínimo 1 estado)
+- ✅ Editar valores de estados (temperatura, viento, hielo, restricciones, relflecha)
+- ✅ Copiar estados desde otra estructura (con conversión de IDs legacy)
+- ✅ Guardar estados en `.estructura.json`
+- ✅ Cancelar sin guardar
+
+**Callbacks implementados**:
+- ✅ Validación `n_clicks is None` (según troubleshooting)
+- ✅ Toast con 5 outputs incluyendo "icon"
+- ✅ `allow_duplicate=True` donde corresponde
+- ✅ `prevent_initial_call=True` en todos los callbacks
