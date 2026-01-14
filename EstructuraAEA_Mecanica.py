@@ -269,26 +269,39 @@ class EstructuraAEA_Mecanica:
                     # Obtener estados usando SelectorEstados
                     from utils.selector_estados import SelectorEstados
                     
+                    # Mapeo de nombres legacy a funciones selectoras
+                    MAPEO_FUNCIONES = {
+                        "TMA": "buscar_tma_equivalente",
+                        "Tmin": "buscar_tmin_equivalente",
+                        "Vmax": "buscar_vmax_equivalente",
+                        "Vmed": "buscar_hielo_max",
+                        "maximo": "buscar_max_tiro"
+                    }
+                    
                     estado_viento = None
                     if config["viento"]:
                         estado_viento_config = config["viento"]["estado"]
-                        if not hasattr(SelectorEstados, estado_viento_config):
-                            raise ValueError(f"Función '{estado_viento_config}' no existe en SelectorEstados")
-                        funcion_viento = getattr(SelectorEstados, estado_viento_config)
-                        estado_viento = funcion_viento(self.geometria.estados_climaticos)
+                        # Traducir nombre legacy a función
+                        nombre_funcion = MAPEO_FUNCIONES.get(estado_viento_config, estado_viento_config)
+                        if not hasattr(SelectorEstados, nombre_funcion):
+                            raise ValueError(f"Función '{nombre_funcion}' no existe en SelectorEstados")
+                        funcion_viento = getattr(SelectorEstados, nombre_funcion)
+                        estado_viento = funcion_viento(estados_climaticos if estados_climaticos else self.geometria.estados_climaticos)
                     
                     estado_tiro = None
                     if config["tiro"]:
                         estado_tiro_config = config["tiro"]["estado"]
-                        if not hasattr(SelectorEstados, estado_tiro_config):
-                            raise ValueError(f"Función '{estado_tiro_config}' no existe en SelectorEstados")
-                        funcion_tiro = getattr(SelectorEstados, estado_tiro_config)
+                        # Traducir nombre legacy a función
+                        nombre_funcion = MAPEO_FUNCIONES.get(estado_tiro_config, estado_tiro_config)
+                        if not hasattr(SelectorEstados, nombre_funcion):
+                            raise ValueError(f"Función '{nombre_funcion}' no existe en SelectorEstados")
+                        funcion_tiro = getattr(SelectorEstados, nombre_funcion)
                         
                         # buscar_max_tiro requiere resultados CMC
-                        if estado_tiro_config == "buscar_max_tiro":
+                        if nombre_funcion == "buscar_max_tiro":
                             estado_tiro = funcion_tiro(resultados_conductor)
                         else:
-                            estado_tiro = funcion_tiro(self.geometria.estados_climaticos)
+                            estado_tiro = funcion_tiro(estados_climaticos if estados_climaticos else self.geometria.estados_climaticos)
                     
                     config_tiro = config["tiro"] if config["tiro"] else None
                     patron_tiro = config_tiro["patron"] if config_tiro else "bilateral"
@@ -360,6 +373,15 @@ class EstructuraAEA_Mecanica:
                                 viento_estructura_long * factor_viento,
                                 0.0
                             ]
+                        
+                        # Aplicar al nodo V o Viento
+                        nodo_viento = 'V' if 'V' in self.geometria.nodos else ('Viento' if 'Viento' in self.geometria.nodos else None)
+                        if nodo_viento:
+                            nodo_v = self.geometria.nodos[nodo_viento]
+                            nodo_v.obtener_carga("Viento").agregar_hipotesis(nombre_completo, cargas_hipotesis['V'][0], cargas_hipotesis['V'][1], cargas_hipotesis['V'][2])
+                            if not hasattr(nodo_v, 'cargas_dict'):
+                                nodo_v.cargas_dict = {}
+                            nodo_v.cargas_dict[nombre_completo] = cargas_hipotesis['V']
                     
                     # CARGAS EN CONDUCTORES
                     nodos_conductor = [n for n in nodes_dict.keys() if n.startswith(('C1', 'C2', 'C3')) and not n.startswith('CROSS')]

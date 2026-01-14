@@ -3,7 +3,7 @@
   "Zona_climatica": "D",
   "exposicion": "C",
   "clase": "B",
-  "TITULO": "TECPETROL_Sdt_mas3",
+  "TITULO": "ACONCAGUA_S_tipica_180",
   "cable_conductor_id": "Al/Ac 70/12",
   "cable_guardia_id": "OPGW FiberHome 24FO 58mm2",
   "cable_guardia2_id": "",
@@ -100,7 +100,7 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2026-01-14T12:48:38.749436",
+  "fecha_modificacion": "2026-01-14T12:49:57.049053",
   "nodos_editados": [],
   "fundacion": {
     "metodo": "sulzberger",

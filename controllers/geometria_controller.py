@@ -1,6 +1,7 @@
 """Controlador de diseño geométrico"""
 
 import dash
+import json
 from dash import html, Input, Output, State, dcc
 import dash_bootstrap_components as dbc
 from models.app_state import AppState
@@ -116,7 +117,8 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             hipotesis_maestro,
             estructura_actual.get('t_hielo'),
             hipotesis_a_incluir="Todas",
-            resultados_guardia2=state.calculo_mecanico.resultados_guardia2
+            resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
+            estados_climaticos=estructura_actual.get('estados_climaticos')
         )
         
         # Generar gráficos
@@ -177,6 +179,8 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             "fmax_guardia": fmax_guardia
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return {"exito": False, "mensaje": str(e)}
 
 

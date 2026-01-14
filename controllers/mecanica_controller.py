@@ -202,235 +202,20 @@ def register_callbacks(app):
         try:
             from EstructuraAEA_Mecanica import EstructuraAEA_Mecanica
             from utils.calculo_cache import CalculoCache
-            from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
+            from controllers.geometria_controller import ejecutar_calculo_cmc_automatico, ejecutar_calculo_dge
             from EstructuraAEA_Geometria import EstructuraAEA_Geometria
             
-            # Auto-ejecutar CMC si no existe
-            if not state.calculo_mecanico.resultados_conductor or not state.calculo_mecanico.resultados_guardia1:
-                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                calculo_cmc = CalculoCache.cargar_calculo_cmc(nombre_estructura)
-                
-                if calculo_cmc:
-                    vigente, _ = CalculoCache.verificar_vigencia(calculo_cmc, estructura_actual)
-                    if vigente:
-                        import pandas as pd
-                        state.calculo_mecanico.resultados_conductor = calculo_cmc.get('resultados_conductor', {})
-                        state.calculo_mecanico.resultados_guardia1 = calculo_cmc.get('resultados_guardia', {})
-                        state.calculo_mecanico.resultados_guardia2 = calculo_cmc.get('resultados_guardia2', None)
-                        if calculo_cmc.get('df_cargas_totales'):
-                            state.calculo_mecanico.df_cargas_totales = pd.DataFrame(calculo_cmc['df_cargas_totales'])
-                        if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
-                            state.calculo_objetos.crear_todos_objetos(estructura_actual)
-                    else:
-                        resultado_auto = ejecutar_calculo_cmc_automatico(estructura_actual, state)
-                        if not resultado_auto["exito"]:
-                            return dbc.Alert(f"Error en cálculo automático CMC: {resultado_auto['mensaje']}", color="danger")
-                else:
-                    resultado_auto = ejecutar_calculo_cmc_automatico(estructura_actual, state)
-                    if not resultado_auto["exito"]:
-                        return dbc.Alert(f"Error en cálculo automático CMC: {resultado_auto['mensaje']}", color="danger")
+            # SIEMPRE ejecutar CMC automáticamente (sin gráficos)
+            nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+            resultado_auto = ejecutar_calculo_cmc_automatico(estructura_actual, state, generar_plots=False)
+            if not resultado_auto["exito"]:
+                return dbc.Alert(f"Error en cálculo automático CMC: {resultado_auto['mensaje']}", color="danger")
             
-            # Auto-ejecutar DGE si no existe
-            if not state.calculo_objetos.estructura_geometria:
-                nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-                calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
-                
-                if calculo_dge:
-                    vigente, _ = CalculoCache.verificar_vigencia(calculo_dge, estructura_actual)
-                    if not vigente:
-                        calculo_dge = None
-                
-                if not calculo_dge:
-                    # Asegurar que existen objetos de cable
-                    if not state.calculo_objetos.cable_conductor or not state.calculo_objetos.cable_guardia:
-                        state.calculo_objetos.crear_todos_objetos(estructura_actual)
-                    
-                    # Ejecutar DGE automáticamente
-                    fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
-                    fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])
-                    if state.calculo_mecanico.resultados_guardia2:
-                        fmax_guardia2 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()])
-                        fmax_guardia = max(fmax_guardia1, fmax_guardia2)
-                    else:
-                        fmax_guardia = fmax_guardia1
-                    
-                    estructura_geometria = EstructuraAEA_Geometria(
-                        tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
-                        tension_nominal=estructura_actual.get("TENSION"),
-                        zona_estructura=estructura_actual.get("Zona_estructura"),
-                        disposicion=estructura_actual.get("DISPOSICION"),
-                        terna=estructura_actual.get("TERNA"),
-                        cant_hg=estructura_actual.get("CANT_HG"),
-                        alpha_quiebre=estructura_actual.get("alpha"),
-                        altura_minima_cable=estructura_actual.get("ALTURA_MINIMA_CABLE"),
-                        long_mensula_min_conductor=estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR"),
-                        long_mensula_min_guardia=estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA"),
-                        hadd=estructura_actual.get("HADD"),
-                        hadd_entre_amarres=estructura_actual.get("HADD_ENTRE_AMARRES"),
-                        lk=estructura_actual.get("Lk"),
-                        ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
-                        cable_conductor=state.calculo_objetos.cable_conductor,
-                        cable_guardia=state.calculo_objetos.cable_guardia,
-                        peso_estructura=estructura_actual.get("PESTRUCTURA"),
-                        peso_cadena=estructura_actual.get("PCADENA"),
-                        hg_centrado=estructura_actual.get("HG_CENTRADO"),
-                        ang_apantallamiento=estructura_actual.get("ANG_APANTALLAMIENTO"),
-                        hadd_hg=estructura_actual.get("HADD_HG"),
-                        hadd_lmen=estructura_actual.get("HADD_LMEN"),
-                        dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
-                        ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
-                        metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
-                        altura_msnm=estructura_actual.get("Altura_MSNM"),
-                        parametros=estructura_actual
-                    )
-                    
-                    estructura_geometria.dimensionar_unifilar(
-                        estructura_actual.get("L_vano"),
-                        fmax_conductor,
-                        fmax_guardia,
-                        dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
-                        autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
-                    )
-                    
-                    # Importar nodos editados si existen
-                    if "nodos_editados" in estructura_actual and estructura_actual["nodos_editados"]:
-                        estructura_geometria.importar_nodos_editados(estructura_actual["nodos_editados"])
-                    
-                    state.calculo_objetos.estructura_geometria = estructura_geometria
-                    state.calculo_objetos.estructura_mecanica = None
-                    state.calculo_objetos.estructura_graficos = None
-                    
-                    # Guardar DGE
-                    import matplotlib.pyplot as plt
-                    from EstructuraAEA_Graficos import EstructuraAEA_Graficos
-                    from utils.hipotesis_manager import HipotesisManager
-                    from config.app_config import DATA_DIR
-                    
-                    # Cargar la hipótesis activa. Si no existe, usar la plantilla.
-                    datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
-                    hipotesis_maestro = {}
-                    if datos_hipotesis:
-                        print(f"✅ Usando hipótesis activa: {HipotesisManager.obtener_hipotesis_activa()}")
-                        # El archivo puede contener metadatos, extraer el diccionario principal
-                        hipotesis_maestro = datos_hipotesis.get('hipotesis_maestro', datos_hipotesis)
-                    else:
-                        print("⚠️ Hipótesis activa no encontrada. Usando plantilla.")
-                        # La ruta a data es relativa al root del proyecto
-                        plantilla_path = "data/hipotesis/plantilla.hipotesis.json"
-                        try:
-                            with open(plantilla_path, 'r', encoding='utf-8') as f:
-                                datos_plantilla = json.load(f)
-                            # Extraer el diccionario principal
-                            hipotesis_maestro = datos_plantilla.get('hipotesis_maestro', datos_plantilla)
-                        except FileNotFoundError:
-                            print(f"❌ ERROR: No se encontró el archivo de plantilla en {plantilla_path}.")
-                            hipotesis_maestro = {}
-
-                    # Validar la hipótesis cargada
-                    if hipotesis_maestro:
-                        ok, msg = HipotesisManager.validar_hipotesis(hipotesis_maestro)
-                        if not ok:
-                            print(f"❌ ERROR DE VALIDACIÓN DE HIPÓTESIS: {msg}")
-                            # Retornar error visible al usuario
-                            return dbc.Alert(f"Error de validación en la hipótesis cargada: {msg}", color="danger")
-                    else:
-                        return dbc.Alert("No se pudo cargar ninguna hipótesis (ni activa ni plantilla).", color="danger")
-                    
-                    # Asignar cable_guardia2 si existe
-                    if state.calculo_objetos.cable_guardia2:
-                        estructura_geometria.cable_guardia2 = state.calculo_objetos.cable_guardia2
-                    
-                    estructura_mecanica = EstructuraAEA_Mecanica(estructura_geometria)
-                    estructura_mecanica.asignar_cargas_hipotesis(
-                        state.calculo_mecanico.df_cargas_totales,
-                        state.calculo_mecanico.resultados_conductor,
-                        state.calculo_mecanico.resultados_guardia1,
-                        estructura_actual.get('L_vano'),
-                        hipotesis_maestro,
-                        estructura_actual.get('t_hielo'),
-                        resultados_guardia2=state.calculo_mecanico.resultados_guardia2
-                    )
-                    
-                    estructura_graficos = EstructuraAEA_Graficos(estructura_geometria, estructura_mecanica)
-                    estructura_graficos.graficar_estructura(
-                        zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95),
-                        titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
-                    )
-                    fig_estructura = plt.gcf()
-                    
-                    estructura_graficos.graficar_cabezal(
-                        zoom_cabezal=estructura_actual.get('ZOOM_CABEZAL', 0.95) * 1.5,
-                        titulo_reemplazo=estructura_actual.get('TITULO_REEMPLAZO', estructura_actual.get('TIPO_ESTRUCTURA'))
-                    )
-                    fig_cabezal = plt.gcf()
-                    
-                    CalculoCache.guardar_calculo_dge(
-                        nombre_estructura,
-                        estructura_actual,
-                        estructura_geometria.dimensiones,
-                        estructura_geometria.obtener_nodes_key(),
-                        fig_estructura,
-                        fig_cabezal
-                    )
-                    
-                    state.calculo_objetos.estructura_mecanica = estructura_mecanica
-                    state.calculo_objetos.estructura_graficos = estructura_graficos
-                else:
-                    # Cargar desde cache - recargar estructura actual para obtener nodos editados
-                    from config.app_config import DATA_DIR
-                    # Recargar estructura desde archivo usando el nuevo sistema
-                    state.set_estructura_actual(estructura_actual)
-                    ruta_actual = state.get_estructura_actual_path()
-                    estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
-                    
-                    from EstructuraAEA_Geometria import EstructuraAEA_Geometria
-                    state.calculo_objetos.estructura_geometria = EstructuraAEA_Geometria(
-                        tipo_estructura=estructura_actual.get("TIPO_ESTRUCTURA"),
-                        tension_nominal=estructura_actual.get("TENSION"),
-                        zona_estructura=estructura_actual.get("Zona_estructura"),
-                        disposicion=estructura_actual.get("DISPOSICION"),
-                        terna=estructura_actual.get("TERNA"),
-                        cant_hg=estructura_actual.get("CANT_HG"),
-                        alpha_quiebre=estructura_actual.get("alpha"),
-                        altura_minima_cable=estructura_actual.get("ALTURA_MINIMA_CABLE"),
-                        long_mensula_min_conductor=estructura_actual.get("LONGITUD_MENSULA_MINIMA_CONDUCTOR"),
-                        long_mensula_min_guardia=estructura_actual.get("LONGITUD_MENSULA_MINIMA_GUARDIA"),
-                        hadd=estructura_actual.get("HADD"),
-                        hadd_entre_amarres=estructura_actual.get("HADD_ENTRE_AMARRES"),
-                        lk=estructura_actual.get("Lk"),
-                        ancho_cruceta=estructura_actual.get("ANCHO_CRUCETA"),
-                        cable_conductor=state.calculo_objetos.cable_conductor,
-                        cable_guardia=state.calculo_objetos.cable_guardia,
-                        peso_estructura=estructura_actual.get("PESTRUCTURA"),
-                        peso_cadena=estructura_actual.get("PCADENA"),
-                        hg_centrado=estructura_actual.get("HG_CENTRADO"),
-                        ang_apantallamiento=estructura_actual.get("ANG_APANTALLAMIENTO"),
-                        hadd_hg=estructura_actual.get("HADD_HG"),
-                        hadd_lmen=estructura_actual.get("HADD_LMEN"),
-                        dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
-                        ajustar_por_altura_msnm=estructura_actual.get("AJUSTAR_POR_ALTURA_MSNM"),
-                        metodo_altura_msnm=estructura_actual.get("METODO_ALTURA_MSNM"),
-                        altura_msnm=estructura_actual.get("Altura_MSNM"),
-                        parametros=estructura_actual
-                    )
-                    fmax_conductor = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_conductor.values()])
-                    fmax_guardia1 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia1.values()])
-                    if state.calculo_mecanico.resultados_guardia2:
-                        fmax_guardia2 = max([r["flecha_vertical_m"] for r in state.calculo_mecanico.resultados_guardia2.values()])
-                        fmax_guardia = max(fmax_guardia1, fmax_guardia2)
-                    else:
-                        fmax_guardia = fmax_guardia1
-                    state.calculo_objetos.estructura_geometria.dimensionar_unifilar(
-                        estructura_actual.get("L_vano"),
-                        fmax_conductor,
-                        fmax_guardia,
-                        dist_reposicionar_hg=estructura_actual.get("DIST_REPOSICIONAR_HG"),
-                        autoajustar_lmenhg=estructura_actual.get("AUTOAJUSTAR_LMENHG")
-                    )
-                    
-                    # Importar nodos editados si existen
-                    if "nodos_editados" in estructura_actual and estructura_actual["nodos_editados"]:
-                        state.calculo_objetos.estructura_geometria.importar_nodos_editados(estructura_actual["nodos_editados"])
+            # SIEMPRE ejecutar DGE automáticamente (sin gráficos)
+            from controllers.geometria_controller import ejecutar_calculo_dge
+            resultado_dge = ejecutar_calculo_dge(estructura_actual, state, generar_plots=False)
+            if not resultado_dge["exito"]:
+                return dbc.Alert(f"Error en cálculo automático DGE: {resultado_dge['mensaje']}", color="danger")
             
             # Usar estructura_mecanica del state si existe y es válida, sino crear nueva
             if state.calculo_objetos.estructura_mecanica and state.calculo_objetos.estructura_mecanica.geometria:
@@ -478,7 +263,8 @@ def register_callbacks(app):
                     estructura_actual.get('L_vano'),
                     hipotesis_maestro,
                     estructura_actual.get('t_hielo'),
-                    resultados_guardia2=state.calculo_mecanico.resultados_guardia2
+                    resultados_guardia2=state.calculo_mecanico.resultados_guardia2,
+                    estados_climaticos=estructura_actual.get('estados_climaticos', {})
                 )
                 
                 state.calculo_objetos.estructura_mecanica = estructura_mecanica
