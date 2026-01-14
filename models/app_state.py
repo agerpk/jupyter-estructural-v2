@@ -58,13 +58,8 @@ class AppState:
         if self._estructura_actual_titulo:
             return DATA_DIR / f"{self._estructura_actual_titulo}.estructura.json"
         
-        # Fallback: buscar primera estructura disponible
-        estructuras = self.estructura_manager.listar_estructuras()
-        if estructuras:
-            return DATA_DIR / estructuras[0]
-        
-        # Si no hay estructuras, usar plantilla
-        return DATA_DIR / "plantilla.estructura.json"
+        # Si no hay estructura actual definida, fallar limpiamente
+        raise ValueError("No hay estructura activa. Debe cargar o crear una estructura primero.")
     
     def set_estructura_actual(self, estructura_data):
         """Establecer la estructura actual y actualizar el título"""

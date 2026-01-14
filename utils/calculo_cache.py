@@ -541,17 +541,21 @@ class CalculoCache:
     @staticmethod
     def calcular_hash_familia(familia_data):
         """Calcula hash MD5 de familia para validación de cache"""
-        # Excluir campos que no afectan cálculos
-        familia_hash = {k: v for k, v in familia_data.items() 
-                        if k not in ['fecha_creacion', 'fecha_modificacion']}
+        import copy
         
-        # Limpiar estructuras también
+        # Hacer copia profunda para no modificar original
+        familia_hash = copy.deepcopy(familia_data)
+        
+        # Excluir campos que no afectan cálculos de la familia
+        familia_hash.pop('fecha_creacion', None)
+        familia_hash.pop('fecha_modificacion', None)
+        
+        # Limpiar estructuras también (fecha_creacion, fecha_modificacion, version)
         if 'estructuras' in familia_hash:
-            estructuras_limpias = {}
-            for nombre_estr, datos_estr in familia_hash['estructuras'].items():
-                estructuras_limpias[nombre_estr] = {k: v for k, v in datos_estr.items() 
-                                                     if k not in ['fecha_creacion', 'fecha_modificacion', 'version']}
-            familia_hash['estructuras'] = estructuras_limpias
+            for nombre_estr in familia_hash['estructuras']:
+                familia_hash['estructuras'][nombre_estr].pop('fecha_creacion', None)
+                familia_hash['estructuras'][nombre_estr].pop('fecha_modificacion', None)
+                familia_hash['estructuras'][nombre_estr].pop('version', None)
         
         data_str = json.dumps(familia_hash, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(data_str.encode('utf-8')).hexdigest()
@@ -645,6 +649,12 @@ class CalculoCache:
         
         hash_actual = CalculoCache.calcular_hash_familia(familia_actual)
         hash_guardado = calculo_guardado.get("hash_parametros")
+        
+        # DEBUG: Imprimir hashes para diagnóstico
+        print(f"\n🔍 DEBUG HASH FAMILIA:")
+        print(f"   Hash guardado: {hash_guardado}")
+        print(f"   Hash actual:   {hash_actual}")
+        print(f"   Coinciden: {hash_actual == hash_guardado}")
         
         if hash_actual == hash_guardado:
             return True, "Cache vigente"

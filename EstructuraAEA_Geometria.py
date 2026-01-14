@@ -1032,6 +1032,61 @@ class EstructuraAEA_Geometria:
                 for nodo_destino in nodo.conectado_a:
                     if nodo_destino in nodes_dict:
                         self.conexiones.append((nombre, nodo_destino, 'cadena'))
+
+        # === DEBUG: Verificación de conexiones críticas ===
+        # Construir lista de adyacencia simplificada para inspección
+        adj = {}
+        for a, b, tipo in self.conexiones:
+            adj.setdefault(a, []).append((b, tipo))
+            adj.setdefault(b, []).append((a, tipo))
+
+        # 1) Verificar nodo BASE
+        if 'BASE' in self.nodos:
+            base_conns = adj.get('BASE', [])
+            if not base_conns:
+                print("⚠️  Nodo 'BASE' sin conexiones → Esto puede dejar DOFs sin restringir en OpenSeesPy")
+            else:
+                conexiones = [f"{n}({t})" for n, t in base_conns]
+                print(f"✅ Nodo 'BASE' conectado a: {conexiones}")
+
+        # 2) Verificar TOP y su relación con CROSS y HG
+        if 'TOP' in self.nodos:
+            top_conns = adj.get('TOP', [])
+            tiene_cross = any(n.startswith('CROSS') for n, _ in top_conns)
+            tiene_hg = any(n.startswith('HG') for n, _ in top_conns)
+
+            if not tiene_cross:
+                print("⚠️  TOP no tiene conexión con ninguna 'CROSS' detectada")
+            else:
+                print("✅ TOP conectado a alguna 'CROSS'")
+
+            if self.cant_hg > 0:
+                # Si hay guardias, normalmente TOP debería conectar a HG(s) (si no están centrados)
+                if not tiene_hg and not (self.cant_hg == 1 and self.hg_centrado):
+                    print(f"⚠️  TOP no conectado a HG (cant_hg={self.cant_hg}, hg_centrado={self.hg_centrado})")
+                elif tiene_hg:
+                    print("✅ TOP conectado a HG(s)")
+
+        # 3) Verificar CROSS_H3 (caso de terna doble / cruceta superior)
+        if 'CROSS_H3' in self.nodos:
+            cross_h3_conns = adj.get('CROSS_H3', [])
+            if not cross_h3_conns:
+                print("⚠️  'CROSS_H3' está aislada (sin conexiones)")
+            else:
+                print(f"✅ 'CROSS_H3' conexiones: {[f'{n}({t})' for n,t in cross_h3_conns]}")
+
+        # 4) Resumen en caso de problemas
+        problemas = []
+        if 'BASE' in self.nodos and not adj.get('BASE'):
+            problemas.append('BASE sin conexiones')
+        if 'TOP' in self.nodos and self.cant_hg > 0 and not any(n.startswith('HG') for n, _ in adj.get('TOP', [])):
+            problemas.append('TOP sin HG')
+        if 'CROSS_H3' in self.nodos and not adj.get('CROSS_H3'):
+            problemas.append('CROSS_H3 aislada')
+
+        if problemas:
+            print('📋 Resumen de problemas detectados:', problemas)
+            print('🔍 Conexiones generadas:', self.conexiones)
     
     # ================= MÉTODOS DE GESTIÓN DE NODOS =================
     

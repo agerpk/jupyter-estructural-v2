@@ -71,11 +71,20 @@ class GeometriaEtapa4:
         # Obtener defasaje_y_guardia del objeto geometria
         defasaje_y = getattr(self.geo, 'defasaje_y_guardia', 0.0)
         
+        # Crear nodo TOP SIEMPRE en x=0, y=0, z=hhg_final
+        self.geo.nodos["TOP"] = NodoEstructural("TOP", (0.0, 0.0, hhg_final), "general")
+        print(f"   🔵 Nodo TOP creado en (0, 0, {hhg_final:.2f})")
+        
         # Crear nodo HG1
         self.geo.nodos["HG1"] = NodoEstructural(
             "HG1", (0.0, defasaje_y, hhg_final), "guardia",
             self.geo.cable_guardia1, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
         )
+        
+        # Eliminar TOP si coincide con HG1
+        if abs(defasaje_y) < 0.01:
+            del self.geo.nodos["TOP"]
+            print(f"   ⚠️  Nodo TOP eliminado (coincide con HG1)")
         
         self.geo.dimensiones["hhg"] = hhg_final
         self.geo.dimensiones["lmenhg"] = 0.0
@@ -111,23 +120,27 @@ class GeometriaEtapa4:
         # Altura final de nodos HG
         hhg_final = hhg + hadd_hg
         
-        # Crear nodo HG1 PRIMERO
         defasaje_y = getattr(self.geo, 'defasaje_y_guardia', 0.0)
+        
+        # Crear nodo TOP SIEMPRE en x=0, y=0, z=hhg_final
+        self.geo.nodos["TOP"] = NodoEstructural("TOP", (0.0, 0.0, hhg_final), "general")
+        print(f"   🔵 Nodo TOP creado en (0, 0, {hhg_final:.2f})")
+        
+        # Crear nodo TOP1 en x=lmenhg, y=0, z=hhg_final
+        self.geo.nodos["TOP1"] = NodoEstructural("TOP1", (lmenhg, 0.0, hhg_final), "general")
+        print(f"   🔵 Nodo TOP1 creado en ({lmenhg:.2f}, 0, {hhg_final:.2f})")
+        
+        # Crear nodo HG1
         self.geo.nodos["HG1"] = NodoEstructural(
             "HG1", (lmenhg, defasaje_y, hhg_final), "guardia",
             self.geo.cable_guardia1, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
         )
         
-        # Crear nodo TOP DESPUÉS y verificar solapamiento
-        pos_top = (0.0, 0.0, hhg_final)
-        pos_hg1 = (lmenhg, defasaje_y, hhg_final)
-        dist = math.sqrt(sum((a - b)**2 for a, b in zip(pos_top, pos_hg1)))
-        
-        if dist >= 0.01:
-            self.geo.nodos["TOP"] = NodoEstructural("TOP", pos_top, "general")
-            print(f"   🔵 Nodo TOP creado en (0, 0, {hhg_final:.2f})")
-        else:
-            print(f"   ⚠️  Nodo TOP no creado (solapamiento con HG1, dist={dist:.4f}m < 0.01m)")
+        # Eliminar TOP1 si coincide con HG1
+        dist = math.sqrt((lmenhg - lmenhg)**2 + (0.0 - defasaje_y)**2 + (hhg_final - hhg_final)**2)
+        if dist < 0.01:
+            del self.geo.nodos["TOP1"]
+            print(f"   ⚠️  Nodo TOP1 eliminado (coincide con HG1)")
         
         self.geo.dimensiones["hhg"] = hhg_final
         self.geo.dimensiones["lmenhg"] = lmenhg
@@ -160,8 +173,21 @@ class GeometriaEtapa4:
         # Altura final de nodos HG
         hhg_final = hhg + hadd_hg
         
-        # Crear nodos HG1 y HG2 PRIMERO
         defasaje_y = getattr(self.geo, 'defasaje_y_guardia', 0.0)
+        
+        # Crear nodo TOP SIEMPRE en x=0, y=0, z=hhg_final
+        self.geo.nodos["TOP"] = NodoEstructural("TOP", (0.0, 0.0, hhg_final), "general")
+        print(f"   🔵 Nodo TOP creado en (0, 0, {hhg_final:.2f})")
+        
+        # Crear nodo TOP1 en x=lmenhg, y=0, z=hhg_final
+        self.geo.nodos["TOP1"] = NodoEstructural("TOP1", (lmenhg, 0.0, hhg_final), "general")
+        print(f"   🔵 Nodo TOP1 creado en ({lmenhg:.2f}, 0, {hhg_final:.2f})")
+        
+        # Crear nodo TOP2 en x=-lmenhg, y=0, z=hhg_final
+        self.geo.nodos["TOP2"] = NodoEstructural("TOP2", (-lmenhg, 0.0, hhg_final), "general")
+        print(f"   🔵 Nodo TOP2 creado en ({-lmenhg:.2f}, 0, {hhg_final:.2f})")
+        
+        # Crear nodos HG1 y HG2
         self.geo.nodos["HG1"] = NodoEstructural(
             "HG1", (lmenhg, defasaje_y, hhg_final), "guardia",
             self.geo.cable_guardia1, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
@@ -173,26 +199,17 @@ class GeometriaEtapa4:
             cable_hg2, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
         )
         
-        # Crear nodos TOP1 y TOP2 DESPUÉS y verificar solapamiento
-        pos_top1 = (lmenhg, 0.0, hhg_final)
-        pos_top2 = (-lmenhg, 0.0, hhg_final)
-        pos_hg1 = (lmenhg, defasaje_y, hhg_final)
-        pos_hg2 = (-lmenhg, defasaje_y, hhg_final)
+        # Eliminar TOP1 si coincide con HG1
+        dist1 = math.sqrt((lmenhg - lmenhg)**2 + (0.0 - defasaje_y)**2 + (hhg_final - hhg_final)**2)
+        if dist1 < 0.01:
+            del self.geo.nodos["TOP1"]
+            print(f"   ⚠️  Nodo TOP1 eliminado (coincide con HG1)")
         
-        dist1 = math.sqrt(sum((a - b)**2 for a, b in zip(pos_top1, pos_hg1)))
-        dist2 = math.sqrt(sum((a - b)**2 for a, b in zip(pos_top2, pos_hg2)))
-        
-        if dist1 >= 0.01:
-            self.geo.nodos["TOP1"] = NodoEstructural("TOP1", pos_top1, "general")
-            print(f"   🔵 Nodo TOP1 creado en ({lmenhg:.2f}, 0, {hhg_final:.2f})")
-        else:
-            print(f"   ⚠️  Nodo TOP1 no creado (solapamiento con HG1, dist={dist1:.4f}m < 0.01m)")
-        
-        if dist2 >= 0.01:
-            self.geo.nodos["TOP2"] = NodoEstructural("TOP2", pos_top2, "general")
-            print(f"   🔵 Nodo TOP2 creado en ({-lmenhg:.2f}, 0, {hhg_final:.2f})")
-        else:
-            print(f"   ⚠️  Nodo TOP2 no creado (solapamiento con HG2, dist={dist2:.4f}m < 0.01m)")
+        # Eliminar TOP2 si coincide con HG2
+        dist2 = math.sqrt((-lmenhg - (-lmenhg))**2 + (0.0 - defasaje_y)**2 + (hhg_final - hhg_final)**2)
+        if dist2 < 0.01:
+            del self.geo.nodos["TOP2"]
+            print(f"   ⚠️  Nodo TOP2 eliminado (coincide con HG2)")
         
         self.geo.dimensiones["hhg"] = hhg_final
         self.geo.dimensiones["lmenhg"] = lmenhg
@@ -294,8 +311,41 @@ class GeometriaEtapa4:
         if not hasattr(self.geo, 'conexiones'):
             self.geo.conexiones = []
         
-        conexiones_anteriores = set(self.geo.conexiones)
+        # Encontrar CROSS_H* más alto
+        cross_mas_alto = None
+        z_max_cross = -float('inf')
+        for nombre, nodo in self.geo.nodos.items():
+            if 'CROSS_H' in nombre:
+                z = nodo.coordenadas[2]
+                if z > z_max_cross:
+                    z_max_cross = z
+                    cross_mas_alto = nombre
         
+        # Encontrar nodo en x=0, y=0 a altura hhg_final (TOP o HG1)
+        hhg_final = self.geo.dimensiones.get("hhg", 0)
+        nodo_central = None
+        for nombre, nodo in self.geo.nodos.items():
+            x, y, z = nodo.coordenadas
+            if abs(x) < 0.01 and abs(y) < 0.01 and abs(z - hhg_final) < 0.01:
+                nodo_central = nombre
+                break
+        
+        # Conectar CROSS_H* más alto al nodo central con tipo "columna"
+        if cross_mas_alto and nodo_central:
+            self.geo.conexiones.append((cross_mas_alto, nodo_central, 'columna'))
+            print(f"      🔗 {cross_mas_alto} → {nodo_central} (columna)")
+            
+            # Conectar otros nodos a altura hhg_final al nodo central con tipo "mensula"
+            for nombre, nodo in self.geo.nodos.items():
+                x, y, z = nodo.coordenadas
+                if abs(z - hhg_final) < 0.01 and nombre != nodo_central and nombre != cross_mas_alto:
+                    if not (nombre.startswith('HG') or nombre.startswith('TOP')):
+                        continue
+                    self.geo.conexiones.append((nodo_central, nombre, 'mensula'))
+                    print(f"      🔗 {nodo_central} → {nombre} (mensula)")
+        
+        # Ejecutar generador de conexiones estándar
+        conexiones_anteriores = set(self.geo.conexiones)
         self.geo._generar_conexiones()
         
         conexiones_nuevas = set(self.geo.conexiones) - conexiones_anteriores

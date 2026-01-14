@@ -1,8 +1,14 @@
 from datetime import datetime
 from utils.descargar_html_familia_fix import generar_seccion_costeo_estructura
 
-def generar_indice_familia(nombre_familia, resultados_familia):
-    """Genera índice con hyperlinks y subentradas por sección"""
+def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=None):
+    """Genera índice con hyperlinks y subentradas por sección
+    
+    Args:
+        nombre_familia: Nombre de la familia
+        resultados_familia: Resultados de cálculos
+        checklist_activo: Dict con secciones activas {"cmc": True, "dge": True, ...}
+    """
     html = ['<div class="indice"><h3>Índice</h3><ul>']
     html.append('<li><a href="#resumen">Resumen de Familia</a></li>')
     
@@ -12,28 +18,50 @@ def generar_indice_familia(nombre_familia, resultados_familia):
         titulo_id = titulo.replace(" ", "_").replace("/", "_")
         html.append(f'<li><a href="#{titulo_id}">{titulo}</a>')
         
-        # Subentradas por sección
+        # Subentradas por sección (solo si están en checklist)
         if "error" not in datos_estr:
             resultados = datos_estr.get("resultados", {})
             html.append('<ul>')
-            if "cmc" in resultados and resultados["cmc"]:
-                html.append(f'<li><a href="#{titulo_id}_cmc">1. Cálculo Mecánico de Cables</a></li>')
-            if "dge" in resultados and resultados["dge"]:
-                html.append(f'<li><a href="#{titulo_id}_dge">2. Diseño Geométrico</a></li>')
-            if "dme" in resultados and resultados["dme"]:
-                html.append(f'<li><a href="#{titulo_id}_dme">3. Diseño Mecánico</a></li>')
-            if "arboles" in resultados and resultados["arboles"]:
-                html.append(f'<li><a href="#{titulo_id}_arboles">4. Árboles de Carga</a></li>')
-            if "sph" in resultados and resultados["sph"]:
-                html.append(f'<li><a href="#{titulo_id}_sph">5. Selección de Poste</a></li>')
-            if "fundacion" in resultados and resultados["fundacion"]:
-                html.append(f'<li><a href="#{titulo_id}_fundacion">6. Fundación</a></li>')
-            if "costeo" in resultados and resultados["costeo"]:
-                html.append(f'<li><a href="#{titulo_id}_costeo">7. Costeo</a></li>')
+            
+            # Si hay checklist, verificar cada sección; si no hay checklist, incluir todo
+            if checklist_activo:
+                if checklist_activo.get("cmc") and "cmc" in resultados and resultados["cmc"]:
+                    html.append(f'<li><a href="#{titulo_id}_cmc">1. Cálculo Mecánico de Cables</a></li>')
+                if checklist_activo.get("dge") and "dge" in resultados and resultados["dge"]:
+                    html.append(f'<li><a href="#{titulo_id}_dge">2. Diseño Geométrico</a></li>')
+                if checklist_activo.get("dme") and "dme" in resultados and resultados["dme"]:
+                    html.append(f'<li><a href="#{titulo_id}_dme">3. Diseño Mecánico</a></li>')
+                if checklist_activo.get("arboles") and "arboles" in resultados and resultados["arboles"]:
+                    html.append(f'<li><a href="#{titulo_id}_arboles">4. Árboles de Carga</a></li>')
+                if checklist_activo.get("sph") and "sph" in resultados and resultados["sph"]:
+                    html.append(f'<li><a href="#{titulo_id}_sph">5. Selección de Poste</a></li>')
+                if checklist_activo.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
+                    html.append(f'<li><a href="#{titulo_id}_fundacion">6. Fundación</a></li>')
+                if checklist_activo.get("costeo") and "costeo" in resultados and resultados["costeo"]:
+                    html.append(f'<li><a href="#{titulo_id}_costeo">7. Costeo</a></li>')
+            else:
+                # Sin checklist, incluir todo lo que tenga datos
+                if "cmc" in resultados and resultados["cmc"]:
+                    html.append(f'<li><a href="#{titulo_id}_cmc">1. Cálculo Mecánico de Cables</a></li>')
+                if "dge" in resultados and resultados["dge"]:
+                    html.append(f'<li><a href="#{titulo_id}_dge">2. Diseño Geométrico</a></li>')
+                if "dme" in resultados and resultados["dme"]:
+                    html.append(f'<li><a href="#{titulo_id}_dme">3. Diseño Mecánico</a></li>')
+                if "arboles" in resultados and resultados["arboles"]:
+                    html.append(f'<li><a href="#{titulo_id}_arboles">4. Árboles de Carga</a></li>')
+                if "sph" in resultados and resultados["sph"]:
+                    html.append(f'<li><a href="#{titulo_id}_sph">5. Selección de Poste</a></li>')
+                if "fundacion" in resultados and resultados["fundacion"]:
+                    html.append(f'<li><a href="#{titulo_id}_fundacion">6. Fundación</a></li>')
+                if "costeo" in resultados and resultados["costeo"]:
+                    html.append(f'<li><a href="#{titulo_id}_costeo">7. Costeo</a></li>')
+            
             html.append('</ul>')
         html.append('</li>')
     
-    html.append('<li><a href="#costeo-global">Costeo Global</a></li>')
+    # Costeo Global solo si está en checklist o no hay checklist
+    if not checklist_activo or checklist_activo.get("costeo"):
+        html.append('<li><a href="#costeo-global">Costeo Global</a></li>')
     html.append('</ul></div>')
     return '\n'.join(html)
 
@@ -47,7 +75,7 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    indice = generar_indice_familia(nombre_familia, resultados_familia)
+    indice = generar_indice_familia(nombre_familia, resultados_familia, checklist_activo)
     secciones = [indice]
     secciones.append(generar_seccion_resumen_familia(nombre_familia, resultados_familia))
     
@@ -63,7 +91,7 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
             secciones.append(generar_seccion_estructura_familia(datos_estr, titulo_id, checklist_activo))
     
     costeo_global = resultados_familia.get("costeo_global", {})
-    if costeo_global and (checklist_activo is None or checklist_activo.get("costeo")):
+    if costeo_global and (checklist_activo is None or checklist_activo.get("costeo", True)):
         secciones.append(generar_seccion_costeo_familia(costeo_global, estructuras))
     
     contenido_html = "\n".join(secciones)

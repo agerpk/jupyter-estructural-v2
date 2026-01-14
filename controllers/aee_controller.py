@@ -106,22 +106,13 @@ def register_callbacks(app):
             raise dash.exceptions.PreventUpdate
         
         print(f"DEBUG: Boton 'Calcular AEE' presionado - n_clicks: {n_clicks}")
+        print(f"DEBUG: Estructura desde State: {estructura_actual.get('TITULO', 'N/A')}")
         
         try:
-            # Recargar estructura desde archivo activo
             from models.app_state import AppState
-            from config.app_config import DATA_DIR
+            from utils.calculo_cache import CalculoCache
             
             state = AppState()
-            ruta_actual = state.get_estructura_actual_path()
-            
-            estructura_actual = state.estructura_manager.cargar_estructura(ruta_actual)
-            print(f"DEBUG: Estructura recargada: {estructura_actual.get('TITULO', 'N/A')}")
-            print(f"DEBUG AEE: restricciones_cables presente: {'restricciones_cables' in estructura_actual}")
-            print(f"DEBUG AEE: estados_climaticos presente: {'estados_climaticos' in estructura_actual}")
-            
-            # Verificar prerequisitos DGE/DME
-            from utils.calculo_cache import CalculoCache
             
             nombre_estructura = estructura_actual['TITULO']
             calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
@@ -132,13 +123,6 @@ def register_callbacks(app):
             
             if not calculo_dme:
                 return no_update, True, "Error", "Debe ejecutar DME primero", "danger", "danger"
-            
-            # Verificar que existan datos necesarios
-            if 'restricciones_cables' not in estructura_actual:
-                return no_update, True, "Error", "Debe configurar restricciones de cables en 'Ajustar Parámetros > Modificar Estados Climáticos y Restricciones'", "danger", "danger"
-            
-            if 'estados_climaticos' not in estructura_actual:
-                return no_update, True, "Error", "Debe configurar estados climáticos en 'Ajustar Parámetros > Modificar Estados Climáticos y Restricciones'", "danger", "danger"
             
             # Ejecutar analisis
             resultados = ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme)

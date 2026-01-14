@@ -185,8 +185,34 @@ def generar_seccion_dge(calculo_dge):
     """Genera HTML para sección DGE"""
     html = ['<h3>2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)</h3>']
     
+    # Dimensiones y parámetros
+    dimensiones = calculo_dge.get('dimensiones', {})
+    if dimensiones:
+        html.append('<h5>Dimensiones de Estructura</h5>')
+        html.append('<table class="table table-bordered params-table">')
+        for campo, valor in dimensiones.items():
+            if isinstance(valor, (int, float)):
+                html.append(f'<tr><td>{campo}</td><td>{valor:.3f}</td></tr>')
+            else:
+                html.append(f'<tr><td>{campo}</td><td>{valor}</td></tr>')
+        html.append('</table>')
+    
+    # Nodos estructurales
+    nodes_key = calculo_dge.get('nodes_key', {})
+    if nodes_key:
+        html.append('<h5>Nodos Estructurales</h5>')
+        html.append('<table class="table table-striped table-bordered table-sm">')
+        html.append('<thead><tr><th>Nodo</th><th>X (m)</th><th>Y (m)</th><th>Z (m)</th></tr></thead>')
+        html.append('<tbody>')
+        for nombre_nodo, coords in nodes_key.items():
+            if isinstance(coords, (list, tuple)) and len(coords) >= 3:
+                html.append(f'<tr><td><strong>{nombre_nodo}</strong></td><td>{coords[0]:.3f}</td><td>{coords[1]:.3f}</td><td>{coords[2]:.3f}</td></tr>')
+        html.append('</tbody></table>')
+    
+    # Imágenes
     hash_params = calculo_dge.get('hash_parametros')
     if hash_params:
+        html.append('<h5>Diagramas</h5>')
         for nombre, titulo in [
             (f"Estructura.{hash_params}.png", "Estructura Completa"),
             (f"Cabezal.{hash_params}.png", "Detalle Cabezal"),
@@ -194,9 +220,10 @@ def generar_seccion_dge(calculo_dge):
         ]:
             img_str = ViewHelpers.cargar_imagen_base64(nombre)
             if img_str:
-                html.append(f'<h5>{titulo}</h5>')
+                html.append(f'<h6>{titulo}</h6>')
                 html.append(f'<img src="data:image/png;base64,{img_str}" alt="{titulo}">')
     
+    # Memoria de cálculo
     if calculo_dge.get('memoria_calculo'):
         html.append('<hr><h5>Memoria de Cálculo</h5>')
         html.append(f'<pre>{calculo_dge["memoria_calculo"]}</pre>')

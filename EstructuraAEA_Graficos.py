@@ -1278,7 +1278,34 @@ class EstructuraAEA_Graficos:
         # Crear figura 3D
         fig = go.Figure()
         
-        # Dibujar conexiones entre nodos editados primero
+        # Dibujar conexiones de estructura (post-etapa6)
+        if hasattr(self.geometria, 'conexiones') and self.geometria.conexiones:
+            # Mapeo de tipos de conexión a colores y estilos
+            estilos_conexion = {
+                'columna': {'color': 'blue', 'width': 3, 'dash': 'solid'},
+                'mensula': {'color': 'green', 'width': 2, 'dash': 'solid'},
+                'cruceta': {'color': 'purple', 'width': 2, 'dash': 'solid'},
+                'cadena': {'color': 'orange', 'width': 2, 'dash': 'dot'}
+            }
+            
+            for origen, destino, tipo in self.geometria.conexiones:
+                if origen in self.geometria.nodes_key and destino in self.geometria.nodes_key:
+                    x1, y1, z1 = self.geometria.nodes_key[origen]
+                    x2, y2, z2 = self.geometria.nodes_key[destino]
+                    estilo = estilos_conexion.get(tipo, {'color': 'gray', 'width': 1, 'dash': 'solid'})
+                    
+                    fig.add_trace(go.Scatter3d(
+                        x=[x1, x2], y=[y1, y2], z=[z1, z2],
+                        mode='lines',
+                        line=dict(color=estilo['color'], width=estilo['width'], dash=estilo['dash']),
+                        opacity=0.7,
+                        name=tipo.capitalize(),
+                        legendgroup=tipo,
+                        showlegend=False,
+                        hovertemplate=f'<b>{tipo.upper()}</b><br>{origen} → {destino}<extra></extra>'
+                    ))
+        
+        # Dibujar conexiones entre nodos editados (sobrescriben las automáticas)
         for nombre, nodo_obj in self.geometria.nodos.items():
             if hasattr(nodo_obj, 'es_editado') and nodo_obj.es_editado and hasattr(nodo_obj, 'conectado_a'):
                 if nodo_obj.conectado_a:
@@ -1290,9 +1317,11 @@ class EstructuraAEA_Graficos:
                                 x=[x1, x2], y=[y1, y2], z=[z1, z2],
                                 mode='lines',
                                 line=dict(color='orange', width=4, dash='dot'),
-                                opacity=0.6,
+                                opacity=0.8,
+                                name='Editada',
+                                legendgroup='editada',
                                 showlegend=False,
-                                hoverinfo='skip'
+                                hovertemplate=f'<b>EDITADA</b><br>{nombre} → {nodo_conectado}<extra></extra>'
                             ))
         
         # Agrupar nodos por tipo para leyenda
