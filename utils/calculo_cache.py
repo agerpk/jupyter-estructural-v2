@@ -541,8 +541,18 @@ class CalculoCache:
     @staticmethod
     def calcular_hash_familia(familia_data):
         """Calcula hash MD5 de familia para validación de cache"""
+        # Excluir campos que no afectan cálculos
         familia_hash = {k: v for k, v in familia_data.items() 
                         if k not in ['fecha_creacion', 'fecha_modificacion']}
+        
+        # Limpiar estructuras también
+        if 'estructuras' in familia_hash:
+            estructuras_limpias = {}
+            for nombre_estr, datos_estr in familia_hash['estructuras'].items():
+                estructuras_limpias[nombre_estr] = {k: v for k, v in datos_estr.items() 
+                                                     if k not in ['fecha_creacion', 'fecha_modificacion', 'version']}
+            familia_hash['estructuras'] = estructuras_limpias
+        
         data_str = json.dumps(familia_hash, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(data_str.encode('utf-8')).hexdigest()
     

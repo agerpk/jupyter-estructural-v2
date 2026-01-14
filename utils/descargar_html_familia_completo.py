@@ -37,8 +37,14 @@ def generar_indice_familia(nombre_familia, resultados_familia):
     html.append('</ul></div>')
     return '\n'.join(html)
 
-def generar_html_familia(nombre_familia, resultados_familia):
-    """Genera HTML completo para familia de estructuras"""
+def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=None):
+    """Genera HTML completo para familia de estructuras
+    
+    Args:
+        nombre_familia: Nombre de la familia
+        resultados_familia: Resultados de cálculos
+        checklist_activo: Dict con secciones activas {"cmc": True, "dge": True, ...}
+    """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     indice = generar_indice_familia(nombre_familia, resultados_familia)
@@ -54,10 +60,10 @@ def generar_html_familia(nombre_familia, resultados_familia):
         if "error" in datos_estr:
             secciones.append(f'<div class="alert alert-danger">Error: {datos_estr["error"]}</div>')
         else:
-            secciones.append(generar_seccion_estructura_familia(datos_estr, titulo_id))
+            secciones.append(generar_seccion_estructura_familia(datos_estr, titulo_id, checklist_activo))
     
     costeo_global = resultados_familia.get("costeo_global", {})
-    if costeo_global:
+    if costeo_global and (checklist_activo is None or checklist_activo.get("costeo")):
         secciones.append(generar_seccion_costeo_familia(costeo_global, estructuras))
     
     contenido_html = "\n".join(secciones)
@@ -90,6 +96,8 @@ def generar_html_familia(nombre_familia, resultados_familia):
         .indice a {{ color: #0d6efd; text-decoration: none; }}
         .indice a:hover {{ text-decoration: underline; }}
         .timestamp {{ color: #6c757d; font-size: 0.9em; margin-bottom: 30px; }}
+        .grid-2col {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }}
+        .grid-2col img {{ width: 100%; }}
     </style>
 </head>
 <body>
@@ -138,32 +146,42 @@ def generar_seccion_resumen_familia(nombre_familia, resultados_familia):
     return '\n'.join(html)
 
 
-def generar_seccion_estructura_familia(datos_estructura, titulo_id):
-    """Genera HTML para estructura dentro de familia con IDs para navegación"""
+def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_activo=None):
+    """Genera HTML para estructura dentro de familia con IDs para navegación
+    
+    Args:
+        datos_estructura: Datos de la estructura
+        titulo_id: ID para navegación
+        checklist_activo: Dict con secciones activas {"cmc": True, "dge": True, ...}
+    """
     from utils.descargar_html import generar_seccion_cmc, generar_seccion_dge, generar_seccion_dme, generar_seccion_arboles, generar_seccion_sph, generar_seccion_fund
     
     html = []
     resultados = datos_estructura.get("resultados", {})
     
-    if "cmc" in resultados and resultados["cmc"]:
+    # Si no hay checklist, incluir todo lo que tenga datos
+    if checklist_activo is None:
+        checklist_activo = {k: True for k in resultados.keys()}
+    
+    if checklist_activo.get("cmc") and "cmc" in resultados and resultados["cmc"]:
         html.append(f'<h4 id="{titulo_id}_cmc">1. Cálculo Mecánico de Cables</h4>')
         html.append(generar_seccion_cmc(resultados["cmc"]))
-    if "dge" in resultados and resultados["dge"]:
+    if checklist_activo.get("dge") and "dge" in resultados and resultados["dge"]:
         html.append(f'<h4 id="{titulo_id}_dge">2. Diseño Geométrico</h4>')
         html.append(generar_seccion_dge(resultados["dge"]))
-    if "dme" in resultados and resultados["dme"]:
+    if checklist_activo.get("dme") and "dme" in resultados and resultados["dme"]:
         html.append(f'<h4 id="{titulo_id}_dme">3. Diseño Mecánico</h4>')
         html.append(generar_seccion_dme(resultados["dme"]))
-    if "arboles" in resultados and resultados["arboles"]:
+    if checklist_activo.get("arboles") and "arboles" in resultados and resultados["arboles"]:
         html.append(f'<h4 id="{titulo_id}_arboles">4. Árboles de Carga</h4>')
         html.append(generar_seccion_arboles(resultados["arboles"]))
-    if "sph" in resultados and resultados["sph"]:
+    if checklist_activo.get("sph") and "sph" in resultados and resultados["sph"]:
         html.append(f'<h4 id="{titulo_id}_sph">5. Selección de Poste</h4>')
         html.append(generar_seccion_sph(resultados["sph"]))
-    if "fundacion" in resultados and resultados["fundacion"]:
+    if checklist_activo.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
         html.append(f'<h4 id="{titulo_id}_fundacion">6. Fundación</h4>')
         html.append(generar_seccion_fund(resultados["fundacion"]))
-    if "costeo" in resultados and resultados["costeo"]:
+    if checklist_activo.get("costeo") and "costeo" in resultados and resultados["costeo"]:
         html.append(f'<h4 id="{titulo_id}_costeo">7. Costeo</h4>')
         html.append(generar_seccion_costeo_estructura(resultados["costeo"]))
     

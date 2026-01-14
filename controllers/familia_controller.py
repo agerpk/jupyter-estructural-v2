@@ -775,15 +775,17 @@ def register_callbacks(app):
         Input("btn-calcular-familia", "n_clicks"),
         [State("input-nombre-familia", "value"),
          State("tabla-familia-original", "data"),
-         State("tabla-familia", "columns")],
+         State("tabla-familia", "columns"),
+         State("checklist-calculos-familia", "value")],
         prevent_initial_call=True
     )
-    def calcular_familia_completa(n_clicks, nombre_familia, tabla_original, columnas):
+    def calcular_familia_completa(n_clicks, nombre_familia, tabla_original, columnas, calculos_activos):
         """Ejecuta cálculo completo de familia y guarda cache"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
         print(f"🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
+        print(f"🔍 Cálculos activos: {calculos_activos}")
         
         try:
             if not nombre_familia or not tabla_original or not columnas:
@@ -792,9 +794,9 @@ def register_callbacks(app):
             # Convertir tabla ORIGINAL a formato familia
             familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
             
-            # Ejecutar cálculo
+            # Ejecutar cálculo con calculos_activos
             from utils.calcular_familia_logica_encadenada import ejecutar_calculo_familia_completa
-            resultados_familia = ejecutar_calculo_familia_completa(familia_data)
+            resultados_familia = ejecutar_calculo_familia_completa(familia_data, calculos_activos=calculos_activos)
             
             if not resultados_familia.get("exito"):
                 return (no_update, True, "Error", f"Error en cálculo: {resultados_familia.get('mensaje')}", "danger", "danger")
@@ -810,7 +812,7 @@ def register_callbacks(app):
             
             # Generar vista
             from utils.calcular_familia_logica_encadenada import generar_vista_resultados_familia
-            vista_resultados = generar_vista_resultados_familia(resultados_familia)
+            vista_resultados = generar_vista_resultados_familia(resultados_familia, calculos_activos=calculos_activos)
             
             return (vista_resultados, True, "Éxito", "Cálculo de familia completado", "success", "success")
             
@@ -831,6 +833,20 @@ def register_callbacks(app):
         return {"display": "none"}
     
     @app.callback(
+        Output("calculos-activos-familia-store", "data"),
+        Input("checklist-calculos-familia", "value"),
+        prevent_initial_call=True
+    )
+    def guardar_calculos_activos_familia(calculos_activos):
+        """Guardar checkboxes de cálculos activos en persistencia"""
+        if calculos_activos is None:
+            raise dash.exceptions.PreventUpdate
+        
+        state = AppState()
+        state.set_calculos_activos_familia(calculos_activos)
+        return calculos_activos
+    
+    @app.callback(
         [Output("resultados-familia", "children", allow_duplicate=True),
          Output("toast-notificacion", "is_open", allow_duplicate=True),
          Output("toast-notificacion", "header", allow_duplicate=True),
@@ -840,15 +856,17 @@ def register_callbacks(app):
         Input("btn-cargar-cache-familia", "n_clicks"),
         [State("input-nombre-familia", "value"),
          State("tabla-familia-original", "data"),
-         State("tabla-familia", "columns")],
+         State("tabla-familia", "columns"),
+         State("checklist-calculos-familia", "value")],
         prevent_initial_call=True
     )
-    def cargar_cache_familia(n_clicks, nombre_familia, tabla_original, columnas):
+    def cargar_cache_familia(n_clicks, nombre_familia, tabla_original, columnas, calculos_activos):
         """Carga resultados desde cache si existe y es válido"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
         print(f"📂 CARGANDO CACHE FAMILIA: {nombre_familia}")
+        print(f"🔍 Cálculos activos: {calculos_activos}")
         
         try:
             if not nombre_familia:
@@ -867,9 +885,9 @@ def register_callbacks(app):
             if not vigente:
                 return (no_update, True, "Advertencia", mensaje, "warning", "warning")
             
-            # Generar vista desde cache
+            # Generar vista desde cache con calculos_activos
             from utils.calcular_familia_logica_encadenada import generar_vista_resultados_familia
-            vista_resultados = generar_vista_resultados_familia(calculo_guardado["resultados"])
+            vista_resultados = generar_vista_resultados_familia(calculo_guardado["resultados"], calculos_activos=calculos_activos)
             
             return (vista_resultados, True, "Éxito", "Cache cargado correctamente", "success", "success")
             
@@ -883,10 +901,10 @@ def register_callbacks(app):
         Output("download-html-familia", "data"),
         Input("btn-descargar-html-familia", "n_clicks"),
         [State("input-nombre-familia", "value"),
-         State("resultados-familia", "children")],
+         State("checklist-calculos-familia", "value")],
         prevent_initial_call=True
     )
-    def descargar_html_familia(n_clicks, nombre_familia, resultados):
+    def descargar_html_familia(n_clicks, nombre_familia, calculos_activos):
         """Descargar HTML completo de familia"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
@@ -898,9 +916,12 @@ def register_callbacks(app):
             if not calculo_guardado:
                 return no_update
             
-            # Generar HTML
+            # Convertir calculos_activos a dict para checklist
+            checklist_dict = {calc: True for calc in (calculos_activos or [])}
+            
+            # Generar HTML con checklist
             from utils.descargar_html import generar_html_familia
-            html_content = generar_html_familia(nombre_familia, calculo_guardado["resultados"])
+            html_content = generar_html_familia(nombre_familia, calculo_guardado["resultados"], checklist_dict)
             
             # Retornar para descarga
             return dict(content=html_content, filename=f"{nombre_familia}_familia.html")

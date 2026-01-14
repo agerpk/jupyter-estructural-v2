@@ -12,13 +12,17 @@ from models.app_state import AppState
 from config.app_config import DATA_DIR
 from utils.calculo_cache import CalculoCache
 
-def ejecutar_calculo_familia_completa(familia_data: Dict, generar_plots: bool = True) -> Dict:
+def ejecutar_calculo_familia_completa(familia_data: Dict, generar_plots: bool = True, calculos_activos: List[str] = None) -> Dict:
     """
     Ejecuta cálculo completo para toda la familia
     Retorna resultados por estructura y costeo global
     """
+    if calculos_activos is None:
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
+    
     nombre_familia = familia_data.get("nombre_familia", "familia")
     print(f"\n🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
+    print(f"   Cálculos activos: {calculos_activos}")
     print(f"   Keys en familia_data: {list(familia_data.keys())}")
     print(f"   Tiene estados_climaticos: {'estados_climaticos' in familia_data}")
     print(f"   Tiene restricciones_cables: {'restricciones_cables' in familia_data}")
@@ -57,7 +61,7 @@ def ejecutar_calculo_familia_completa(familia_data: Dict, generar_plots: bool = 
             print(f"   ⚠️ NO hay restricciones_cables en familia_data")
         
         # Ejecutar secuencia completa para esta estructura
-        resultado_estr = _ejecutar_secuencia_estructura(datos_estr, titulo, generar_plots)
+        resultado_estr = _ejecutar_secuencia_estructura(datos_estr, titulo, generar_plots, calculos_activos)
         
         if resultado_estr["exito"]:
             costo_individual = resultado_estr.get("costo_total", 0)
@@ -98,11 +102,13 @@ def _cargar_familia(nombre_familia: str) -> Dict:
         print(f"❌ Error cargando familia: {e}")
         return {}
 
-def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str, generar_plots: bool = True) -> Dict:
+def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str, generar_plots: bool = True, calculos_activos: List[str] = None) -> Dict:
     """
     Ejecuta secuencia completa CMC>DGE>DME>Árboles>SPH>Fundación>Costeo
     para una estructura individual creando archivos temporales completos
     """
+    if calculos_activos is None:
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
     try:
         # DEBUG: Mostrar datos recibidos
         print(f"\n📋 DEBUG: Datos recibidos para {titulo}:")
@@ -140,77 +146,84 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str, generar_
         
         try:
             # 1. CMC
-            from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
-            resultado_cmc = ejecutar_calculo_cmc_automatico(datos_estructura, state, generar_plots)
-            if resultado_cmc.get('exito'):
-                resultados["cmc"] = CalculoCache.cargar_calculo_cmc(titulo)
-                print(f"✅ CMC completado para {titulo}")
-            else:
-                return {"exito": False, "mensaje": f"Error CMC: {resultado_cmc.get('mensaje')}"}
+            if "cmc" in calculos_activos:
+                from controllers.geometria_controller import ejecutar_calculo_cmc_automatico
+                resultado_cmc = ejecutar_calculo_cmc_automatico(datos_estructura, state, generar_plots)
+                if resultado_cmc.get('exito'):
+                    resultados["cmc"] = CalculoCache.cargar_calculo_cmc(titulo)
+                    print(f"✅ CMC completado para {titulo}")
+                else:
+                    return {"exito": False, "mensaje": f"Error CMC: {resultado_cmc.get('mensaje')}"}
             
             # 2. DGE
-            from controllers.geometria_controller import ejecutar_calculo_dge
-            resultado_dge = ejecutar_calculo_dge(datos_estructura, state, generar_plots)
-            if resultado_dge.get('exito'):
-                resultados["dge"] = CalculoCache.cargar_calculo_dge(titulo)
-                print(f"✅ DGE completado para {titulo}")
-            else:
-                return {"exito": False, "mensaje": f"Error DGE: {resultado_dge.get('mensaje')}"}
+            if "dge" in calculos_activos:
+                from controllers.geometria_controller import ejecutar_calculo_dge
+                resultado_dge = ejecutar_calculo_dge(datos_estructura, state, generar_plots)
+                if resultado_dge.get('exito'):
+                    resultados["dge"] = CalculoCache.cargar_calculo_dge(titulo)
+                    print(f"✅ DGE completado para {titulo}")
+                else:
+                    return {"exito": False, "mensaje": f"Error DGE: {resultado_dge.get('mensaje')}"}
             
             # 3. DME
-            from controllers.ejecutar_calculos import ejecutar_calculo_dme
-            resultado_dme = ejecutar_calculo_dme(datos_estructura, state, generar_plots)
-            if resultado_dme.get('exito'):
-                resultados["dme"] = CalculoCache.cargar_calculo_dme(titulo)
-                print(f"✅ DME completado para {titulo}")
-            else:
-                return {"exito": False, "mensaje": f"Error DME: {resultado_dme.get('mensaje')}"}
+            if "dme" in calculos_activos:
+                from controllers.ejecutar_calculos import ejecutar_calculo_dme
+                resultado_dme = ejecutar_calculo_dme(datos_estructura, state, generar_plots)
+                if resultado_dme.get('exito'):
+                    resultados["dme"] = CalculoCache.cargar_calculo_dme(titulo)
+                    print(f"✅ DME completado para {titulo}")
+                else:
+                    return {"exito": False, "mensaje": f"Error DME: {resultado_dme.get('mensaje')}"}
             
             # 4. Árboles
-            from controllers.ejecutar_calculos import ejecutar_calculo_arboles
-            resultado_arboles = ejecutar_calculo_arboles(datos_estructura, state, generar_plots)
-            if resultado_arboles.get('exito'):
-                resultados["arboles"] = CalculoCache.cargar_calculo_arboles(titulo)
-                print(f"✅ Árboles completado para {titulo}")
-            else:
-                return {"exito": False, "mensaje": f"Error Árboles: {resultado_arboles.get('mensaje')}"}
+            if "arboles" in calculos_activos:
+                from controllers.ejecutar_calculos import ejecutar_calculo_arboles
+                resultado_arboles = ejecutar_calculo_arboles(datos_estructura, state, generar_plots)
+                if resultado_arboles.get('exito'):
+                    resultados["arboles"] = CalculoCache.cargar_calculo_arboles(titulo)
+                    print(f"✅ Árboles completado para {titulo}")
+                else:
+                    return {"exito": False, "mensaje": f"Error Árboles: {resultado_arboles.get('mensaje')}"}
             
             # 5. SPH
-            from controllers.ejecutar_calculos import ejecutar_calculo_sph
-            resultado_sph = ejecutar_calculo_sph(datos_estructura, state)
-            if resultado_sph.get('exito'):
-                resultados["sph"] = CalculoCache.cargar_calculo_sph(titulo)
-                print(f"✅ SPH completado para {titulo}")
-            else:
-                return {"exito": False, "mensaje": f"Error SPH: {resultado_sph.get('mensaje')}"}
+            if "sph" in calculos_activos:
+                from controllers.ejecutar_calculos import ejecutar_calculo_sph
+                resultado_sph = ejecutar_calculo_sph(datos_estructura, state)
+                if resultado_sph.get('exito'):
+                    resultados["sph"] = CalculoCache.cargar_calculo_sph(titulo)
+                    print(f"✅ SPH completado para {titulo}")
+                else:
+                    return {"exito": False, "mensaje": f"Error SPH: {resultado_sph.get('mensaje')}"}
             
             # 6. Fundación
-            from controllers.ejecutar_calculos import ejecutar_calculo_fundacion
-            resultado_fundacion = ejecutar_calculo_fundacion(datos_estructura, state, generar_plots)
-            if resultado_fundacion.get('exito'):
-                resultados["fundacion"] = CalculoCache.cargar_calculo_fund(titulo)
-                print(f"✅ Fundación completado para {titulo}")
-            else:
-                return {"exito": False, "mensaje": f"Error Fundación: {resultado_fundacion.get('mensaje')}"}
+            if "fundacion" in calculos_activos:
+                from controllers.ejecutar_calculos import ejecutar_calculo_fundacion
+                resultado_fundacion = ejecutar_calculo_fundacion(datos_estructura, state, generar_plots)
+                if resultado_fundacion.get('exito'):
+                    resultados["fundacion"] = CalculoCache.cargar_calculo_fund(titulo)
+                    print(f"✅ Fundación completado para {titulo}")
+                else:
+                    return {"exito": False, "mensaje": f"Error Fundación: {resultado_fundacion.get('mensaje')}"}
             
             # 7. Costeo
-            from controllers.ejecutar_calculos import ejecutar_calculo_costeo
-            resultado_costeo = ejecutar_calculo_costeo(datos_estructura, state)
-            
-            if resultado_costeo.get('exito'):
-                calculo_costeo = CalculoCache.cargar_calculo_costeo(titulo)
-                resultados["costeo"] = calculo_costeo
+            if "costeo" in calculos_activos:
+                from controllers.ejecutar_calculos import ejecutar_calculo_costeo
+                resultado_costeo = ejecutar_calculo_costeo(datos_estructura, state)
                 
-                # Extraer costo total desde resultado_costeo (tiene el valor correcto)
-                if resultado_costeo.get('resultados') and 'resumen_costos' in resultado_costeo['resultados']:
-                    costo_total = float(resultado_costeo['resultados']['resumen_costos'].get('costo_total', 0))
-                    print(f"   ✅ Costeo completado para {titulo}: {costo_total:.2f} UM")
+                if resultado_costeo.get('exito'):
+                    calculo_costeo = CalculoCache.cargar_calculo_costeo(titulo)
+                    resultados["costeo"] = calculo_costeo
+                    
+                    # Extraer costo total desde resultado_costeo (tiene el valor correcto)
+                    if resultado_costeo.get('resultados') and 'resumen_costos' in resultado_costeo['resultados']:
+                        costo_total = float(resultado_costeo['resultados']['resumen_costos'].get('costo_total', 0))
+                        print(f"   ✅ Costeo completado para {titulo}: {costo_total:.2f} UM")
+                    else:
+                        costo_total = 0
+                        print(f"   ⚠️ Costeo sin resumen_costos para {titulo}")
                 else:
-                    costo_total = 0
-                    print(f"   ⚠️ Costeo sin resumen_costos para {titulo}")
-            else:
-                print(f"   ❌ Error Costeo para {titulo}: {resultado_costeo.get('mensaje')}")
-                return {"exito": False, "mensaje": f"Error Costeo: {resultado_costeo.get('mensaje')}"}
+                    print(f"   ❌ Error Costeo para {titulo}: {resultado_costeo.get('mensaje')}")
+                    return {"exito": False, "mensaje": f"Error Costeo: {resultado_costeo.get('mensaje')}"}
             
             return {
                 "exito": True,
@@ -332,10 +345,13 @@ def _generar_graficos_familia(resultados_familia: Dict) -> Dict:
         "grafico_torta": fig_torta
     }
 
-def generar_vista_resultados_familia(resultados_familia: Dict) -> List:
+def generar_vista_resultados_familia(resultados_familia: Dict, calculos_activos: List[str] = None) -> List:
     """Generar vista con pestañas por estructura"""
     from dash import html, dcc
     import dash_bootstrap_components as dbc
+    
+    if calculos_activos is None:
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
     
     if not resultados_familia.get("resultados_estructuras"):
         return [dbc.Alert("No hay resultados para mostrar", color="warning")]
@@ -352,7 +368,7 @@ def generar_vista_resultados_familia(resultados_familia: Dict) -> List:
                 dbc.Alert(f"Error: {datos['error']}", color="danger")
             ], style={"padding": "20px"})
         else:
-            contenido = _crear_contenido_estructura(datos)
+            contenido = _crear_contenido_estructura(datos, calculos_activos)
         
         # Pestaña con contenido envuelto en Container
         pestanas.append(dbc.Tab(
@@ -373,10 +389,13 @@ def generar_vista_resultados_familia(resultados_familia: Dict) -> List:
     
     return [dbc.Tabs(pestanas, style={"marginTop": "20px"})]
 
-def _crear_contenido_estructura(datos_estructura: Dict):
+def _crear_contenido_estructura(datos_estructura: Dict, calculos_activos: List[str] = None):
     """Crear contenido para pestaña de estructura individual"""
     from dash import html
     import dash_bootstrap_components as dbc
+    
+    if calculos_activos is None:
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
     
     print(f"\n🔍 DEBUG _crear_contenido_estructura:")
     print(f"   Keys en datos_estructura: {list(datos_estructura.keys())}")
@@ -396,7 +415,7 @@ def _crear_contenido_estructura(datos_estructura: Dict):
     
     try:
         # CMC
-        if "cmc" in resultados and resultados["cmc"]:
+        if "cmc" in calculos_activos and "cmc" in resultados and resultados["cmc"]:
             print(f"   ✅ Generando CMC...")
             from components.vista_calculo_mecanico import generar_resultados_cmc
             componentes.append(html.H4("1. Cálculo Mecánico de Cables"))
@@ -417,7 +436,7 @@ def _crear_contenido_estructura(datos_estructura: Dict):
                 componentes.append(dbc.Alert(f"Error en CMC: {e}", color="warning"))
         
         # DGE
-        if "dge" in resultados and resultados["dge"]:
+        if "dge" in calculos_activos and "dge" in resultados and resultados["dge"]:
             print(f"   ✅ Generando DGE...")
             from components.vista_diseno_geometrico import generar_resultados_dge
             componentes.append(html.H4("2. Diseño Geométrico"))
@@ -437,7 +456,7 @@ def _crear_contenido_estructura(datos_estructura: Dict):
                 componentes.append(dbc.Alert(f"Error en DGE: {e}", color="warning"))
         
         # DME
-        if "dme" in resultados and resultados["dme"]:
+        if "dme" in calculos_activos and "dme" in resultados and resultados["dme"]:
             print(f"   ✅ Generando DME...")
             from components.vista_diseno_mecanico import generar_resultados_dme
             componentes.append(html.H4("3. Diseño Mecánico"))
@@ -457,7 +476,7 @@ def _crear_contenido_estructura(datos_estructura: Dict):
                 componentes.append(dbc.Alert(f"Error en DME: {e}", color="warning"))
         
         # Árboles
-        if "arboles" in resultados and resultados["arboles"]:
+        if "arboles" in calculos_activos and "arboles" in resultados and resultados["arboles"]:
             print(f"   ✅ Generando Árboles...")
             from components.vista_arboles_carga import generar_resultados_arboles
             componentes.append(html.H4("4. Árboles de Carga"))
@@ -477,7 +496,7 @@ def _crear_contenido_estructura(datos_estructura: Dict):
                 componentes.append(dbc.Alert(f"Error en Árboles: {e}", color="warning"))
         
         # SPH
-        if "sph" in resultados and resultados["sph"]:
+        if "sph" in calculos_activos and "sph" in resultados and resultados["sph"]:
             print(f"   ✅ Generando SPH...")
             from components.vista_seleccion_poste import _crear_area_resultados
             componentes.append(html.H4("5. Selección de Poste"))
@@ -497,7 +516,7 @@ def _crear_contenido_estructura(datos_estructura: Dict):
                 componentes.append(dbc.Alert(f"Error en SPH: {e}", color="warning"))
         
         # Fundación
-        if "fundacion" in resultados and resultados["fundacion"]:
+        if "fundacion" in calculos_activos and "fundacion" in resultados and resultados["fundacion"]:
             print(f"   ✅ Generando Fundación...")
             from components.vista_fundacion import generar_resultados_fundacion
             componentes.append(html.H4("6. Fundación"))
@@ -518,7 +537,7 @@ def _crear_contenido_estructura(datos_estructura: Dict):
                 componentes.append(dbc.Alert(f"Error en Fundación: {e}", color="warning"))
         
         # Costeo
-        if "costeo" in resultados and resultados["costeo"]:
+        if "costeo" in calculos_activos and "costeo" in resultados and resultados["costeo"]:
             print(f"   ✅ Generando Costeo...")
             from components.vista_costeo import generar_resultados_costeo
             componentes.append(html.H4("7. Costeo"))

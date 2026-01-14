@@ -18,33 +18,36 @@ def register_callbacks(app):
         Output("toast-notificacion", "children", allow_duplicate=True),
         Output("toast-notificacion", "icon", allow_duplicate=True),
         Output("toast-notificacion", "color", allow_duplicate=True),
+        Output("contenido-principal", "children", allow_duplicate=True),
         Input("btn-cargar-db", "n_clicks"),
         State("select-estructura-db", "value"),
         prevent_initial_call=True
     )
     def cargar_estructura_desde_db(n_clicks, nombre_estructura):
         if not nombre_estructura:
-            return dash.no_update, True, "Error", "Seleccione una estructura", "danger", "danger"
+            return dash.no_update, True, "Error", "Seleccione una estructura", "danger", "danger", dash.no_update
         
         try:
             ruta_estructura = DATA_DIR / nombre_estructura
             estructura = state.estructura_manager.cargar_estructura(ruta_estructura)
             
             if estructura:
-                # Limpiar nodos_editados si no tiene el campo o está vacío
                 if "nodos_editados" not in estructura or not estructura["nodos_editados"]:
                     estructura["nodos_editados"] = []
                 
-                # Guardar usando el sistema unificado
                 state.set_estructura_actual(estructura)
                 ruta_actual = state.get_estructura_actual_path()
                 state.estructura_manager.guardar_estructura(estructura, ruta_actual)
                 
-                return estructura, True, "Éxito", f"Estructura '{nombre_estructura}' cargada correctamente", "success", "success"
+                # Recargar vista actual con nueva estructura
+                from components.vista_home import crear_vista_home
+                vista_home = crear_vista_home()
+                
+                return estructura, True, "Éxito", f"Estructura '{nombre_estructura}' cargada correctamente", "success", "success", vista_home
         except Exception as e:
             print(f"❌ Error cargando estructura: {e}")
         
-        return dash.no_update, True, "Error", "No se pudo cargar la estructura", "danger", "danger"
+        return dash.no_update, True, "Error", "No se pudo cargar la estructura", "danger", "danger", dash.no_update
     
     @app.callback(
         Output("estructura-actual", "data", allow_duplicate=True),

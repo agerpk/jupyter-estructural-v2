@@ -260,18 +260,32 @@ def generar_seccion_sph(calculo_sph):
     html = ['<h3>5. SELECCIÓN DE POSTE DE HORMIGÓN (SPH)</h3>']
     
     resultados = calculo_sph.get('resultados', {})
+    desarrollo_texto = calculo_sph.get('desarrollo_texto', '')
     
-    if resultados.get('configuracion_seleccionada'):
-        config = resultados['configuracion_seleccionada']
-        html.append('<h5>Configuración Seleccionada</h5>')
-        html.append('<table class="table table-bordered params-table">')
-        for campo, valor in config.items():
-            html.append(f'<tr><td>{campo}</td><td>{valor}</td></tr>')
-        html.append('</table>')
+    if resultados:
+        config_seleccionada = resultados.get('config_seleccionada', 'N/A')
+        dimensiones = resultados.get('dimensiones', {})
+        Rc_adopt = resultados.get('Rc_adopt', 0)
+        
+        # Determinar número de postes
+        n_postes = 1 if "Monoposte" in config_seleccionada else 2 if "Biposte" in config_seleccionada else 3
+        
+        html.append('<div class="alert alert-success">')
+        html.append('<h5>Cálculo Completado</h5>')
+        html.append('<hr>')
+        html.append(f'<p><strong>Configuración:</strong> {config_seleccionada}<br>')
+        html.append(f'<strong>Código:</strong> {n_postes} x {dimensiones.get("Ht_comercial", 0):.1f}m / Ro {Rc_adopt:.0f}daN<br>')
+        html.append(f'<strong>Altura libre:</strong> {dimensiones.get("Hl", 0):.2f} m<br>')
+        html.append(f'<strong>Empotramiento:</strong> {dimensiones.get("He_final", 0):.2f} m<br>')
+        html.append(f'<strong>Resistencia en cima:</strong> {Rc_adopt:.0f} daN</p>')
+        html.append('</div>')
     
-    if resultados.get('desarrollo_texto'):
-        html.append('<hr><h5>Desarrollo del Cálculo</h5>')
-        html.append(f'<pre>{resultados["desarrollo_texto"]}</pre>')
+    if desarrollo_texto:
+        html.append('<hr><h5>Desarrollo Completo</h5>')
+        html.append(f'<pre>{desarrollo_texto}</pre>')
+    
+    if not resultados and not desarrollo_texto:
+        html.append('<p>No hay resultados de SPH disponibles.</p>')
     
     return '\n'.join(html)
 
@@ -630,9 +644,9 @@ def generar_seccion_resultados_por_cable(cache_data):
     return '\n'.join(html)
 
 
-def generar_html_familia(nombre_familia, resultados_familia):
+def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=None):
     """Genera HTML completo para familia de estructuras - usa implementación completa"""
-    return generar_html_familia_completo(nombre_familia, resultados_familia)
+    return generar_html_familia_completo(nombre_familia, resultados_familia, checklist_activo)
 
 
 def generar_seccion_fund(calculo_fund):

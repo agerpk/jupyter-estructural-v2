@@ -11,14 +11,15 @@ from components.vista_calculo_mecanico import crear_vista_calculo_mecanico
 from views.vista_editor_hipotesis import crear_vista_editor_hipotesis
 from components.vista_gestion_cables import crear_vista_agregar_cable, crear_vista_modificar_cable, crear_vista_eliminar_cable
 from models.app_state import AppState
-from config.app_config import NAVEGACION_STATE_FILE
+from config.app_config import DATA_DIR
 
 
 def guardar_navegacion_state(vista_id):
     """Guarda el estado de navegación"""
     try:
-        NAVEGACION_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(NAVEGACION_STATE_FILE, 'w', encoding='utf-8') as f:
+        navegacion_file = DATA_DIR / "navegacion_state.json"
+        navegacion_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(navegacion_file, 'w', encoding='utf-8') as f:
             json.dump({"ultima_vista": vista_id}, f)
         print(f"DEBUG: Navegación guardada: {vista_id}")
     except Exception as e:
@@ -27,8 +28,9 @@ def guardar_navegacion_state(vista_id):
 def cargar_navegacion_state():
     """Carga el estado de navegación"""
     try:
-        if NAVEGACION_STATE_FILE.exists():
-            with open(NAVEGACION_STATE_FILE, 'r', encoding='utf-8') as f:
+        navegacion_file = DATA_DIR / "navegacion_state.json"
+        if navegacion_file.exists():
+            with open(navegacion_file, 'r', encoding='utf-8') as f:
                 vista = json.load(f).get("ultima_vista", "home")
                 print(f"DEBUG: Navegación cargada: {vista}")
                 return vista

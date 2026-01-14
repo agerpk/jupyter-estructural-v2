@@ -5,7 +5,7 @@ from utils.estructura_manager import EstructuraManager
 from utils.cable_manager import CableManager
 from utils.calculo_objetos import CalculoObjetosAEA
 from utils.calculo_mecanico_cables import CalculoMecanicoCables
-from config.app_config import DATA_DIR, CABLES_PATH, FAMILIA_STATE_FILE
+from config.app_config import DATA_DIR, CABLES_PATH, FAMILIA_STATE_FILE, ESTRUCTURA_STATE_FILE
 import json
 
 
@@ -121,8 +121,8 @@ class AppState:
     def _cargar_estructura_activa_persistente(self):
         """Cargar estructura activa desde archivo de persistencia"""
         try:
-            if FAMILIA_STATE_FILE.exists():
-                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+            if ESTRUCTURA_STATE_FILE.exists():
+                with open(ESTRUCTURA_STATE_FILE, 'r', encoding='utf-8') as f:
                     state = json.load(f)
                     titulo_estructura = state.get('estructura_activa')
                     if titulo_estructura:
@@ -135,14 +135,9 @@ class AppState:
     def _guardar_estructura_activa_persistente(self, titulo_estructura):
         """Guardar estructura activa en archivo de persistencia"""
         try:
-            state_data = {}
-            if FAMILIA_STATE_FILE.exists():
-                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
-                    state_data = json.load(f)
+            state_data = {'estructura_activa': titulo_estructura}
             
-            state_data['estructura_activa'] = titulo_estructura
-            
-            with open(FAMILIA_STATE_FILE, 'w', encoding='utf-8') as f:
+            with open(ESTRUCTURA_STATE_FILE, 'w', encoding='utf-8') as f:
                 json.dump(state_data, f, indent=2, ensure_ascii=False)
             print(f"💾 Estructura activa guardada en persistencia: {titulo_estructura}")
         except Exception as e:
@@ -151,9 +146,10 @@ class AppState:
     def _guardar_familia_activa_persistente(self, nombre_familia):
         """Guardar familia activa en archivo de persistencia"""
         try:
-            state = {'familia_activa': nombre_familia}
+            state_data = {'familia_activa': nombre_familia}
+            
             with open(FAMILIA_STATE_FILE, 'w', encoding='utf-8') as f:
-                json.dump(state, f, indent=2, ensure_ascii=False)
+                json.dump(state_data, f, indent=2, ensure_ascii=False)
             print(f"💾 Familia activa guardada en persistencia: {nombre_familia}")
         except Exception as e:
             print(f"⚠️ Error guardando familia activa persistente: {e}")
@@ -209,3 +205,29 @@ class AppState:
         except Exception as e:
             print(f"⚠️ Error cargando cálculos activos: {e}")
         return ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
+    
+    def set_calculos_activos_familia(self, calculos_activos):
+        """Guardar checkboxes de cálculos activos para familia"""
+        try:
+            state_data = {}
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+            
+            state_data['calculos_activos_familia'] = calculos_activos
+            
+            with open(FAMILIA_STATE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(state_data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"⚠️ Error guardando cálculos activos familia: {e}")
+    
+    def get_calculos_activos_familia(self):
+        """Obtener checkboxes de cálculos activos para familia"""
+        try:
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+                    return state_data.get('calculos_activos_familia', ["cmc", "dge", "dme", "arboles", "sph"])
+        except Exception as e:
+            print(f"⚠️ Error cargando cálculos activos familia: {e}")
+        return ["cmc", "dge", "dme", "arboles", "sph"]

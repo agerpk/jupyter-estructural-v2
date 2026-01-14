@@ -932,7 +932,7 @@ def generar_arbol_3d(nodes_key, cargas_hipotesis, datos_reacciones, hipotesis_no
 
 
 def dibujar_lineas_estructura_3d(fig, nodes_key, estructura_geometria=None):
-    """Dibuja líneas de estructura en 3D usando conectado_a de cada nodo"""
+    """Dibuja líneas de estructura en 3D usando la misma lógica que EstructuraAEA_Graficos"""
     # Si hay estructura_geometria, usar sus conexiones
     if estructura_geometria and hasattr(estructura_geometria, 'nodos'):
         for nombre_nodo, nodo in estructura_geometria.nodos.items():
@@ -950,40 +950,173 @@ def dibujar_lineas_estructura_3d(fig, nodes_key, estructura_geometria=None):
                         ))
         return
     
-    # Fallback: usar misma lógica que EstructuraAEA_Graficos
+    # Fallback: usar EXACTAMENTE la misma lógica que EstructuraAEA_Graficos
+    # 1. RECOLECTAR NODOS POR TIPO
+    nodos_estructura = []
+    conductores_por_altura = {}
+    nodos_guardia = []
+    
+    for nombre, coordenadas in nodes_key.items():
+        x, y, z = coordenadas
+        
+        # Solo plano XZ (y ≈ 0) para estructura 2D, pero incluir todos para 3D
+        if abs(x) < 0.001 and abs(y) < 0.001 and not nombre.startswith(('C1', 'C2', 'C3', 'HG')):
+            nodos_estructura.append((z, nombre, coordenadas))
+        elif nombre.startswith(('C1', 'C2', 'C3')):
+            if z not in conductores_por_altura:
+                conductores_por_altura[z] = []
+            conductores_por_altura[z].append((x, nombre, coordenadas))
+        elif nombre.startswith('HG'):
+            nodos_guardia.append((x, nombre, coordenadas))
+    
+    # 2. DIBUJAR COLUMNAS DE ESTRUCTURA
     tiene_y = any('Y' in nombre for nombre in nodes_key.keys())
-    conexiones = []
     
     if tiene_y:
-        conexiones = [
+        # Configuración horizontal: BASE-Y1, Y1-Y2-Y4, Y1-Y3-Y5, HG1-Y4, HG2-Y5
+        conexiones_horizontales = [
             ('BASE', 'Y1'), ('Y1', 'Y2'), ('Y2', 'Y4'),
             ('Y1', 'Y3'), ('Y3', 'Y5'), ('Y4', 'HG1'), ('Y5', 'HG2')
         ]
+        for nodo1, nodo2 in conexiones_horizontales:
+            if nodo1 in nodes_key and nodo2 in nodes_key:
+                x1, y1, z1 = nodes_key[nodo1]
+                x2, y2, z2 = nodes_key[nodo2]
+                fig.add_trace(go.Scatter3d(
+                    x=[x1, x2], y=[y1, y2], z=[z1, z2],
+                    mode='lines',
+                    line=dict(color='black', width=4),
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
     else:
-        # Estructura vertical: línea principal + conexión especial para HG centrado
-        nodos_estructura = [(coords[2], nombre) for nombre, coords in nodes_key.items() 
-                           if abs(coords[0]) < 0.001 and abs(coords[1]) < 0.001 
-                           and not nombre.startswith(('C1', 'C2', 'C3', 'HG'))]
+        # Configuración estándar: línea vertical
         nodos_estructura.sort(key=lambda x: x[0])
-        conexiones = [(nodos_estructura[i][1], nodos_estructura[i+1][1]) 
-                     for i in range(len(nodos_estructura)-1)]
+        if len(nodos_estructura) >= 2:
+            for i in range(len(nodos_estructura)-1):
+                z1, nombre1, coord1 = nodos_estructura[i]
+                z2, nombre2, coord2 = nodos_estructura[i+1]
+                fig.add_trace(go.Scatter3d(
+                    x=[0, 0], y=[0, 0], z=[z1, z2],
+                    mode='lines',
+                    line=dict(color='black', width=4),
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
         
-        # CASO ESPECIAL: HG1 centrado en doble terna vertical
+        # CASO ESPECIAL: Guardia centrado en doble terna vertical
         if ('CROSS_H3' in nodes_key and 'HG1' in nodes_key and 
             abs(nodes_key['HG1'][0]) < 0.001):  # HG1 centrado
-            conexiones.append(('CROSS_H3', 'HG1'))
-    
-    for nodo1, nodo2 in conexiones:
-        if nodo1 in nodes_key and nodo2 in nodes_key:
-            x1, y1, z1 = nodes_key[nodo1]
-            x2, y2, z2 = nodes_key[nodo2]
+            x_cross, y_cross, z_cross = nodes_key['CROSS_H3']
+            x_hg, y_hg, z_hg = nodes_key['HG1']
             fig.add_trace(go.Scatter3d(
-                x=[x1, x2], y=[y1, y2], z=[z1, z2],
+                x=[0, 0], y=[0, 0], z=[z_cross, z_hg],
                 mode='lines',
                 line=dict(color='black', width=4),
                 showlegend=False,
                 hoverinfo='skip'
             ))
+    
+    # 3. DIBUJAR MENSULAS/CRUCETAS DE CONDUCTORES
+    for altura, conductores in conductores_por_altura.items():
+        # Buscar nodo CROSS o Y correspondiente
+        cross_node = None
+        min_diff = float('inf')
+        
+        for nombre, coordenadas in nodes_key.items():
+            if "CROSS" in nombre or nombre.startswith('Y'):
+                x_cross, y_cross, z_cross = coordenadas
+                diff = abs(z_cross - altura)
+                if diff < min_diff:
+                    min_diff = diff
+                    cross_node = (nombre, coordenadas)
+        
+        if cross_node:
+            cross_nombre, cross_coord = cross_node
+            x_cross, y_cross, z_cross = cross_coord
+            
+            conductores_x = [c[0] for c in conductores]
+            hay_izq = any(x < -0.01 for x in conductores_x)
+            hay_der = any(x > 0.01 for x in conductores_x)
+            
+            if hay_izq and hay_der:
+                # Cruceta: línea horizontal completa
+                x_min = min(conductores_x)
+                x_max = max(conductores_x)
+                fig.add_trace(go.Scatter3d(
+                    x=[x_min, x_max], y=[y_cross, y_cross], z=[altura, altura],
+                    mode='lines',
+                    line=dict(color='black', width=3),
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
+                
+                # Conexión vertical desde nodo de cruce a cruceta si difieren
+                if abs(z_cross - altura) > 0.01:
+                    fig.add_trace(go.Scatter3d(
+                        x=[0, 0], y=[y_cross, y_cross], z=[z_cross, altura],
+                        mode='lines',
+                        line=dict(color='black', width=2, dash='dot'),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
+            else:
+                # Ménsula: cada conductor se conecta individualmente
+                for x_cond, nombre_cond, coord_cond in conductores:
+                    fig.add_trace(go.Scatter3d(
+                        x=[x_cross, x_cond], y=[y_cross, y_cross], z=[z_cross, altura],
+                        mode='lines',
+                        line=dict(color='black', width=3),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
+    
+    # 4. DIBUJAR MENSULAS/CRUCETAS DE GUARDIAS (solo si no es horizontal)
+    if not tiene_y:
+        if "TOP" in nodes_key:
+            x_top, y_top, z_top = nodes_key["TOP"]
+            
+            if nodos_guardia:
+                guardias_x = [g[0] for g in nodos_guardia]
+                hay_izq = any(x < 0 for x in guardias_x)
+                hay_der = any(x > 0 for x in guardias_x)
+                
+                if hay_izq and hay_der:
+                    # Cruceta guardia: línea horizontal completa
+                    x_min = min(guardias_x)
+                    x_max = max(guardias_x)
+                    fig.add_trace(go.Scatter3d(
+                        x=[x_min, x_max], y=[y_top, y_top], z=[z_top, z_top],
+                        mode='lines',
+                        line=dict(color='black', width=3),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
+                    
+                    # Conexiones verticales a TOP
+                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                        z_hg = coord_hg[2]
+                        y_hg = coord_hg[1]
+                        if abs(z_hg - z_top) > 0.01:
+                            fig.add_trace(go.Scatter3d(
+                                x=[x_hg, x_hg], y=[y_hg, y_hg], z=[z_top, z_hg],
+                                mode='lines',
+                                line=dict(color='black', width=2, dash='dot'),
+                                showlegend=False,
+                                hoverinfo='skip'
+                            ))
+                else:
+                    # Ménsula guardia: cada guardia se conecta individualmente
+                    for x_hg, nombre_hg, coord_hg in nodos_guardia:
+                        z_hg = coord_hg[2]
+                        y_hg = coord_hg[1]
+                        fig.add_trace(go.Scatter3d(
+                            x=[x_top, x_hg], y=[y_top, y_hg], z=[z_top, z_hg],
+                            mode='lines',
+                            line=dict(color='black', width=3),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
 
 
 def dibujar_flechas_desde_dataframe(fig, cargas_hipotesis, nodes_key, hipotesis_nombre, visible=True):

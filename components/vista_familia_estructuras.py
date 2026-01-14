@@ -93,6 +93,14 @@ def crear_vista_familia_estructuras(familia_actual=None):
                     ])
                 ], className="mb-3"),
                 
+                # Checklist de cálculos
+                crear_checklist_calculos_familia(),
+                
+                # Store para persistencia
+                dcc.Store(id="calculos-activos-familia-store"),
+                
+                html.Hr(),
+                
                 # Tabla de parámetros multi-columna
                 html.Div([
                     DataTable(
@@ -178,6 +186,32 @@ def crear_dropdown_cargar_familia():
             )
         ], width=6)
     ], className="mb-3")
+
+def crear_checklist_calculos_familia():
+    """Crear checklist de cálculos para familia"""
+    from models.app_state import AppState
+    state = AppState()
+    calculos_activos = state.get_calculos_activos_familia()
+    
+    return dbc.Alert([
+        html.H5("Secuencia de Cálculo:", className="alert-heading"),
+        html.P("Seleccione qué cálculos ejecutar/mostrar:"),
+        dbc.Checklist(
+            id="checklist-calculos-familia",
+            options=[
+                {"label": "CMC - Cálculo Mecánico de Cables", "value": "cmc"},
+                {"label": "DGE - Diseño Geométrico (requiere CMC)", "value": "dge"},
+                {"label": "DME - Diseño Mecánico (requiere DGE)", "value": "dme"},
+                {"label": "Árboles de Carga (requiere DME)", "value": "arboles"},
+                {"label": "SPH - Selección de Poste (requiere DME)", "value": "sph"},
+                {"label": "Fundación (requiere SPH)", "value": "fundacion"},
+                {"label": "Costeo (requiere SPH y Fundación)", "value": "costeo"},
+                {"label": "AEE - Análisis Estático (requiere DME)", "value": "aee"}
+            ],
+            value=calculos_activos,
+            inline=False
+        )
+    ], color="info", className="mb-3")
 
 def crear_botones_control_familia():
     """Crear botones de control para familia"""

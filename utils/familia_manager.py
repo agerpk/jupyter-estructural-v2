@@ -192,7 +192,7 @@ class FamiliaManager:
             # Preservar TODA la familia existente y solo actualizar estructuras
             familia_data = familia_existente.copy()
             familia_data["estructuras"] = estructuras
-            familia_data["fecha_modificacion"] = datetime.now().isoformat()
+            # NO actualizar fecha_modificacion aqui - solo al guardar
             print(f"   ✅ DEBUG tabla_a_familia: Familia existente preservada completamente")
         else:
             # Nueva familia - crear desde cero
