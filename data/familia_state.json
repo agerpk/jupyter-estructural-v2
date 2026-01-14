@@ -1,3 +1,13 @@
 {
-  "familia_activa": "ACONCAGUA_S"
+  "familia_activa": "ACONCAGUA_S",
+  "calculos_activos": [
+    "cmc",
+    "dge",
+    "dme",
+    "arboles",
+    "sph",
+    "fundacion",
+    "costeo",
+    "aee"
+  ]
 }
