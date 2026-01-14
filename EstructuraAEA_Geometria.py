@@ -176,9 +176,12 @@ class EstructuraAEA_Geometria:
         if parametros:
             self.sobreescribir_altura_a_cable = parametros.get("SOBREESCRIBIR_ALTURA_a_CABLE", False)
             self.altura_a_cable_sobreescrita = parametros.get("ALTURA_a_CABLE_SOBREESCRITA", 0)
+            # Estados climáticos
+            self.estados_climaticos = parametros.get("estados_climaticos", {})
         else:
             self.sobreescribir_altura_a_cable = False
             self.altura_a_cable_sobreescrita = 0
+            self.estados_climaticos = {}
         
         # Nuevos parámetros
         self.hg_centrado = hg_centrado if hg_centrado is not None else self.HG_CENTRADO

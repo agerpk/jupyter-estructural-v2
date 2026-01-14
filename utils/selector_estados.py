@@ -22,6 +22,9 @@ class SelectorEstados:
         
         Returns:
             str: ID del estado con máxima flecha vertical
+            
+        Raises:
+            ValueError: Si no hay estados con flecha vertical válida
         """
         max_flecha = 0
         estado_max = None
@@ -31,6 +34,12 @@ class SelectorEstados:
             if flecha > max_flecha:
                 max_flecha = flecha
                 estado_max = estado_id
+        
+        if estado_max is None:
+            raise ValueError(
+                "No se encontró ningún estado con flecha vertical válida. "
+                "Verifique que CMC se haya ejecutado correctamente."
+            )
         
         return estado_max
     
@@ -46,6 +55,9 @@ class SelectorEstados:
         
         Returns:
             str: ID del estado con máximo tiro
+            
+        Raises:
+            ValueError: Si no hay estados con tiro válido
         """
         max_tiro = 0
         estado_max = None
@@ -55,6 +67,12 @@ class SelectorEstados:
             if tiro > max_tiro:
                 max_tiro = tiro
                 estado_max = estado_id
+        
+        if estado_max is None:
+            raise ValueError(
+                "No se encontró ningún estado con tiro válido. "
+                "Verifique que CMC se haya ejecutado correctamente."
+            )
         
         return estado_max
     
@@ -74,6 +92,9 @@ class SelectorEstados:
         
         Returns:
             str: ID del estado equivalente a TMA
+            
+        Raises:
+            ValueError: Si no existe ningún estado que cumpla los criterios
         """
         candidatos = []
         
@@ -84,13 +105,11 @@ class SelectorEstados:
                 candidatos.append((estado_id, datos["temperatura"]))
         
         if not candidatos:
-            # Fallback: primer estado sin viento ni hielo
-            for estado_id, datos in estados_climaticos.items():
-                if (datos.get("viento_velocidad", 0) == 0 and
-                    datos.get("espesor_hielo", 0) == 0):
-                    return estado_id
-            # Último fallback: primer estado
-            return list(estados_climaticos.keys())[0]
+            raise ValueError(
+                "No se encontró ningún estado climático que cumpla los criterios de TMA "
+                "(sin viento, sin hielo, temperatura > 0°C). "
+                "Defina al menos un estado con estas características."
+            )
         
         # Retornar el de menor temperatura
         candidatos.sort(key=lambda x: x[1])
@@ -109,7 +128,13 @@ class SelectorEstados:
         
         Returns:
             str: ID del estado con temperatura mínima
+            
+        Raises:
+            ValueError: Si no hay estados definidos
         """
+        if not estados_climaticos:
+            raise ValueError("No hay estados climáticos definidos")
+        
         min_temp = float('inf')
         estado_min = None
         
@@ -134,6 +159,9 @@ class SelectorEstados:
         
         Returns:
             str: ID del estado con máxima velocidad de viento
+            
+        Raises:
+            ValueError: Si no hay estados con viento definido
         """
         max_viento = 0
         estado_max = None
@@ -143,6 +171,12 @@ class SelectorEstados:
             if viento > max_viento:
                 max_viento = viento
                 estado_max = estado_id
+        
+        if estado_max is None:
+            raise ValueError(
+                "No se encontró ningún estado con viento definido. "
+                "Defina al menos un estado con velocidad de viento > 0."
+            )
         
         return estado_max
     
@@ -161,6 +195,9 @@ class SelectorEstados:
         
         Returns:
             str: ID del estado con máximo espesor de hielo
+            
+        Raises:
+            ValueError: Si no hay estados con hielo definido
         """
         max_hielo = 0
         estado_max = None
@@ -170,5 +207,11 @@ class SelectorEstados:
             if hielo > max_hielo:
                 max_hielo = hielo
                 estado_max = estado_id
+        
+        if estado_max is None:
+            raise ValueError(
+                "No se encontró ningún estado con hielo definido. "
+                "Defina al menos un estado con espesor de hielo > 0."
+            )
         
         return estado_max
