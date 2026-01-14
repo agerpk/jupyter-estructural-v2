@@ -1,7 +1,7 @@
 {
   "nombre_familia": "ACONCAGUA_S",
   "fecha_creacion": "2026-01-14T14:39:04.163513",
-  "fecha_modificacion": "2026-01-14T15:47:47.486958",
+  "fecha_modificacion": "2026-01-14T16:11:03.242034",
   "estructuras": {
     "Estr.1": {
       "TIPO_ESTRUCTURA": "Suspensión Recta",
@@ -610,7 +610,7 @@
       "AUTOAJUSTAR_LMENHG": false,
       "DIST_REPOSICIONAR_HG": 0.05,
       "altura_a_cable_sobreescrita": 5.9,
-      "SOBREESCRIBIR_S": false,
+      "SOBREESCRIBIR_S": true,
       "s_reposo": 0.98,
       "s_tormenta": 0.88,
       "s_decmax": 0.88,
@@ -869,7 +869,7 @@
       "AUTOAJUSTAR_LMENHG": false,
       "DIST_REPOSICIONAR_HG": 0.05,
       "altura_a_cable_sobreescrita": 5.9,
-      "SOBREESCRIBIR_S": false,
+      "SOBREESCRIBIR_S": true,
       "s_reposo": 0.98,
       "s_tormenta": 0.88,
       "s_decmax": 0.88,

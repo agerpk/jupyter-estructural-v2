@@ -38,45 +38,44 @@ def cargar_navegacion_state():
         print(f"ERROR cargando navegación: {e}")
     return "home"
 
+def leer_badges():
+    """Leer badges desde archivos de estado"""
+    from config.app_config import ESTRUCTURA_STATE_FILE, FAMILIA_STATE_FILE
+    
+    badge_estructura = "Sin estructura"
+    badge_familia = "Sin familia"
+    
+    try:
+        if ESTRUCTURA_STATE_FILE.exists():
+            with open(ESTRUCTURA_STATE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                titulo = data.get('estructura_activa')
+                if titulo:
+                    badge_estructura = f"Estructura: {titulo}"
+    except:
+        pass
+    
+    try:
+        if FAMILIA_STATE_FILE.exists():
+            with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                familia = data.get('familia_activa')
+                if familia:
+                    badge_familia = f"Familia: {familia.replace('_', ' ')}"
+    except:
+        pass
+    
+    return badge_estructura, badge_familia
+
 def register_callbacks(app):
     """Registrar callbacks de navegación"""
     
     state = AppState()
     
-    # Callback para sincronizar AppState con Dash Store
     @app.callback(
-        Output("badge-estructura-actual", "children"),
-        Input("estructura-actual", "data"),
-        prevent_initial_call=True
-    )
-    def sincronizar_estructura_actual(estructura_data):
-        """Sincronizar AppState cuando cambia el Store de Dash"""
-        if estructura_data:
-            state.set_estructura_actual(estructura_data)
-            titulo = estructura_data.get('TITULO', 'Sin título')
-            return f"Estructura: {titulo}"
-        return "Sin estructura"
-    
-    # Badge para familia actual
-    @app.callback(
-        Output("badge-familia-actual", "children"),
-        [Input("contenido-principal", "children"),
-         Input("familia-actual-state", "data")],
-        prevent_initial_call=False
-    )
-    def actualizar_badge_familia(contenido, familia_state_data):
-        """Actualizar badge de familia desde AppState"""
-        try:
-            # Obtener familia activa desde AppState
-            familia_activa = state.get_familia_activa()
-            if familia_activa:
-                return f"Familia: {familia_activa.replace('_', ' ')}"
-            return "Sin familia"
-        except:
-            return "Sin familia"
-    
-    @app.callback(
-        Output("contenido-principal", "children"),
+        [Output("contenido-principal", "children"),
+         Output("badge-estructura-actual", "children", allow_duplicate=True),
+         Output("badge-familia-actual", "children", allow_duplicate=True)],
         Input("btn-inicio", "n_clicks"),
         Input({"type": "btn-volver", "index": ALL}, "n_clicks"),
         Input("menu-ajustar-parametros", "n_clicks"),
@@ -99,6 +98,7 @@ def register_callbacks(app):
         Input("menu-analisis-estatico", "n_clicks"),
         Input("menu-editor-hipotesis", "n_clicks"),
         State("estructura-actual", "data"),
+        prevent_initial_call='initial_duplicate'
     )
     def navegar_vistas(n_clicks_inicio, btn_volver_clicks, n_clicks_ajustar, 
                        n_clicks_eliminar, n_clicks_cmc,
@@ -107,20 +107,20 @@ def register_callbacks(app):
                        n_clicks_fundacion, n_clicks_costeo, n_clicks_calcular_todo, n_clicks_consola, 
                        n_clicks_comparativa_cmc, n_clicks_familia, n_clicks_vano_economico, 
                        n_clicks_aee, n_clicks_editor_hip, estructura_actual):
-        ctx = callback_context
         
-        # Detectar carga inicial (app restart o hot reload)
+        ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
         es_carga_inicial = not ctx.triggered
+        badge_estructura, badge_familia = leer_badges()
         
         if es_carga_inicial:
             ultima_vista = cargar_navegacion_state()
             print(f"DEBUG: Carga inicial detectada, restaurando vista: {ultima_vista}")
+            
             if ultima_vista == "calculo-mecanico":
                 from utils.calculo_cache import CalculoCache
                 from config.app_config import DATA_DIR
                 
-                # Recargar estructura desde archivo para tener datos actualizados
                 if estructura_actual:
                     titulo = estructura_actual.get('TITULO', 'estructura')
                     ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
@@ -134,10 +134,9 @@ def register_callbacks(app):
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_cmc(nombre_estructura)
-                return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado)
+                return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado), badge_estructura, badge_familia
             elif ultima_vista == "ajustar-parametros":
                 from config.app_config import DATA_DIR
-                # Recargar estructura desde archivo
                 if estructura_actual:
                     titulo = estructura_actual.get('TITULO', 'estructura')
                     ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
@@ -146,16 +145,15 @@ def register_callbacks(app):
                     except:
                         pass
                 cables_disponibles = state.cable_manager.obtener_cables()
-                return crear_vista_ajuste_parametros_con_pestanas(estructura_actual, cables_disponibles)
+                return crear_vista_ajuste_parametros_con_pestanas(estructura_actual, cables_disponibles), badge_estructura, badge_familia
             elif ultima_vista == "diseno-geometrico":
                 from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
-                return crear_vista_diseno_geometrico(estructura_actual, None)
+                return crear_vista_diseno_geometrico(estructura_actual, None), badge_estructura, badge_familia
             elif ultima_vista == "diseno-mecanico":
                 from components.vista_diseno_mecanico import crear_vista_diseno_mecanico
                 from utils.calculo_cache import CalculoCache
                 from utils.hipotesis_manager import HipotesisManager
 
-                # Cargar la hipótesis activa. Si no existe, usar la plantilla.
                 datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
                 hipotesis_maestro = {}
                 if datos_hipotesis:
@@ -175,13 +173,12 @@ def register_callbacks(app):
 
                 if not hipotesis_maestro:
                     print("❌ (NAV) ERROR FATAL: No se pudo cargar ninguna hipótesis.")
-                    # Aquí se podría retornar una vista de error
                 
                 calculo_guardado = None
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
-                return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro)
+                return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro), badge_estructura, badge_familia
             elif ultima_vista == "seleccion-poste":
                 from components.vista_seleccion_poste import crear_vista_seleccion_poste
                 from utils.calculo_cache import CalculoCache
@@ -189,25 +186,24 @@ def register_callbacks(app):
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_sph(nombre_estructura)
-                return crear_vista_seleccion_poste(estructura_actual, calculo_guardado)
+                return crear_vista_seleccion_poste(estructura_actual, calculo_guardado), badge_estructura, badge_familia
             elif ultima_vista == "arboles-carga":
                 from components.vista_arboles_carga import crear_vista_arboles_carga
-                return crear_vista_arboles_carga(estructura_actual, None)
+                return crear_vista_arboles_carga(estructura_actual, None), badge_estructura, badge_familia
             elif ultima_vista == "fundacion":
                 from components.vista_fundacion import crear_vista_fundacion
-                return crear_vista_fundacion(estructura_actual, None)
+                return crear_vista_fundacion(estructura_actual, None), badge_estructura, badge_familia
             elif ultima_vista == "costeo":
                 from components.vista_costeo import crear_vista_costeo
-                return crear_vista_costeo(estructura_actual, None)
+                return crear_vista_costeo(estructura_actual, None), badge_estructura, badge_familia
             elif ultima_vista == "calcular-todo":
                 from components.vista_calcular_todo import crear_vista_calcular_todo
-                return crear_vista_calcular_todo(estructura_actual, None)
+                return crear_vista_calcular_todo(estructura_actual, None), badge_estructura, badge_familia
             elif ultima_vista == "consola":
                 from components.vista_consola import crear_vista_consola
-                return crear_vista_consola()
+                return crear_vista_consola(), badge_estructura, badge_familia
             elif ultima_vista == "comparativa-cmc":
                 from components.vista_comparar_cables import crear_vista_comparar_cables
-                # Intentar cargar comparativa actual desde navegación state
                 try:
                     from config.app_config import DATA_DIR
                     import json
@@ -220,17 +216,17 @@ def register_callbacks(app):
                             if comparativa_titulo:
                                 from utils.comparar_cables_manager import ComparativaCablesManager
                                 comparativa_actual = ComparativaCablesManager.cargar_comparativa(comparativa_titulo)
-                    return crear_vista_comparar_cables(comparativa_actual)
+                    return crear_vista_comparar_cables(comparativa_actual), badge_estructura, badge_familia
                 except Exception as e:
                     print(f"Error cargando comparativa: {e}")
-                    return crear_vista_comparar_cables(None)
+                    return crear_vista_comparar_cables(None), badge_estructura, badge_familia
             elif ultima_vista == "familia-estructuras":
                 from components.vista_familia_estructuras import crear_vista_familia_estructuras
                 familia_actual = state.cargar_familia_activa()
-                return crear_vista_familia_estructuras(familia_actual)
+                return crear_vista_familia_estructuras(familia_actual), badge_estructura, badge_familia
             elif ultima_vista == "vano-economico":
                 from components.vista_vano_economico import crear_vista_vano_economico
-                return crear_vista_vano_economico()
+                return crear_vista_vano_economico(), badge_estructura, badge_familia
             elif ultima_vista == "analisis-estatico":
                 from components.vista_analisis_estatico import crear_vista_analisis_estatico
                 from utils.calculo_cache import CalculoCache
@@ -238,19 +234,18 @@ def register_callbacks(app):
                 if estructura_actual:
                     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                     calculo_guardado = CalculoCache.cargar_calculo_aee(nombre_estructura)
-                return crear_vista_analisis_estatico(estructura_actual, calculo_guardado)
-            return crear_vista_home()
+                return crear_vista_analisis_estatico(estructura_actual, calculo_guardado), badge_estructura, badge_familia
+            return crear_vista_home(), badge_estructura, badge_familia
         
         print(f"DEBUG: Trigger detectado: {trigger_id}")
         
         if trigger_id == "btn-inicio":
             guardar_navegacion_state("home")
-            return crear_vista_home()
+            return crear_vista_home(), badge_estructura, badge_familia
         
         elif trigger_id == "menu-ajustar-parametros":
             guardar_navegacion_state("ajustar-parametros")
             from config.app_config import DATA_DIR
-            # Recargar estructura desde archivo
             if estructura_actual:
                 titulo = estructura_actual.get('TITULO', 'estructura')
                 ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
@@ -259,17 +254,16 @@ def register_callbacks(app):
                 except:
                     pass
             cables_disponibles = state.cable_manager.obtener_cables()
-            return crear_vista_ajuste_parametros_con_pestanas(estructura_actual, cables_disponibles)
+            return crear_vista_ajuste_parametros_con_pestanas(estructura_actual, cables_disponibles), badge_estructura, badge_familia
         
         elif trigger_id == "menu-eliminar-estructura":
-            return crear_vista_eliminar_estructura()
+            return crear_vista_eliminar_estructura(), badge_estructura, badge_familia
         
         elif trigger_id == "menu-calculo-mecanico":
             guardar_navegacion_state("calculo-mecanico")
             from utils.calculo_cache import CalculoCache
             from config.app_config import DATA_DIR
             
-            # Recargar estructura desde archivo para tener datos actualizados
             if estructura_actual:
                 titulo = estructura_actual.get('TITULO', 'estructura')
                 ruta_estructura = DATA_DIR / f"{titulo}.estructura.json"
@@ -283,25 +277,25 @@ def register_callbacks(app):
             if estructura_actual:
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                 calculo_guardado = CalculoCache.cargar_calculo_cmc(nombre_estructura)
-            return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado)
+            return crear_vista_calculo_mecanico(estructura_actual, calculo_guardado), badge_estructura, badge_familia
         
         elif trigger_id == "menu-agregar-cable":
             cables_disponibles = state.cable_manager.obtener_cables()
             from components.vista_gestion_cables import crear_vista_agregar_cable_con_opciones
-            return crear_vista_agregar_cable_con_opciones(cables_disponibles)
+            return crear_vista_agregar_cable_con_opciones(cables_disponibles), badge_estructura, badge_familia
         
         elif trigger_id == "menu-modificar-cable":
             cables_disponibles = state.cable_manager.obtener_cables()
-            return crear_vista_modificar_cable(cables_disponibles)
+            return crear_vista_modificar_cable(cables_disponibles), badge_estructura, badge_familia
         
         elif trigger_id == "menu-eliminar-cable":
             cables_disponibles = state.cable_manager.obtener_cables()
-            return crear_vista_eliminar_cable(cables_disponibles)
+            return crear_vista_eliminar_cable(cables_disponibles), badge_estructura, badge_familia
         
         elif trigger_id == "menu-diseno-geometrico":
             guardar_navegacion_state("diseno-geometrico")
             from components.vista_diseno_geometrico import crear_vista_diseno_geometrico
-            return crear_vista_diseno_geometrico(estructura_actual, None)
+            return crear_vista_diseno_geometrico(estructura_actual, None), badge_estructura, badge_familia
         
         elif trigger_id == "menu-diseno-mecanico":
             guardar_navegacion_state("diseno-mecanico")
@@ -314,7 +308,6 @@ def register_callbacks(app):
 
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
 
-            # Cargar la hipótesis activa. Si no existe, usar la plantilla.
             datos_hipotesis = HipotesisManager.cargar_hipotesis_activa()
             hipotesis_maestro = {}
             if datos_hipotesis:
@@ -334,9 +327,7 @@ def register_callbacks(app):
             
             if not hipotesis_maestro:
                 print("❌ (NAV) ERROR FATAL: No se pudo cargar ninguna hipótesis.")
-                # Aquí se podría retornar una vista de error
             
-            # Cargar cálculo guardado
             calculo_guardado = None
             calculo_guardado = CalculoCache.cargar_calculo_dme(nombre_estructura)
             if calculo_guardado:
@@ -344,12 +335,12 @@ def register_callbacks(app):
                 if not vigente:
                     calculo_guardado = None
             
-            return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro)
+            return crear_vista_diseno_mecanico(estructura_actual, calculo_guardado, hipotesis_maestro), badge_estructura, badge_familia
         
         elif trigger_id == "menu-arboles-carga":
             guardar_navegacion_state("arboles-carga")
             from components.vista_arboles_carga import crear_vista_arboles_carga
-            return crear_vista_arboles_carga(estructura_actual, None)
+            return crear_vista_arboles_carga(estructura_actual, None), badge_estructura, badge_familia
         
         elif trigger_id == "menu-seleccion-poste":
             guardar_navegacion_state("seleccion-poste")
@@ -363,32 +354,31 @@ def register_callbacks(app):
                     vigente, _ = CalculoCache.verificar_vigencia(calculo_guardado, estructura_actual)
                     if not vigente:
                         calculo_guardado = None
-            return crear_vista_seleccion_poste(estructura_actual, calculo_guardado)
+            return crear_vista_seleccion_poste(estructura_actual, calculo_guardado), badge_estructura, badge_familia
         
         elif trigger_id == "menu-fundacion":
             guardar_navegacion_state("fundacion")
             from components.vista_fundacion import crear_vista_fundacion
-            return crear_vista_fundacion(estructura_actual, None)
+            return crear_vista_fundacion(estructura_actual, None), badge_estructura, badge_familia
         
         elif trigger_id == "menu-costeo":
             guardar_navegacion_state("costeo")
             from components.vista_costeo import crear_vista_costeo
-            return crear_vista_costeo(estructura_actual, None)
+            return crear_vista_costeo(estructura_actual, None), badge_estructura, badge_familia
         
         elif trigger_id == "menu-calcular-todo":
             guardar_navegacion_state("calcular-todo")
             from components.vista_calcular_todo import crear_vista_calcular_todo
-            return crear_vista_calcular_todo(estructura_actual, None)
+            return crear_vista_calcular_todo(estructura_actual, None), badge_estructura, badge_familia
         
         elif trigger_id == "menu-consola":
             guardar_navegacion_state("consola")
             from components.vista_consola import crear_vista_consola
-            return crear_vista_consola()
+            return crear_vista_consola(), badge_estructura, badge_familia
         
         elif trigger_id == "menu-comparativa-cmc":
             guardar_navegacion_state("comparativa-cmc")
             from components.vista_comparar_cables import crear_vista_comparar_cables
-            # Intentar cargar comparativa actual desde navegación state
             try:
                 from config.app_config import DATA_DIR
                 import json
@@ -401,21 +391,21 @@ def register_callbacks(app):
                         if comparativa_titulo:
                             from utils.comparar_cables_manager import ComparativaCablesManager
                             comparativa_actual = ComparativaCablesManager.cargar_comparativa(comparativa_titulo)
-                return crear_vista_comparar_cables(comparativa_actual)
+                return crear_vista_comparar_cables(comparativa_actual), badge_estructura, badge_familia
             except Exception as e:
                 print(f"Error cargando comparativa: {e}")
-                return crear_vista_comparar_cables(None)
+                return crear_vista_comparar_cables(None), badge_estructura, badge_familia
         
         elif trigger_id == "menu-familia-estructuras":
             guardar_navegacion_state("familia-estructuras")
             from components.vista_familia_estructuras import crear_vista_familia_estructuras
             familia_actual = state.cargar_familia_activa()
-            return crear_vista_familia_estructuras(familia_actual)
+            return crear_vista_familia_estructuras(familia_actual), badge_estructura, badge_familia
         
         elif trigger_id == "menu-vano-economico":
             guardar_navegacion_state("vano-economico")
             from components.vista_vano_economico import crear_vista_vano_economico
-            return crear_vista_vano_economico()
+            return crear_vista_vano_economico(), badge_estructura, badge_familia
         
         elif trigger_id == "menu-analisis-estatico":
             guardar_navegacion_state("analisis-estatico")
@@ -425,22 +415,19 @@ def register_callbacks(app):
             if estructura_actual:
                 nombre_estructura = estructura_actual.get('TITULO', 'estructura')
                 calculo_guardado = CalculoCache.cargar_calculo_aee(nombre_estructura)
-            return crear_vista_analisis_estatico(estructura_actual, calculo_guardado)
+            return crear_vista_analisis_estatico(estructura_actual, calculo_guardado), badge_estructura, badge_familia
         
         elif trigger_id == "menu-editor-hipotesis":
             guardar_navegacion_state("editor-hipotesis")
-            return crear_vista_editor_hipotesis()
+            return crear_vista_editor_hipotesis(), badge_estructura, badge_familia
         
         elif "btn-volver" in trigger_id:
             try:
                 trigger_json = json.loads(trigger_id.replace("'", '"'))
                 if trigger_json.get("type") == "btn-volver":
-                    if trigger_json.get("index") == "catenaria":
-                        guardar_navegacion_state("home")
-                        return crear_vista_home()
                     guardar_navegacion_state("home")
-                    return crear_vista_home()
+                    return crear_vista_home(), badge_estructura, badge_familia
             except:
                 pass
     
-        return dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update
