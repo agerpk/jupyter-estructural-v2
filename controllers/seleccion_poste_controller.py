@@ -175,8 +175,8 @@ def register_callbacks(app):
                 
                 state.calculo_objetos.estructura_geometria = estructura_geometria
             
-            # PASO 3: Auto-ejecutar DME si no existe
-            if not state.calculo_objetos.estructura_mecanica:
+            # PASO 3: Auto-ejecutar DME si no existe o no tiene reacciones
+            if not state.calculo_objetos.estructura_mecanica or not state.calculo_objetos.estructura_mecanica.resultados_reacciones:
                 estructura_mecanica = EstructuraAEA_Mecanica(state.calculo_objetos.estructura_geometria)
                 
                 estructura_mecanica.asignar_cargas_hipotesis(
@@ -199,6 +199,10 @@ def register_callbacks(app):
                 
                 estructura_mecanica.calcular_reacciones_tiros_cima(nodo_apoyo="BASE", nodo_cima=nodo_cima)
                 state.calculo_objetos.estructura_mecanica = estructura_mecanica
+            
+            # Verificar que las reacciones existen
+            if not state.calculo_objetos.estructura_mecanica.resultados_reacciones:
+                return None, True, "Error: DME no generó resultados de reacciones. Ejecute DME manualmente primero.", "Error", "danger"
             
             # Recuperar objetos
             geometria = state.calculo_objetos.estructura_geometria

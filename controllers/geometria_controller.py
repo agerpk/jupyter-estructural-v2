@@ -197,18 +197,26 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state, generar_plots=True
         
         estados_climaticos = estructura_actual["estados_climaticos"]
         
-        # Restricciones desde estructura o error
+        # Restricciones desde estructura - extraer de estados climáticos
         if "restricciones_cables" in estructura_actual:
             rest_cables = estructura_actual["restricciones_cables"]
             restricciones_dict = {
                 "conductor": rest_cables["conductor"],
                 "guardia": rest_cables["guardia"]
             }
-            # Agregar relflecha_max si no existe
             if "relflecha_max" not in restricciones_dict["guardia"]:
                 restricciones_dict["guardia"]["relflecha_max"] = estructura_actual.get("RELFLECHA_MAX_GUARDIA", 0.95)
         else:
-            raise KeyError("Debe configurar restricciones de cables en la familia antes de calcular (botón 'Modificar Estados Climáticos y Restricciones')")
+            # Formato nuevo: restricciones dentro de cada estado climático
+            restricciones_dict = {
+                "conductor": {"tension_max_porcentaje": {}},
+                "guardia": {"tension_max_porcentaje": {}, "relflecha_max": 0.95}
+            }
+            for estado_id, estado_data in estados_climaticos.items():
+                restricciones_dict["conductor"]["tension_max_porcentaje"][estado_id] = estado_data.get("restriccion_conductor", 0.25)
+                restricciones_dict["guardia"]["tension_max_porcentaje"][estado_id] = estado_data.get("restriccion_guardia", 0.7)
+                if "relflecha" in estado_data:
+                    restricciones_dict["guardia"]["relflecha_max"] = estado_data["relflecha"]
         
         # Parámetros de cálculo - SIN valores por defecto, debe fallar si no existen
         params = {
