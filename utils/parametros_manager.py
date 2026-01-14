@@ -347,10 +347,17 @@ class ParametrosManager:
             "tipo": "float",
             "categoria": "Cabezal"
         },
-        "D_fases_add": {
-            "simbolo": "Dfadd",
+        "SOBREESCRIBIR_ALTURA_A_CABLE": {
+            "simbolo": "A_OVR",
+            "unidad": "-",
+            "descripcion": "Sobreescribir altura 'a' (distancia mínima al terreno)",
+            "tipo": "bool",
+            "categoria": "Cabezal"
+        },
+        "altura_a_cable_sobreescrita": {
+            "simbolo": "a_ovr",
             "unidad": "m",
-            "descripcion": "Distancia adicional entre fases",
+            "descripcion": "Valor sobreescrito para altura 'a'",
             "tipo": "float",
             "categoria": "Cabezal"
         },
@@ -487,6 +494,13 @@ class ParametrosManager:
             "simbolo": "DistHG",
             "unidad": "m",
             "descripcion": "Distancia reposición HG",
+            "tipo": "float",
+            "categoria": "Cabezal"
+        },
+        "D_fases_add": {
+            "simbolo": "Dfadd",
+            "unidad": "m",
+            "descripcion": "Distancia adicional entre fases",
             "tipo": "float",
             "categoria": "Cabezal"
         },

@@ -1,24 +1,36 @@
 {
   "TITULO": "PSJ-2X220-DTV-S_BASE_vano350m",
   "AJUSTAR_POR_ALTURA_MSNM": true,
-  "ALTURA_MINIMA_CABLE": 6.5,
-  "ANCHO_CRUCETA": 0.3,
+  "ALTURA_MINIMA_CABLE": 9.5,
+  "ANCHO_CRUCETA": 0,
   "ANG_APANTALLAMIENTO": 30,
   "AUTOAJUSTAR_LMENHG": false,
   "Altura_MSNM": 3000,
   "CANT_HG": 2,
   "DISPOSICION": "vertical",
-  "DIST_REPOSICIONAR_HG": 0.1,
+  "DIST_REPOSICIONAR_HG": 0,
   "D_fases_add": 2.19,
-  "HADD": 0.4,
-  "HADD_ENTRE_AMARRES": -0.4,
-  "HADD_HG": 0.5,
-  "HADD_LMEN": 0.2,
+  "HADD": 0,
+  "HADD_ENTRE_AMARRES": 0,
+  "HADD_HG": 2,
+  "HADD_LMEN": 0,
   "HG_CENTRADO": false,
-  "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 0,
-  "LONGITUD_MENSULA_MINIMA_GUARDIA": 0,
+  "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 1.3,
+  "LONGITUD_MENSULA_MINIMA_GUARDIA": 0.2,
   "Lk": 3.5,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",
+  "OFFSET_COLUMNA_BASE": true,
+  "OFFSET_COLUMNA_BASE_FIN": 0.65,
+  "OFFSET_COLUMNA_BASE_INICIO": 3.3,
+  "OFFSET_COLUMNA_BASE_TIPO": "Trapezoidal",
+  "OFFSET_COLUMNA_INTER": true,
+  "OFFSET_COLUMNA_INTER_FIN": 0.65,
+  "OFFSET_COLUMNA_INTER_INICIO": 0.65,
+  "OFFSET_COLUMNA_INTER_TIPO": "Recto",
+  "OFFSET_MENSULA": true,
+  "OFFSET_MENSULA_FIN": 0,
+  "OFFSET_MENSULA_INICIO": 1.48,
+  "OFFSET_MENSULA_TIPO": "Triangular",
   "SOBREESCRIBIR_S": true,
   "TENSION": 220,
   "TERNA": "Doble",
@@ -175,13 +187,13 @@
   },
   "estados_climaticos": {
     "I": {
-      "temperatura": 35,
+      "temperatura": 80,
       "descripcion": "Tmáx",
       "viento_velocidad": 0,
       "espesor_hielo": 0
     },
     "II": {
-      "temperatura": -20,
+      "temperatura": -30,
       "descripcion": "Tmín",
       "viento_velocidad": 0,
       "espesor_hielo": 0
@@ -189,17 +201,17 @@
     "III": {
       "temperatura": 10,
       "descripcion": "Vmáx",
-      "viento_velocidad": 38.9,
+      "viento_velocidad": 40,
       "espesor_hielo": 0
     },
     "IV": {
       "temperatura": -5,
       "descripcion": "Vmed",
-      "viento_velocidad": 15.56,
-      "espesor_hielo": 0.01
+      "viento_velocidad": 16,
+      "espesor_hielo": 0.0125
     },
     "V": {
-      "temperatura": 8,
+      "temperatura": 16,
       "descripcion": "TMA",
       "viento_velocidad": 0,
       "espesor_hielo": 0
@@ -207,20 +219,26 @@
   },
   "restricciones_cables": {
     "conductor": {
-      "I": 0.25,
-      "II": 0.4,
-      "III": 0.4,
-      "IV": 0.4,
-      "V": 0.25
+      "tension_max_porcentaje": {
+        "I": 0.25,
+        "II": 0.4,
+        "III": 0.4,
+        "IV": 0.4,
+        "V": 0.25
+      }
     },
     "guardia": {
-      "I": 0.7,
-      "II": 0.7,
-      "III": 0.7,
-      "IV": 0.7,
-      "V": 0.7
+      "tension_max_porcentaje": {
+        "I": 0.7,
+        "II": 0.7,
+        "III": 0.7,
+        "IV": 0.7,
+        "V": 0.7
+      }
     }
   },
-  "fecha_modificacion": "2026-01-13T10:09:51.488997",
-  "nodos_editados": []
+  "fecha_modificacion": "2026-01-13T16:45:06.600330",
+  "nodos_editados": [],
+  "SOBREESCRIBIR_ALTURA_a_CABLE": false,
+  "ALTURA_a_CABLE_SOBREESCRITA": 0
 }

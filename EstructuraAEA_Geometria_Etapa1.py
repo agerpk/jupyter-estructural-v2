@@ -68,13 +68,30 @@ class GeometriaEtapa1:
         print(f"      s_tormenta: {distancias.get('s_tormenta', distancias['s_estructura']):.3f}m")
         print(f"      s_decmax: {distancias.get('s_decmax', distancias['s_estructura']):.3f}m")
         
-        # Calcular h1a con fórmula obligatoria: h1a = a + b + fmax + Lk + HADD
+        # Calcular h1a con fórmula obligatoria: h1a = max(a + b, altura_minima_cable) + fmax + Lk + HADD
         a = self.geo.ALTURAS_MINIMAS_TERRENO.get(self.geo.zona_estructura, 5.90)
+        
+        # Verificar si se sobreescribe altura_a_cable
+        sobreescribir_altura_a_cable = getattr(self.geo, 'sobreescribir_altura_a_cable', False)
+        if sobreescribir_altura_a_cable:
+            a_sobreescrita = getattr(self.geo, 'altura_a_cable_sobreescrita', None)
+            if a_sobreescrita is not None and a_sobreescrita > 0:
+                a = a_sobreescrita
+                print(f"   🔧 Altura 'a' sobreescrita: {a:.3f}m")
+        
         b = distancias['b']
+        altura_minima_cable = getattr(self.geo, 'altura_minima_cable', 6.5)
         fmax = flecha_max_conductor
         Lk = self.geo.lk
         HADD = self.geo.hadd
-        h1a = a + b + fmax + Lk + HADD
+        
+        # Aplicar max(a + b, altura_minima_cable)
+        a_mas_b = a + b
+        base_altura = max(a_mas_b, altura_minima_cable)
+        h1a = base_altura + fmax + Lk + HADD
+        
+        print(f"   📐 Cálculo h1a: max({a:.2f} + {b:.2f}, {altura_minima_cable:.2f}) + {fmax:.2f} + {Lk:.2f} + {HADD:.2f}")
+        print(f"   📐 h1a = max({a_mas_b:.2f}, {altura_minima_cable:.2f}) + {fmax:.2f} + {Lk:.2f} + {HADD:.2f} = {h1a:.2f}m")
         
         # Calcular Lmen1 iterativamente
         Lmen1_iterado = self._calcular_lmen1_iterativo(h1a, distancias, theta_max)

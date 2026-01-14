@@ -1,3 +1,12 @@
 {
-  "estructura_activa": "PSJ-2X220-DTT-S_BASE"
+  "estructura_activa": "PSJ-2X220-DTV-S_BASE_vano350m",
+  "calculos_activos": [
+    "cmc",
+    "dge",
+    "dme",
+    "arboles",
+    "sph",
+    "fundacion",
+    "costeo"
+  ]
 }
