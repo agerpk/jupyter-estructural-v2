@@ -207,25 +207,40 @@ class ListadorCargas:
                     "Angulo": f"{angulo_theta:.1f}°"
                 })
         
-        # Viento oblicuo en estructura
+        # Viento oblicuo en estructura y cadena
         for vel_label, V in [("Vmax - Oblicua", Vmax), ("Vmed - Oblicua", Vmed)]:
             resultado_estructura = self.estructura.cargaViento(
                 V=V, theta_deg=self.theta, exp=self.exposicion, clase=self.clase, Q=0.613, L_vano=self.L_vano
             )
+            resultado_cadena = self.cadena.cargaViento(
+                V=V, theta_deg=self.theta, exp=self.exposicion, clase=self.clase, Q=0.613, L_vano=self.L_vano
+            )
             
-            f_total_trans = resultado_estructura["fuerza_transversal_daN"]
-            f_total_long = resultado_estructura["fuerza_longitudinal_daN"]
+            f_total_trans_est = resultado_estructura["fuerza_transversal_daN"]
+            f_total_long_est = resultado_estructura["fuerza_longitudinal_daN"]
+            f_total_trans_cad = resultado_cadena["fuerza_transversal_daN"]
+            f_total_long_cad = resultado_cadena["fuerza_longitudinal_daN"]
             
             rows.extend([
                 {
                     "Velocidad_label": vel_label, "Velocidad_m_s": V, "Dirección": "Transversal",
                     "Elemento": "Estructura", "Descripción": "Sobre Estructura (Oblicuo)",
-                    "Fu_daN_per_m": None, "F_total_daN": round(f_total_trans, 2), "Angulo": f"{self.theta}°"
+                    "Fu_daN_per_m": None, "F_total_daN": round(f_total_trans_est, 2), "Angulo": f"{self.theta}°"
                 },
                 {
                     "Velocidad_label": vel_label, "Velocidad_m_s": V, "Dirección": "Longitudinal", 
                     "Elemento": "Estructura", "Descripción": "Sobre Estructura (Oblicuo)",
-                    "Fu_daN_per_m": None, "F_total_daN": round(f_total_long, 2), "Angulo": f"{self.theta}°"
+                    "Fu_daN_per_m": None, "F_total_daN": round(f_total_long_est, 2), "Angulo": f"{self.theta}°"
+                },
+                {
+                    "Velocidad_label": vel_label, "Velocidad_m_s": V, "Dirección": "Transversal",
+                    "Elemento": "Cadena de Aisladores", "Descripción": "Sobre Cadena (Oblicuo)",
+                    "Fu_daN_per_m": None, "F_total_daN": round(f_total_trans_cad, 2), "Angulo": f"{self.theta}°"
+                },
+                {
+                    "Velocidad_label": vel_label, "Velocidad_m_s": V, "Dirección": "Longitudinal",
+                    "Elemento": "Cadena de Aisladores", "Descripción": "Sobre Cadena (Oblicuo)",
+                    "Fu_daN_per_m": None, "F_total_daN": round(f_total_long_cad, 2), "Angulo": f"{self.theta}°"
                 }
             ])
         
@@ -405,16 +420,22 @@ class ListadorCargas:
             agregar_carga(elemento, codigo_t_med, f"Viento Medio en {nombre_completo}", "Vmed", magnitud_t_med, "Transversal")
             agregar_carga(elemento, codigo_l_med, f"Viento Medio en {nombre_completo}", "Vmed", magnitud_l_med, "Longitudinal")
         
-        # Viento oblicuo en estructura
+        # Viento oblicuo en estructura y cadena
         for vel_label, estado in [("Vmax - Oblicua", "Vmax"), ("Vmed - Oblicua", "Vmed")]:
-            codigo_transv = "VeoT" if estado == "Vmax" else "VemedoT"
-            codigo_long = "VeoL" if estado == "Vmax" else "VemedoL"
+            codigo_transv_est = "VeoT" if estado == "Vmax" else "VemedoT"
+            codigo_long_est = "VeoL" if estado == "Vmax" else "VemedoL"
+            codigo_transv_cad = "VaoT" if estado == "Vmax" else "VaoTmed"
+            codigo_long_cad = "VaoL" if estado == "Vmax" else "VaoLmed"
             
-            magnitud_trans = self.obtener_carga_optimizada("Estructura", "Transversal", vel_label, "Oblicuo")
-            magnitud_long = self.obtener_carga_optimizada("Estructura", "Longitudinal", vel_label, "Oblicuo")
+            magnitud_trans_est = self.obtener_carga_optimizada("Estructura", "Transversal", vel_label, "Oblicuo")
+            magnitud_long_est = self.obtener_carga_optimizada("Estructura", "Longitudinal", vel_label, "Oblicuo")
+            magnitud_trans_cad = self.obtener_carga_optimizada("Cadena de Aisladores", "Transversal", vel_label, "Oblicuo")
+            magnitud_long_cad = self.obtener_carga_optimizada("Cadena de Aisladores", "Longitudinal", vel_label, "Oblicuo")
             
-            agregar_carga("Estructura", codigo_transv, f"Viento {estado} sobre Estructura - Oblicuo - Comp. Transv.", estado, magnitud_trans, "Transversal")
-            agregar_carga("Estructura", codigo_long, f"Viento {estado} sobre Estructura - Oblicuo - Comp. Long.", estado, magnitud_long, "Longitudinal")
+            agregar_carga("Estructura", codigo_transv_est, f"Viento {estado} sobre Estructura - Oblicuo - Comp. Transv.", estado, magnitud_trans_est, "Transversal")
+            agregar_carga("Estructura", codigo_long_est, f"Viento {estado} sobre Estructura - Oblicuo - Comp. Long.", estado, magnitud_long_est, "Longitudinal")
+            agregar_carga("Cadena", codigo_transv_cad, f"Viento {estado} sobre Cadena - Oblicuo - Comp. Transv.", estado, magnitud_trans_cad, "Transversal")
+            agregar_carga("Cadena", codigo_long_cad, f"Viento {estado} sobre Cadena - Oblicuo - Comp. Long.", estado, magnitud_long_cad, "Longitudinal")
         
         # Tiros de cables
         def obtener_tiro_estado(resultados_dict, estado, componente="longitudinal"):

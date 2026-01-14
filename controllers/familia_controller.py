@@ -297,11 +297,13 @@ def register_callbacks(app):
                     pass
             
             estados = familia_actual.get("estados_climaticos", {
-                "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
-                "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
-                "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "espesor_hielo": 0},
-                "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01},
-                "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
+                "1": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7, "relflecha": 0.9},
+                "2": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.40, "restriccion_guardia": 0.70, "relflecha": 0.9},
+                "3": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "espesor_hielo": 0, "restriccion_conductor": 0.40, "restriccion_guardia": 0.70, "relflecha": 0.9},
+                "4": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01, "restriccion_conductor": 0.40, "restriccion_guardia": 0.7, "relflecha": 0.9},
+                "5": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7, "relflecha": 0.9},
+                "6": {"temperatura": -5, "descripcion": "HIELO", "viento_velocidad": 0, "espesor_hielo": 0.025, "restriccion_conductor": 0.40, "restriccion_guardia": 0.7, "relflecha": 0.9},
+                "7": {"temperatura": 85, "descripcion": "TMAXCOND", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7, "relflecha": 0.9}
             })
             
             tabla = generar_tabla_estados(estados, "modal-estados-familia")
@@ -413,12 +415,8 @@ def register_callbacks(app):
         except:
             return True, "Error", "Familia no encontrada", "danger", "danger"
         
-        # Construir estados y restricciones
+        # Construir estados climáticos unificados (con restricciones incluidas)
         estados_climaticos = {}
-        restricciones_cables = {
-            "conductor": {"tension_max_porcentaje": {}},
-            "guardia": {"tension_max_porcentaje": {}}
-        }
         
         for i in range(len(temps)):
             estado_id = str(i + 1)
@@ -427,13 +425,12 @@ def register_callbacks(app):
                 "descripcion": descs[i],
                 "viento_velocidad": vientos[i],
                 "espesor_hielo": hielos[i],
+                "restriccion_conductor": rest_cond[i],
+                "restriccion_guardia": rest_guard[i],
                 "relflecha": relflechas[i]
             }
-            restricciones_cables["conductor"]["tension_max_porcentaje"][estado_id] = rest_cond[i]
-            restricciones_cables["guardia"]["tension_max_porcentaje"][estado_id] = rest_guard[i]
         
         familia_data["estados_climaticos"] = estados_climaticos
-        familia_data["restricciones_cables"] = restricciones_cables
         
         FamiliaManager.guardar_familia(familia_data)
         

@@ -91,15 +91,13 @@
   "ADC_3D": true,
   "Vn": 220,
   "estados_climaticos": {
-    "I": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0},
-    "II": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0},
-    "III": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "espesor_hielo": 0},
-    "IV": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01},
-    "V": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0}
-  },
-  "restricciones_cables": {
-    "conductor": {"I": 0.25, "II": 0.40, "III": 0.40, "IV": 0.40, "V": 0.25},
-    "guardia": {"I": 0.7, "II": 0.70, "III": 0.70, "IV": 0.7, "V": 0.7}
+    "1": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7, "relflecha": 0.9},
+    "2": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.40, "restriccion_guardia": 0.70, "relflecha": 0.9},
+    "3": {"temperatura": 10, "descripcion": "Vmáx", "viento_velocidad": 38.9, "espesor_hielo": 0, "restriccion_conductor": 0.40, "restriccion_guardia": 0.70, "relflecha": 0.9},
+    "4": {"temperatura": -5, "descripcion": "Vmed", "viento_velocidad": 15.56, "espesor_hielo": 0.01, "restriccion_conductor": 0.40, "restriccion_guardia": 0.7, "relflecha": 0.9},
+    "5": {"temperatura": 8, "descripcion": "TMA", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7, "relflecha": 0.9},
+    "6": {"temperatura": -5, "descripcion": "HIELO", "viento_velocidad": 0, "espesor_hielo": 0.025, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7, "relflecha": 0.9},
+    "7": {"temperatura": 85, "descripcion": "TMAXCOND", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.40, "restriccion_guardia": 0.7, "relflecha": 0.9}
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",

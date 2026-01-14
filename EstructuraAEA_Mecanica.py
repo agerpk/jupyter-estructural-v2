@@ -341,7 +341,7 @@ class EstructuraAEA_Mecanica:
                         if resultados_guardia2:
                             tiro_guardia2_base = 0.0
                     
-                    # VIENTO SOBRE ESTRUCTURA
+                    # VIENTO SOBRE ESTRUCTURA (solo nodo V)
                     if config["viento"]:
                         direccion_viento = config["viento"]["direccion"]
                         factor_viento = config["viento"]["factor"]
@@ -477,101 +477,59 @@ class EstructuraAEA_Mecanica:
                         peso_y = 0.0
                         peso_z = -peso_cond * factor_peso_nodo
                         
-                        # VIENTO EN CABLES - Recalcular si cable rotado
+                        # VIENTO EN CABLES
                         if config["viento"]:
                             direccion_viento = config["viento"]["direccion"]
                             estado_v = config["viento"]["estado"]
                             factor_viento = config["viento"]["factor"]
                             
-                            # Determinar ángulo del viento (0° = +X, 90° = +Y)
                             if direccion_viento == "Transversal":
-                                angulo_viento_deg = 0
+                                if estado_v == "Vmax":
+                                    viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "Vc")
+                                else:
+                                    viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed")
+                                viento_x += viento_cond * factor_viento * factor_viento_nodo
+                                
                             elif direccion_viento == "Longitudinal":
-                                angulo_viento_deg = 90
+                                if estado_v == "Vmax":
+                                    viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "VcL")
+                                else:
+                                    viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "VcmedL")
+                                viento_y += viento_cond * factor_viento * factor_viento_nodo
+                                
                             elif direccion_viento == "Oblicua":
-                                angulo_viento_deg = 45
-                            else:
-                                angulo_viento_deg = 0
-                            
-                            # Cable sin rotar está en dirección Y (90°)
-                            angulo_cable_deg = 90 + (nodo_obj.rotacion_eje_z if nodo_obj else 0)
-                            
-                            # Ángulo relativo cable-viento
-                            phi_rel_deg = abs(angulo_viento_deg - angulo_cable_deg)
-                            if phi_rel_deg > 90:
-                                phi_rel_deg = 180 - phi_rel_deg
-                            
-                            # Obtener velocidad de viento según estado
-                            viento_velocidad_actual = 0
-                            if estados_climaticos and estado_viento and estado_viento in estados_climaticos:
-                                viento_velocidad_actual = estados_climaticos[estado_viento].get("viento_velocidad", 0)
-                            
-                            # Recalcular viento si cable rotado
-                            if nodo_obj and nodo_obj.cable_asociado and nodo_obj.rotacion_eje_z != 0 and viento_velocidad_actual > 0:
-                                if config["peso"]["hielo"]:
-                                    d_eff = nodo_obj.cable_asociado.diametro_equivalente(t_hielo)
+                                lado = 1 if "L" in nodo_nombre else 2
+                                if estado_v == "Vmax":
+                                    viento_cond_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vc_o_t_{lado}")
+                                    viento_cond_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vc_o_l_{lado}")
                                 else:
-                                    d_eff = nodo_obj.cable_asociado.diametro_m
-                                
-                                resultado_viento = nodo_obj.cable_asociado.cargaViento(
-                                    V=viento_velocidad_actual,
-                                    phi_rel_deg=phi_rel_deg,
-                                    exp="C",
-                                    clase="B",
-                                    Zc=self.geometria.cable_conductor.viento_base_params.get('Zc', 10.0),
-                                    Cf=self.geometria.cable_conductor.viento_base_params.get('Cf', 1.0),
-                                    L_vano=vano,
-                                    d_eff=d_eff
-                                )
-                                viento_cond = resultado_viento["fuerza_daN_per_m"] * vano
-                            else:
-                                # Usar código precalculado
-                                if direccion_viento == "Transversal":
-                                    if estado_v == "Vmax":
-                                        viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "Vc")
-                                    else:
-                                        viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed")
-                                elif direccion_viento == "Longitudinal":
-                                    if estado_v == "Vmax":
-                                        viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "VcL")
-                                    else:
-                                        viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "VcmedL")
-                                else:
-                                    viento_cond = 0
+                                    viento_cond_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcmed_o_t_{lado}")
+                                    viento_cond_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcmed_o_l_{lado}")
+                                viento_x += viento_cond_x * factor_viento * factor_viento_nodo
+                                viento_y += viento_cond_y * factor_viento * factor_viento_nodo
                             
-                            # Descomponer en componentes X, Y según dirección del viento
-                            angulo_viento_rad = math.radians(angulo_viento_deg)
-                            viento_x += viento_cond * math.cos(angulo_viento_rad) * factor_viento * factor_viento_nodo
-                            viento_y += viento_cond * math.sin(angulo_viento_rad) * factor_viento * factor_viento_nodo
-                                
-                            # Viento oblicuo - mantener lógica original
-                            if direccion_viento == "Oblicua" and not (nodo_obj and nodo_obj.rotacion_eje_z != 0):
-                                es_unilateral = (patron_tiro == "unilateral") or (patron_tiro == "dos-unilaterales" and nodo_nombre in NODOS_DOS_UNILATERAL)
-                                if es_unilateral:
-                                    lado = 1 if "L" in nodo_nombre else 2
-                                    if estado_v == "Vmax":
-                                        viento_cond_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vc_o_t_{lado}")
-                                        viento_cond_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vc_o_l_{lado}")
-                                    else:
-                                        viento_cond_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcmed_o_t_{lado}")
-                                        viento_cond_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcmed_o_l_{lado}")
-                                    
-                                    viento_x += viento_cond_x * factor_viento * factor_viento_nodo
-                                    viento_y += viento_cond_y * factor_viento * factor_viento_nodo
+                            # VIENTO EN CADENA (solo para conductores)
+                            if direccion_viento == "Transversal":
+                                if estado_v == "Vmax":
+                                    viento_cadena = self._obtener_carga_por_codigo(df_cargas_totales, "VaT")
                                 else:
-                                    if estado_v == "Vmax":
-                                        viento_cond_x = (self._obtener_carga_por_codigo(df_cargas_totales, "Vc_o_t_1") + 
-                                                       self._obtener_carga_por_codigo(df_cargas_totales, "Vc_o_t_2"))
-                                        viento_cond_y = (self._obtener_carga_por_codigo(df_cargas_totales, "Vc_o_l_1") + 
-                                                       self._obtener_carga_por_codigo(df_cargas_totales, "Vc_o_l_2"))
-                                    else:
-                                        viento_cond_x = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed_o_t_1") + 
-                                                       self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed_o_t_2"))
-                                        viento_cond_y = (self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed_o_l_1") + 
-                                                       self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed_o_l_2"))
-                                    
-                                    viento_x += viento_cond_x * factor_viento * factor_viento_nodo
-                                    viento_y += viento_cond_y * factor_viento * factor_viento_nodo
+                                    viento_cadena = self._obtener_carga_por_codigo(df_cargas_totales, "VamedT")
+                                viento_x += viento_cadena * factor_viento * factor_viento_nodo
+                            elif direccion_viento == "Longitudinal":
+                                if estado_v == "Vmax":
+                                    viento_cadena = self._obtener_carga_por_codigo(df_cargas_totales, "VaL")
+                                else:
+                                    viento_cadena = self._obtener_carga_por_codigo(df_cargas_totales, "VamedL")
+                                viento_y += viento_cadena * factor_viento * factor_viento_nodo
+                            elif direccion_viento == "Oblicua":
+                                if estado_v == "Vmax":
+                                    viento_cadena_x = self._obtener_carga_por_codigo(df_cargas_totales, "VaoT")
+                                    viento_cadena_y = self._obtener_carga_por_codigo(df_cargas_totales, "VaoL")
+                                else:
+                                    viento_cadena_x = self._obtener_carga_por_codigo(df_cargas_totales, "VaoTmed")
+                                    viento_cadena_y = self._obtener_carga_por_codigo(df_cargas_totales, "VaoLmed")
+                                viento_x += viento_cadena_x * factor_viento * factor_viento_nodo
+                                viento_y += viento_cadena_y * factor_viento * factor_viento_nodo
                         
                         # SOBRECARGA ADICIONAL
                         if config["sobrecarga"] and nodo_nombre == "C1_L":
@@ -702,98 +660,39 @@ class EstructuraAEA_Mecanica:
                         peso_y = 0.0
                         peso_z = -peso_guardia * factor_peso_nodo
                         
-                        # VIENTO EN GUARDIA - Recalcular si cable rotado
+                        # VIENTO EN GUARDIA
                         if config["viento"]:
                             direccion_viento = config["viento"]["direccion"]
                             estado_v = config["viento"]["estado"]
                             factor_viento = config["viento"]["factor"]
                             
-                            # Determinar ángulo del viento
                             if direccion_viento == "Transversal":
-                                angulo_viento_deg = 0
-                            elif direccion_viento == "Longitudinal":
-                                angulo_viento_deg = 90
-                            elif direccion_viento == "Oblicua":
-                                angulo_viento_deg = 45
-                            else:
-                                angulo_viento_deg = 0
-                            
-                            angulo_cable_deg = 90 + (nodo_obj.rotacion_eje_z if nodo_obj else 0)
-                            phi_rel_deg = abs(angulo_viento_deg - angulo_cable_deg)
-                            if phi_rel_deg > 90:
-                                phi_rel_deg = 180 - phi_rel_deg
-                            
-                            # Obtener velocidad de viento según estado
-                            viento_velocidad_actual = 0
-                            if estados_climaticos and estado_viento and estado_viento in estados_climaticos:
-                                viento_velocidad_actual = estados_climaticos[estado_viento].get("viento_velocidad", 0)
-                            
-                            # Recalcular viento si cable rotado
-                            if nodo_obj and nodo_obj.cable_asociado and nodo_obj.rotacion_eje_z != 0 and viento_velocidad_actual > 0:
-                                if config["peso"]["hielo"]:
-                                    d_eff = nodo_obj.cable_asociado.diametro_equivalente(t_hielo)
+                                if estado_v == "Vmax":
+                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}")
                                 else:
-                                    d_eff = nodo_obj.cable_asociado.diametro_m
+                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med")
+                                viento_x += viento_guardia * factor_viento * factor_viento_nodo
                                 
-                                resultado_viento = nodo_obj.cable_asociado.cargaViento(
-                                    V=viento_velocidad_actual,
-                                    phi_rel_deg=phi_rel_deg,
-                                    exp="C",
-                                    clase="B",
-                                    Zc=self.geometria.cable_guardia1.viento_base_params.get('Zc', 10.0),
-                                    Cf=self.geometria.cable_guardia1.viento_base_params.get('Cf', 1.0),
-                                    L_vano=vano,
-                                    d_eff=d_eff
-                                )
-                                viento_guardia = resultado_viento["fuerza_daN_per_m"] * vano
-                            else:
-                                # Usar código precalculado
-                                if direccion_viento == "Transversal":
-                                    if estado_v == "Vmax":
-                                        viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}")
-                                    else:
-                                        viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med")
-                                elif direccion_viento == "Longitudinal":
-                                    if estado_v == "Vmax":
-                                        viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}L")
-                                    else:
-                                        viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}medL")
+                            elif direccion_viento == "Longitudinal":
+                                if estado_v == "Vmax":
+                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}L")
                                 else:
-                                    viento_guardia = 0
-                            
-                            # Descomponer en componentes X, Y
-                            angulo_viento_rad = math.radians(angulo_viento_deg)
-                            viento_x += viento_guardia * math.cos(angulo_viento_rad) * factor_viento * factor_viento_nodo
-                            viento_y += viento_guardia * math.sin(angulo_viento_rad) * factor_viento * factor_viento_nodo
-                            
-                            # Viento oblicuo - mantener lógica original
-                            if direccion_viento == "Oblicua" and not (nodo_obj and nodo_obj.rotacion_eje_z != 0):
-                                es_unilateral = (patron_tiro == "unilateral") or (patron_tiro == "dos-unilaterales" and nodo_nombre in NODOS_DOS_UNILATERAL)
-                                if es_unilateral:
-                                    lado = 1
-                                    if estado_v == "Vmax":
-                                        viento_guardia_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_t_{lado}")
-                                        viento_guardia_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_l_{lado}")
-                                    else:
-                                        viento_guardia_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_t_{lado}")
-                                        viento_guardia_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_l_{lado}")
-                                    
-                                    viento_x += viento_guardia_x * factor_viento * factor_viento_nodo
-                                    viento_y += viento_guardia_y * factor_viento * factor_viento_nodo
+                                    viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}medL")
+                                viento_y += viento_guardia * factor_viento * factor_viento_nodo
+                                
+                            elif direccion_viento == "Oblicua":
+                                if estado_v == "Vmax":
+                                    viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_t_1") + 
+                                                       self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_t_2"))
+                                    viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_l_1") + 
+                                                       self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_l_2"))
                                 else:
-                                    if estado_v == "Vmax":
-                                        viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_t_1") + 
-                                                          self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_t_2"))
-                                        viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_l_1") + 
-                                                          self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_l_2"))
-                                    else:
-                                        viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_t_1") + 
-                                                          self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_t_2"))
-                                        viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_l_1") + 
-                                                          self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_l_2"))
-                                    
-                                    viento_x += viento_guardia_x * factor_viento * factor_viento_nodo
-                                    viento_y += viento_guardia_y * factor_viento * factor_viento_nodo
+                                    viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_t_1") + 
+                                                       self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_t_2"))
+                                    viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_l_1") + 
+                                                       self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med_o_l_2"))
+                                viento_x += viento_guardia_x * factor_viento * factor_viento_nodo
+                                viento_y += viento_guardia_y * factor_viento * factor_viento_nodo
                         
                         # Guardar cargas separadas por tipo en el nodo (nodo_obj ya obtenido arriba)
                         nodo_obj.obtener_carga("Peso").agregar_hipotesis(nombre_completo, peso_x, peso_y, peso_z)
