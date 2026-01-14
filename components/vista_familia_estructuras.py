@@ -147,7 +147,7 @@ def crear_filtros_familia():
                 value="todas",
                 size="sm"
             )
-        ], width=4),
+        ], width=3),
         dbc.Col([
             html.Label("Buscar parámetro:", className="form-label"),
             dbc.Input(
@@ -156,7 +156,14 @@ def crear_filtros_familia():
                 placeholder="Escriba para buscar...",
                 size="sm"
             )
-        ], width=4)
+        ], width=3),
+        dbc.Col([
+            html.Label("\u00a0", className="form-label"),
+            html.Div([
+                dbc.Button("Buscar", id="btn-buscar-familia", color="primary", size="sm", className="me-2"),
+                dbc.Button("Borrar Filtros", id="btn-borrar-filtros-familia", color="secondary", size="sm")
+            ])
+        ], width=3)
     ], className="mb-3")
 
 def crear_dropdown_cargar_familia():

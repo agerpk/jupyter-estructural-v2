@@ -1,19 +1,4 @@
-"""Fix para generar HTML de familia con índice y secciones completas"""
-
-def generar_indice_familia(nombre_familia, resultados_familia):
-    """Genera índice con hyperlinks"""
-    html = ['<div class="indice"><h3>Índice</h3><ul>']
-    html.append('<li><a href="#resumen">Resumen de Familia</a></li>')
-    
-    estructuras = resultados_familia.get("resultados_estructuras", {})
-    for nombre_estr, datos_estr in estructuras.items():
-        titulo = datos_estr.get("titulo", nombre_estr)
-        titulo_id = titulo.replace(" ", "_").replace("/", "_")
-        html.append(f'<li><a href="#{titulo_id}">{titulo}</a></li>')
-    
-    html.append('<li><a href="#costeo-global">Costeo Global</a></li>')
-    html.append('</ul></div>')
-    return '\n'.join(html)
+"""Fix para generar HTML de familia - funciones auxiliares"""
 
 def generar_seccion_costeo_estructura(calculo_costeo):
     """Genera HTML para costeo de estructura individual"""

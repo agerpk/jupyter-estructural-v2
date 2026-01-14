@@ -1,6 +1,42 @@
 from datetime import datetime
 from utils.descargar_html_familia_fix import generar_seccion_costeo_estructura
 
+def generar_indice_familia(nombre_familia, resultados_familia):
+    """Genera índice con hyperlinks y subentradas por sección"""
+    html = ['<div class="indice"><h3>Índice</h3><ul>']
+    html.append('<li><a href="#resumen">Resumen de Familia</a></li>')
+    
+    estructuras = resultados_familia.get("resultados_estructuras", {})
+    for nombre_estr, datos_estr in estructuras.items():
+        titulo = datos_estr.get("titulo", nombre_estr)
+        titulo_id = titulo.replace(" ", "_").replace("/", "_")
+        html.append(f'<li><a href="#{titulo_id}">{titulo}</a>')
+        
+        # Subentradas por sección
+        if "error" not in datos_estr:
+            resultados = datos_estr.get("resultados", {})
+            html.append('<ul>')
+            if "cmc" in resultados and resultados["cmc"]:
+                html.append(f'<li><a href="#{titulo_id}_cmc">1. Cálculo Mecánico de Cables</a></li>')
+            if "dge" in resultados and resultados["dge"]:
+                html.append(f'<li><a href="#{titulo_id}_dge">2. Diseño Geométrico</a></li>')
+            if "dme" in resultados and resultados["dme"]:
+                html.append(f'<li><a href="#{titulo_id}_dme">3. Diseño Mecánico</a></li>')
+            if "arboles" in resultados and resultados["arboles"]:
+                html.append(f'<li><a href="#{titulo_id}_arboles">4. Árboles de Carga</a></li>')
+            if "sph" in resultados and resultados["sph"]:
+                html.append(f'<li><a href="#{titulo_id}_sph">5. Selección de Poste</a></li>')
+            if "fundacion" in resultados and resultados["fundacion"]:
+                html.append(f'<li><a href="#{titulo_id}_fundacion">6. Fundación</a></li>')
+            if "costeo" in resultados and resultados["costeo"]:
+                html.append(f'<li><a href="#{titulo_id}_costeo">7. Costeo</a></li>')
+            html.append('</ul>')
+        html.append('</li>')
+    
+    html.append('<li><a href="#costeo-global">Costeo Global</a></li>')
+    html.append('</ul></div>')
+    return '\n'.join(html)
+
 def generar_html_familia(nombre_familia, resultados_familia):
     """Genera HTML completo para familia de estructuras"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -18,7 +54,7 @@ def generar_html_familia(nombre_familia, resultados_familia):
         if "error" in datos_estr:
             secciones.append(f'<div class="alert alert-danger">Error: {datos_estr["error"]}</div>')
         else:
-            secciones.append(generar_seccion_estructura_familia(datos_estr))
+            secciones.append(generar_seccion_estructura_familia(datos_estr, titulo_id))
     
     costeo_global = resultados_familia.get("costeo_global", {})
     if costeo_global:
@@ -49,6 +85,7 @@ def generar_html_familia(nombre_familia, resultados_familia):
         .alert-success {{ background-color: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; }}
         .indice {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }}
         .indice ul {{ list-style: none; padding-left: 0; }}
+        .indice ul ul {{ padding-left: 25px; margin-top: 5px; }}
         .indice li {{ margin: 8px 0; }}
         .indice a {{ color: #0d6efd; text-decoration: none; }}
         .indice a:hover {{ text-decoration: underline; }}
@@ -101,33 +138,33 @@ def generar_seccion_resumen_familia(nombre_familia, resultados_familia):
     return '\n'.join(html)
 
 
-def generar_seccion_estructura_familia(datos_estructura):
-    """Genera HTML para estructura dentro de familia"""
+def generar_seccion_estructura_familia(datos_estructura, titulo_id):
+    """Genera HTML para estructura dentro de familia con IDs para navegación"""
     from utils.descargar_html import generar_seccion_cmc, generar_seccion_dge, generar_seccion_dme, generar_seccion_arboles, generar_seccion_sph, generar_seccion_fund
     
     html = []
     resultados = datos_estructura.get("resultados", {})
     
     if "cmc" in resultados and resultados["cmc"]:
-        html.append('<h4>1. Cálculo Mecánico de Cables</h4>')
+        html.append(f'<h4 id="{titulo_id}_cmc">1. Cálculo Mecánico de Cables</h4>')
         html.append(generar_seccion_cmc(resultados["cmc"]))
     if "dge" in resultados and resultados["dge"]:
-        html.append('<h4>2. Diseño Geométrico</h4>')
+        html.append(f'<h4 id="{titulo_id}_dge">2. Diseño Geométrico</h4>')
         html.append(generar_seccion_dge(resultados["dge"]))
     if "dme" in resultados and resultados["dme"]:
-        html.append('<h4>3. Diseño Mecánico</h4>')
+        html.append(f'<h4 id="{titulo_id}_dme">3. Diseño Mecánico</h4>')
         html.append(generar_seccion_dme(resultados["dme"]))
     if "arboles" in resultados and resultados["arboles"]:
-        html.append('<h4>4. Árboles de Carga</h4>')
+        html.append(f'<h4 id="{titulo_id}_arboles">4. Árboles de Carga</h4>')
         html.append(generar_seccion_arboles(resultados["arboles"]))
     if "sph" in resultados and resultados["sph"]:
-        html.append('<h4>5. Selección de Poste</h4>')
+        html.append(f'<h4 id="{titulo_id}_sph">5. Selección de Poste</h4>')
         html.append(generar_seccion_sph(resultados["sph"]))
     if "fundacion" in resultados and resultados["fundacion"]:
-        html.append('<h4>6. Fundación</h4>')
+        html.append(f'<h4 id="{titulo_id}_fundacion">6. Fundación</h4>')
         html.append(generar_seccion_fund(resultados["fundacion"]))
     if "costeo" in resultados and resultados["costeo"]:
-        html.append('<h4>7. Costeo</h4>')
+        html.append(f'<h4 id="{titulo_id}_costeo">7. Costeo</h4>')
         html.append(generar_seccion_costeo_estructura(resultados["costeo"]))
     
     return '\n'.join(html)

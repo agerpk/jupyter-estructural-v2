@@ -26,23 +26,35 @@ def register_callbacks(app):
     """Registra todos los callbacks del controller"""
     
     @app.callback(
-        [Output("tabla-familia", "data", allow_duplicate=True),
-         Output("tabla-familia", "page_current", allow_duplicate=True)],
-        [Input("filtro-categoria-familia", "value"),
-         Input("buscar-parametro-familia", "value")],
-        [State("tabla-familia-original", "data")],
+        Output("tabla-familia", "data", allow_duplicate=True),
+        [Input("btn-buscar-familia", "n_clicks"),
+         Input("btn-borrar-filtros-familia", "n_clicks")],
+        [State("filtro-categoria-familia", "value"),
+         State("buscar-parametro-familia", "value"),
+         State("tabla-familia-original", "data")],
         prevent_initial_call=True
     )
-    def filtrar_tabla_familia(categoria, busqueda, tabla_original):
-        """Filtrar tabla por categoría y búsqueda"""
+    def filtrar_tabla_familia(n_buscar, n_borrar, categoria, busqueda, tabla_original):
+        """Filtrar tabla por categoría y búsqueda con botones"""
         if not tabla_original:
             raise dash.exceptions.PreventUpdate
         
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+        
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        # Borrar filtros
+        if trigger_id == "btn-borrar-filtros-familia":
+            return tabla_original
+        
+        # Buscar
         sin_categoria = not categoria or categoria == "todas" or categoria == ""
         sin_busqueda = not busqueda or (isinstance(busqueda, str) and busqueda.strip() == "")
         
         if sin_categoria and sin_busqueda:
-            return tabla_original, 0
+            return tabla_original
         
         tabla_filtrada = list(tabla_original)
         
@@ -58,35 +70,59 @@ def register_callbacks(app):
                    busqueda_lower in str(fila.get("simbolo", "")).lower()
             ]
         
-        return tabla_filtrada, 0
+        return tabla_filtrada
+    
+    @app.callback(
+        [Output("filtro-categoria-familia", "value"),
+         Output("buscar-parametro-familia", "value")],
+        Input("btn-borrar-filtros-familia", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def limpiar_inputs_filtros(n_clicks):
+        """Limpiar inputs de filtros"""
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        return "todas", ""
     
     @app.callback(
         Output("tabla-familia-original", "data", allow_duplicate=True),
         Input("tabla-familia", "data"),
-        State("tabla-familia-original", "data"),
+        [State("tabla-familia-original", "data"),
+         State("filtro-categoria-familia", "value"),
+         State("buscar-parametro-familia", "value")],
         prevent_initial_call=True
     )
-    def sincronizar_ediciones_directas(tabla_filtrada, tabla_original):
+    def sincronizar_ediciones_directas(tabla_filtrada, tabla_original, filtro_cat, filtro_busq):
         """Sincroniza ediciones directas en tabla filtrada hacia tabla original"""
         if not tabla_filtrada or not tabla_original:
             raise dash.exceptions.PreventUpdate
         
-        # Actualizar valores en tabla original basándose en parametro
-        for fila_filtrada in tabla_filtrada:
-            parametro = fila_filtrada.get("parametro")
-            if not parametro:
-                continue
+        ctx = dash.callback_context
+        # Solo sincronizar si el trigger es edición de tabla, NO si es cambio de filtro
+        if ctx.triggered and ctx.triggered[0]['prop_id'] == 'tabla-familia.data':
+            # Verificar si hay filtros activos
+            hay_filtro = (filtro_cat and filtro_cat != "todas") or (filtro_busq and filtro_busq.strip())
             
-            # Buscar fila correspondiente en tabla original
-            for fila_original in tabla_original:
-                if fila_original.get("parametro") == parametro:
-                    # Copiar valores de columnas Estr.N
-                    for key in fila_filtrada.keys():
-                        if key.startswith("Estr."):
-                            fila_original[key] = fila_filtrada[key]
-                    break
+            # Solo sincronizar si NO hay filtros (para evitar conflictos)
+            if not hay_filtro:
+                # Actualizar valores en tabla original basándose en parametro
+                for fila_filtrada in tabla_filtrada:
+                    parametro = fila_filtrada.get("parametro")
+                    if not parametro:
+                        continue
+                    
+                    # Buscar fila correspondiente en tabla original
+                    for fila_original in tabla_original:
+                        if fila_original.get("parametro") == parametro:
+                            # Copiar valores de columnas Estr.N
+                            for key in fila_filtrada.keys():
+                                if key.startswith("Estr."):
+                                    fila_original[key] = fila_filtrada[key]
+                            break
+                
+                return tabla_original
         
-        return tabla_original
+        raise dash.exceptions.PreventUpdate
     
     @app.callback(
         Output("tabla-familia-original", "data", allow_duplicate=True),
@@ -479,17 +515,20 @@ def register_callbacks(app):
          State("tabla-familia", "columns")],
         prevent_initial_call=True
     )
-    def guardar_familia(n_clicks, nombre_familia, tabla_data, columnas):
-        """Guarda familia con datos actuales de tabla"""
+    def guardar_familia(n_clicks, nombre_familia, tabla_original, columnas):
+        """Guarda familia con datos actuales de tabla ORIGINAL (completa)"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
         if not nombre_familia:
             return True, "Error", "Debe especificar un nombre de familia", "danger", "danger", no_update
         
+        if not tabla_original:
+            return True, "Error", "No hay datos para guardar", "danger", "danger", no_update
+        
         try:
-            # Convertir tabla a formato familia (usar tabla-original para tener TODOS los datos)
-            familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
+            # Convertir tabla ORIGINAL a formato familia (tiene TODOS los datos)
+            familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
             
             # Guardar
             FamiliaManager.guardar_familia(familia_data)
@@ -520,17 +559,20 @@ def register_callbacks(app):
          State("tabla-familia", "columns")],
         prevent_initial_call=True
     )
-    def guardar_como_familia(n_clicks, nombre_familia, tabla_data, columnas):
-        """Guarda como nueva familia con datos actuales de tabla"""
+    def guardar_como_familia(n_clicks, nombre_familia, tabla_original, columnas):
+        """Guarda como nueva familia con datos actuales de tabla ORIGINAL (completa)"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
         
         if not nombre_familia:
             return True, "Error", "Debe especificar un nombre de familia", "danger", "danger", no_update
         
+        if not tabla_original:
+            return True, "Error", "No hay datos para guardar", "danger", "danger", no_update
+        
         try:
-            # Convertir tabla a formato familia con nombre exacto (usar tabla-original para tener TODOS los datos)
-            familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
+            # Convertir tabla ORIGINAL a formato familia con nombre exacto (tiene TODOS los datos)
+            familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
             
             # Guardar con nombre exacto
             FamiliaManager.guardar_familia(familia_data)
@@ -732,11 +774,11 @@ def register_callbacks(app):
          Output("toast-notificacion", "color", allow_duplicate=True)],
         Input("btn-calcular-familia", "n_clicks"),
         [State("input-nombre-familia", "value"),
-         State("tabla-familia", "data"),
+         State("tabla-familia-original", "data"),
          State("tabla-familia", "columns")],
         prevent_initial_call=True
     )
-    def calcular_familia_completa(n_clicks, nombre_familia, tabla_data, columnas):
+    def calcular_familia_completa(n_clicks, nombre_familia, tabla_original, columnas):
         """Ejecuta cálculo completo de familia y guarda cache"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
@@ -744,11 +786,11 @@ def register_callbacks(app):
         print(f"🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
         
         try:
-            if not nombre_familia or not tabla_data or not columnas:
+            if not nombre_familia or not tabla_original or not columnas:
                 return (no_update, True, "Error", "Faltan datos para calcular", "danger", "danger")
             
-            # Convertir tabla a formato familia
-            familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
+            # Convertir tabla ORIGINAL a formato familia
+            familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
             
             # Ejecutar cálculo
             from utils.calcular_familia_logica_encadenada import ejecutar_calculo_familia_completa
@@ -797,11 +839,11 @@ def register_callbacks(app):
          Output("toast-notificacion", "color", allow_duplicate=True)],
         Input("btn-cargar-cache-familia", "n_clicks"),
         [State("input-nombre-familia", "value"),
-         State("tabla-familia", "data"),
+         State("tabla-familia-original", "data"),
          State("tabla-familia", "columns")],
         prevent_initial_call=True
     )
-    def cargar_cache_familia(n_clicks, nombre_familia, tabla_data, columnas):
+    def cargar_cache_familia(n_clicks, nombre_familia, tabla_original, columnas):
         """Carga resultados desde cache si existe y es válido"""
         if n_clicks is None:
             raise dash.exceptions.PreventUpdate
@@ -819,7 +861,7 @@ def register_callbacks(app):
                 return (no_update, True, "Advertencia", "Cache no disponible", "warning", "warning")
             
             # Verificar vigencia
-            familia_data = FamiliaManager.tabla_a_familia(tabla_data, columnas, nombre_familia)
+            familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
             vigente, mensaje = CalculoCache.verificar_vigencia_familia(calculo_guardado, familia_data)
             
             if not vigente:
