@@ -22,11 +22,18 @@ def generar_diagrama_plotly_3d(geometria, conexiones, valores_subnodos, reaccion
                   for ni, nj in conexiones]
     umbral_longitud = np.percentile(longitudes, percentil)
     
-    # Preparar datos para hover
-    x_lines, y_lines, z_lines, colors, hover_texts = [], [], [], [], []
-    
     vals = list(valores_subnodos.values())
     vmin, vmax = min(vals), max(vals)
+    
+    # Crear traces individuales por segmento para aplicar colores
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.jet
+    
+    traces = []
+    max_val_pos = None
+    max_val = vmin
     
     for ni, nj in conexiones:
         ci = np.array(geometria.nodos[ni].coordenadas)
@@ -43,32 +50,34 @@ def generar_diagrama_plotly_3d(geometria, conexiones, valores_subnodos, reaccion
             key = f"{ni}_{nj}_{sub_idx}_i"
             val = valores_subnodos.get(key, 0)
             
-            x_lines.extend([c_i[0], c_j[0], None])
-            y_lines.extend([c_i[1], c_j[1], None])
-            z_lines.extend([c_i[2], c_j[2], None])
-            colors.extend([val, val, None])
-            hover_texts.extend([
-                f"Conexión: {ni}-{nj}<br>Segmento: {sub_idx}<br>{tipo}: {val:.2f} daN.m",
-                f"Conexión: {ni}-{nj}<br>Segmento: {sub_idx}<br>{tipo}: {val:.2f} daN.m",
-                None
-            ])
+            if val > max_val:
+                max_val = val
+                max_val_pos = c_i
+            
+            rgba = cmap(norm(val))
+            color_str = f'rgb({int(rgba[0]*255)},{int(rgba[1]*255)},{int(rgba[2]*255)})'
+            
+            traces.append(go.Scatter3d(
+                x=[c_i[0], c_j[0]], y=[c_i[1], c_j[1]], z=[c_i[2], c_j[2]],
+                mode='lines',
+                line=dict(width=4, color=color_str),
+                hovertext=f"{ni}-{nj} seg{sub_idx}<br>{tipo}: {val:.2f} daN.m",
+                hoverinfo='text',
+                showlegend=False
+            ))
     
-    # Filtrar None values para marker.color
-    colors_filtered = [c for c in colors if c is not None]
+    # Agregar marcador rojo en punto máximo
+    if max_val_pos is not None:
+        traces.append(go.Scatter3d(
+            x=[max_val_pos[0]], y=[max_val_pos[1]], z=[max_val_pos[2]],
+            mode='markers',
+            marker=dict(size=8, color='red', symbol='circle'),
+            hovertext=f'Máximo: {max_val:.2f} daN.m',
+            hoverinfo='text',
+            showlegend=False
+        ))
     
-    # Crear trace con hover
-    trace = go.Scatter3d(
-        x=x_lines, y=y_lines, z=z_lines,
-        mode='markers+lines',
-        line=dict(width=3, color='gray'),
-        marker=dict(size=0.1, color=colors_filtered, colorscale='Jet', cmin=vmin, cmax=vmax,
-                   colorbar=dict(title=f'{tipo} [daN.m]'), showscale=True),
-        text=hover_texts,
-        hoverinfo='text',
-        name='Estructura'
-    )
-    
-    fig = go.Figure(data=[trace])
+    fig = go.Figure(data=traces)
     
     # Calcular rangos con misma escala
     x_coords = [n.coordenadas[0] for n in geometria.nodos.values()]
@@ -81,7 +90,7 @@ def generar_diagrama_plotly_3d(geometria, conexiones, valores_subnodos, reaccion
     z_c = (max(z_coords) + min(z_coords)) / 2
     
     fig.update_layout(
-        title=f'{tipo} - {hipotesis}',
+        title=f'{tipo} - {hipotesis}<br>Máx: {max_val:.2f} daN.m | Mín: {vmin:.2f} daN.m',
         scene=dict(
             xaxis=dict(title='X [m]', range=[x_c - max_range/2, x_c + max_range/2]),
             yaxis=dict(title='Y [m]', range=[y_c - max_range/2, y_c + max_range/2]),
@@ -105,11 +114,18 @@ def generar_diagrama_plotly_2d(geometria, conexiones, valores_subnodos, reaccion
                   for ni, nj in conexiones]
     umbral_longitud = np.percentile(longitudes, percentil)
     
-    # Preparar datos para hover
-    x_lines, z_lines, colors, hover_texts = [], [], [], []
-    
     vals = list(valores_subnodos.values())
     vmin, vmax = min(vals), max(vals)
+    
+    # Crear traces individuales por segmento para aplicar colores
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.jet
+    
+    traces = []
+    max_val_pos = None
+    max_val = vmin
     
     for ni, nj in conexiones:
         ci = np.array(geometria.nodos[ni].coordenadas)
@@ -126,33 +142,36 @@ def generar_diagrama_plotly_2d(geometria, conexiones, valores_subnodos, reaccion
             key = f"{ni}_{nj}_{sub_idx}_i"
             val = valores_subnodos.get(key, 0)
             
-            x_lines.extend([c_i[0], c_j[0], None])
-            z_lines.extend([c_i[2], c_j[2], None])
-            colors.extend([val, val, None])
-            hover_texts.extend([
-                f"Conexión: {ni}-{nj}<br>Segmento: {sub_idx}<br>{tipo}: {val:.2f} daN.m",
-                f"Conexión: {ni}-{nj}<br>Segmento: {sub_idx}<br>{tipo}: {val:.2f} daN.m",
-                None
-            ])
+            if val > max_val:
+                max_val = val
+                max_val_pos = c_i
+            
+            rgba = cmap(norm(val))
+            color_str = f'rgb({int(rgba[0]*255)},{int(rgba[1]*255)},{int(rgba[2]*255)})'
+            
+            traces.append(go.Scatter(
+                x=[c_i[0], c_j[0]], y=[c_i[2], c_j[2]],
+                mode='lines',
+                line=dict(width=4, color=color_str),
+                hovertext=f"{ni}-{nj} seg{sub_idx}<br>{tipo}: {val:.2f} daN.m",
+                hoverinfo='text',
+                showlegend=False
+            ))
     
-    # Filtrar None values para marker.color
-    colors_filtered = [c for c in colors if c is not None]
+    # Agregar marcador rojo en punto máximo
+    if max_val_pos is not None:
+        traces.append(go.Scatter(
+            x=[max_val_pos[0]], y=[max_val_pos[2]],
+            mode='markers',
+            marker=dict(size=12, color='red', symbol='circle'),
+            hovertext=f'Máximo: {max_val:.2f} daN.m',
+            hoverinfo='text',
+            showlegend=False
+        ))
     
-    # Crear trace con hover
-    trace = go.Scatter(
-        x=x_lines, y=z_lines,
-        mode='markers+lines',
-        line=dict(width=3, color='gray'),
-        marker=dict(size=0.1, color=colors_filtered, colorscale='Jet', cmin=vmin, cmax=vmax,
-                   colorbar=dict(title=f'{tipo} [daN.m]'), showscale=True),
-        text=hover_texts,
-        hoverinfo='text',
-        name='Estructura'
-    )
-    
-    fig = go.Figure(data=[trace])
+    fig = go.Figure(data=traces)
     fig.update_layout(
-        title=f'{tipo} - {hipotesis}',
+        title=f'{tipo} - {hipotesis}<br>Máx: {max_val:.2f} daN.m | Mín: {vmin:.2f} daN.m',
         xaxis_title='X [m]',
         yaxis_title='Z [m]',
         height=800,
@@ -198,13 +217,39 @@ def generar_diagrama_mqnt_plotly(geometria, conexiones, valores_subnodos, reacci
         ]
         
         for valores_dict, nombre, unidad, row, col in configs:
-            trace = _crear_trace_3d(geometria, conexiones, valores_dict, parametros, nombre, unidad)
-            fig.add_trace(trace, row=row, col=col)
+            traces = _crear_trace_3d(geometria, conexiones, valores_dict, parametros, nombre, unidad)
+            for trace in traces:
+                fig.add_trace(trace, row=row, col=col)
+        
+        # Configurar aspect ratio para 3D
+        x_coords = [n.coordenadas[0] for n in geometria.nodos.values()]
+        y_coords = [n.coordenadas[1] for n in geometria.nodos.values()]
+        z_coords = [n.coordenadas[2] for n in geometria.nodos.values()]
+        max_range = max(max(x_coords)-min(x_coords), max(y_coords)-min(y_coords), max(z_coords)-min(z_coords))
+        x_c = (max(x_coords) + min(x_coords)) / 2
+        y_c = (max(y_coords) + min(y_coords)) / 2
+        z_c = (max(z_coords) + min(z_coords)) / 2
+        
+        for i in range(1, 5):
+            scene_key = f'scene{i}' if i > 1 else 'scene'
+            fig.update_layout(**{
+                scene_key: dict(
+                    xaxis=dict(range=[x_c - max_range/2, x_c + max_range/2]),
+                    yaxis=dict(range=[y_c - max_range/2, y_c + max_range/2]),
+                    zaxis=dict(range=[z_c - max_range/2, z_c + max_range/2]),
+                    aspectmode='cube'
+                )
+            })
     else:
         fig = make_subplots(
             rows=2, cols=2,
-            subplot_titles=('Momento Flector (Mf)', 'Esfuerzo Cortante (Q)',
-                           'Esfuerzo Normal (N)', 'Momento Torsor (T)')
+            horizontal_spacing=0.15,
+            subplot_titles=(
+                f'Momento Flector (Mf) - Máx: {max(valores_mf.values()):.1f} daN.m',
+                f'Esfuerzo Cortante (Q) - Máx: {max(valores_q.values()):.1f} daN',
+                f'Esfuerzo Normal (N) - Máx: {max(valores_n.values()):.1f} daN',
+                f'Momento Torsor (T) - Máx: {max(valores_t.values()):.1f} daN.m'
+            )
         )
         
         configs = [
@@ -215,10 +260,38 @@ def generar_diagrama_mqnt_plotly(geometria, conexiones, valores_subnodos, reacci
         ]
         
         for valores_dict, nombre, unidad, row, col in configs:
-            trace = _crear_trace_2d(geometria, conexiones, valores_dict, parametros, nombre, unidad)
-            fig.add_trace(trace, row=row, col=col)
+            traces = _crear_trace_2d(geometria, conexiones, valores_dict, parametros, nombre, unidad, row, col)
+            for trace in traces:
+                fig.add_trace(trace, row=row, col=col)
+        
+        # Calcular rangos con margen
+        x_coords = [n.coordenadas[0] for n in geometria.nodos.values()]
+        z_coords = [n.coordenadas[2] for n in geometria.nodos.values()]
+        margen = 4
+        x_max_abs = max(abs(x) for x in x_coords)
+        x_range = [-x_max_abs - margen, max(x_coords) + margen]
+        z_range = [-margen, max(z_coords) + margen]
+        
+        # Configurar aspect ratio y rangos para 2D
+        fig.update_xaxes(range=x_range, row=1, col=1)
+        fig.update_yaxes(range=z_range, scaleanchor="x", scaleratio=1, row=1, col=1)
+        fig.update_xaxes(range=x_range, row=1, col=2)
+        fig.update_yaxes(range=z_range, scaleanchor="x2", scaleratio=1, row=1, col=2)
+        fig.update_xaxes(range=x_range, row=2, col=1)
+        fig.update_yaxes(range=z_range, scaleanchor="x3", scaleratio=1, row=2, col=1)
+        fig.update_xaxes(range=x_range, row=2, col=2)
+        fig.update_yaxes(range=z_range, scaleanchor="x4", scaleratio=1, row=2, col=2)
     
-    fig.update_layout(height=1000, showlegend=False, title_text=f"Diagramas MQNT - {hipotesis}")
+    fig.update_layout(
+        height=1000, 
+        showlegend=False, 
+        title_text=f"Diagramas MQNT - {hipotesis}",
+        plot_bgcolor='white',
+        paper_bgcolor='white'
+    )
+    fig.update_xaxes(showgrid=True, gridcolor='lightgray')
+    fig.update_yaxes(showgrid=True, gridcolor='lightgray')
+    
     return fig
 
 def _crear_trace_3d(geometria, conexiones, valores_dict, parametros, nombre, unidad):
@@ -231,9 +304,15 @@ def _crear_trace_3d(geometria, conexiones, valores_dict, parametros, nombre, uni
                   for ni, nj in conexiones]
     umbral_longitud = np.percentile(longitudes, percentil)
     
-    x_lines, y_lines, z_lines, colors, hover_texts = [], [], [], [], []
     vals = list(valores_dict.values())
     vmin, vmax = min(vals), max(vals)
+    
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.jet
+    
+    traces = []
     
     for ni, nj in conexiones:
         ci = np.array(geometria.nodos[ni].coordenadas)
@@ -250,29 +329,32 @@ def _crear_trace_3d(geometria, conexiones, valores_dict, parametros, nombre, uni
             key = f"{ni}_{nj}_{sub_idx}_i"
             val = valores_dict.get(key, 0)
             
-            x_lines.extend([c_i[0], c_j[0], None])
-            y_lines.extend([c_i[1], c_j[1], None])
-            z_lines.extend([c_i[2], c_j[2], None])
-            colors.extend([val, val, None])
-            hover_texts.extend([
-                f"{ni}-{nj} seg{sub_idx}<br>{nombre}: {val:.2f} {unidad}",
-                f"{ni}-{nj} seg{sub_idx}<br>{nombre}: {val:.2f} {unidad}",
-                None
-            ])
+            rgba = cmap(norm(val))
+            color_str = f'rgb({int(rgba[0]*255)},{int(rgba[1]*255)},{int(rgba[2]*255)})'
+            
+            traces.append(go.Scatter3d(
+                x=[c_i[0], c_j[0]], y=[c_i[1], c_j[1]], z=[c_i[2], c_j[2]],
+                mode='lines',
+                line=dict(width=4, color=color_str),
+                hovertext=f"{nombre}: {val:.2f} {unidad}",
+                hoverinfo='text',
+                showlegend=False
+            ))
     
-    # Filtrar None values para marker.color
-    colors_filtered = [c for c in colors if c is not None]
+    # Agregar trace invisible para colorbar
+    colors_all = list(valores_dict.values())
+    traces.append(go.Scatter3d(
+        x=[None], y=[None], z=[None],
+        mode='markers',
+        marker=dict(size=0.1, color=colors_all, colorscale='Jet', cmin=vmin, cmax=vmax,
+                   colorbar=dict(title=unidad, len=0.5), showscale=True),
+        hoverinfo='skip',
+        showlegend=False
+    ))
     
-    return go.Scatter3d(
-        x=x_lines, y=y_lines, z=z_lines,
-        mode='markers+lines',
-        line=dict(width=3, color='gray'),
-        marker=dict(size=0.1, color=colors_filtered, colorscale='Jet', cmin=vmin, cmax=vmax, showscale=False),
-        text=hover_texts,
-        hoverinfo='text'
-    )
+    return traces
 
-def _crear_trace_2d(geometria, conexiones, valores_dict, parametros, nombre, unidad):
+def _crear_trace_2d(geometria, conexiones, valores_dict, parametros, nombre, unidad, row, col):
     """Crea trace 2D con hover para subplot"""
     n_corta = parametros.get('n_segmentar_conexion_corta')
     n_larga = parametros.get('n_segmentar_conexion_larga')
@@ -282,9 +364,17 @@ def _crear_trace_2d(geometria, conexiones, valores_dict, parametros, nombre, uni
                   for ni, nj in conexiones]
     umbral_longitud = np.percentile(longitudes, percentil)
     
-    x_lines, z_lines, colors, hover_texts = [], [], [], []
     vals = list(valores_dict.values())
     vmin, vmax = min(vals), max(vals)
+    
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.jet
+    
+    traces = []
+    max_val = vmin
+    max_val_pos = None
     
     for ni, nj in conexiones:
         ci = np.array(geometria.nodos[ni].coordenadas)
@@ -301,26 +391,56 @@ def _crear_trace_2d(geometria, conexiones, valores_dict, parametros, nombre, uni
             key = f"{ni}_{nj}_{sub_idx}_i"
             val = valores_dict.get(key, 0)
             
-            x_lines.extend([c_i[0], c_j[0], None])
-            z_lines.extend([c_i[2], c_j[2], None])
-            colors.extend([val, val, None])
-            hover_texts.extend([
-                f"{ni}-{nj} seg{sub_idx}<br>{nombre}: {val:.2f} {unidad}",
-                f"{ni}-{nj} seg{sub_idx}<br>{nombre}: {val:.2f} {unidad}",
-                None
-            ])
+            if val > max_val:
+                max_val = val
+                max_val_pos = c_i
+            
+            rgba = cmap(norm(val))
+            color_str = f'rgb({int(rgba[0]*255)},{int(rgba[1]*255)},{int(rgba[2]*255)})'
+            
+            traces.append(go.Scatter(
+                x=[c_i[0], c_j[0]], y=[c_i[2], c_j[2]],
+                mode='lines',
+                line=dict(width=4, color=color_str),
+                hovertext=f"{nombre}: {val:.2f} {unidad}",
+                hoverinfo='text',
+                showlegend=False
+            ))
     
-    # Filtrar None values para marker.color
-    colors_filtered = [c for c in colors if c is not None]
+    # Agregar marcador amarillo en punto máximo
+    if max_val_pos is not None:
+        traces.append(go.Scatter(
+            x=[max_val_pos[0]], y=[max_val_pos[2]],
+            mode='markers',
+            marker=dict(size=3, color='yellow'),
+            hovertext=f'Máximo: {max_val:.2f} {unidad}',
+            hoverinfo='text',
+            showlegend=False
+        ))
     
-    return go.Scatter(
-        x=x_lines, y=z_lines,
-        mode='markers+lines',
-        line=dict(width=3, color='gray'),
-        marker=dict(size=0.1, color=colors_filtered, colorscale='Jet', cmin=vmin, cmax=vmax, showscale=False),
-        text=hover_texts,
-        hoverinfo='text'
-    )
+    # Calcular posición x e y del colorbar según subplot (row, col)
+    if col == 1:
+        colorbar_x = 0.42
+    else:
+        colorbar_x = 1.0
+    
+    if row == 1:
+        colorbar_y = 0.75
+    else:
+        colorbar_y = 0.25
+    
+    # Agregar trace invisible para colorbar
+    colors_all = list(valores_dict.values())
+    traces.append(go.Scatter(
+        x=[None], y=[None],
+        mode='markers',
+        marker=dict(size=0.1, color=colors_all, colorscale='Jet', cmin=vmin, cmax=vmax,
+                   colorbar=dict(title=unidad, len=0.35, x=colorbar_x, y=colorbar_y, xanchor='left', yanchor='middle'), showscale=True),
+        hoverinfo='skip',
+        showlegend=False
+    ))
+    
+    return traces
 
 # ============================================================================
 # MATPLOTLIB PLOTS (STATIC)

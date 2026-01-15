@@ -70,17 +70,19 @@ def plotear_resultados_existentes(estructura_actual):
     escala_graficos = parametros_aee.get('escala_graficos', 'logaritmica')
     plots_interactivos = parametros_aee.get('plots_interactivos', True)
     
-    print(f"📊 Configuración de ploteo:")
-    print(f"  - Gráficos 3D: {graficos_3d}")
-    print(f"  - Plots interactivos: {plots_interactivos}")
-    print(f"  - Escala: {escala_graficos}")
-    print(f"  - Diagramas activos: {diagramas_activos}")
-    
     # Crear analizador
     analizador = AnalizadorEstatico(geometria, mecanica, parametros_aee)
     
     # Hash de parámetros
     hash_params = CalculoCache.calcular_hash(estructura_actual)
+    
+    print(f"📊 Configuración de ploteo:")
+    print(f"  - Gráficos 3D: {graficos_3d}")
+    print(f"  - Plots interactivos: {plots_interactivos}")
+    print(f"  - Escala: {escala_graficos}")
+    print(f"  - Diagramas activos: {diagramas_activos}")
+    print(f"  - Hash actual: {hash_params}")
+    print(f"  - Hash en cache: {calculo_aee.get('hash_parametros')}")
     
     diagramas_generados = 0
     
@@ -113,6 +115,8 @@ def plotear_resultados_existentes(estructura_actual):
                     filepath_png.parent.mkdir(parents=True, exist_ok=True)
                     fig.write_image(str(filepath_png), width=1200, height=800)
                     fig.write_json(str(filepath_json))
+                    print(f"✅ Guardado PNG: {filepath_png.exists()} - {filepath_png}")
+                    print(f"✅ Guardado JSON: {filepath_json.exists()} - {filepath_json}")
                     diagramas_generados += 1
                 else:
                     fig = analizador.generar_diagrama_mqnt(esfuerzos, hip, graficos_3d, escala_graficos)
@@ -121,6 +125,7 @@ def plotear_resultados_existentes(estructura_actual):
                     filepath_png.parent.mkdir(parents=True, exist_ok=True)
                     fig.savefig(str(filepath_png), dpi=150, bbox_inches='tight')
                     plt.close(fig)
+                    print(f"✅ Guardado PNG estático: {filepath_png.exists()} - {filepath_png}")
                     diagramas_generados += 1
             
             # MRT

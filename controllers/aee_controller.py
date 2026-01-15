@@ -237,9 +237,12 @@ def register_callbacks(app):
             if not resultado['exito']:
                 return no_update, True, "Error", resultado['mensaje'], "danger", "danger"
             
-            # Cargar cache actualizado
+            # Recargar cache actualizado (con nuevo hash si cambió)
             nombre_estructura = estructura_actual.get('TITULO', '')
             calculo_guardado = CalculoCache.cargar_calculo_aee(nombre_estructura)
+            
+            if not calculo_guardado:
+                return no_update, True, "Error", "No se pudo cargar cache actualizado", "danger", "danger"
             
             vista = generar_resultados_aee(calculo_guardado, estructura_actual)
             
