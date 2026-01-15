@@ -196,19 +196,22 @@ class GeometriaEtapa1:
                 Lmen1 += incremento
                 continue
             
-            # Si hay infracción ménsula - verificar distancia mínima (cateto vertical)
-            dist_vertical_reposo = Lk  # En reposo, distancia vertical es Lk completo
-            if dist_vertical_reposo < s_reposo:
-                raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_reposo:.3f}m < s_reposo={s_reposo:.3f}m")
-            
-            dist_vertical_tormenta = Lk * math.cos(math.radians(theta_tormenta))
-            if dist_vertical_tormenta < s_tormenta:
-                raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_tormenta:.3f}m < s_tormenta={s_tormenta:.3f}m")
-            
-            dist_vertical_decmax = Lk * math.cos(math.radians(theta_max))
-            if dist_vertical_decmax < s_decmax:
-                raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_decmax:.3f}m < s_decmax={s_decmax:.3f}m")
-            
+            # Si Lk > 0, verificar distancias verticales a ménsula (chequeo simplificado)
+            if Lk > 0.0:
+                dist_vertical_reposo = Lk  # En reposo, distancia vertical es Lk completo
+                if dist_vertical_reposo < s_reposo:
+                    raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_reposo:.3f}m < s_reposo={s_reposo:.3f}m")
+
+                dist_vertical_tormenta = Lk * math.cos(math.radians(theta_tormenta))
+                if dist_vertical_tormenta < s_tormenta:
+                    raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_tormenta:.3f}m < s_tormenta={s_tormenta:.3f}m")
+
+                dist_vertical_decmax = Lk * math.cos(math.radians(theta_max))
+                if dist_vertical_decmax < s_decmax:
+                    raise ValueError(f"Lk insuficiente: dist_vertical={dist_vertical_decmax:.3f}m < s_decmax={s_decmax:.3f}m")
+
+            # Si hay infracción ménsula (verificación completa con geometria_zonas)
+            # Con Lk=0, la verificación completa da False y este bloque se salta
             if infr_men_reposo or infr_men_tormenta or infr_men_decmax:
                 Lmen1 += incremento
                 continue
@@ -256,6 +259,10 @@ class GeometriaEtapa1:
     
     def _verificar_infraccion_mensula(self, Lmen1, h1a, x_conductor, z_conductor, s_decmax, theta_max, theta_tormenta):
         """Verificar si conductor infringe zona de ménsula usando geometria_zonas"""
+        # Si Lk es 0, el conductor está en el punto de amarre, no hay checkeo de ménsula.
+        if self.geo.lk == 0.0:
+            return False
+
         if Lmen1 < 0.001:
             return False
         

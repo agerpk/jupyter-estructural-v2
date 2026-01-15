@@ -1,13 +1,3 @@
 {
-  "familia_activa": "ACONCAGUA_S",
-  "calculos_activos": [
-    "cmc",
-    "dge",
-    "dme",
-    "arboles",
-    "sph",
-    "fundacion",
-    "costeo",
-    "aee"
-  ]
+  "familia_activa": "ACONCAGUA_RECALCULO_ALTURAS_Segun_Cotizacion"
 }

@@ -327,6 +327,9 @@ class GeneradorZonasProhibidas:
         
         SOLO genera las zonas del parámetro s activo (> 0).
         """
+        if self.Lk == 0.0:
+            return  # Si Lk es 0, no se generan zonas de ménsula para s_*, los chequeos se dan por buenos.
+
         for nombre, nodo in self.nodos.items():
             for nodo_destino, tipo_conexion in nodo.conexiones:
                 if tipo_conexion == "mensula":
