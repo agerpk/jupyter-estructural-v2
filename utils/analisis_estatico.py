@@ -61,7 +61,6 @@ class AnalizadorEstatico:
         logger.debug(f"   A = {self.props_barra['A']:.6f} m²")
         logger.debug(f"   E = {self.props_barra['E']/1e9:.1f} GPa")
         logger.debug(f"   I = {self.props_barra['Ix']:.8f} m⁴")
-        logger.warning(f"⚙️  Propiedades barra: A={self.props_barra['A']:.6f} m², E={self.props_barra['E']/1e9:.1f} GPa")
     
     def _extraer_conexiones(self):
         """Extrae y limpia conexiones desde geometría"""
@@ -104,7 +103,6 @@ class AnalizadorEstatico:
                         conexiones_limpias.append((nodo_i, nodo_j))
                 
                 logger.debug(f"📊 Conexiones: {len(conexiones_raw)} raw → {len(conexiones_limpias)} limpias")
-                logger.warning(f"🔗 Conexiones: {len(conexiones_limpias)} limpias de {len(conexiones_raw)} totales")
                 return conexiones_limpias
         
         return []
@@ -115,7 +113,6 @@ class AnalizadorEstatico:
         logger.info(f"🔍 Analizando hipótesis: {hipotesis_nombre}")
         logger.debug(f"   Nodos originales: {len(self.geometria.nodos)}")
         logger.debug(f"   Conexiones: {len(self.conexiones)}")
-        logger.warning(f"⚡ Analizando hipótesis: {hipotesis_nombre} ({len(self.geometria.nodos)} nodos, {len(self.conexiones)} conexiones)")
         
         # Validar parámetros obligatorios
         n_corta = self.parametros.get('n_segmentar_conexion_corta')
@@ -164,7 +161,6 @@ class AnalizadorEstatico:
         
         logger.debug(f"Subdivisiones: corta={n_corta}, larga={n_larga}, percentil={percentil}")
         logger.debug(f"Umbral longitud: {umbral_longitud:.2f} m")
-        logger.warning(f"📏 Subdivisiones: corta={n_corta}, larga={n_larga}, umbral={umbral_longitud:.2f}m")
         
         # PASO 1: PREPARAR ESTRUCTURA COMPLETA (ANTES de ops.model)
         nodos_base = [n for n, nodo in self.geometria.nodos.items() 
@@ -175,7 +171,6 @@ class AnalizadorEstatico:
             raise ValueError("No se encontraron nodos BASE. La estructura debe tener al menos un nodo marcado como BASE o con tipo_nodo='base' o tipo_restriccion='FIXED'.")
         
         logger.debug(f"Nodos BASE: {nodos_base}")
-        logger.warning(f"🔒 Nodos BASE detectados: {nodos_base}")
         
         # 1.1: Preparar diccionario de nodos (originales + intermedios)
         nodos_dict = {}  # {nombre: {'coord': [x,y,z], 'tag': int, 'restriccion': [0/1]*6}}
@@ -204,7 +199,6 @@ class AnalizadorEstatico:
                 tag += 1
         
         logger.debug(f"Nodos preparados: {len(nodos_dict)} (originales + intermedios)")
-        logger.warning(f"📍 Nodos preparados: {len(nodos_dict)} (originales + intermedios)")
         
         # 1.2: Preparar diccionario de elementos con ejes locales
         elementos_dict = {}  # {elem_id: {..., 'ejes_locales': matriz 3x3}}
@@ -300,7 +294,6 @@ class AnalizadorEstatico:
                 elem_id += 1
         
         logger.debug(f"Elementos preparados: {len(elementos_dict)} subelementos")
-        logger.warning(f"🔧 Elementos preparados: {len(elementos_dict)} subelementos")
         
         # 1.3: Preparar cargas
         cargas_dict = {}  # {tag: [fx, fy, fz, mx, my, mz]}
@@ -313,7 +306,6 @@ class AnalizadorEstatico:
                     logger.debug(f"Carga en nodo {nombre} (tag={tag_nodo}): fx={cargas['fx']:.2f}, fy={cargas['fy']:.2f}, fz={cargas['fz']:.2f}")
         
         logger.debug(f"Cargas preparadas: {len(cargas_dict)} nodos con carga")
-        logger.warning(f"⚡ Cargas preparadas: {len(cargas_dict)} nodos con carga")
         
         if len(cargas_dict) == 0:
             logger.warning("No hay cargas para esta hipótesis")
@@ -344,12 +336,11 @@ class AnalizadorEstatico:
         for nombre, data in nodos_dict.items():
             if any(r == 1 for r in data['restriccion']):
                 logger.debug(f"🔒 Empotrado nodo {nombre} (tag={data['tag']}): {data['restriccion']}")
-                logger.warning(f"⚠️  EMPOTRAMIENTO: Nodo {nombre} (tag={data['tag']}) empotrado")
                 
                 # Verificar que el nodo BASE esté conectado a elementos
                 elementos_conectados = [eid for eid, edata in elementos_dict.items() 
                                        if edata['tag_i'] == data['tag'] or edata['tag_j'] == data['tag']]
-                logger.warning(f"   Elementos conectados a {nombre}: {len(elementos_conectados)}")
+                logger.debug(f"   Elementos conectados a {nombre}: {len(elementos_conectados)}")
                 if len(elementos_conectados) == 0:
                     logger.error(f"❌ ERROR: Nodo {nombre} no está conectado a ningún elemento")
             ops.fix(data['tag'], *data['restriccion'])
@@ -382,7 +373,6 @@ class AnalizadorEstatico:
                 raise RuntimeError("Análisis no convergió después de reintentos")
             
             logger.info("✅ Análisis convergió")
-            logger.warning("✅ Análisis convergió exitosamente")
         except Exception as e:
             logger.error(f"❌ Error en análisis: {e}", exc_info=True)
             raise
@@ -532,7 +522,6 @@ class AnalizadorEstatico:
                     reacciones_base[nombre] = {'Fx': reaccion[0], 'Fy': reaccion[1], 'Fz': reaccion[2],
                                                'Mx': reaccion[3], 'My': reaccion[4], 'Mz': reaccion[5]}
                     logger.debug(f"Reacción BASE {nombre}: Fx={reaccion[0]:.2f}, Fy={reaccion[1]:.2f}, Fz={reaccion[2]:.2f}")
-                    logger.warning(f"⚠️  Reacciones BASE {nombre}: Fx={reaccion[0]:.2f}, Fy={reaccion[1]:.2f}, Fz={reaccion[2]:.2f}")
                 except Exception as e:
                     logger.error(f"Error obteniendo reacciones en nodo {nombre}: {e}", exc_info=True)
                     continue
@@ -547,7 +536,6 @@ class AnalizadorEstatico:
             raise RuntimeError("Análisis falló: matriz singular. Las restricciones no están correctamente aplicadas o la estructura es inestable.")
         
         logger.debug(f"Valores extraídos: {len(valores_subnodos)} subnodos")
-        logger.warning(f"📊 Valores extraídos: {len(valores_subnodos)} subnodos")
         return {'valores': valores_subnodos, 'reacciones': reacciones_base, 'elementos_dict': elementos_dict, 'resultados_por_elemento': resultados_por_elemento}
     
     def generar_dataframe_reacciones(self, hipotesis_nombres: List[str]) -> 'pd.DataFrame':

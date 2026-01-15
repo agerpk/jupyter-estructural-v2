@@ -100,7 +100,7 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2026-01-15T08:32:13.750705",
+  "fecha_modificacion": "2026-01-15T09:26:57.862062",
   "nodos_editados": [],
   "fundacion": {
     "metodo": "sulzberger",
@@ -190,6 +190,6 @@
       "MFE": false
     },
     "mostrar_tablas_resultados_por_elemento": false,
-    "plots_interactivos": true
+    "plots_interactivos": false
   }
 }

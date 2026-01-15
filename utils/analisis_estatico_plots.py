@@ -53,12 +53,16 @@ def generar_diagrama_plotly_3d(geometria, conexiones, valores_subnodos, reaccion
                 None
             ])
     
+    # Filtrar None values para marker.color
+    colors_filtered = [c for c in colors if c is not None]
+    
     # Crear trace con hover
     trace = go.Scatter3d(
         x=x_lines, y=y_lines, z=z_lines,
-        mode='lines',
-        line=dict(color=colors, colorscale='Jet', cmin=vmin, cmax=vmax, width=5,
-                  colorbar=dict(title=f'{tipo} [daN.m]')),
+        mode='markers+lines',
+        line=dict(width=3, color='gray'),
+        marker=dict(size=0.1, color=colors_filtered, colorscale='Jet', cmin=vmin, cmax=vmax,
+                   colorbar=dict(title=f'{tipo} [daN.m]'), showscale=True),
         text=hover_texts,
         hoverinfo='text',
         name='Estructura'
@@ -120,12 +124,16 @@ def generar_diagrama_plotly_2d(geometria, conexiones, valores_subnodos, reaccion
                 None
             ])
     
+    # Filtrar None values para marker.color
+    colors_filtered = [c for c in colors if c is not None]
+    
     # Crear trace con hover
     trace = go.Scatter(
         x=x_lines, y=z_lines,
-        mode='lines',
-        line=dict(color=colors, colorscale='Jet', cmin=vmin, cmax=vmax, width=5,
-                  colorbar=dict(title=f'{tipo} [daN.m]')),
+        mode='markers+lines',
+        line=dict(width=3, color='gray'),
+        marker=dict(size=0.1, color=colors_filtered, colorscale='Jet', cmin=vmin, cmax=vmax,
+                   colorbar=dict(title=f'{tipo} [daN.m]'), showscale=True),
         text=hover_texts,
         hoverinfo='text',
         name='Estructura'
@@ -241,10 +249,14 @@ def _crear_trace_3d(geometria, conexiones, valores_dict, parametros, nombre, uni
                 None
             ])
     
+    # Filtrar None values para marker.color
+    colors_filtered = [c for c in colors if c is not None]
+    
     return go.Scatter3d(
         x=x_lines, y=y_lines, z=z_lines,
-        mode='lines',
-        line=dict(color=colors, colorscale='Jet', cmin=vmin, cmax=vmax, width=5),
+        mode='markers+lines',
+        line=dict(width=3, color='gray'),
+        marker=dict(size=0.1, color=colors_filtered, colorscale='Jet', cmin=vmin, cmax=vmax, showscale=False),
         text=hover_texts,
         hoverinfo='text'
     )
@@ -287,10 +299,14 @@ def _crear_trace_2d(geometria, conexiones, valores_dict, parametros, nombre, uni
                 None
             ])
     
+    # Filtrar None values para marker.color
+    colors_filtered = [c for c in colors if c is not None]
+    
     return go.Scatter(
         x=x_lines, y=z_lines,
-        mode='lines',
-        line=dict(color=colors, colorscale='Jet', cmin=vmin, cmax=vmax, width=5),
+        mode='markers+lines',
+        line=dict(width=3, color='gray'),
+        marker=dict(size=0.1, color=colors_filtered, colorscale='Jet', cmin=vmin, cmax=vmax, showscale=False),
         text=hover_texts,
         hoverinfo='text'
     )
