@@ -37,8 +37,10 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
                     html.append(f'<li><a href="#{titulo_id}_sph">5. Selección de Poste</a></li>')
                 if checklist_activo.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
                     html.append(f'<li><a href="#{titulo_id}_fundacion">6. Fundación</a></li>')
+                if checklist_activo.get("aee") and "aee" in resultados and resultados["aee"]:
+                    html.append(f'<li><a href="#{titulo_id}_aee">7. Análisis Estático</a></li>')
                 if checklist_activo.get("costeo") and "costeo" in resultados and resultados["costeo"]:
-                    html.append(f'<li><a href="#{titulo_id}_costeo">7. Costeo</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_costeo">8. Costeo</a></li>')
             else:
                 # Sin checklist, incluir todo lo que tenga datos
                 if "cmc" in resultados and resultados["cmc"]:
@@ -53,8 +55,10 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
                     html.append(f'<li><a href="#{titulo_id}_sph">5. Selección de Poste</a></li>')
                 if "fundacion" in resultados and resultados["fundacion"]:
                     html.append(f'<li><a href="#{titulo_id}_fundacion">6. Fundación</a></li>')
+                if "aee" in resultados and resultados["aee"]:
+                    html.append(f'<li><a href="#{titulo_id}_aee">7. Análisis Estático</a></li>')
                 if "costeo" in resultados and resultados["costeo"]:
-                    html.append(f'<li><a href="#{titulo_id}_costeo">7. Costeo</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_costeo">8. Costeo</a></li>')
             
             html.append('</ul>')
         html.append('</li>')
@@ -182,10 +186,11 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
         titulo_id: ID para navegación
         checklist_activo: Dict con secciones activas {"cmc": True, "dge": True, ...}
     """
-    from utils.descargar_html import generar_seccion_cmc, generar_seccion_dge, generar_seccion_dme, generar_seccion_arboles, generar_seccion_sph, generar_seccion_fund
+    from utils.descargar_html import generar_seccion_cmc, generar_seccion_dge, generar_seccion_dme, generar_seccion_arboles, generar_seccion_sph, generar_seccion_fund, generar_seccion_aee
     
     html = []
     resultados = datos_estructura.get("resultados", {})
+    estructura_actual = datos_estructura.get("estructura", {})
     
     # Si no hay checklist, incluir todo lo que tenga datos
     if checklist_activo is None:
@@ -209,8 +214,11 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
     if checklist_activo.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
         html.append(f'<h4 id="{titulo_id}_fundacion">6. Fundación</h4>')
         html.append(generar_seccion_fund(resultados["fundacion"]))
+    if checklist_activo.get("aee") and "aee" in resultados and resultados["aee"]:
+        html.append(f'<h4 id="{titulo_id}_aee">7. Análisis Estático de Esfuerzos</h4>')
+        html.append(generar_seccion_aee(resultados["aee"], estructura_actual))
     if checklist_activo.get("costeo") and "costeo" in resultados and resultados["costeo"]:
-        html.append(f'<h4 id="{titulo_id}_costeo">7. Costeo</h4>')
+        html.append(f'<h4 id="{titulo_id}_costeo">8. Costeo</h4>')
         html.append(generar_seccion_costeo_estructura(resultados["costeo"]))
     
     return '\n'.join(html)

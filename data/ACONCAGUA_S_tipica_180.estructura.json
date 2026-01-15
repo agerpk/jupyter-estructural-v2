@@ -100,7 +100,7 @@
   },
   "fecha_creacion": "2024-01-01",
   "version": "1.0",
-  "fecha_modificacion": "2026-01-14T19:40:32.294066",
+  "fecha_modificacion": "2026-01-15T08:32:13.750705",
   "nodos_editados": [],
   "fundacion": {
     "metodo": "sulzberger",
@@ -179,7 +179,7 @@
   "lmen_extra_hielo": 0,
   "mensula_defasar": "primera",
   "AnalisisEstaticoEsfuerzos": {
-    "GRAFICOS_3D_AEE": true,
+    "GRAFICOS_3D_AEE": false,
     "escala_graficos": "lineal",
     "n_segmentar_conexion_corta": 33,
     "n_segmentar_conexion_larga": 55,
@@ -188,6 +188,8 @@
       "MQNT": true,
       "MRT": false,
       "MFE": false
-    }
+    },
+    "mostrar_tablas_resultados_por_elemento": false,
+    "plots_interactivos": true
   }
 }

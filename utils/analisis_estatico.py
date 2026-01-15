@@ -4,12 +4,17 @@ Calcula esfuerzos en barras de estructura con propiedades E, I, A simuladas
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-from mpl_toolkits.mplot3d import Axes3D
-from typing import Dict, List, Tuple, Optional
 import openseespy.opensees as ops
 import logging
+from typing import Dict, List, Tuple, Optional
+
+# Importar funciones de plotting
+from utils.analisis_estatico_plots import (
+    generar_diagrama_matplotlib_3d,
+    generar_diagrama_matplotlib_2d, 
+    generar_diagrama_mqnt_matplotlib,
+    generar_diagrama_ejes_locales_matplotlib
+)
 
 # Logger básico para este módulo
 logger = logging.getLogger(__name__)
@@ -611,514 +616,96 @@ class AnalizadorEstatico:
                 mfe[nodo] = float(vals[2])
         return {'valores': mfe, 'reacciones': resultado_analisis.get('reacciones', {})}
     
-    def generar_diagrama_3d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "lineal") -> plt.Figure:
-        """Genera diagrama 3D con gradientes"""
+    def generar_diagrama_3d_interactivo(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "lineal"):
+        """Genera diagrama 3D interactivo con Plotly"""
+        from utils.analisis_estatico_plots import generar_diagrama_plotly_3d
+        
         if not resultado_analisis:
             raise ValueError("resultado_analisis vacío - análisis no convergió")
-        
-        # Validar parámetros
-        n_corta = self.parametros.get('n_segmentar_conexion_corta')
-        n_larga = self.parametros.get('n_segmentar_conexion_larga')
-        percentil = self.parametros.get('percentil_separacion_corta_larga')
-        
-        if n_corta is None or n_larga is None or percentil is None:
-            raise ValueError("Faltan parámetros de subdivisión para generar diagrama")
-        
-        fig = plt.figure(figsize=(12, 8))
-        ax = fig.add_subplot(111, projection='3d')
         
         valores_subnodos = resultado_analisis.get('valores', {})
         reacciones = resultado_analisis.get('reacciones', {})
         
-        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
-        y_coords = [n.coordenadas[1] for n in self.geometria.nodos.values()]
-        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
+        return generar_diagrama_plotly_3d(
+            self.geometria, self.conexiones, valores_subnodos, reacciones,
+            self.parametros, tipo, hipotesis, escala
+        )
+    
+    def generar_diagrama_2d_interactivo(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "lineal"):
+        """Genera diagrama 2D interactivo con Plotly"""
+        from utils.analisis_estatico_plots import generar_diagrama_plotly_2d
         
-        max_range = max(max(x_coords)-min(x_coords), max(y_coords)-min(y_coords), max(z_coords)-min(z_coords))
-        x_c, y_c, z_c = sum(x_coords)/len(x_coords), sum(y_coords)/len(y_coords), sum(z_coords)/len(z_coords)
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
         
-        vals = list(valores_subnodos.values())
-        if vals:
-            vmin, vmax = min(vals), max(vals)
-            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")
-            if escala == "logaritmica":
-                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=vmax)
-            else:
-                norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
-            cmap = plt.cm.jet
-            
-            # Calcular umbral para determinar n_subdiv por conexión
-            longitudes = []
-            for ni, nj in self.conexiones:
-                ci = np.array(self.geometria.nodos[ni].coordenadas)
-                cj = np.array(self.geometria.nodos[nj].coordenadas)
-                longitudes.append(np.linalg.norm(cj - ci))
-            umbral_longitud = np.percentile(longitudes, percentil)
-            
-            for ni, nj in self.conexiones:
-                ci = np.array(self.geometria.nodos[ni].coordenadas)
-                cj = np.array(self.geometria.nodos[nj].coordenadas)
-                longitud = np.linalg.norm(cj - ci)
-                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
-                
-                for sub_idx in range(n_subdiv):
-                    t_i = sub_idx / n_subdiv
-                    t_j = (sub_idx + 1) / n_subdiv
-                    c_i = ci + t_i * (cj - ci)
-                    c_j = ci + t_j * (cj - ci)
-                    
-                    val = valores_subnodos.get(f"{ni}_{nj}_{sub_idx}_i", 0)
-                    ax.plot([c_i[0], c_j[0]], [c_i[1], c_j[1]], [c_i[2], c_j[2]], 
-                           color=cmap(norm(val)), linewidth=3)
-            
-            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-            sm.set_array([])
-            plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]', shrink=0.8)
-            
-            # Etiqueta con valor máximo y mínimo
-            ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} daN.m", 
-                      transform=ax.transAxes, fontsize=10, fontweight='bold',
-                      va='top', ha='left',
-                      bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
+        valores_subnodos = resultado_analisis.get('valores', {})
+        reacciones = resultado_analisis.get('reacciones', {})
+        
+        return generar_diagrama_plotly_2d(
+            self.geometria, self.conexiones, valores_subnodos, reacciones,
+            self.parametros, tipo, hipotesis, escala
+        )
+    
+    def generar_diagrama_mqnt_interactivo(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False, escala: str = "lineal"):
+        """Genera diagrama combinado MQNT interactivo con Plotly"""
+        from utils.analisis_estatico_plots import generar_diagrama_mqnt_plotly
+        
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        
+        valores_subnodos = resultado_analisis.get('valores', {})
+        reacciones = resultado_analisis.get('reacciones', {})
+        
+        return generar_diagrama_mqnt_plotly(
+            self.geometria, self.conexiones, valores_subnodos, reacciones,
+            self.parametros, hipotesis, graficos_3d, escala
+        )
+    
+    def generar_diagrama_3d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "lineal"):
+        """Genera diagrama 3D con matplotlib"""
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        
+        valores_subnodos = resultado_analisis.get('valores', {})
+        reacciones = resultado_analisis.get('reacciones', {})
+        
+        return generar_diagrama_matplotlib_3d(
+            self.geometria, self.conexiones, valores_subnodos, reacciones,
+            self.parametros, tipo, hipotesis, escala
+        )
+    
+    def generar_diagrama_2d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "lineal"):
+        """Genera diagrama 2D con matplotlib"""
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        
+        valores_subnodos = resultado_analisis.get('valores', {})
+        reacciones = resultado_analisis.get('reacciones', {})
+        
+        return generar_diagrama_matplotlib_2d(
+            self.geometria, self.conexiones, valores_subnodos, reacciones,
+            self.parametros, tipo, hipotesis, escala
+        )
+    
+    def generar_diagrama_mqnt(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False, escala: str = "lineal"):
+        """Genera diagrama combinado MQNT con matplotlib"""
+        if not resultado_analisis:
+            raise ValueError("resultado_analisis vacío - análisis no convergió")
+        
+        valores_subnodos = resultado_analisis.get('valores', {})
+        reacciones = resultado_analisis.get('reacciones', {})
+        
+        return generar_diagrama_mqnt_matplotlib(
+            self.geometria, self.conexiones, valores_subnodos, reacciones,
+            self.parametros, hipotesis, graficos_3d, escala
+        )
 
-            # Reacciones BASE (hasta 4)
-            texto = "REACCIONES BASE:\n"
-            for idx, (nombre, reac) in enumerate(reacciones.items()):
-                if idx >= 4:
-                    break
-                if idx > 0:
-                    texto += "\n"
-                texto += f"{nombre}:\n"
-                texto += f"Fx: {reac['Fx']:.1f} daN\n"
-                texto += f"Fy: {reac['Fy']:.1f} daN\n"
-                texto += f"Fz: {reac['Fz']:.1f} daN\n"
-                texto += f"Mx: {reac['Mx']:.1f} daN·m\n"
-                texto += f"My: {reac['My']:.1f} daN·m\n"
-                texto += f"Mz: {reac['Mz']:.1f} daN·m"
-            ax.text2D(0.02, 0.02, texto, transform=ax.transAxes, fontsize=7, fontweight='bold',
-                     bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
-                     ha='left', va='bottom')
-        
-        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
-        ax.set_ylim(y_c - max_range/2, y_c + max_range/2)
-        ax.set_zlim(z_c - max_range/2, z_c + max_range/2)
-        ax.set_box_aspect([1,1,1])
-        ax.set_xlabel('X [m]')
-        ax.set_ylabel('Y [m]')
-        ax.set_zlabel('Z [m]')
-        ax.set_title(f'{tipo} - {hipotesis}')
-        
-        return fig
     
-    def generar_diagrama_2d(self, resultado_analisis: Dict, tipo: str, hipotesis: str, escala: str = "lineal") -> plt.Figure:
-        """Genera diagrama 2D con gradientes"""
-        if not resultado_analisis:
-            raise ValueError("resultado_analisis vacío - análisis no convergió")
-        
-        # Validar parámetros
-        n_corta = self.parametros.get('n_segmentar_conexion_corta')
-        n_larga = self.parametros.get('n_segmentar_conexion_larga')
-        percentil = self.parametros.get('percentil_separacion_corta_larga')
-        
-        if n_corta is None or n_larga is None or percentil is None:
-            raise ValueError("Faltan parámetros de subdivisión para generar diagrama")
-        
-        fig, ax = plt.subplots(figsize=(12, 8))
-        
-        valores_subnodos = resultado_analisis.get('valores', {})
-        reacciones = resultado_analisis.get('reacciones', {})
-        
-        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
-        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
-        max_range = max(max(x_coords)-min(x_coords), max(z_coords)-min(z_coords))
-        x_c, z_c = sum(x_coords)/len(x_coords), sum(z_coords)/len(z_coords)
-        
-        vals = list(valores_subnodos.values())
-        if vals:
-            vmin, vmax = min(vals), max(vals)
-            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")
-            if escala == "logaritmica":
-                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=vmax)
-            else:
-                norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
-            cmap = plt.cm.jet
-            
-            # Calcular umbral para determinar n_subdiv por conexión
-            longitudes = []
-            for ni, nj in self.conexiones:
-                ci = np.array(self.geometria.nodos[ni].coordenadas)
-                cj = np.array(self.geometria.nodos[nj].coordenadas)
-                longitudes.append(np.linalg.norm(cj - ci))
-            umbral_longitud = np.percentile(longitudes, percentil)
-            
-            for ni, nj in self.conexiones:
-                ci = np.array(self.geometria.nodos[ni].coordenadas)
-                cj = np.array(self.geometria.nodos[nj].coordenadas)
-                longitud = np.linalg.norm(cj - ci)
-                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
-                
-                for sub_idx in range(n_subdiv):
-                    t_i = sub_idx / n_subdiv
-                    t_j = (sub_idx + 1) / n_subdiv
-                    c_i = ci + t_i * (cj - ci)
-                    c_j = ci + t_j * (cj - ci)
-                    
-                    val = valores_subnodos.get(f"{ni}_{nj}_{sub_idx}_i", 0)
-                    ax.plot([c_i[0], c_j[0]], [c_i[2], c_j[2]], color=cmap(norm(val)), linewidth=3)
-            
-            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-            sm.set_array([])
-            plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]')
-            
-            # Etiqueta con valor máximo y mínimo
-            ax.text(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} daN.m", 
-                    transform=ax.transAxes, fontsize=10, fontweight='bold',
-                    va='top', ha='left',
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
-            
-            # Reacciones BASE (hasta 4)
-            texto = "REACCIONES BASE:\n"
-            for idx, (nombre, reac) in enumerate(reacciones.items()):
-                if idx >= 4:
-                    break
-                if idx > 0:
-                    texto += "\n"
-                texto += f"{nombre}:\n"
-                texto += f"Fx: {reac['Fx']:.1f} daN\n"
-                texto += f"Fy: {reac['Fy']:.1f} daN\n"
-                texto += f"Fz: {reac['Fz']:.1f} daN\n"
-                texto += f"Mx: {reac['Mx']:.1f} daN·m\n"
-                texto += f"My: {reac['My']:.1f} daN·m\n"
-                texto += f"Mz: {reac['Mz']:.1f} daN·m"
-            ax.text(0.02, 0.02, texto, transform=ax.transAxes, fontsize=7, fontweight='bold',
-                   bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
-                   ha='left', va='bottom')
-        
-        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
-        ax.set_ylim(z_c - max_range/2, z_c + max_range/2)
-        ax.set_aspect('equal')
-        ax.set_xlabel('X [m]')
-        ax.set_ylabel('Z [m]')
-        ax.set_title(f'{tipo} - {hipotesis}')
-        ax.grid(True, alpha=0.3)
-        
-        return fig
-    
-    def generar_diagrama_mqnt(self, resultado_analisis: Dict, hipotesis: str, graficos_3d: bool = False, escala: str = "lineal") -> plt.Figure:
-        """Genera diagrama combinado Mf, Q, N, T en 2x2 (valores directos de OpenSeesPy en ejes locales)"""
-        if not resultado_analisis:
-            raise ValueError("resultado_analisis vacío - análisis no convergió")
-        
-        fig = plt.figure(figsize=(16, 12))
-        
-        valores_subnodos = resultado_analisis.get('valores', {})
-        reacciones = resultado_analisis.get('reacciones', {})
-        
-        # Extraer valores directos de OpenSeesPy (índices 4-9 son los valores crudos del nodo i)
-        # fuerzas_locales = [N, Qy, Qz, Mx, My, Mz, ...]
-        # Calcular magnitudes:
-        # Mf = sqrt(My² + Mz²)  -> índices [8, 9]
-        # Q = sqrt(Qy² + Qz²)   -> índices [5, 6]
-        # N = N                 -> índice [4]
-        # T = Mx                -> índice [7]
-        
-        valores_mf = {}  # Momento flector: sqrt(My² + Mz²)
-        valores_q = {}   # Cortante: sqrt(Qy² + Qz²)
-        valores_n = {}   # Normal: N
-        valores_t = {}   # Torsor: Mx
-        
-        for k, v in valores_subnodos.items():
-            if isinstance(v, np.ndarray) and len(v) >= 10:
-                # v[0]=N, v[1]=Q, v[2]=M, v[3]=T (ya calculados)
-                # v[4]=N, v[5]=Qy, v[6]=Qz, v[7]=Mx, v[8]=My, v[9]=Mz (componentes)
-                My = v[8]
-                Mz = v[9]
-                Qy = v[5]
-                Qz = v[6]
-                N = v[4]
-                Mx = v[7]
-                
-                valores_mf[k] = float(np.sqrt(My**2 + Mz**2))
-                valores_q[k] = float(np.sqrt(Qy**2 + Qz**2))
-                valores_n[k] = float(abs(N))
-                valores_t[k] = float(abs(Mx))
-        
-        configs = [
-            (valores_mf, 'Momento Flector (Mf)', 'daN.m', 221),
-            (valores_q, 'Esfuerzo Cortante (Q)', 'daN', 222),
-            (valores_n, 'Esfuerzo Normal (N)', 'daN', 223),
-            (valores_t, 'Momento Torsor (T)', 'daN.m', 224)
-        ]
-        
-        for valores_dict, titulo, unidad, subplot_pos in configs:
-            if graficos_3d:
-                ax = fig.add_subplot(subplot_pos, projection='3d')
-                self._dibujar_3d(ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala)
-            else:
-                ax = fig.add_subplot(subplot_pos)
-                self._dibujar_2d(ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala)
-        
-        plt.tight_layout()
-        return fig
-    
-    def _dibujar_3d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala="lineal"):
-        """Dibuja subplot 3D con subelementos y reacciones"""
-        # Validar parámetros
-        n_corta = self.parametros.get('n_segmentar_conexion_corta')
-        n_larga = self.parametros.get('n_segmentar_conexion_larga')
-        percentil = self.parametros.get('percentil_separacion_corta_larga')
-        
-        if n_corta is None or n_larga is None or percentil is None:
-            raise ValueError("Faltan parámetros de subdivisión para dibujar")
-        
-        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
-        y_coords = [n.coordenadas[1] for n in self.geometria.nodos.values()]
-        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
-        
-        max_range = max(max(x_coords)-min(x_coords), max(y_coords)-min(y_coords), max(z_coords)-min(z_coords))
-        x_c, y_c, z_c = sum(x_coords)/len(x_coords), sum(y_coords)/len(y_coords), sum(z_coords)/len(z_coords)
-        
-        vals = list(valores_dict.values())
-        if vals:
-            vmin, vmax = min(vals), max(vals)
-            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")
-            if escala == "logaritmica":
-                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=vmax)
-            else:
-                norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
-            cmap = plt.cm.jet
-            
-            # Encontrar elemento con valor máximo
-            nodo_max = max(valores_dict, key=valores_dict.get)
-            coord_max = None
-            
-            # Calcular umbral
-            longitudes = []
-            for ni, nj in self.conexiones:
-                ci = np.array(self.geometria.nodos[ni].coordenadas)
-                cj = np.array(self.geometria.nodos[nj].coordenadas)
-                longitudes.append(np.linalg.norm(cj - ci))
-            umbral_longitud = np.percentile(longitudes, percentil)
-            
-            # Dibujar TODOS los subelementos
-            for ni, nj in self.conexiones:
-                ci = np.array(self.geometria.nodos[ni].coordenadas)
-                cj = np.array(self.geometria.nodos[nj].coordenadas)
-                longitud = np.linalg.norm(cj - ci)
-                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
-                
-                for sub_idx in range(n_subdiv):
-                    t_i = sub_idx / n_subdiv
-                    t_j = (sub_idx + 1) / n_subdiv
-                    c_i = ci + t_i * (cj - ci)
-                    c_j = ci + t_j * (cj - ci)
-                    
-                    key = f"{ni}_{nj}_{sub_idx}_i"
-                    val = valores_dict.get(key, 0)
-                    ax.plot([c_i[0], c_j[0]], [c_i[1], c_j[1]], [c_i[2], c_j[2]], 
-                           color=cmap(norm(val)), linewidth=3)
-                    
-                    # Guardar coordenada del máximo
-                    if key == nodo_max:
-                        coord_max = (c_i + c_j) / 2
-            
-            # Marcar elemento máximo con círculo rojo
-            if coord_max is not None:
-                ax.scatter([coord_max[0]], [coord_max[1]], [coord_max[2]], 
-                          c='red', s=50, marker='o', edgecolors='darkred', zorder=10)
-            
-            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-            sm.set_array([])
-            cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}', shrink=0.6)
-            cbar.ax.axhline(y=1.0, color='r', linewidth=3)
-            
-            # Etiqueta con valor máximo y mínimo
-            ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} {unidad}", 
-                      transform=ax.transAxes, fontsize=10, fontweight='bold',
-                      va='top', ha='left',
-                      bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
-            
-            # Reacciones BASE (hasta 4)
-            texto = "REACCIONES BASE:\n"
-            for idx, (nombre, reac) in enumerate(reacciones.items()):
-                if idx >= 4:
-                    break
-                if idx > 0:
-                    texto += "\n"
-                texto += f"{nombre}:\n"
-                texto += f"Fx: {reac['Fx']:.1f} daN\n"
-                texto += f"Fy: {reac['Fy']:.1f} daN\n"
-                texto += f"Fz: {reac['Fz']:.1f} daN\n"
-                texto += f"Mx: {reac['Mx']:.1f} daN·m\n"
-                texto += f"My: {reac['My']:.1f} daN·m\n"
-                texto += f"Mz: {reac['Mz']:.1f} daN·m"
-            ax.text2D(0.02, 0.02, texto, transform=ax.transAxes, fontsize=7, fontweight='bold',
-                     bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
-                     ha='left', va='bottom')
-        
-        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
-        ax.set_ylim(y_c - max_range/2, y_c + max_range/2)
-        ax.set_zlim(z_c - max_range/2, z_c + max_range/2)
-        ax.set_box_aspect([1,1,1])
-        ax.set_xlabel('X [m]')
-        ax.set_ylabel('Y [m]')
-        ax.set_zlabel('Z [m]')
-        ax.set_title(f'{titulo} - {hipotesis}')
-    
-    def _dibujar_2d(self, ax, valores_dict, valores_subnodos, titulo, unidad, hipotesis, reacciones, escala="lineal"):
-        """Dibuja subplot 2D con subelementos y reacciones"""
-        # Validar parámetros
-        n_corta = self.parametros.get('n_segmentar_conexion_corta')
-        n_larga = self.parametros.get('n_segmentar_conexion_larga')
-        percentil = self.parametros.get('percentil_separacion_corta_larga')
-        
-        if n_corta is None or n_larga is None or percentil is None:
-            raise ValueError("Faltan parámetros de subdivisión para dibujar")
-        
-        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
-        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
-        max_range = max(max(x_coords)-min(x_coords), max(z_coords)-min(z_coords))
-        x_c, z_c = sum(x_coords)/len(x_coords), sum(z_coords)/len(z_coords)
-        
-        vals = list(valores_dict.values())
-        if vals:
-            vmin, vmax = min(vals), max(vals)
-            print(f"DEBUG: escala={escala}, vmin={vmin:.2f}, vmax={vmax:.2f}")
-            if escala == "logaritmica":
-                norm = mcolors.LogNorm(vmin=max(vmin, 0.1), vmax=vmax)
-            else:
-                norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
-            cmap = plt.cm.jet
-            
-            # Encontrar elemento con valor máximo
-            nodo_max = max(valores_dict, key=valores_dict.get)
-            coord_max = None
-            
-            # Calcular umbral
-            longitudes = []
-            for ni, nj in self.conexiones:
-                ci = np.array(self.geometria.nodos[ni].coordenadas)
-                cj = np.array(self.geometria.nodos[nj].coordenadas)
-                longitudes.append(np.linalg.norm(cj - ci))
-            umbral_longitud = np.percentile(longitudes, percentil)
-            
-            # Dibujar TODOS los subelementos
-            for ni, nj in self.conexiones:
-                ci = np.array(self.geometria.nodos[ni].coordenadas)
-                cj = np.array(self.geometria.nodos[nj].coordenadas)
-                longitud = np.linalg.norm(cj - ci)
-                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
-                
-                for sub_idx in range(n_subdiv):
-                    t_i = sub_idx / n_subdiv
-                    t_j = (sub_idx + 1) / n_subdiv
-                    c_i = ci + t_i * (cj - ci)
-                    c_j = ci + t_j * (cj - ci)
-                    
-                    key = f"{ni}_{nj}_{sub_idx}_i"
-                    val = valores_dict.get(key, 0)
-                    ax.plot([c_i[0], c_j[0]], [c_i[2], c_j[2]], color=cmap(norm(val)), linewidth=3)
-                    
-                    # Guardar coordenada del máximo
-                    if key == nodo_max:
-                        coord_max = ((c_i[0] + c_j[0]) / 2, (c_i[2] + c_j[2]) / 2)
-            
-            # Marcar elemento máximo con círculo rojo
-            if coord_max is not None:
-                ax.scatter([coord_max[0]], [coord_max[1]], 
-                          c='red', s=50, marker='o', edgecolors='darkred', zorder=10)
-            
-            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-            sm.set_array([])
-            cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}')
-            cbar.ax.axhline(y=1.0, color='r', linewidth=3)
-            
-            # Etiqueta con valor máximo y mínimo
-            ax.text(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} {unidad}", 
-                    transform=ax.transAxes, fontsize=10, fontweight='bold',
-                    va='top', ha='left',
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
-            
-            # Reacciones BASE (hasta 4)
-            texto = "REACCIONES BASE:\n"
-            for idx, (nombre, reac) in enumerate(reacciones.items()):
-                if idx >= 4:
-                    break
-                if idx > 0:
-                    texto += "\n"
-                texto += f"{nombre}:\n"
-                texto += f"Fx: {reac['Fx']:.1f} daN\n"
-                texto += f"Fy: {reac['Fy']:.1f} daN\n"
-                texto += f"Fz: {reac['Fz']:.1f} daN\n"
-                texto += f"Mx: {reac['Mx']:.1f} daN·m\n"
-                texto += f"My: {reac['My']:.1f} daN·m\n"
-                texto += f"Mz: {reac['Mz']:.1f} daN·m"
-            ax.text(0.02, 0.02, texto, transform=ax.transAxes, fontsize=7, fontweight='bold', 
-                   zorder=1000, color='black',
-                   bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
-                   ha='left', va='bottom')
-        
-        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
-        ax.set_ylim(z_c - max_range/2, z_c + max_range/2)
-        ax.set_aspect('equal')
-        ax.set_xlabel('X [m]')
-        ax.set_ylabel('Z [m]')
-        ax.set_title(f'{titulo} - {hipotesis}')
-        ax.grid(True, alpha=0.3)
-    
-    def generar_diagrama_ejes_locales(self, elementos_dict: Dict, hipotesis: str) -> plt.Figure:
+    def generar_diagrama_ejes_locales(self, elementos_dict: Dict, hipotesis: str):
         """Genera diagrama 3D mostrando ejes locales de elementos"""
-        fig = plt.figure(figsize=(14, 10))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        x_coords = [n.coordenadas[0] for n in self.geometria.nodos.values()]
-        y_coords = [n.coordenadas[1] for n in self.geometria.nodos.values()]
-        z_coords = [n.coordenadas[2] for n in self.geometria.nodos.values()]
-        
-        max_range = max(max(x_coords)-min(x_coords), max(y_coords)-min(y_coords), max(z_coords)-min(z_coords))
-        x_c, y_c, z_c = sum(x_coords)/len(x_coords), sum(y_coords)/len(y_coords), sum(z_coords)/len(z_coords)
-        
-        # Dibujar estructura
-        for ni, nj in self.conexiones:
-            ci = np.array(self.geometria.nodos[ni].coordenadas)
-            cj = np.array(self.geometria.nodos[nj].coordenadas)
-            ax.plot([ci[0], cj[0]], [ci[1], cj[1]], [ci[2], cj[2]], 'k-', linewidth=2, alpha=0.3)
-        
-        # Dibujar ejes locales (cada 3 elementos para claridad)
-        escala = max_range * 0.1
-        for eid, data in list(elementos_dict.items())[::3]:
-            ni, nj, _ = data['origen']
-            ci = np.array(self.geometria.nodos[ni].coordenadas)
-            cj = np.array(self.geometria.nodos[nj].coordenadas)
-            centro = (ci + cj) / 2
-            
-            ejes = data['ejes_locales']
-            
-            # Eje X local (rojo) - dirección del elemento
-            ax.quiver(centro[0], centro[1], centro[2],
-                     ejes[0,0]*escala, ejes[1,0]*escala, ejes[2,0]*escala,
-                     color='red', arrow_length_ratio=0.3, linewidth=2)
-            
-            # Eje Y local (verde)
-            ax.quiver(centro[0], centro[1], centro[2],
-                     ejes[0,1]*escala, ejes[1,1]*escala, ejes[2,1]*escala,
-                     color='green', arrow_length_ratio=0.3, linewidth=2)
-            
-            # Eje Z local (azul)
-            ax.quiver(centro[0], centro[1], centro[2],
-                     ejes[0,2]*escala, ejes[1,2]*escala, ejes[2,2]*escala,
-                     color='blue', arrow_length_ratio=0.3, linewidth=2)
-        
-        ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
-        ax.set_ylim(y_c - max_range/2, y_c + max_range/2)
-        ax.set_zlim(z_c - max_range/2, z_c + max_range/2)
-        ax.set_box_aspect([1,1,1])
-        ax.set_xlabel('X [m]')
-        ax.set_ylabel('Y [m]')
-        ax.set_zlabel('Z [m]')
-        ax.set_title(f'Ejes Locales de Elementos - {hipotesis}\nRojo=X(long), Verde=Y, Azul=Z')
-        
-        return fig
+        return generar_diagrama_ejes_locales_matplotlib(
+            self.geometria, self.conexiones, elementos_dict, hipotesis
+        )
     
 
 

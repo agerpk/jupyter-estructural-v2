@@ -1137,6 +1137,27 @@ class ParametrosManager:
             "tipo": "bool",
             "categoria": "AEE"
         },
+        "AnalisisEstaticoEsfuerzos.escala_graficos": {
+            "simbolo": "escala",
+            "unidad": "-",
+            "descripcion": "Escala gráficos (lineal/logaritmica)",
+            "tipo": "select",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.mostrar_tablas_resultados_por_elemento": {
+            "simbolo": "TablasElem",
+            "unidad": "-",
+            "descripcion": "Mostrar tablas detalladas por elemento",
+            "tipo": "bool",
+            "categoria": "AEE"
+        },
+        "AnalisisEstaticoEsfuerzos.plots_interactivos": {
+            "simbolo": "Interactivo",
+            "unidad": "-",
+            "descripcion": "Gráficos interactivos (Plotly JSON)",
+            "tipo": "bool",
+            "categoria": "AEE"
+        },
         
         # PARÁMETROS DE COSTEO
         "costeo.postes.coef_a": {

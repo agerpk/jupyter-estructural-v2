@@ -195,8 +195,11 @@
       "MFE": true
     },
     "GRAFICOS_3D_AEE": true,
+    "escala_graficos": "logaritmica",
     "n_segmentar_conexion_corta": 10,
     "n_segmentar_conexion_larga": 30,
-    "percentil_separacion_corta_larga": 50
+    "percentil_separacion_corta_larga": 50,
+    "mostrar_tablas_resultados_por_elemento": false,
+    "plots_interactivos": true
   }
 }

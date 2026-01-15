@@ -18,7 +18,7 @@ def ejecutar_calculo_familia_completa(familia_data: Dict, generar_plots: bool = 
     Retorna resultados por estructura y costeo global
     """
     if calculos_activos is None:
-        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo", "aee"]
     
     nombre_familia = familia_data.get("nombre_familia", "familia")
     print(f"\n🚀 INICIANDO CÁLCULO FAMILIA: {nombre_familia}")
@@ -104,11 +104,11 @@ def _cargar_familia(nombre_familia: str) -> Dict:
 
 def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str, generar_plots: bool = True, calculos_activos: List[str] = None) -> Dict:
     """
-    Ejecuta secuencia completa CMC>DGE>DME>Árboles>SPH>Fundación>Costeo
+    Ejecuta secuencia completa CMC>DGE>DME>Árboles>SPH>Fundación>Costeo>AEE
     para una estructura individual creando archivos temporales completos
     """
     if calculos_activos is None:
-        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo", "aee"]
     try:
         # DEBUG: Mostrar datos recibidos
         print(f"\n📋 DEBUG: Datos recibidos para {titulo}:")
@@ -224,6 +224,16 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str, generar_
                 else:
                     print(f"   ❌ Error Costeo para {titulo}: {resultado_costeo.get('mensaje')}")
                     return {"exito": False, "mensaje": f"Error Costeo: {resultado_costeo.get('mensaje')}"}
+            
+            # 8. AEE
+            if "aee" in calculos_activos:
+                from controllers.ejecutar_calculos import ejecutar_calculo_aee
+                resultado_aee = ejecutar_calculo_aee(datos_estructura, state, generar_plots)
+                if resultado_aee.get('exito'):
+                    resultados["aee"] = CalculoCache.cargar_calculo_aee(titulo)
+                    print(f"✅ AEE completado para {titulo}")
+                else:
+                    return {"exito": False, "mensaje": f"Error AEE: {resultado_aee.get('mensaje')}"}
             
             return {
                 "exito": True,
@@ -351,7 +361,7 @@ def generar_vista_resultados_familia(resultados_familia: Dict, calculos_activos:
     import dash_bootstrap_components as dbc
     
     if calculos_activos is None:
-        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo", "aee"]
     
     if not resultados_familia.get("resultados_estructuras"):
         return [dbc.Alert("No hay resultados para mostrar", color="warning")]
@@ -395,7 +405,7 @@ def _crear_contenido_estructura(datos_estructura: Dict, calculos_activos: List[s
     import dash_bootstrap_components as dbc
     
     if calculos_activos is None:
-        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo"]
+        calculos_activos = ["cmc", "dge", "dme", "arboles", "sph", "fundacion", "costeo", "aee"]
     
     print(f"\n🔍 DEBUG _crear_contenido_estructura:")
     print(f"   Keys en datos_estructura: {list(datos_estructura.keys())}")
@@ -555,6 +565,26 @@ def _crear_contenido_estructura(datos_estructura: Dict, calculos_activos: List[s
             except Exception as e:
                 print(f"   ❌ Error en Costeo: {e}")
                 componentes.append(dbc.Alert(f"Error en Costeo: {e}", color="warning"))
+        
+        # AEE
+        if "aee" in calculos_activos and "aee" in resultados and resultados["aee"]:
+            print(f"   ✅ Generando AEE...")
+            from components.vista_analisis_estatico import generar_resultados_aee
+            componentes.append(html.H4("8. Análisis Estático de Esfuerzos"))
+            componentes.append(html.Hr())
+            try:
+                aee_content = generar_resultados_aee(resultados["aee"], {})
+                if aee_content:
+                    if isinstance(aee_content, list):
+                        componentes.extend(aee_content)
+                    else:
+                        componentes.append(aee_content)
+                    print(f"   ✅ AEE agregado")
+                else:
+                    print(f"   ⚠️ AEE retornó None")
+            except Exception as e:
+                print(f"   ❌ Error en AEE: {e}")
+                componentes.append(dbc.Alert(f"Error en AEE: {e}", color="warning"))
         
         print(f"   📊 Total componentes generados: {len(componentes)}")
         

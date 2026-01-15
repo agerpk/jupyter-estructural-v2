@@ -61,7 +61,7 @@ def crear_vista_analisis_estatico(estructura_actual=None, calculo_guardado=None)
                         value=aee_params.get('n_segmentar_conexion_larga', 30),
                         min=10, max=100, step=1
                     )
-                ], width=6),
+                ], width=4),
                 dbc.Col([
                     html.Label("Percentil separacion"),
                     dbc.Input(
@@ -70,7 +70,23 @@ def crear_vista_analisis_estatico(estructura_actual=None, calculo_guardado=None)
                         value=aee_params.get('percentil_separacion_corta_larga', 50),
                         min=0, max=100, step=1
                     )
-                ], width=6)
+                ], width=4),
+                dbc.Col([
+                    html.Label("Mostrar tablas elemento"),
+                    dbc.Switch(
+                        id="aee-mostrar-tablas",
+                        value=aee_params.get('mostrar_tablas_resultados_por_elemento', False)
+                    )
+                ], width=4)
+            ], className="mb-3"),
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Plots interactivos"),
+                    dbc.Switch(
+                        id="aee-plots-interactivos",
+                        value=aee_params.get('plots_interactivos', True)
+                    )
+                ], width=4)
             ], className="mb-3"),
             html.Label("Diagramas activos:"),
             dbc.Checklist(
@@ -256,12 +272,40 @@ def generar_resultados_aee(calculo_guardado, estructura_actual):
     # Seccion de diagramas
     diagramas = resultados.get('diagramas', {})
     esfuerzos = resultados.get('esfuerzos', {})
+    plots_interactivos = estructura_actual.get('AnalisisEstaticoEsfuerzos', {}).get('plots_interactivos', True) if estructura_actual else True
+    
+    # Resumen Comparativo
+    if resultados.get('resumen_comparativo'):
+        df_dict = resultados['resumen_comparativo']
+        df_resumen = pd.DataFrame(df_dict['data'], columns=df_dict['columns'])
+        
+        componentes.append(html.H5("Resumen Comparativo - Maximos por Conexion", className="mt-4 mb-3"))
+        componentes.append(dbc.Table.from_dataframe(
+            df_resumen,
+            striped=True,
+            bordered=True,
+            hover=True,
+            size="sm"
+        ))
     
     if diagramas:
         componentes.append(html.H5("Diagramas de Esfuerzos", className="mt-4 mb-3"))
         
-        # Cargar imagenes de diagramas
         for nombre_diagrama in diagramas.keys():
+            # Intentar cargar JSON si plots_interactivos
+            if plots_interactivos:
+                json_filename = f"AEE_{nombre_diagrama}.{hash_params}.json"
+                fig_dict = ViewHelpers.cargar_figura_plotly_json(json_filename)
+                
+                if fig_dict:
+                    componentes.append(html.H6(nombre_diagrama.replace('_', ' '), className="mt-3"))
+                    componentes.append(dcc.Graph(
+                        figure=fig_dict,
+                        config={'displayModeBar': True}
+                    ))
+                    continue
+            
+            # Fallback a PNG
             img_filename = f"AEE_{nombre_diagrama}.{hash_params}.png"
             img_str = ViewHelpers.cargar_imagen_base64(img_filename)
             
@@ -275,9 +319,12 @@ def generar_resultados_aee(calculo_guardado, estructura_actual):
                 ]))
     else:
         componentes.append(html.P("No se generaron diagramas.", className="text-muted"))
+
     
     # Tablas de resultados por hipótesis
-    if esfuerzos:
+    mostrar_tablas = estructura_actual.get('AnalisisEstaticoEsfuerzos', {}).get('mostrar_tablas_resultados_por_elemento', False) if estructura_actual else False
+    
+    if mostrar_tablas and esfuerzos:
         componentes.append(html.H5("Resultados por Elemento", className="mt-4 mb-3"))
         
         for hip_nombre, hip_data in esfuerzos.items():

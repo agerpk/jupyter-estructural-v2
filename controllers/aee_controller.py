@@ -42,10 +42,12 @@ def register_callbacks(app):
          State("aee-n-corta", "value"),
          State("aee-n-larga", "value"),
          State("aee-percentil", "value"),
-         State("aee-diagramas", "value")],
+         State("aee-diagramas", "value"),
+         State("aee-mostrar-tablas", "value"),
+         State("aee-plots-interactivos", "value")],
         prevent_initial_call=True
     )
-    def guardar_parametros_aee(n_clicks, estructura_actual, graficos_3d, escala_graficos, n_corta, n_larga, percentil, diagramas):
+    def guardar_parametros_aee(n_clicks, estructura_actual, graficos_3d, escala_graficos, n_corta, n_larga, percentil, diagramas, mostrar_tablas, plots_interactivos):
         """Guarda parametros AEE en estructura"""
         
         if n_clicks is None:
@@ -70,6 +72,8 @@ def register_callbacks(app):
             estructura_actual['AnalisisEstaticoEsfuerzos']['n_segmentar_conexion_corta'] = n_corta
             estructura_actual['AnalisisEstaticoEsfuerzos']['n_segmentar_conexion_larga'] = n_larga
             estructura_actual['AnalisisEstaticoEsfuerzos']['percentil_separacion_corta_larga'] = percentil
+            estructura_actual['AnalisisEstaticoEsfuerzos']['mostrar_tablas_resultados_por_elemento'] = mostrar_tablas
+            estructura_actual['AnalisisEstaticoEsfuerzos']['plots_interactivos'] = plots_interactivos
             
             # Actualizar diagramas activos
             estructura_actual['AnalisisEstaticoEsfuerzos']['DIAGRAMAS_ACTIVOS'] = {
@@ -203,6 +207,70 @@ def register_callbacks(app):
             traceback.print_exc()
             return no_update, True, "Error", f"Error cargando cache: {str(e)}", "danger", "danger"
 
+def generar_resumen_comparativo(resultados, geometria):
+    """Genera resumen comparativo con maximos por conexion"""
+    import pandas as pd
+    
+    esfuerzos = resultados.get('esfuerzos', {})
+    
+    maximos_por_conexion = {}
+    
+    for hip_nombre, hip_data in esfuerzos.items():
+        if 'df_resultados' not in hip_data:
+            continue
+        
+        df_dict = hip_data['df_resultados']
+        df = pd.DataFrame(df_dict['data'], columns=df_dict['columns'])
+        
+        for _, row in df.iterrows():
+            nodo_i = row['Nodo_Inicio']
+            nodo_j = row['Nodo_Fin']
+            key = (nodo_i, nodo_j)
+            
+            if key not in maximos_por_conexion:
+                maximos_por_conexion[key] = {
+                    'M_max': 0, 'M_hip': '',
+                    'Q_max': 0, 'Q_hip': '',
+                    'N_max': 0, 'N_hip': '',
+                    'T_max': 0, 'T_hip': '',
+                    'tipo': row.get('Tipo', 'N/A')
+                }
+            
+            if abs(row['M_daN_m']) > abs(maximos_por_conexion[key]['M_max']):
+                maximos_por_conexion[key]['M_max'] = row['M_daN_m']
+                maximos_por_conexion[key]['M_hip'] = hip_nombre
+            
+            if abs(row['Q_daN']) > abs(maximos_por_conexion[key]['Q_max']):
+                maximos_por_conexion[key]['Q_max'] = row['Q_daN']
+                maximos_por_conexion[key]['Q_hip'] = hip_nombre
+            
+            if abs(row['N_daN']) > abs(maximos_por_conexion[key]['N_max']):
+                maximos_por_conexion[key]['N_max'] = row['N_daN']
+                maximos_por_conexion[key]['N_hip'] = hip_nombre
+            
+            if abs(row['T_daN_m']) > abs(maximos_por_conexion[key]['T_max']):
+                maximos_por_conexion[key]['T_max'] = row['T_daN_m']
+                maximos_por_conexion[key]['T_hip'] = hip_nombre
+    
+    filas = []
+    for (nodo_i, nodo_j), maximos in maximos_por_conexion.items():
+        filas.append({
+            'Nodo Inicio': nodo_i,
+            'Nodo Fin': nodo_j,
+            'Tipo Conexion': maximos['tipo'],
+            'Momento Flector [daN.m]': f"{maximos['M_max']:.2f}",
+            'Hipotesis M': maximos['M_hip'],
+            'Corte [daN]': f"{maximos['Q_max']:.2f}",
+            'Hipotesis Q': maximos['Q_hip'],
+            'Axial [daN]': f"{maximos['N_max']:.2f}",
+            'Hipotesis N': maximos['N_hip'],
+            'Torsion [daN.m]': f"{maximos['T_max']:.2f}",
+            'Hipotesis T': maximos['T_hip']
+        })
+    
+    df_resumen = pd.DataFrame(filas)
+    return df_resumen
+
 def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
     """Ejecuta analisis estatico de esfuerzos (unidades: daN, daN.m)"""
     import matplotlib.pyplot as plt
@@ -325,6 +393,7 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
     diagramas_activos = parametros_aee.get('DIAGRAMAS_ACTIVOS', {})
     graficos_3d = parametros_aee.get('GRAFICOS_3D_AEE', True)
     escala_graficos = parametros_aee.get('escala_graficos', 'logaritmica')
+    plots_interactivos = parametros_aee.get('plots_interactivos', True)
     
     for hip in hipotesis:
         print(f"  -> Analizando hipotesis: {hip}")
@@ -369,18 +438,38 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
             # Generar diagramas MQNT
             if diagramas_activos.get('MQNT', True):
                 try:
-                    fig = analizador.generar_diagrama_mqnt(esfuerzos, hip, graficos_3d, escala_graficos)
-                    
-                    from pathlib import Path
-                    filename = f"AEE_MQNT_{hip}.{hash_params}.png"
-                    filepath = Path("data/cache") / filename
-                    filepath.parent.mkdir(parents=True, exist_ok=True)
-                    fig.savefig(str(filepath), dpi=150, bbox_inches='tight')
-                    plt.close(fig)
-                    
-                    # Guardar referencia en resultados
-                    resultados['diagramas'][f'MQNT_{hip}'] = filename
-                    print(f"✅ Diagrama MQNT guardado: {filename}")
+                    if plots_interactivos:
+                        # Generar figura Plotly interactiva
+                        fig = analizador.generar_diagrama_mqnt_interactivo(esfuerzos, hip, graficos_3d, escala_graficos)
+                        
+                        from pathlib import Path
+                        filename_png = f"AEE_MQNT_{hip}.{hash_params}.png"
+                        filename_json = f"AEE_MQNT_{hip}.{hash_params}.json"
+                        filepath_png = Path("data/cache") / filename_png
+                        filepath_json = Path("data/cache") / filename_json
+                        filepath_png.parent.mkdir(parents=True, exist_ok=True)
+                        
+                        # Guardar PNG + JSON
+                        fig.write_image(str(filepath_png), width=1200, height=800)
+                        fig.write_json(str(filepath_json))
+                        
+                        resultados['diagramas'][f'MQNT_{hip}'] = filename_png
+                        print(f"✅ Diagrama MQNT interactivo guardado: {filename_png} + {filename_json}")
+                    else:
+                        # Generar figura matplotlib estática
+                        fig = analizador.generar_diagrama_mqnt(esfuerzos, hip, graficos_3d, escala_graficos)
+                        
+                        from pathlib import Path
+                        filename_png = f"AEE_MQNT_{hip}.{hash_params}.png"
+                        filepath_png = Path("data/cache") / filename_png
+                        filepath_png.parent.mkdir(parents=True, exist_ok=True)
+                        
+                        # Guardar solo PNG
+                        fig.savefig(str(filepath_png), dpi=150, bbox_inches='tight')
+                        plt.close(fig)
+                        
+                        resultados['diagramas'][f'MQNT_{hip}'] = filename_png
+                        print(f"✅ Diagrama MQNT estático guardado: {filename_png}")
                 except Exception as e:
                     print(f"❌ Error guardando MQNT para {hip}: {e}")
                     import traceback
@@ -389,51 +478,87 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
             # Generar diagramas segun configuracion
             if diagramas_activos.get('MRT', True):
                 valores_mrt = analizador.calcular_momento_resultante_total(esfuerzos)
-                # Convertir a formato serializable
                 valores_mrt_serializables = _make_serializable(valores_mrt)
                 resultados['diagramas'][f'MRT_{hip}'] = valores_mrt_serializables
                 
-                # Generar grafico estatico (PNG)
                 try:
-                    if graficos_3d:
-                        fig = analizador.generar_diagrama_3d(valores_mrt, 'MRT', hip, escala_graficos)
+                    if plots_interactivos:
+                        # Generar figura Plotly interactiva
+                        if graficos_3d:
+                            fig = analizador.generar_diagrama_3d_interactivo(valores_mrt, 'MRT', hip, escala_graficos)
+                        else:
+                            fig = analizador.generar_diagrama_2d_interactivo(valores_mrt, 'MRT', hip, escala_graficos)
+                        
+                        from pathlib import Path
+                        filename_png = f"AEE_MRT_{hip}.{hash_params}.png"
+                        filename_json = f"AEE_MRT_{hip}.{hash_params}.json"
+                        filepath_png = Path("data/cache") / filename_png
+                        filepath_json = Path("data/cache") / filename_json
+                        filepath_png.parent.mkdir(parents=True, exist_ok=True)
+                        
+                        # Guardar PNG + JSON
+                        fig.write_image(str(filepath_png), width=1200, height=600)
+                        fig.write_json(str(filepath_json))
+                        
+                        resultados['diagramas'][f'MRT_{hip}'] = filename_png
                     else:
-                        fig = analizador.generar_diagrama_2d(valores_mrt, 'MRT', hip, escala_graficos)
-                    
-                    # Guardar PNG directamente
-                    from pathlib import Path
-                    filename = f"AEE_MRT_{hip}.{hash_params}.png"
-                    filepath = Path("data/cache") / filename
-                    filepath.parent.mkdir(parents=True, exist_ok=True)
-                    fig.savefig(str(filepath), dpi=150, bbox_inches='tight')
-                    plt.close(fig)
-                    # Registrar nombre de archivo en resultados para que la vista pueda cargar la imagen
-                    resultados['diagramas'][f'MRT_{hip}'] = filename
+                        # Generar figura matplotlib estática
+                        if graficos_3d:
+                            fig = analizador.generar_diagrama_3d(valores_mrt, 'MRT', hip, escala_graficos)
+                        else:
+                            fig = analizador.generar_diagrama_2d(valores_mrt, 'MRT', hip, escala_graficos)
+                        
+                        from pathlib import Path
+                        filename_png = f"AEE_MRT_{hip}.{hash_params}.png"
+                        filepath_png = Path("data/cache") / filename_png
+                        filepath_png.parent.mkdir(parents=True, exist_ok=True)
+                        
+                        fig.savefig(str(filepath_png), dpi=150, bbox_inches='tight')
+                        plt.close(fig)
+                        resultados['diagramas'][f'MRT_{hip}'] = filename_png
                 except Exception as e:
                     print(f"Error guardando MRT para {hip}: {e}")
             
             if diagramas_activos.get('MFE', True):
                 valores_mfe = analizador.calcular_momento_flector_equivalente(esfuerzos)
-                # Convertir a formato serializable
                 valores_mfe_serializables = _make_serializable(valores_mfe)
                 resultados['diagramas'][f'MFE_{hip}'] = valores_mfe_serializables
                 
-                # Generar grafico estatico (PNG)
                 try:
-                    if graficos_3d:
-                        fig = analizador.generar_diagrama_3d(valores_mfe, 'MFE', hip, escala_graficos)
+                    if plots_interactivos:
+                        # Generar figura Plotly interactiva
+                        if graficos_3d:
+                            fig = analizador.generar_diagrama_3d_interactivo(valores_mfe, 'MFE', hip, escala_graficos)
+                        else:
+                            fig = analizador.generar_diagrama_2d_interactivo(valores_mfe, 'MFE', hip, escala_graficos)
+                        
+                        from pathlib import Path
+                        filename_png = f"AEE_MFE_{hip}.{hash_params}.png"
+                        filename_json = f"AEE_MFE_{hip}.{hash_params}.json"
+                        filepath_png = Path("data/cache") / filename_png
+                        filepath_json = Path("data/cache") / filename_json
+                        filepath_png.parent.mkdir(parents=True, exist_ok=True)
+                        
+                        # Guardar PNG + JSON
+                        fig.write_image(str(filepath_png), width=1200, height=600)
+                        fig.write_json(str(filepath_json))
+                        
+                        resultados['diagramas'][f'MFE_{hip}'] = filename_png
                     else:
-                        fig = analizador.generar_diagrama_2d(valores_mfe, 'MFE', hip, escala_graficos)
-                    
-                    # Guardar PNG directamente
-                    from pathlib import Path
-                    filename = f"AEE_MFE_{hip}.{hash_params}.png"
-                    filepath = Path("data/cache") / filename
-                    filepath.parent.mkdir(parents=True, exist_ok=True)
-                    fig.savefig(str(filepath), dpi=150, bbox_inches='tight')
-                    plt.close(fig)
-                    # Registrar nombre de archivo en resultados para que la vista pueda cargar la imagen
-                    resultados['diagramas'][f'MFE_{hip}'] = filename
+                        # Generar figura matplotlib estática
+                        if graficos_3d:
+                            fig = analizador.generar_diagrama_3d(valores_mfe, 'MFE', hip, escala_graficos)
+                        else:
+                            fig = analizador.generar_diagrama_2d(valores_mfe, 'MFE', hip, escala_graficos)
+                        
+                        from pathlib import Path
+                        filename_png = f"AEE_MFE_{hip}.{hash_params}.png"
+                        filepath_png = Path("data/cache") / filename_png
+                        filepath_png.parent.mkdir(parents=True, exist_ok=True)
+                        
+                        fig.savefig(str(filepath_png), dpi=150, bbox_inches='tight')
+                        plt.close(fig)
+                        resultados['diagramas'][f'MFE_{hip}'] = filename_png
                 except Exception as e:
                     print(f"Error guardando MFE para {hip}: {e}")
                 
@@ -462,6 +587,14 @@ def ejecutar_analisis_aee(estructura_actual, calculo_dge, calculo_dme):
             print(f"✅ DataFrame de reacciones guardado: {len(df_reacciones)} hipótesis")
     except Exception as e:
         print(f"❌ Error generando DataFrame de reacciones: {e}")
+    
+    # Generar resumen comparativo
+    try:
+        df_resumen = generar_resumen_comparativo(resultados, geometria)
+        resultados['resumen_comparativo'] = df_resumen.to_dict(orient='split')
+        print(f"✅ Resumen comparativo generado: {len(df_resumen)} conexiones")
+    except Exception as e:
+        print(f"❌ Error generando resumen comparativo: {e}")
     
     print(f"DEBUG: Analisis AEE completado")
     

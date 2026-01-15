@@ -64,6 +64,11 @@ def generar_html_completo(estructura_actual):
     if calculo_fund:
         secciones.append(generar_seccion_fund(calculo_fund))
     
+    # 7. AEE
+    calculo_aee = CalculoCache.cargar_calculo_aee(nombre_estructura)
+    if calculo_aee:
+        secciones.append(generar_seccion_aee(calculo_aee, estructura_actual))
+    
     contenido_html = "\n".join(secciones)
     
     html_completo = f"""<!DOCTYPE html>
@@ -711,3 +716,53 @@ def generar_seccion_fund(calculo_fund):
     return '\n'.join(html)
 
 
+
+
+def generar_seccion_aee(calculo_aee, estructura_actual):
+    """Genera HTML para seccion AEE"""
+    html = ['<h3>8. ANALISIS ESTATICO DE ESFUERZOS (AEE)</h3>']
+    
+    resultados = calculo_aee.get('resultados', {})
+    hash_params = calculo_aee.get('hash_parametros')
+    
+    # Resumen Comparativo
+    if resultados.get('resumen_comparativo'):
+        df_dict = resultados['resumen_comparativo']
+        df_resumen = pd.DataFrame(df_dict['data'], columns=df_dict['columns'])
+        html.append('<h5>Resumen Comparativo - Maximos por Conexion</h5>')
+        html.append(df_resumen.to_html(classes='table table-striped table-bordered table-hover table-sm', index=False))
+    
+    # Tablas de nodos
+    if resultados.get('nodos_info'):
+        nodos_data = []
+        for nombre, info in resultados['nodos_info'].items():
+            nodos_data.append({
+                'Nodo': nombre,
+                'X [m]': f"{info['x']:.2f}",
+                'Y [m]': f"{info['y']:.2f}",
+                'Z [m]': f"{info['z']:.2f}",
+                'Tipo': info['tipo']
+            })
+        df_nodos = pd.DataFrame(nodos_data)
+        html.append('<h5>Nodos de la Estructura</h5>')
+        html.append(df_nodos.to_html(classes='table table-striped table-bordered table-sm', index=False))
+    
+    # Tabla de reacciones
+    if resultados.get('df_reacciones'):
+        df_dict = resultados['df_reacciones']
+        df_reacciones = pd.DataFrame(df_dict['data'], columns=df_dict['columns'], index=df_dict['index'])
+        html.append('<h5>Reacciones en Base por Hipotesis</h5>')
+        html.append(df_reacciones.to_html(classes='table table-striped table-bordered table-sm'))
+    
+    # Diagramas (PNG)
+    diagramas = resultados.get('diagramas', {})
+    if diagramas and hash_params:
+        html.append('<h5>Diagramas de Esfuerzos</h5>')
+        for nombre_diagrama in diagramas.keys():
+            img_filename = f"AEE_{nombre_diagrama}.{hash_params}.png"
+            img_str = ViewHelpers.cargar_imagen_base64(img_filename)
+            if img_str:
+                html.append(f'<h6>{nombre_diagrama.replace("_", " ")}</h6>')
+                html.append(f'<img src="data:image/png;base64,{img_str}" alt="{nombre_diagrama}">')
+    
+    return '\n'.join(html)
