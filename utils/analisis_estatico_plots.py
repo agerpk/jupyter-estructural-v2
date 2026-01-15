@@ -69,13 +69,24 @@ def generar_diagrama_plotly_3d(geometria, conexiones, valores_subnodos, reaccion
     )
     
     fig = go.Figure(data=[trace])
+    
+    # Calcular rangos con misma escala
+    x_coords = [n.coordenadas[0] for n in geometria.nodos.values()]
+    y_coords = [n.coordenadas[1] for n in geometria.nodos.values()]
+    z_coords = [n.coordenadas[2] for n in geometria.nodos.values()]
+    
+    max_range = max(max(x_coords)-min(x_coords), max(y_coords)-min(y_coords), max(z_coords)-min(z_coords))
+    x_c = (max(x_coords) + min(x_coords)) / 2
+    y_c = (max(y_coords) + min(y_coords)) / 2
+    z_c = (max(z_coords) + min(z_coords)) / 2
+    
     fig.update_layout(
         title=f'{tipo} - {hipotesis}',
         scene=dict(
-            xaxis_title='X [m]',
-            yaxis_title='Y [m]',
-            zaxis_title='Z [m]',
-            aspectmode='data'
+            xaxis=dict(title='X [m]', range=[x_c - max_range/2, x_c + max_range/2]),
+            yaxis=dict(title='Y [m]', range=[y_c - max_range/2, y_c + max_range/2]),
+            zaxis=dict(title='Z [m]', range=[z_c - max_range/2, z_c + max_range/2]),
+            aspectmode='cube'
         ),
         height=800
     )
@@ -376,11 +387,10 @@ def generar_diagrama_matplotlib_3d(geometria, conexiones, valores_subnodos, reac
         sm.set_array([])
         plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]', shrink=0.8)
         
-        # Etiqueta con valor máximo y mínimo
-        ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} daN.m", 
-                  transform=ax.transAxes, fontsize=10, fontweight='bold',
-                  va='top', ha='left',
-                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
+        # Etiqueta con valor máximo y mínimo (fuera del área de ploteo)
+        fig.text(0.01, 0.95, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} daN.m", 
+                 fontsize=10, fontweight='bold', va='top', ha='left',
+                 bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
 
         # Reacciones BASE (hasta 4)
         texto = "REACCIONES BASE:\n"
@@ -425,8 +435,16 @@ def generar_diagrama_matplotlib_2d(geometria, conexiones, valores_subnodos, reac
     
     x_coords = [n.coordenadas[0] for n in geometria.nodos.values()]
     z_coords = [n.coordenadas[2] for n in geometria.nodos.values()]
-    max_range = max(max(x_coords)-min(x_coords), max(z_coords)-min(z_coords))
-    x_c, z_c = sum(x_coords)/len(x_coords), sum(z_coords)/len(z_coords)
+    margenx = 4 # m de margen alrededor
+    margenz = 16
+    # Rango X: desde -max(abs(x)) hasta max(x) con margen m
+    x_max_abs = max(abs(x) for x in x_coords)
+    x_max = max(x_coords)
+    x_min, x_max = -x_max_abs - margenx, x_max + margenx
+    
+    # Rango Z: desde 0 hasta max(z) con 2m margen
+    z_max = max(z_coords)
+    z_min, z_max = 0, z_max + margenz
     
     vals = list(valores_subnodos.values())
     if vals:
@@ -464,11 +482,10 @@ def generar_diagrama_matplotlib_2d(geometria, conexiones, valores_subnodos, reac
         sm.set_array([])
         plt.colorbar(sm, ax=ax, label=f'{tipo} [daN.m]')
         
-        # Etiqueta con valor máximo y mínimo
-        ax.text(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} daN.m", 
-                transform=ax.transAxes, fontsize=10, fontweight='bold',
-                va='top', ha='left',
-                bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
+        # Etiqueta con valor máximo y mínimo (fuera del área de ploteo)
+        fig.text(0.01, 0.95, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} daN.m", 
+                 fontsize=10, fontweight='bold', va='top', ha='left',
+                 bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
         
         # Reacciones BASE (hasta 4)
         texto = "REACCIONES BASE:\n"
@@ -488,9 +505,9 @@ def generar_diagrama_matplotlib_2d(geometria, conexiones, valores_subnodos, reac
                bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.9, edgecolor='black'),
                ha='left', va='bottom')
     
-    ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
-    ax.set_ylim(z_c - max_range/2, z_c + max_range/2)
-    ax.set_aspect('equal')
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(z_min, z_max)
+    ax.set_aspect('equal', adjustable='box')
     ax.set_xlabel('X [m]')
     ax.set_ylabel('Z [m]')
     ax.set_title(f'{tipo} - {hipotesis}')
@@ -530,7 +547,15 @@ def generar_diagrama_mqnt_matplotlib(geometria, conexiones, valores_subnodos, re
             _dibujar_matplotlib_3d(ax, geometria, conexiones, valores_dict, parametros, titulo, unidad, hipotesis, reacciones, escala)
         else:
             ax = fig.add_subplot(subplot_pos)
-            _dibujar_matplotlib_2d(ax, geometria, conexiones, valores_dict, parametros, titulo, unidad, hipotesis, reacciones, escala)
+            vmin, vmax = _dibujar_matplotlib_2d(ax, geometria, conexiones, valores_dict, parametros, titulo, unidad, hipotesis, reacciones, escala)
+            
+            # Crear axes para etiqueta en margen izquierdo (similar a colorbar en derecho)
+            bbox = ax.get_position()
+            cax = fig.add_axes([bbox.x0 - 0.06, bbox.y0 + bbox.height*0.35, 0.06, bbox.height*0.3])
+            cax.axis('off')
+            cax.text(0.5, 0.5, f"Máx: {vmax:.1f}\nMín: {vmin:.1f} {unidad}",
+                    fontsize=8, va='center', ha='center', transform=cax.transAxes,
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9, edgecolor='gray'))
     
     plt.tight_layout()
     return fig
@@ -589,11 +614,10 @@ def _dibujar_matplotlib_3d(ax, geometria, conexiones, valores_dict, parametros, 
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}', shrink=0.6)
         
-        # Etiqueta con valor máximo y mínimo
-        ax.text2D(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} {unidad}", 
-                  transform=ax.transAxes, fontsize=10, fontweight='bold',
-                  va='top', ha='left',
-                  bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
+        # Etiqueta con valor máximo y mínimo (dentro del subplot, esquina superior izquierda)
+        ax.text2D(0.05, 0.95, f"Máx: {vmax:.1f}\nMín: {vmin:.1f}", 
+                  transform=ax.transAxes, fontsize=8, va='top', ha='left',
+                  bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.9, edgecolor='gray'))
     
     ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
     ax.set_ylim(y_c - max_range/2, y_c + max_range/2)
@@ -615,8 +639,15 @@ def _dibujar_matplotlib_2d(ax, geometria, conexiones, valores_dict, parametros, 
     
     x_coords = [n.coordenadas[0] for n in geometria.nodos.values()]
     z_coords = [n.coordenadas[2] for n in geometria.nodos.values()]
-    max_range = max(max(x_coords)-min(x_coords), max(z_coords)-min(z_coords))
-    x_c, z_c = sum(x_coords)/len(x_coords), sum(z_coords)/len(z_coords)
+    
+    # Rango X: desde -max(abs(x)) hasta max(x) con 2m margen
+    x_max_abs = max(abs(x) for x in x_coords)
+    x_max = max(x_coords)
+    x_min, x_max = -x_max_abs - 2, x_max + 2
+    
+    # Rango Z: desde 0 hasta max(z) con 2m margen
+    z_max = max(z_coords)
+    z_min, z_max = -2, z_max + 2
     
     vals = list(valores_dict.values())
     if vals:
@@ -635,6 +666,31 @@ def _dibujar_matplotlib_2d(ax, geometria, conexiones, valores_dict, parametros, 
             longitudes.append(np.linalg.norm(cj - ci))
         umbral_longitud = np.percentile(longitudes, percentil)
         
+        # Encontrar punto máximo y dibujarlo
+        max_key = max(valores_dict, key=valores_dict.get)
+        max_val = valores_dict[max_key]
+        
+        # Buscar la conexión correcta en la lista de conexiones
+        punto_max = None
+        for conn_ni, conn_nj in conexiones:
+            if max_key.startswith(f"{conn_ni}_{conn_nj}_"):
+                # Extraer sub_idx del formato "ni_nj_sub_idx_i"
+                parts = max_key.split('_')
+                sub_idx = int(parts[-2])  # Penúltimo elemento es sub_idx
+                
+                ci = np.array(geometria.nodos[conn_ni].coordenadas)
+                cj = np.array(geometria.nodos[conn_nj].coordenadas)
+                longitud = np.linalg.norm(cj - ci)
+                n_subdiv = n_larga if longitud > umbral_longitud else n_corta
+                t_i = sub_idx / n_subdiv
+                punto_max = ci + t_i * (cj - ci)
+                break
+        
+        # Si no se encontró, usar primer nodo como fallback
+        if punto_max is None:
+            primer_nodo = list(geometria.nodos.values())[0]
+            punto_max = np.array(primer_nodo.coordenadas)
+        
         for ni, nj in conexiones:
             ci = np.array(geometria.nodos[ni].coordenadas)
             cj = np.array(geometria.nodos[nj].coordenadas)
@@ -651,23 +707,24 @@ def _dibujar_matplotlib_2d(ax, geometria, conexiones, valores_dict, parametros, 
                 val = valores_dict.get(key, 0)
                 ax.plot([c_i[0], c_j[0]], [c_i[2], c_j[2]], color=cmap(norm(val)), linewidth=3)
         
+        # Dibujar círculo rojo en punto máximo
+        circle = plt.Circle((punto_max[0], punto_max[2]), 0.3, color='red', fill=True, zorder=10)
+        ax.add_patch(circle)
+        
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, label=f'{unidad}')
-        
-        # Etiqueta con valor máximo y mínimo
-        ax.text(0.02, 0.98, f"Máximo: {vmax:.2f}\nMínimo: {vmin:.2f} {unidad}", 
-                transform=ax.transAxes, fontsize=10, fontweight='bold',
-                va='top', ha='left',
-                bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='none'))
     
-    ax.set_xlim(x_c - max_range/2, x_c + max_range/2)
-    ax.set_ylim(z_c - max_range/2, z_c + max_range/2)
-    ax.set_aspect('equal')
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(z_min, z_max)
+    ax.set_aspect('equal', adjustable='box')
     ax.set_xlabel('X [m]')
     ax.set_ylabel('Z [m]')
     ax.set_title(f'{titulo} - {hipotesis}')
     ax.grid(True, alpha=0.3)
+    
+    # Retornar valores max/min para que generar_diagrama_mqnt_matplotlib los coloque en fig.text()
+    return vmin, vmax
 
 def generar_diagrama_ejes_locales_matplotlib(geometria, conexiones, elementos_dict, hipotesis):
     """Genera diagrama 3D mostrando ejes locales de elementos"""

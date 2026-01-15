@@ -206,6 +206,49 @@ def register_callbacks(app):
             import traceback
             traceback.print_exc()
             return no_update, True, "Error", f"Error cargando cache: {str(e)}", "danger", "danger"
+    
+    @app.callback(
+        [Output("resultados-aee", "children", allow_duplicate=True),
+         Output("toast-notificacion", "is_open", allow_duplicate=True),
+         Output("toast-notificacion", "header", allow_duplicate=True),
+         Output("toast-notificacion", "children", allow_duplicate=True),
+         Output("toast-notificacion", "icon", allow_duplicate=True),
+         Output("toast-notificacion", "color", allow_duplicate=True)],
+        Input("btn-plotear-existentes-aee", "n_clicks"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def plotear_existentes_aee(n_clicks, estructura_actual):
+        """Regenera graficos desde resultados existentes sin recalcular"""
+        
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+        
+        print(f"🔵 DEBUG: Boton 'Plotear Existentes' presionado")
+        
+        try:
+            from utils.analisis_estatico_plotear_existente import plotear_resultados_existentes
+            from utils.calculo_cache import CalculoCache
+            from components.vista_analisis_estatico import generar_resultados_aee
+            
+            # Regenerar graficos
+            resultado = plotear_resultados_existentes(estructura_actual)
+            
+            if not resultado['exito']:
+                return no_update, True, "Error", resultado['mensaje'], "danger", "danger"
+            
+            # Cargar cache actualizado
+            nombre_estructura = estructura_actual.get('TITULO', '')
+            calculo_guardado = CalculoCache.cargar_calculo_aee(nombre_estructura)
+            
+            vista = generar_resultados_aee(calculo_guardado, estructura_actual)
+            
+            return vista, True, "Éxito", resultado['mensaje'], "success", "success"
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return no_update, True, "Error", f"Error ploteando: {str(e)}", "danger", "danger"
 
 def generar_resumen_comparativo(resultados, geometria):
     """Genera resumen comparativo con maximos por conexion"""

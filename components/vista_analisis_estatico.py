@@ -114,7 +114,7 @@ def crear_vista_analisis_estatico(estructura_actual=None, calculo_guardado=None)
                 size="lg",
                 className="w-100"
             ),
-            width=6
+            width=4
         ),
         dbc.Col(
             dbc.Button(
@@ -124,7 +124,17 @@ def crear_vista_analisis_estatico(estructura_actual=None, calculo_guardado=None)
                 size="lg",
                 className="w-100"
             ),
-            width=6
+            width=4
+        ),
+        dbc.Col(
+            dbc.Button(
+                "Plotear Resultados Existentes",
+                id="btn-plotear-existentes-aee",
+                color="info",
+                size="lg",
+                className="w-100"
+            ),
+            width=4
         )
     ], className="mb-3")
     
