@@ -241,6 +241,37 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual, omitir_vigencia=
                 )
             )
         
+        # Memorias de Cálculo
+        if calculo_guardado.get('memoria_conductor'):
+            resultados_html.append(html.Hr(className="mt-4"))
+            resultados_html.extend(
+                ViewHelpers.crear_pre_output(
+                    calculo_guardado['memoria_conductor'],
+                    titulo="Memoria de Cálculo - Conductor",
+                    font_size='0.75rem'
+                )
+            )
+        
+        if calculo_guardado.get('memoria_guardia1'):
+            resultados_html.append(html.Hr(className="mt-4"))
+            resultados_html.extend(
+                ViewHelpers.crear_pre_output(
+                    calculo_guardado['memoria_guardia1'],
+                    titulo="Memoria de Cálculo - Guardia 1",
+                    font_size='0.75rem'
+                )
+            )
+        
+        if calculo_guardado.get('memoria_guardia2'):
+            resultados_html.append(html.Hr(className="mt-4"))
+            resultados_html.extend(
+                ViewHelpers.crear_pre_output(
+                    calculo_guardado['memoria_guardia2'],
+                    titulo="Memoria de Cálculo - Guardia 2",
+                    font_size='0.75rem'
+                )
+            )
+        
         # Cargar gráficos interactivos (replicar formato original)
         hash_params = calculo_guardado.get('hash_parametros')
         if hash_params:

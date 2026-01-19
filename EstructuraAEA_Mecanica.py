@@ -358,24 +358,26 @@ class EstructuraAEA_Mecanica:
                     if config["viento"]:
                         direccion_viento = config["viento"]["direccion"]
                         factor_viento = config["viento"]["factor"]
-                        estado_v = config["viento"]["estado"]
+                        
+                        # Determinar si es Vmax o Vmed basado en estado_viento resuelto
+                        es_vmax = (estado_viento and estado_viento in ['III', '3']) if estado_viento else False
                         
                         if direccion_viento == "Transversal":
-                            if estado_v == "Vmax":
+                            if es_vmax:
                                 viento_estructura = self._obtener_carga_por_codigo(df_cargas_totales, "VeT")
                             else:
                                 viento_estructura = self._obtener_carga_por_codigo(df_cargas_totales, "Vemedt")
                             cargas_hipotesis['V'] = [viento_estructura * factor_viento, 0.0, 0.0]
                             
                         elif direccion_viento == "Longitudinal":
-                            if estado_v == "Vmax":
+                            if es_vmax:
                                 viento_estructura = self._obtener_carga_por_codigo(df_cargas_totales, "VeL")
                             else:
                                 viento_estructura = self._obtener_carga_por_codigo(df_cargas_totales, "Vemedl")
                             cargas_hipotesis['V'] = [0.0, viento_estructura * factor_viento, 0.0]
                             
                         elif direccion_viento == "Oblicua":
-                            if estado_v == "Vmax":
+                            if es_vmax:
                                 viento_estructura_trans = self._obtener_carga_por_codigo(df_cargas_totales, "VeoT")
                                 viento_estructura_long = self._obtener_carga_por_codigo(df_cargas_totales, "VeoL")
                             else:

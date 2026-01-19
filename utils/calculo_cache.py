@@ -22,7 +22,7 @@ class CalculoCache:
         return hashlib.md5(data_str.encode()).hexdigest()
     
     @staticmethod
-    def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None, fig_guardia2=None, resultados_guardia2=None, console_output=None, df_conductor_html=None, df_guardia1_html=None, df_guardia2_html=None):
+    def guardar_calculo_cmc(nombre_estructura, estructura_data, resultados_conductor, resultados_guardia, df_cargas_totales, fig_combinado=None, fig_conductor=None, fig_guardia=None, fig_guardia2=None, resultados_guardia2=None, console_output=None, df_conductor_html=None, df_guardia1_html=None, df_guardia2_html=None, memoria_conductor=None, memoria_guardia1=None, memoria_guardia2=None):
         """Guarda resultados de Cálculo Mecánico de Cables"""
         nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
@@ -76,7 +76,10 @@ class CalculoCache:
             "imagen_combinado": f"CMC_Combinado.{hash_params}.png" if fig_combinado else None,
             "imagen_conductor": f"CMC_Conductor.{hash_params}.png" if fig_conductor else None,
             "imagen_guardia": f"CMC_Guardia.{hash_params}.png" if fig_guardia else None,
-            "console_output": console_output
+            "console_output": console_output,
+            "memoria_conductor": memoria_conductor,
+            "memoria_guardia1": memoria_guardia1,
+            "memoria_guardia2": memoria_guardia2
         }
         
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoCMC.json"

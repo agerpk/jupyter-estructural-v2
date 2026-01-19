@@ -73,7 +73,7 @@ class CalculoMecanicoCables:
             parametros_viento_guardia = {**parametros_viento, "Zc": Zcg, "Cf": Cf_guardia}
             
             # Calcular conductor
-            self.df_conductor, self.resultados_conductor, estado_limitante_cond = \
+            self.df_conductor, self.resultados_conductor, estado_limitante_cond, self.memoria_conductor = \
                 self.calculo_objetos.cable_conductor.calculo_mecanico(
                     vano=L_vano,
                     estados_climaticos=estados_climaticos,
@@ -99,7 +99,7 @@ class CalculoMecanicoCables:
             flecha_max_conductor = max([r["flecha_vertical_m"] for r in self.resultados_conductor.values()])
             flecha_max_guardia = flecha_max_conductor * RELFLECHA_MAX_GUARDIA
             
-            self.df_guardia1, self.resultados_guardia1, estado_limitante_guard1 = \
+            self.df_guardia1, self.resultados_guardia1, estado_limitante_guard1, self.memoria_guardia1 = \
                 self.calculo_objetos.cable_guardia.calculo_mecanico(
                     vano=L_vano,
                     estados_climaticos=estados_climaticos,
@@ -124,7 +124,7 @@ class CalculoMecanicoCables:
             
             # Calcular guardia 2 si existe
             if self.calculo_objetos.cable_guardia2:
-                self.df_guardia2, self.resultados_guardia2, estado_limitante_guard2 = \
+                self.df_guardia2, self.resultados_guardia2, estado_limitante_guard2, self.memoria_guardia2 = \
                     self.calculo_objetos.cable_guardia2.calculo_mecanico(
                         vano=L_vano,
                         estados_climaticos=estados_climaticos,
@@ -149,6 +149,7 @@ class CalculoMecanicoCables:
             else:
                 self.df_guardia2 = None
                 self.resultados_guardia2 = None
+                self.memoria_guardia2 = None
             
             # Generar lista de cargas
             if self.calculo_objetos.cadena and self.calculo_objetos.estructura:

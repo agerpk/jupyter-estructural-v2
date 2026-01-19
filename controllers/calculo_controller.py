@@ -300,7 +300,10 @@ def register_callbacks(app):
                                 console_output=console_output,
                                 df_conductor_html=df_conductor_cache.to_json(orient='split'),
                                 df_guardia1_html=df_guardia1_cache.to_json(orient='split'),
-                                df_guardia2_html=df_guardia2_cache.to_json(orient='split') if df_guardia2_cache is not None else None
+                                df_guardia2_html=df_guardia2_cache.to_json(orient='split') if df_guardia2_cache is not None else None,
+                                memoria_conductor=state.calculo_mecanico.memoria_conductor,
+                                memoria_guardia1=state.calculo_mecanico.memoria_guardia1,
+                                memoria_guardia2=state.calculo_mecanico.memoria_guardia2
                             )
                             
                             # Guardar JSON interactivos

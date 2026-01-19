@@ -1078,8 +1078,23 @@ class Cable_AEA:
         
         # Calcular y cachear catenarias (puntos cada 0.5m)
         self._calcular_y_cachear_catenarias(resultados_final, vano, definicion_catenaria=0.5)
+        
+        # Generar memoria de cálculo
+        from utils.memoria_calculo_cmc import gen_memoria_calculo_CMC
+        memoria_calculo = gen_memoria_calculo_CMC(
+            cable_aea=self,
+            vano=vano,
+            estados_climaticos=estados_climaticos,
+            parametros_viento=parametros_viento,
+            restricciones=restricciones,
+            objetivo=objetivo,
+            resultados_finales=resultados_final,
+            t_final=t_final,
+            q0_final=q0_final,
+            estado_limitante=estado_limitante
+        )
 
-        return df_resultados[columnas_base], resultados_final, estado_limitante
+        return df_resultados[columnas_base], resultados_final, estado_limitante, memoria_calculo
     
     def _calcular_y_cachear_catenarias(self, resultados_finales, L_vano, definicion_catenaria=0.5):
         """
