@@ -75,6 +75,9 @@ def ejecutar_calculo_arboles(estructura_actual, state, generar_plots=True):
         
         estructura_mecanica = state.calculo_objetos.estructura_mecanica
         
+        # Usar ADC_3D de la estructura, no del config global
+        usar_3d = estructura_actual.get('ADC_3D', config["usar_3d"])
+        
         if generar_plots:
             resultado_arboles = generar_arboles_carga(
                 estructura_mecanica, estructura_actual,
@@ -85,7 +88,7 @@ def ejecutar_calculo_arboles(estructura_actual, state, generar_plots=True):
                 fontsize_nodos=config["fontsize_nodos"], 
                 fontsize_flechas=config["fontsize_flechas"], 
                 mostrar_sismo=config["mostrar_sismo"],
-                usar_3d=config["usar_3d"],
+                usar_3d=usar_3d,
                 estructura_geometria=state.calculo_objetos.estructura_geometria
             )
         else:

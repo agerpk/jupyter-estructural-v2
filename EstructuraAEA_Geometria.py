@@ -299,27 +299,57 @@ class EstructuraAEA_Geometria:
                     print("   ❌ ERROR: El objeto Cable no tiene datos de viento en cache.")
                     return 99.0
                 
-                # Intentar obtener del cache
-                if 'V_90' in cable.viento_cache:
-                    resultado_cache = cable.viento_cache['V_90']
+                # DEBUG: Mostrar todo el contenido del cache
+                print(f"   🔍 DEBUG: Contenido completo del viento_cache del conductor:")
+                for clave, resultado_cache in cable.viento_cache.items():
                     if resultado_cache:
-                        carga_viento_conductor = resultado_cache['fuerza_total_daN']
-                        print(f"   📐 Usando cache de viento: V_90")
+                        fuerza = resultado_cache.get('fuerza_total_daN', 0)
+                        velocidad = resultado_cache.get('velocidad', 0)
+                        angulo = resultado_cache.get('angulo', 0)
+                        print(f"      {clave}: fuerza={fuerza:.2f} daN, V={velocidad:.1f} m/s, ángulo={angulo}°")
                     else:
-                        print("   ❌ ERROR: No hay datos de viento en cache para V_90.")
-                        return 99.0
-                else:
-                    print("   ❌ ERROR: No hay datos de viento en cache para V_90.")
+                        print(f"      {clave}: None")
+                
+                # BUSCAR EL MÁXIMO VIENTO entre estados de viento MÁXIMO (no medio) a 90°
+                # Buscar claves V_90, V_45, V_0 (excluir Vmed_*)
+                carga_viento_conductor = 0.0
+                clave_maxima = None
+                print(f"   🔍 DEBUG: Buscando viento máximo a 90°...")
+                for clave, resultado_cache in cable.viento_cache.items():
+                    # DEBUG: Mostrar evaluación de cada clave
+                    starts_v = clave.startswith('V_')
+                    not_vmed = not clave.startswith('Vmed_')
+                    has_90 = '90' in clave
+                    print(f"      Evaluando '{clave}': startswith('V_')={starts_v}, not startswith('Vmed_')={not_vmed}, '90' in clave={has_90}")
+                    
+                    # Solo considerar viento máximo (V_*) no medio (Vmed_*) y a 90°
+                    if resultado_cache and clave.startswith('V_') and not clave.startswith('Vmed_') and '90' in clave:
+                        fuerza = resultado_cache.get('fuerza_total_daN', 0)
+                        print(f"         ✓ CANDIDATO: fuerza={fuerza:.2f} daN")
+                        if fuerza > carga_viento_conductor:
+                            carga_viento_conductor = fuerza
+                            clave_maxima = clave
+                            print(f"         ✓✓ NUEVO MÁXIMO: {clave} = {fuerza:.2f} daN")
+                
+                if carga_viento_conductor == 0.0 or clave_maxima is None:
+                    print("   ❌ ERROR: No se encontró viento máximo a 90° en cache.")
                     return 99.0
+                
+                print(f"   📐 Usando viento MÁXIMO del cache: {clave_maxima} = {carga_viento_conductor:.2f} daN")
                 
                 # Calcular viento en cadena si se proporciona el elemento
                 carga_viento_cadena = 0.0
                 if elemento_cadena is not None and hasattr(elemento_cadena, 'viento_cache'):
-                    if 'V_90' in elemento_cadena.viento_cache:
-                        resultado_cache_cadena = elemento_cadena.viento_cache['V_90']
-                        if resultado_cache_cadena:
-                            carga_viento_cadena = resultado_cache_cadena['fuerza_total_daN']
-                            print(f"   📐 Viento en cadena incluido: {carga_viento_cadena:.2f} daN")
+                    # BUSCAR EL MÁXIMO VIENTO entre estados de viento MÁXIMO (no medio) a 90°
+                    for clave, resultado_cache_cadena in elemento_cadena.viento_cache.items():
+                        # Solo considerar viento máximo (V_*) no medio (Vmed_*) y a 90°
+                        if resultado_cache_cadena and clave.startswith('V_') and not clave.startswith('Vmed_') and '90' in clave:
+                            fuerza = resultado_cache_cadena.get('fuerza_total_daN', 0)
+                            if fuerza > carga_viento_cadena:
+                                carga_viento_cadena = fuerza
+                    
+                    if carga_viento_cadena > 0:
+                        print(f"   📐 Viento en cadena incluido (máximo): {carga_viento_cadena:.2f} daN")
                 
                 # Peso del conductor en el vano
                 peso_conductor = cable.peso_unitario_dan_m * vano

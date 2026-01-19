@@ -83,8 +83,13 @@ class EstructuraAEA_Mecanica:
         try:
             filtro = df_cargas_totales['Código'] == codigo_buscar
             if not df_cargas_totales[filtro].empty:
-                return df_cargas_totales[filtro]['Magnitud'].iloc[0]
+                valor = df_cargas_totales[filtro]['Magnitud'].iloc[0]
+                if codigo_buscar in ['Vc', 'Vcmed']:
+                    print(f"      🔍 _obtener_carga_por_codigo('{codigo_buscar}') → {valor:.2f} daN")
+                return valor
             else:
+                if codigo_buscar in ['Vc', 'Vcmed']:
+                    print(f"      ⚠️ _obtener_carga_por_codigo('{codigo_buscar}') → NO ENCONTRADO, retornando 0.0")
                 return 0.0
         except Exception as e:
             print(f"   ❌ Error buscando código {codigo_buscar}: {e}")
@@ -207,6 +212,18 @@ class EstructuraAEA_Mecanica:
         print(f"   🔍 cable_guardia2: {self.geometria.cable_guardia2.nombre if self.geometria.cable_guardia2 else 'None'}")
         print(f"   🔍 resultados_guardia2: {'SÍ' if resultados_guardia2 else 'NO'}")
         
+        # DEBUG: Imprimir df_cargas_totales COMPLETO para ver todos los valores
+        print(f"\n🔍 DEBUG df_cargas_totales recibido en asignar_cargas_hipotesis:")
+        if df_cargas_totales is not None:
+            print(f"\n{df_cargas_totales.to_string()}")
+            print(f"\n   Total filas: {len(df_cargas_totales)}")
+            # Filtrar solo las filas de viento en conductor
+            filas_vc = df_cargas_totales[df_cargas_totales['Código'].str.contains('Vc', na=False)]
+            print(f"\n   Filas con 'Vc' en código ({len(filas_vc)} filas):")
+            for idx, row in filas_vc.iterrows():
+                print(f"      {row['Código']}: {row['Magnitud']:.2f} daN - {row['Carga']}")
+        else:
+            print("   ❌ df_cargas_totales es None")
         # Verificar si se debe anular cargas de una terna
         anular_terna_negativa_x = False
         if (hasattr(self.geometria, 'doble_terna_una_terna_activa') and 
@@ -477,21 +494,26 @@ class EstructuraAEA_Mecanica:
                         peso_y = 0.0
                         peso_z = -peso_cond * factor_peso_nodo
                         
+                        # DEBUG: Verificar configuración de viento
+                        print(f"      🔍 DEBUG Hipótesis {codigo_hip}: config['viento'] = {config['viento']}")
+                        
                         # VIENTO EN CABLES
                         if config["viento"]:
                             direccion_viento = config["viento"]["direccion"]
-                            estado_v = config["viento"]["estado"]
                             factor_viento = config["viento"]["factor"]
                             
+                            # Determinar si es Vmax o Vmed basado en el estado climático resuelto
+                            es_vmax = (estado_viento and estado_viento in ['III', '3']) if estado_viento else False
+                            
                             if direccion_viento == "Transversal":
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "Vc")
                                 else:
                                     viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "Vcmed")
                                 viento_x += viento_cond * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Longitudinal":
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "VcL")
                                 else:
                                     viento_cond = self._obtener_carga_por_codigo(df_cargas_totales, "VcmedL")
@@ -499,7 +521,7 @@ class EstructuraAEA_Mecanica:
                                 
                             elif direccion_viento == "Oblicua":
                                 lado = 1 if "L" in nodo_nombre else 2
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_cond_x = self._obtener_carga_por_codigo(df_cargas_totales, f"Vc_o_t_{lado}")
                                     viento_cond_y = self._obtener_carga_por_codigo(df_cargas_totales, f"Vc_o_l_{lado}")
                                 else:
@@ -510,19 +532,19 @@ class EstructuraAEA_Mecanica:
                             
                             # VIENTO EN CADENA (solo para conductores)
                             if direccion_viento == "Transversal":
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_cadena = self._obtener_carga_por_codigo(df_cargas_totales, "VaT")
                                 else:
                                     viento_cadena = self._obtener_carga_por_codigo(df_cargas_totales, "VamedT")
                                 viento_x += viento_cadena * factor_viento * factor_viento_nodo
                             elif direccion_viento == "Longitudinal":
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_cadena = self._obtener_carga_por_codigo(df_cargas_totales, "VaL")
                                 else:
                                     viento_cadena = self._obtener_carga_por_codigo(df_cargas_totales, "VamedL")
                                 viento_y += viento_cadena * factor_viento * factor_viento_nodo
                             elif direccion_viento == "Oblicua":
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_cadena_x = self._obtener_carga_por_codigo(df_cargas_totales, "VaoT")
                                     viento_cadena_y = self._obtener_carga_por_codigo(df_cargas_totales, "VaoL")
                                 else:
@@ -663,25 +685,27 @@ class EstructuraAEA_Mecanica:
                         # VIENTO EN GUARDIA
                         if config["viento"]:
                             direccion_viento = config["viento"]["direccion"]
-                            estado_v = config["viento"]["estado"]
                             factor_viento = config["viento"]["factor"]
                             
+                            # Determinar si es Vmax o Vmed basado en el estado climático resuelto
+                            es_vmax = (estado_viento and estado_viento in ['III', '3']) if estado_viento else False
+                            
                             if direccion_viento == "Transversal":
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}")
                                 else:
                                     viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}med")
                                 viento_x += viento_guardia * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Longitudinal":
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}L")
                                 else:
                                     viento_guardia = self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}medL")
                                 viento_y += viento_guardia * factor_viento * factor_viento_nodo
                                 
                             elif direccion_viento == "Oblicua":
-                                if estado_v == "Vmax":
+                                if es_vmax:
                                     viento_guardia_x = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_t_1") + 
                                                        self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_t_2"))
                                     viento_guardia_y = (self._obtener_carga_por_codigo(df_cargas_totales, f"Vcg{sufijo_viento}_o_l_1") + 

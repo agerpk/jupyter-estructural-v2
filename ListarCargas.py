@@ -123,6 +123,10 @@ class ListadorCargas:
             ("Vmed - Oblicua", Vmed, "oblicuo", self.L_vano/2, True)
         ]
         
+        print(f"\n🔍 DEBUG generar_cargas_viento:")
+        print(f"   Vmax={Vmax:.1f} m/s, Vmed={Vmed:.1f} m/s, L_vano={self.L_vano:.1f} m")
+        print(f"   Escenarios a calcular: {len(escenarios_viento)}")
+        
         cables_config = [
             ("Conductor", self.cable_conductor, self.Zco, self.Cf_cable, d_conductor, d_conductor_eff),
             ("Cable Guardia 1", self.cable_guardia1, self.Zcg, self.Cf_guardia, d_guardia1, d_guardia1_eff)
@@ -259,6 +263,14 @@ class ListadorCargas:
                 if desc_adicional:
                     filtro = filtro & (self.df_cargas['Descripción'].str.contains(desc_adicional))
                 
+                # DEBUG: Mostrar qué se encontró
+                filas_encontradas = self.df_cargas[filtro]
+                print(f"      🔍 Buscando: elemento='{elemento}', dirección='{direccion}', velocidad='{velocidad_label}'")
+                print(f"         Filas encontradas: {len(filas_encontradas)}")
+                if not filas_encontradas.empty:
+                    for idx, row in filas_encontradas.iterrows():
+                        print(f"         - {row['Descripción']}: {row['F_total_daN']:.2f} daN (V={row['Velocidad_m_s']:.1f} m/s)")
+                
                 resultado = self.df_cargas[filtro]['F_total_daN'].iloc[0] if not self.df_cargas[filtro].empty else 0.0
                 self.cargas_cache[clave_cache] = round(resultado, 2) if resultado is not None else 0.0
             except:
@@ -341,8 +353,10 @@ class ListadorCargas:
                 ("Cable Guardia 2", "Longitudinal", "Vcg2L", "Viento Máximo en Eolovano", "Vmax")
             ])
         
+        print(f"\n🔍 DEBUG ListarCargas: Generando cargas de viento máximo...")
         for elemento, direccion, codigo, descripcion, estado in cargas_viento_max:
             magnitud = self.obtener_carga_optimizada(elemento, direccion, f"{estado} - {direccion}")
+            print(f"   {codigo}: elemento='{elemento}', dirección='{direccion}', filtro='{estado} - {direccion}' → {magnitud:.2f} daN")
             agregar_carga(elemento, codigo, descripcion, estado, magnitud, direccion)
         
         # Viento máximo oblicuo - cables
