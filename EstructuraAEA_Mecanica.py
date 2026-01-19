@@ -84,12 +84,8 @@ class EstructuraAEA_Mecanica:
             filtro = df_cargas_totales['Código'] == codigo_buscar
             if not df_cargas_totales[filtro].empty:
                 valor = df_cargas_totales[filtro]['Magnitud'].iloc[0]
-                if codigo_buscar in ['Vc', 'Vcmed']:
-                    print(f"      🔍 _obtener_carga_por_codigo('{codigo_buscar}') → {valor:.2f} daN")
                 return valor
             else:
-                if codigo_buscar in ['Vc', 'Vcmed']:
-                    print(f"      ⚠️ _obtener_carga_por_codigo('{codigo_buscar}') → NO ENCONTRADO, retornando 0.0")
                 return 0.0
         except Exception as e:
             print(f"   ❌ Error buscando código {codigo_buscar}: {e}")
@@ -493,9 +489,6 @@ class EstructuraAEA_Mecanica:
                         peso_x = 0.0
                         peso_y = 0.0
                         peso_z = -peso_cond * factor_peso_nodo
-                        
-                        # DEBUG: Verificar configuración de viento
-                        print(f"      🔍 DEBUG Hipótesis {codigo_hip}: config['viento'] = {config['viento']}")
                         
                         # VIENTO EN CABLES
                         if config["viento"]:

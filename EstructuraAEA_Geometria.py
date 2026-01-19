@@ -98,8 +98,26 @@ class EstructuraAEA_Geometria:
         self.tipo_estructura = tipo_estructura
         if parametros:
             self.doble_terna_una_terna_activa = parametros.get("doble_terna_una_terna_activa", False)
+            # Parámetros de viento para cálculos - OBLIGATORIOS
+            if "exposicion" not in parametros:
+                raise ValueError("ERROR: No se encontró el parámetro 'exposicion'")
+            if "clase" not in parametros:
+                raise ValueError("ERROR: No se encontró el parámetro 'clase'")
+            if "Zco" not in parametros:
+                raise ValueError("ERROR: No se encontró el parámetro 'Zco'")
+            if "Cf_cable" not in parametros:
+                raise ValueError("ERROR: No se encontró el parámetro 'Cf_cable'")
+            if "Vtormenta" not in parametros:
+                raise ValueError("ERROR: No se encontró el parámetro 'Vtormenta'")
+            
+            self.exposicion = parametros["exposicion"]
+            self.clase = parametros["clase"]
+            self.Zco = parametros["Zco"]
+            self.Cf_cable = parametros["Cf_cable"]
+            self.Vtormenta = parametros["Vtormenta"]
         else:
             self.doble_terna_una_terna_activa = False
+            raise ValueError("ERROR: Parámetros no proporcionados. Se requieren: exposicion, clase, Zco, Cf_cable, Vtormenta")
         self.tension_nominal = tension_nominal
         self.zona_estructura = zona_estructura
         self.disposicion = disposicion.lower()
@@ -290,92 +308,141 @@ class EstructuraAEA_Geometria:
             theta_max = 0.0
             print(f"   📐 theta_max = 0° (estructura no es suspensión o Lk=0)")
         else:
-            try:
-                # Usar cache de viento del cable conductor
-                cable = self.cable_conductor
-                
-                # Verificar si tiene cache
-                if not hasattr(cable, 'viento_cache') or not cable.viento_cache:
-                    print("   ❌ ERROR: El objeto Cable no tiene datos de viento en cache.")
-                    return 99.0
-                
-                # DEBUG: Mostrar todo el contenido del cache
-                print(f"   🔍 DEBUG: Contenido completo del viento_cache del conductor:")
-                for clave, resultado_cache in cable.viento_cache.items():
-                    if resultado_cache:
-                        fuerza = resultado_cache.get('fuerza_total_daN', 0)
-                        velocidad = resultado_cache.get('velocidad', 0)
-                        angulo = resultado_cache.get('angulo', 0)
-                        print(f"      {clave}: fuerza={fuerza:.2f} daN, V={velocidad:.1f} m/s, ángulo={angulo}°")
-                    else:
-                        print(f"      {clave}: None")
-                
+            # Usar cache de viento del cable conductor
+            cable = self.cable_conductor
+            
+            # Verificar si tiene cache
+            if not hasattr(cable, 'viento_cache') or not cable.viento_cache:
+                raise ValueError("ERROR: El objeto Cable no tiene datos de viento en cache. Ejecute CMC primero.")
+            
+            # BUSCAR EL MÁXIMO VIENTO entre estados de viento MÁXIMO (no medio) a 90°
+            carga_viento_conductor = 0.0
+            clave_maxima = None
+            for clave, resultado_cache in cable.viento_cache.items():
+                # Solo considerar viento máximo (V_*) no medio (Vmed_*) y a 90°
+                if resultado_cache and clave.startswith('V_') and not clave.startswith('Vmed_') and '90' in clave:
+                    fuerza = resultado_cache.get('fuerza_total_daN', 0)
+                    if fuerza > carga_viento_conductor:
+                        carga_viento_conductor = fuerza
+                        clave_maxima = clave
+            
+            if carga_viento_conductor == 0.0 or clave_maxima is None:
+                raise ValueError("ERROR: No se encontró viento máximo a 90° en cache. Ejecute CMC primero.")
+            
+            print(f"   📐 Usando viento MÁXIMO del cache: {clave_maxima} = {carga_viento_conductor:.2f} daN")
+            
+            # Calcular viento en cadena si se proporciona el elemento
+            carga_viento_cadena = 0.0
+            if elemento_cadena is not None and hasattr(elemento_cadena, 'viento_cache'):
                 # BUSCAR EL MÁXIMO VIENTO entre estados de viento MÁXIMO (no medio) a 90°
-                # Buscar claves V_90, V_45, V_0 (excluir Vmed_*)
-                carga_viento_conductor = 0.0
-                clave_maxima = None
-                print(f"   🔍 DEBUG: Buscando viento máximo a 90°...")
-                for clave, resultado_cache in cable.viento_cache.items():
-                    # DEBUG: Mostrar evaluación de cada clave
-                    starts_v = clave.startswith('V_')
-                    not_vmed = not clave.startswith('Vmed_')
-                    has_90 = '90' in clave
-                    print(f"      Evaluando '{clave}': startswith('V_')={starts_v}, not startswith('Vmed_')={not_vmed}, '90' in clave={has_90}")
-                    
+                for clave, resultado_cache_cadena in elemento_cadena.viento_cache.items():
                     # Solo considerar viento máximo (V_*) no medio (Vmed_*) y a 90°
-                    if resultado_cache and clave.startswith('V_') and not clave.startswith('Vmed_') and '90' in clave:
-                        fuerza = resultado_cache.get('fuerza_total_daN', 0)
-                        print(f"         ✓ CANDIDATO: fuerza={fuerza:.2f} daN")
-                        if fuerza > carga_viento_conductor:
-                            carga_viento_conductor = fuerza
-                            clave_maxima = clave
-                            print(f"         ✓✓ NUEVO MÁXIMO: {clave} = {fuerza:.2f} daN")
+                    if resultado_cache_cadena and clave.startswith('V_') and not clave.startswith('Vmed_') and '90' in clave:
+                        fuerza = resultado_cache_cadena.get('fuerza_total_daN', 0)
+                        if fuerza > carga_viento_cadena:
+                            carga_viento_cadena = fuerza
                 
-                if carga_viento_conductor == 0.0 or clave_maxima is None:
-                    print("   ❌ ERROR: No se encontró viento máximo a 90° en cache.")
-                    return 99.0
-                
-                print(f"   📐 Usando viento MÁXIMO del cache: {clave_maxima} = {carga_viento_conductor:.2f} daN")
-                
-                # Calcular viento en cadena si se proporciona el elemento
-                carga_viento_cadena = 0.0
-                if elemento_cadena is not None and hasattr(elemento_cadena, 'viento_cache'):
-                    # BUSCAR EL MÁXIMO VIENTO entre estados de viento MÁXIMO (no medio) a 90°
-                    for clave, resultado_cache_cadena in elemento_cadena.viento_cache.items():
-                        # Solo considerar viento máximo (V_*) no medio (Vmed_*) y a 90°
-                        if resultado_cache_cadena and clave.startswith('V_') and not clave.startswith('Vmed_') and '90' in clave:
-                            fuerza = resultado_cache_cadena.get('fuerza_total_daN', 0)
-                            if fuerza > carga_viento_cadena:
-                                carga_viento_cadena = fuerza
-                    
-                    if carga_viento_cadena > 0:
-                        print(f"   📐 Viento en cadena incluido (máximo): {carga_viento_cadena:.2f} daN")
-                
-                # Peso del conductor en el vano
-                peso_conductor = cable.peso_unitario_dan_m * vano
-                peso_cadena = self.peso_cadena
-                
-                # Calcular theta_max usando arctan((Fv + Fca) / (Pc + Pcadena))
-                fuerza_viento_total = carga_viento_conductor + carga_viento_cadena
-                if (peso_conductor + peso_cadena) > 0:
-                    theta_max_rad = math.atan(fuerza_viento_total / (peso_conductor + peso_cadena))
-                    theta_max = math.degrees(theta_max_rad)
-                else:
-                    theta_max = 99.0
+                if carga_viento_cadena > 0:
+                    print(f"   📐 Viento en cadena incluido (máximo): {carga_viento_cadena:.2f} daN")
+            
+            # Peso del conductor en el vano
+            peso_conductor = cable.peso_unitario_dan_m * vano
+            peso_cadena = self.peso_cadena
+            
+            # Calcular theta_max usando arctan((Fv + Fca) / (Pc + Pcadena))
+            fuerza_viento_total = carga_viento_conductor + carga_viento_cadena
+            if (peso_conductor + peso_cadena) <= 0:
+                raise ValueError("ERROR: Peso total (conductor + cadena) debe ser mayor a 0")
+            
+            theta_max_rad = math.atan(fuerza_viento_total / (peso_conductor + peso_cadena))
+            theta_max = math.degrees(theta_max_rad)
 
-                print(f"   📐 Cálculo theta_max (suspensión con Lk>0):")
-                print(f"      - Carga viento conductor (Fv): {carga_viento_conductor:.2f} daN")
-                print(f"      - Carga viento cadena (Fca): {carga_viento_cadena:.2f} daN")
-                print(f"      - Fuerza viento total (Fv + Fca): {fuerza_viento_total:.2f} daN")
-                print(f"      - Peso conductor: {peso_conductor:.2f} daN")
-                print(f"      - Peso cadena: {peso_cadena:.2f} daN")
-                print(f"      - theta_max calculado: {theta_max:.2f}°")
-                
-            except Exception as e:
-                print(f"   ⚠️ Error calculando theta_max: {e}")
-                theta_max = 99.0
+            print(f"   📐 Cálculo theta_max (suspensión con Lk>0):")
+            print(f"      - Carga viento conductor (Fv): {carga_viento_conductor:.2f} daN")
+            print(f"      - Carga viento cadena (Fca): {carga_viento_cadena:.2f} daN")
+            print(f"      - Fuerza viento total (Fv + Fca): {fuerza_viento_total:.2f} daN")
+            print(f"      - Peso conductor: {peso_conductor:.2f} daN")
+            print(f"      - Peso cadena: {peso_cadena:.2f} daN")
+            print(f"      - theta_max calculado: {theta_max:.2f}°")
         
         return theta_max
+    
+    def calcular_theta_tormenta(self, vano, Vtormenta, elemento_cadena=None):
+        """
+        Calcula el ángulo de declinación en tormenta usando Vtormenta
+        
+        Args:
+            vano (float): Longitud del vano en metros
+            Vtormenta (float): Velocidad de viento en tormenta (m/s)
+            elemento_cadena (Elemento_AEA, optional): Objeto cadena para calcular viento en cadena
+            
+        Returns:
+            float: Ángulo theta_tormenta en grados
+        """
+        print(f"📐 CALCULANDO THETA_TORMENTA con Vtormenta={Vtormenta:.1f} m/s...")
+        
+        # Si no es estructura de suspensión O Lk = 0, entonces theta_tormenta = 0
+        if self.tipo_fijacion_base != "suspensión" or self.lk == 0:
+            theta_tormenta = 0.0
+            print(f"   📐 theta_tormenta = 0° (estructura no es suspensión o Lk=0)")
+            return theta_tormenta
+        
+        # Calcular fuerza de viento con Vtormenta a 90° (transversal)
+        cable = self.cable_conductor
+        
+        # Calcular fuerza de viento unitaria con Vtormenta
+        resultado_viento = cable.cargaViento(
+            V=Vtormenta,
+            phi_rel_deg=90.0,
+            exp=self.exposicion,
+            clase=self.clase,
+            Zc=self.Zco,
+            Cf=self.Cf_cable,
+            L_vano=vano,
+            d_eff=cable.diametro_m
+        )
+        
+        # Fuerza total en el vano
+        fuerza_viento_conductor = resultado_viento['fuerza_daN_per_m'] * vano
+        
+        print(f"   📐 Fuerza viento tormenta conductor: {fuerza_viento_conductor:.2f} daN")
+        
+        # Calcular viento en cadena si se proporciona el elemento
+        carga_viento_cadena = 0.0
+        if elemento_cadena is not None:
+            resultado_cadena = elemento_cadena.cargaViento(
+                V=Vtormenta,
+                theta_deg=90.0,
+                exp=self.exposicion,
+                clase=self.clase,
+                Q=0.613,
+                L_vano=vano
+            )
+            carga_viento_cadena = resultado_cadena['fuerza_total_daN']
+            print(f"   📐 Viento en cadena (tormenta): {carga_viento_cadena:.2f} daN")
+        
+        # Peso del conductor en el vano
+        peso_conductor = cable.peso_unitario_dan_m * vano
+        peso_cadena = self.peso_cadena
+        
+        # Calcular theta_tormenta usando arctan((Fv + Fca) / (Pc + Pcadena))
+        fuerza_viento_total = fuerza_viento_conductor + carga_viento_cadena
+        if (peso_conductor + peso_cadena) <= 0:
+            raise ValueError("ERROR: Peso total (conductor + cadena) debe ser mayor a 0")
+        
+        theta_tormenta_rad = math.atan(fuerza_viento_total / (peso_conductor + peso_cadena))
+        theta_tormenta = math.degrees(theta_tormenta_rad)
+        
+        print(f"   📐 Cálculo theta_tormenta:")
+        print(f"      - Vtormenta: {Vtormenta:.1f} m/s")
+        print(f"      - Carga viento conductor: {fuerza_viento_conductor:.2f} daN")
+        print(f"      - Carga viento cadena: {carga_viento_cadena:.2f} daN")
+        print(f"      - Fuerza viento total: {fuerza_viento_total:.2f} daN")
+        print(f"      - Peso conductor: {peso_conductor:.2f} daN")
+        print(f"      - Peso cadena: {peso_cadena:.2f} daN")
+        print(f"      - theta_tormenta calculado: {theta_tormenta:.2f}°")
+        
+        return theta_tormenta
     
     def calcular_distancias_minimas(self, flecha_max_conductor, theta_max):
         """

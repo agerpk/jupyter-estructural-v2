@@ -1,7 +1,7 @@
 {
   "nombre_familia": "ACONCAGUA_RECALCULO_ALTURAS_1_solo_HG_solo_S",
   "fecha_creacion": "2026-01-19T10:29:59.385953",
-  "fecha_modificacion": "2026-01-19T10:31:57.402583",
+  "fecha_modificacion": "2026-01-19T12:04:07.090964",
   "estructuras": {
     "Estr.1": {
       "TIPO_ESTRUCTURA": "Suspensión Recta",
@@ -56,9 +56,9 @@
       "ALTURA_A_CABLE_SOBREESCRITA": 6.5,
       "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 0.0,
       "LONGITUD_MENSULA_MINIMA_GUARDIA": 0.0,
-      "HADD": 0.8,
-      "HADD_ENTRE_AMARRES": 0.1,
-      "HADD_HG": 3.2,
+      "HADD": 0.0,
+      "HADD_ENTRE_AMARRES": 0.0,
+      "HADD_HG": 3.15,
       "HADD_LMEN": 0.0,
       "ANCHO_CRUCETA": 0.0,
       "OFFSET_COLUMNA_BASE": true,
@@ -78,7 +78,7 @@
       "altura_a_cable_sobreescrita": 5.9,
       "SOBREESCRIBIR_S": true,
       "s_reposo": 0.98,
-      "s_tormenta": 0.88,
+      "s_tormenta": 1.26,
       "s_decmax": 0.88,
       "defasaje_mensula_hielo": false,
       "lmen_extra_hielo": 0.0,
@@ -262,7 +262,8 @@
         "mostrar_tablas_resultados_por_elemento": false,
         "plots_interactivos": true
       },
-      "cantidad": 27
+      "cantidad": 27,
+      "D_fases_add": 0.0
     }
   },
   "estados_climaticos": {

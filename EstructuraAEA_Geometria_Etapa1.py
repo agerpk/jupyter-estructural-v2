@@ -16,11 +16,11 @@ class GeometriaEtapa1:
         # Calcular parámetros base
         theta_max = self.geo.calcular_theta_max(vano)
         
-        # Validar theta_max
-        if theta_max >= 99.0:
-            print("   ⚠️  WARNING: No se pudo calcular theta_max correctamente (falta cache de viento)")
-            print("   ⚠️  WARNING: Continuando con theta_max = 0°")
-            theta_max = 0.0
+        # Calcular theta_tormenta usando Vtormenta
+        if not hasattr(self.geo, 'Vtormenta'):
+            raise ValueError("ERROR: Parámetro 'Vtormenta' no encontrado en estructura")
+        
+        theta_tormenta = self.geo.calcular_theta_tormenta(vano, self.geo.Vtormenta)
         
         distancias = self.geo.calcular_distancias_minimas(flecha_max_conductor, theta_max)
         
@@ -111,6 +111,7 @@ class GeometriaEtapa1:
         self.geo.dimensiones.update({
             "h1a": h1a,
             "Lmen1": Lmen1,
+            "theta_tormenta": theta_tormenta,
             **distancias
         })
         
@@ -136,8 +137,8 @@ class GeometriaEtapa1:
     def _calcular_lmen1_iterativo(self, h1a, distancias, theta_max):
         """Calcular Lmen1 chequeando zona s_decmax en declinación máxima"""
         
-        # Calcular theta_tormenta como theta_max/2
-        theta_tormenta = theta_max / 2.0
+        # Obtener theta_tormenta de dimensiones (ya calculado en ejecutar)
+        theta_tormenta = self.geo.dimensiones.get('theta_tormenta', theta_max / 2.0)
         
         # CASO ESPECIAL: Horizontal Simple con Lk=0 y NO Suspensión
         if (self.geo.disposicion == "horizontal" and 

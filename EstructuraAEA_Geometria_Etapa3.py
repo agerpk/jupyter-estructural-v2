@@ -18,12 +18,10 @@ class GeometriaEtapa3:
             print("   ⏭️  No aplica h3a para esta disposición")
             return
         
-        # Calcular theta_max y theta_tormenta
+        # Calcular theta_max y obtener theta_tormenta
         vano = self.geo.dimensiones.get('vano', 400)
         theta_max = self.geo.calcular_theta_max(vano)
-        if theta_max >= 99.0:
-            theta_max = 0.0
-        theta_tormenta = theta_max / 2.0
+        theta_tormenta = self.geo.dimensiones.get('theta_tormenta', theta_max / 2.0)
         
         # Calcular h3a_inicial
         h2a = self.geo.dimensiones["h2a"]
@@ -44,27 +42,23 @@ class GeometriaEtapa3:
         Lmen1_original = self.geo.dimensiones["Lmen1"]  # PRE hielo
         Lmen3 = max(Lmen1_original, self.geo.long_mensula_min_conductor)
         
-        # Optimizar h3a si hay defasaje por hielo
+        # Optimizar h3a considerando zonas prohibidas
         h3a_final = h3a_inicial
         
+        # SIEMPRE buscar altura óptima considerando zonas prohibidas
+        zoptimo3 = self._buscar_altura_fuera_zonas_prohibidas_h2a(Lmen3, h2a, D_fases, s_reposo, theta_max, theta_tormenta)
+        h3a_final = zoptimo3 + HADD_ENTRE_AMARRES
+        
+        # Aplicar defasaje por hielo si está activado
         if self.geo.defasaje_mensula_hielo and self.geo.lmen_extra_hielo > 0:
             mensula_defasar = self.geo.mensula_defasar
             
-            # Si la defasada es "tercera" O "primera y tercera"
             if mensula_defasar == "tercera" or mensula_defasar == "primera y tercera":
-                # Lmen3 será incrementada, buscar altura óptima
+                # Lmen3 será incrementada, recalcular altura óptima
                 Lmen3 = Lmen3 + self.geo.lmen_extra_hielo
-                # Buscar altura óptima considerando zonas prohibidas de h2a
                 zoptimo3 = self._buscar_altura_fuera_zonas_prohibidas_h2a(Lmen3, h2a, D_fases, s_reposo, theta_max, theta_tormenta)
                 h3a_final = zoptimo3 + HADD_ENTRE_AMARRES
                 print(f"   ❄️  Defasaje hielo '{mensula_defasar}': Lmen3 = {Lmen3:.2f}m, h3a = {h3a_final:.2f}m")
-            
-            elif mensula_defasar == "segunda":
-                # Lmen2 fue incrementada en Etapa2, Lmen3 permanece normal (PRE hielo)
-                # Recheckear altura considerando zonas prohibidas de h2a
-                zoptimo3 = self._buscar_altura_fuera_zonas_prohibidas_h2a(Lmen3, h2a, D_fases, s_reposo, theta_max, theta_tormenta)
-                h3a_final = zoptimo3 + HADD_ENTRE_AMARRES
-                print(f"   🔵 Optimización por defasaje 'segunda': h3a reducida a {h3a_final:.2f}m")
         
         # Guardar resultados
         self.geo.dimensiones["h3a"] = h3a_final
@@ -219,12 +213,10 @@ class GeometriaEtapa3:
         else:
             h3a_inicial = h2a + D_fases + HADD
         
-        # Bajar desde h3a_inicial hasta encontrar infracción
+        # Subir desde h3a_inicial hasta que NO haya infracciones
         h3a = h3a_inicial
         incremento = 0.01
-        max_iteraciones = 1000
-        ultima_sin_infraccion = h3a_inicial
-        razon_detencion = None
+        max_iteraciones = 10000
         
         for i in range(max_iteraciones):
             # Verificar cada declinación contra SU franja correspondiente
@@ -238,39 +230,41 @@ class GeometriaEtapa3:
             z_tormenta = h3a - Lk * math.cos(math.radians(theta_tormenta))
             resultado_tormenta = verificador_tormenta.verificar_punto(x_tormenta, z_tormenta)
             
-            if i == 0:  # Solo primera iteración
-                print(f"   📍 h3a={h3a:.3f}: Reposo=({x_reposo:.3f},{z_reposo:.3f}), Tormenta=({x_tormenta:.3f},{z_tormenta:.3f})")
-            
             # 3. Máxima (θ_max): verificar contra franja s_decmax
             x_max = x_linea - Lk * math.sin(math.radians(theta_max))
             z_max = h3a - Lk * math.cos(math.radians(theta_max))
             resultado_max = verificador_max.verificar_punto(x_max, z_max)
             
             # Detectar infracciones
+            hay_infraccion = False
+            razon_infraccion = None
+            
             if resultado_reposo['infringe']:
-                razon_detencion = f"Reposo (θ=0°): {', '.join(resultado_reposo['zonas_infringidas'])}"
+                hay_infraccion = True
+                razon_infraccion = f"Reposo (θ=0°): {', '.join(resultado_reposo['zonas_infringidas'])}"
             elif resultado_tormenta['infringe']:
-                razon_detencion = f"Tormenta (θ={theta_tormenta:.1f}°): {', '.join(resultado_tormenta['zonas_infringidas'])}"
+                hay_infraccion = True
+                razon_infraccion = f"Tormenta (θ={theta_tormenta:.1f}°): {', '.join(resultado_tormenta['zonas_infringidas'])}"
             elif resultado_max['infringe']:
-                razon_detencion = f"Máxima (θ={theta_max:.1f}°): {', '.join(resultado_max['zonas_infringidas'])}"
+                hay_infraccion = True
+                razon_infraccion = f"Máxima (θ={theta_max:.1f}°): {', '.join(resultado_max['zonas_infringidas'])}"
             
-            if razon_detencion:
-                # Encontró infracción, retornar última altura sin infracción
-                print(f"   🔍 Altura óptima en x={x_linea:.2f}m: z={ultima_sin_infraccion:.3f}m (bajó {h3a_inicial - ultima_sin_infraccion:.3f}m)")
-                print(f"   🛑 Detenido por: {razon_detencion}")
-                return ultima_sin_infraccion
+            if not hay_infraccion:
+                # No hay infracciones, esta es la altura válida
+                if h3a > h3a_inicial:
+                    print(f"   🔍 Altura ajustada en x={x_linea:.2f}m: z={h3a:.3f}m (subió {h3a - h3a_inicial:.3f}m)")
+                else:
+                    print(f"   🔍 Altura inicial válida en x={x_linea:.2f}m: z={h3a:.3f}m")
+                return h3a
             
-            # Sin infracción, guardar y seguir bajando
-            ultima_sin_infraccion = h3a
-            h3a -= incremento
+            # Hay infracción, subir y continuar
+            if i == 0:
+                print(f"   ⚠️  h3a={h3a:.3f}m infringe: {razon_infraccion}")
             
-            # No bajar más allá de h2a
-            if h3a <= h2a:
-                print(f"   🔍 Altura óptima en x={x_linea:.2f}m: z={ultima_sin_infraccion:.3f}m (límite h2a alcanzado)")
-                return ultima_sin_infraccion
+            h3a += incremento
         
-        print(f"   🔍 Altura óptima en x={x_linea:.2f}m: z={ultima_sin_infraccion:.3f}m (sin infracciones)")
-        return ultima_sin_infraccion
+        print(f"   ⚠️  Límite de iteraciones alcanzado en x={x_linea:.2f}m: z={h3a:.3f}m")
+        return h3a
     
     def _checkear_zonas_dfases_entre_alturas(self, h3a, Lmen3, h2a, theta_max, theta_tormenta):
         """Checkear que conductores h3a no infringen zonas D_fases de conductores h2a

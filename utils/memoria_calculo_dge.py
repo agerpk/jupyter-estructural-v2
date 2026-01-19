@@ -54,23 +54,36 @@ def gen_memoria_calculo_DGE(estructura_geometria):
         memoria.append(f"Resultado: Ka = {Ka:.3f}")
     memoria.append("")
     
-    # PASO 1: THETA_MAX
-    memoria.append("PASO 1: DETERMINACION DEL ANGULO DE DECLINACION THETA_MAX")
+    # PASO 1: THETA_MAX Y THETA_TORMENTA
+    memoria.append("PASO 1: DETERMINACION DE ANGULOS DE DECLINACION")
     memoria.append("-" * 60)
     
     theta_max = dim.get('theta_max', 0)
+    theta_tormenta = dim.get('theta_tormenta', 0)
     
     if estructura_geometria.tipo_fijacion_base != "suspensión" or estructura_geometria.lk == 0:
         memoria.append("Formula: theta_max = 0 (estructura no es suspension o Lk=0)")
         memoria.append(f"Resultado: theta_max = {theta_max} grados")
+        memoria.append(f"Resultado: theta_tormenta = {theta_tormenta} grados")
     else:
-        memoria.append("Formula: theta_max = arctan((Fv + Fca) / (Pc + Pcadena))")
-        memoria.append("Donde:")
-        memoria.append("  Fv = Fuerza de viento sobre conductor (daN)")
-        memoria.append("  Fca = Fuerza de viento sobre cadena de aisladores (daN)")
-        memoria.append("  Pc = Peso del conductor en el vano (daN)")
-        memoria.append("  Pcadena = Peso de la cadena (daN)")
-        memoria.append(f"Resultado: theta_max = {theta_max:.2f} grados")
+        memoria.append("a) Angulo de declinacion maxima (theta_max):")
+        memoria.append("   Formula: theta_max = arctan((Fv_max + Fca_max) / (Pc + Pcadena))")
+        memoria.append("   Donde:")
+        memoria.append("     Fv_max = Fuerza de viento maximo sobre conductor (daN)")
+        memoria.append("     Fca_max = Fuerza de viento maximo sobre cadena de aisladores (daN)")
+        memoria.append("     Pc = Peso del conductor en el vano (daN)")
+        memoria.append("     Pcadena = Peso de la cadena (daN)")
+        memoria.append(f"   Resultado: theta_max = {theta_max:.2f} grados")
+        memoria.append("")
+        
+        memoria.append("b) Angulo de declinacion en tormenta (theta_tormenta):")
+        memoria.append("   Formula: theta_tormenta = arctan((Fv_tormenta + Fca_tormenta) / (Pc + Pcadena))")
+        memoria.append("   Donde:")
+        memoria.append("     Fv_tormenta = Fuerza de viento con Vtormenta sobre conductor (daN)")
+        memoria.append("     Fca_tormenta = Fuerza de viento con Vtormenta sobre cadena (daN)")
+        Vtormenta = getattr(estructura_geometria, 'Vtormenta', 0)
+        memoria.append(f"     Vtormenta = {Vtormenta:.1f} m/s")
+        memoria.append(f"   Resultado: theta_tormenta = {theta_tormenta:.2f} grados")
     memoria.append("")
     
     # PASO 2: COEFICIENTE K
@@ -255,7 +268,8 @@ def gen_memoria_calculo_DGE(estructura_geometria):
     memoria.append("-" * 80)
     
     resultados = [
-        ("Angulo declinacion (theta_max)", f"{theta_max:.2f}", "grados"),
+        ("Angulo declinacion maxima (theta_max)", f"{theta_max:.2f}", "grados"),
+        ("Angulo declinacion tormenta (theta_tormenta)", f"{theta_tormenta:.2f}", "grados"),
         ("Coeficiente k", f"{k:.3f}", ""),
         ("Distancia entre fases (D)", f"{D_fases:.3f}", "m"),
         ("Distancia fase-estructura (s)", f"{s_estructura:.3f}", "m"),

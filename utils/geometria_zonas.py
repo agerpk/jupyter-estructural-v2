@@ -113,21 +113,34 @@ class FranjaVertical(ZonaProhibida):
 
 
 class FranjaHorizontal(ZonaProhibida):
-    """Franja horizontal (mensula con defasaje s_reposo)"""
+    """Franja horizontal (mensula con offset variable según posición X)"""
     
-    def __init__(self, x_min: float, x_max: float, z_centro: float, altura: float, descripcion: str = ""):
+    def __init__(self, x_min: float, x_max: float, z_centro: float, altura_base: float, 
+                 offset_params: dict = None, descripcion: str = ""):
         super().__init__(descripcion or f"Ménsula z={z_centro:.2f}m", "mensula")
         self.x_min = x_min
         self.x_max = x_max
         self.z_centro = z_centro
-        self.z_min = z_centro
-        self.z_max = z_centro + altura
+        self.altura_base = altura_base
+        self.offset_params = offset_params
+    
+    def _calcular_offset(self, x: float) -> float:
+        if not self.offset_params:
+            return 0
+        return calcular_offset_mensula(
+            abs(x), self.offset_params['x_min'], self.offset_params['x_max'],
+            self.offset_params['offset_inicio'], self.offset_params['offset_fin'],
+            self.offset_params['tipo']
+        )
     
     def contiene_punto(self, x: float, z: float) -> bool:
-        return (self.x_min <= x <= self.x_max and self.z_min <= z <= self.z_max)
+        if not (self.x_min <= x <= self.x_max):
+            return False
+        offset = self._calcular_offset(x)
+        z_max_local = self.z_centro + self.altura_base + offset
+        return self.z_centro <= z <= z_max_local
     
     def distancia_a_punto(self, x: float, z: float) -> Tuple[float, float, float]:
-        # Distancia horizontal
         if x < self.x_min:
             dx = self.x_min - x
         elif x > self.x_max:
@@ -135,17 +148,17 @@ class FranjaHorizontal(ZonaProhibida):
         else:
             dx = 0
         
-        # Distancia vertical
-        if z < self.z_min:
-            dz = self.z_min - z
-        elif z > self.z_max:
-            dz = z - self.z_max
+        offset = self._calcular_offset(x)
+        z_max_local = self.z_centro + self.altura_base + offset
+        
+        if z < self.z_centro:
+            dz = self.z_centro - z
+        elif z > z_max_local:
+            dz = z - z_max_local
         else:
             dz = 0
         
-        # Distancia mínima
         dist_min = math.sqrt(dx**2 + dz**2)
-        
         return (dx, dz, dist_min)
 
 
@@ -366,8 +379,16 @@ class GeneradorZonasProhibidas:
                         offset_fin = 0
                         offset_conductor = 0
                     
-                    # Usar el offset mayor para la altura de franja
-                    offset_franja = max(offset_inicio, offset_fin)
+                    # Preparar parámetros de offset para interpolación
+                    offset_params_franja = None
+                    if self.offset_mensula:
+                        offset_params_franja = {
+                            'x_min': abs(x_min),
+                            'x_max': abs(x_max),
+                            'offset_inicio': self.offset_mensula_inicio,
+                            'offset_fin': self.offset_mensula_fin,
+                            'tipo': self.offset_mensula_tipo
+                        }
                     
                     # Franja s_reposo
                     if self.s_reposo > 0:
@@ -375,7 +396,8 @@ class GeneradorZonasProhibidas:
                             x_min=x_min,
                             x_max=x_max,
                             z_centro=z_mensula,
-                            altura=self.s_reposo + offset_franja,
+                            altura_base=self.s_reposo,
+                            offset_params=offset_params_franja,
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_reposo)"
                         ))
                         self.zonas.append(Circulo(
@@ -393,7 +415,8 @@ class GeneradorZonasProhibidas:
                             x_min=x_min,
                             x_max=x_max,
                             z_centro=z_mensula,
-                            altura=self.s_tormenta + offset_franja,
+                            altura_base=self.s_tormenta,
+                            offset_params=offset_params_franja,
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_tormenta)"
                         ))
                         self.zonas.append(Circulo(
@@ -411,7 +434,8 @@ class GeneradorZonasProhibidas:
                             x_min=x_min,
                             x_max=x_max,
                             z_centro=z_mensula,
-                            altura=self.s_decmax + offset_franja,
+                            altura_base=self.s_decmax,
+                            offset_params=offset_params_franja,
                             descripcion=f"Ménsula {nodo.nombre}-{nodo_destino.nombre} (s_decmax)"
                         ))
                         self.zonas.append(Circulo(
@@ -607,10 +631,12 @@ class VerificadorZonasProhibidas:
                         razon = zona.descripcion
             
             elif isinstance(zona, FranjaHorizontal):
-                # Para franjas horizontales
+                # Para franjas horizontales con offset interpolado
                 if zona.x_min <= x <= zona.x_max:
-                    if zona.z_max > z_min:
-                        z_min = zona.z_max
+                    offset = zona._calcular_offset(x)
+                    z_max_local = zona.z_centro + zona.altura_base + offset
+                    if z_max_local > z_min:
+                        z_min = z_max_local
                         razon = zona.descripcion
         
         return z_min, razon
