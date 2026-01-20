@@ -160,18 +160,19 @@ class GeometriaEtapa4:
         # ang_apant es respecto a la VERTICAL, convertir a pendiente respecto a horizontal
         pendiente = -1.0 / math.tan(math.radians(ang_apant))
         
-        # Altura inicial: z más alto de estructura preexistente
+        # Altura inicial: z más alto de estructura preexistente + hadd_hg
         h_max = max(self.geo.dimensiones.get("h1a", 0), 
                    self.geo.dimensiones.get("h2a", 0),
                    self.geo.dimensiones.get("h3a", 0))
         
         # Iterar para encontrar lmenhg y hhg que cumplan Dhg y apantallamiento
+        # hhg_inicial ya incluye hadd_hg
         lmenhg, hhg = self._iterar_guardia_dhg_apantallamiento(
-            lmenhg_min, h_max, conductores, pendiente, ang_apant
+            lmenhg_min, h_max + hadd_hg, conductores, pendiente, ang_apant
         )
         
-        # Altura final de nodos HG
-        hhg_final = hhg + hadd_hg
+        # Altura final de nodos HG (ya incluye hadd_hg desde la iteración)
+        hhg_final = hhg
         
         defasaje_y = getattr(self.geo, 'defasaje_y_guardia', 0.0)
         

@@ -494,9 +494,6 @@ class PostesHormigon:
             print("❌ Objetos geometría o mecánica no disponibles en cache")
             return
         
-        print("🔧 SELECCIÓN DE POSTE - MÉTODO LRFD AEA 95301-2007")
-        print("=" * 80)
-        
         # ================= DIMENSIONADO GEOMÉTRICO =================
         print("\n📐 DIMENSIONADO GEOMÉTRICO DEL POSTE")
         print("=" * 40)
@@ -643,8 +640,8 @@ class PostesHormigon:
         print(f"  Orientación: {orientacion_final}")
         print(f"  Resistencia en cima: {Rc_adopt:.0f} daN")
         
-        # Calcular resistencia a torsión
-        Mz_max = max([datos['Reaccion_Mz_daN_m'] for datos in mecanica.resultados_reacciones.values()])
+        # Calcular resistencia a torsión - BUSCAR MÁXIMA TORSIÓN DE TODAS LAS HIPÓTESIS
+        Mz_max = max([abs(datos.get('Reaccion_Mz_daN_m', 0)) for datos in mecanica.resultados_reacciones.values()])
         Rt_min = (factores['KE'] * factores['KC'] * Mz_max) / factores['φ_tor'] if Mz_max > 0 else 0
         
         # Resistencia mínima a torsión según Rc_adopt (Norma IRAM 1605)

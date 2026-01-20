@@ -195,7 +195,18 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state, generar_plots=True
         
         estados_climaticos = estructura_actual.get("estados_climaticos", {})
         if not estados_climaticos:
-            raise KeyError("Debe configurar estados climáticos en la familia antes de calcular (botón 'Modificar Estados Climáticos y Restricciones')")
+            return {"exito": False, "mensaje": "Debe configurar estados climáticos en la familia antes de calcular (botón 'Modificar Estados Climáticos y Restricciones')"}
+        
+        # Validar parámetros críticos para evitar división por cero
+        parametros_criticos = {
+            "L_vano": estructura_actual.get("L_vano", 0),
+            "Zco": estructura_actual.get("Zco", 0),
+            "Cf_cable": estructura_actual.get("Cf_cable", 0)
+        }
+        
+        for param, valor in parametros_criticos.items():
+            if valor == 0 or valor is None:
+                return {"exito": False, "mensaje": f"Parámetro '{param}' no puede ser cero o nulo"}
         
         # Restricciones desde estructura - extraer de estados climáticos
         if "restricciones_cables" in estructura_actual:

@@ -585,6 +585,7 @@ class CalculoCache:
                     "arboles": f"{titulo}.calculoARBOLES.json",
                     "sph": f"{titulo}.calculoSPH.json",
                     "fundacion": f"{titulo}.calculoFUND.json",
+                    "aee": f"{titulo}.calculoAEE.json",
                     "costeo": f"{titulo}.calculoCOSTEO.json"
                 }
             }
