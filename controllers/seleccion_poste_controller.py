@@ -211,6 +211,12 @@ def register_callbacks(app):
             # Crear objeto PostesHormigon y calcular
             postes = PostesHormigon()
             
+            # Obtener parámetros de ajuste (recargar archivo para asegurar valores actualizados)
+            from config.app_config import DATA_DIR
+            estructura_recargada = state.estructura_manager.cargar_estructura(DATA_DIR / f"{nombre_estructura}.estructura.json")
+            AJUSTE_RO_POR_HT = estructura_recargada.get('AJUSTE_RO_POR_HT', False)
+            KE_estructura_ensayada = estructura_recargada.get('KE_estructura_ensayada', 1.0)
+            
             # Capturar salida de imprimir_desarrollo
             old_stdout = sys.stdout
             sys.stdout = buffer = io.StringIO()
@@ -221,7 +227,9 @@ def register_callbacks(app):
                 FORZAR_N_POSTES=forzar_n,
                 FORZAR_ORIENTACION=orientacion,
                 ANCHO_CRUCETA=ancho_cruceta,
-                PRIORIDAD_DIMENSIONADO=prioridad
+                PRIORIDAD_DIMENSIONADO=prioridad,
+                AJUSTE_RO_POR_HT=AJUSTE_RO_POR_HT,
+                KE_estructura_ensayada=KE_estructura_ensayada
             )
             
             postes.imprimir_desarrollo_seleccion_postes()

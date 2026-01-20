@@ -243,34 +243,64 @@ def generar_resultados_cmc(calculo_guardado, estructura_actual, omitir_vigencia=
         
         # Memorias de Cálculo
         if calculo_guardado.get('memoria_conductor'):
-            resultados_html.append(html.Hr(className="mt-4"))
-            resultados_html.extend(
-                ViewHelpers.crear_pre_output(
+            resultados_html.append(html.Hr(className="mt-5"))
+            resultados_html.append(dbc.Card([
+                dbc.CardHeader(html.H5("Memoria de Cálculo: Conductor", className="mb-0")),
+                dbc.CardBody(html.Pre(
                     calculo_guardado['memoria_conductor'],
-                    titulo="Memoria de Cálculo - Conductor",
-                    font_size='0.75rem'
-                )
-            )
+                    style={
+                        'backgroundColor': '#1e1e1e',
+                        'color': '#d4d4d4',
+                        'padding': '10px',
+                        'borderRadius': '5px',
+                        'fontSize': '0.85rem',
+                        'maxHeight': '600px',
+                        'overflowY': 'auto',
+                        'whiteSpace': 'pre-wrap',
+                        'fontFamily': 'monospace'
+                    }
+                ))
+            ], className="mt-3"))
         
         if calculo_guardado.get('memoria_guardia1'):
             resultados_html.append(html.Hr(className="mt-4"))
-            resultados_html.extend(
-                ViewHelpers.crear_pre_output(
+            resultados_html.append(dbc.Card([
+                dbc.CardHeader(html.H5("Memoria de Cálculo: Guardia 1", className="mb-0")),
+                dbc.CardBody(html.Pre(
                     calculo_guardado['memoria_guardia1'],
-                    titulo="Memoria de Cálculo - Guardia 1",
-                    font_size='0.75rem'
-                )
-            )
+                    style={
+                        'backgroundColor': '#1e1e1e',
+                        'color': '#d4d4d4',
+                        'padding': '10px',
+                        'borderRadius': '5px',
+                        'fontSize': '0.85rem',
+                        'maxHeight': '600px',
+                        'overflowY': 'auto',
+                        'whiteSpace': 'pre-wrap',
+                        'fontFamily': 'monospace'
+                    }
+                ))
+            ], className="mt-3"))
         
         if calculo_guardado.get('memoria_guardia2'):
             resultados_html.append(html.Hr(className="mt-4"))
-            resultados_html.extend(
-                ViewHelpers.crear_pre_output(
+            resultados_html.append(dbc.Card([
+                dbc.CardHeader(html.H5("Memoria de Cálculo: Guardia 2", className="mb-0")),
+                dbc.CardBody(html.Pre(
                     calculo_guardado['memoria_guardia2'],
-                    titulo="Memoria de Cálculo - Guardia 2",
-                    font_size='0.75rem'
-                )
-            )
+                    style={
+                        'backgroundColor': '#1e1e1e',
+                        'color': '#d4d4d4',
+                        'padding': '10px',
+                        'borderRadius': '5px',
+                        'fontSize': '0.85rem',
+                        'maxHeight': '600px',
+                        'overflowY': 'auto',
+                        'whiteSpace': 'pre-wrap',
+                        'fontFamily': 'monospace'
+                    }
+                ))
+            ], className="mt-3"))
         
         # Cargar gráficos interactivos (replicar formato original)
         hash_params = calculo_guardado.get('hash_parametros')

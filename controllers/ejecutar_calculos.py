@@ -127,7 +127,9 @@ def ejecutar_calculo_sph(estructura_actual, state):
             FORZAR_N_POSTES=estructura_actual.get('FORZAR_N_POSTES', 0),
             FORZAR_ORIENTACION=estructura_actual.get('FORZAR_ORIENTACION', 'No'),
             ANCHO_CRUCETA=estructura_actual.get('ANCHO_CRUCETA', 0.2),
-            PRIORIDAD_DIMENSIONADO=estructura_actual.get('PRIORIDAD_DIMENSIONADO', 'longitud_total')
+            PRIORIDAD_DIMENSIONADO=estructura_actual.get('PRIORIDAD_DIMENSIONADO', 'longitud_total'),
+            AJUSTE_RO_POR_HT=estructura_actual.get('AJUSTE_RO_POR_HT', False),
+            KE_estructura_ensayada=estructura_actual.get('KE_estructura_ensayada', 1.0)
         )
         
         postes.imprimir_desarrollo_seleccion_postes()

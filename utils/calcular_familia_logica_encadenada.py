@@ -228,7 +228,7 @@ def _ejecutar_secuencia_estructura(datos_estructura: Dict, titulo: str, generar_
             # 8. AEE
             if "aee" in calculos_activos:
                 from controllers.ejecutar_calculos import ejecutar_calculo_aee
-                resultado_aee = ejecutar_calculo_aee(datos_estructura, state, generar_plots)
+                resultado_aee = ejecutar_calculo_aee(datos_estructura, state)
                 if resultado_aee.get('exito'):
                     resultados["aee"] = CalculoCache.cargar_calculo_aee(titulo)
                     print(f"✅ AEE completado para {titulo}")
@@ -434,7 +434,10 @@ def _crear_contenido_estructura(datos_estructura: Dict, calculos_activos: List[s
                 # Omitir verificación de vigencia en contexto de familia
                 cmc_content = generar_resultados_cmc(resultados["cmc"], {}, omitir_vigencia=True)
                 if cmc_content:
-                    if isinstance(cmc_content, list):
+                    # generar_resultados_cmc retorna html.Div con children como lista
+                    if hasattr(cmc_content, 'children'):
+                        componentes.append(cmc_content)
+                    elif isinstance(cmc_content, list):
                         componentes.extend(cmc_content)
                     else:
                         componentes.append(cmc_content)
@@ -442,7 +445,8 @@ def _crear_contenido_estructura(datos_estructura: Dict, calculos_activos: List[s
                 else:
                     print(f"   ⚠️ CMC retornó None")
             except Exception as e:
-                print(f"   ❌ Error en CMC: {e}")
+                import traceback
+                print(f"   ❌ Error en CMC: {traceback.format_exc()}")
                 componentes.append(dbc.Alert(f"Error en CMC: {e}", color="warning"))
         
         # DGE

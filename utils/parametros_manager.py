@@ -1079,6 +1079,20 @@ class ParametrosManager:
             "tipo": "float",
             "categoria": "Fundación"
         },
+        "AJUSTE_RO_POR_HT": {
+            "simbolo": "AjRo",
+            "unidad": "-",
+            "descripcion": "Ajustar resistencia por altura total (Frt = Frl × Hl/Ht)",
+            "tipo": "bool",
+            "categoria": "Postes"
+        },
+        "KE_estructura_ensayada": {
+            "simbolo": "KE",
+            "unidad": "-",
+            "descripcion": "Factor estructura ensayada (LRFD)",
+            "tipo": "float",
+            "categoria": "Postes"
+        },
         
         # ANÁLISIS ESTÁTICO DE ESFUERZOS (AEE)
         "AnalisisEstaticoEsfuerzos.ACTIVAR_AEE": {

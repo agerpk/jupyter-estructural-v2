@@ -127,6 +127,8 @@
   "pendiente_postes_multiples": 4.0,
   "conicidad_poste": 1.5,
   "incremento_calculo": 0.01,
+  "AJUSTE_RO_POR_HT": false,
+  "KE_estructura_ensayada": 1.0,
   "costeo": {
     "postes": {
       "coef_a": 267.9232,

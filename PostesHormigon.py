@@ -13,7 +13,8 @@ class PostesHormigon:
             'CoefServ': 0.4,
             'KE': 1.0,
             'divisor_biposte_transversal': (8, 2),
-            'divisor_biposte_longitudinal': (2, 8)
+            'divisor_biposte_longitudinal': (2, 8),
+            'AJUSTE_RO_POR_HT': False
         }
         
         self.KC_dict = {
@@ -205,7 +206,7 @@ class PostesHormigon:
         
         return resultados
 
-    def calcular_seleccion_postes(self, geometria, mecanica, FORZAR_N_POSTES=0, FORZAR_ORIENTACION="No", ANCHO_CRUCETA=0.2, PRIORIDAD_DIMENSIONADO="altura_libre"):
+    def calcular_seleccion_postes(self, geometria, mecanica, FORZAR_N_POSTES=0, FORZAR_ORIENTACION="No", ANCHO_CRUCETA=0.2, PRIORIDAD_DIMENSIONADO="altura_libre", AJUSTE_RO_POR_HT=False, KE_estructura_ensayada=1.0):
         """
         Calcula la selección completa de postes basada en la estructura y configuraciones
         
@@ -224,6 +225,7 @@ class PostesHormigon:
         self.FORZAR_ORIENTACION = FORZAR_ORIENTACION
         self.ANCHO_CRUCETA = ANCHO_CRUCETA
         self.PRIORIDAD_DIMENSIONADO = PRIORIDAD_DIMENSIONADO
+        self.AJUSTE_RO_POR_HT = AJUSTE_RO_POR_HT
         
         # Almacenar referencias a los objetos
         self.geometria = geometria
@@ -237,7 +239,7 @@ class PostesHormigon:
         φ_tc = self.factores_lrfd['φ_tc']
         φ_tor = self.factores_lrfd['φ_tor']
         CoefServ = self.factores_lrfd['CoefServ']
-        KE = self.factores_lrfd['KE']
+        KE = KE_estructura_ensayada
         KC = self.KC_dict.get(self.TIPO_ESTRUCTURA, 1.0)
         
         # ================= CALCULAR DIMENSIONES =================
@@ -296,11 +298,16 @@ class PostesHormigon:
                 configuraciones[config]["Fr_serv"] = Fr_serv
 
         # ================= AJUSTE DE RESISTENCIA =================
-        for config in configs:
-            configuraciones[config]["Fr_max_ajustado"] = self._ajustar_tiro_altura_total(
-                configuraciones[config]["Fr_max"], dimensiones['Hl'], dimensiones['Ht_comercial'])
-            configuraciones[config]["Fr_serv_ajustado"] = self._ajustar_tiro_altura_total(
-                configuraciones[config]["Fr_serv"], dimensiones['Hl'], dimensiones['Ht_comercial'])
+        if AJUSTE_RO_POR_HT:
+            for config in configs:
+                configuraciones[config]["Fr_max_ajustado"] = self._ajustar_tiro_altura_total(
+                    configuraciones[config]["Fr_max"], dimensiones['Hl'], dimensiones['Ht_comercial'])
+                configuraciones[config]["Fr_serv_ajustado"] = self._ajustar_tiro_altura_total(
+                    configuraciones[config]["Fr_serv"], dimensiones['Hl'], dimensiones['Ht_comercial'])
+        else:
+            for config in configs:
+                configuraciones[config]["Fr_max_ajustado"] = configuraciones[config]["Fr_max"]
+                configuraciones[config]["Fr_serv_ajustado"] = configuraciones[config]["Fr_serv"]
 
         # ================= CALCULAR RESISTENCIAS =================
         for config in configs:
@@ -541,21 +548,26 @@ class PostesHormigon:
             print(f"  Servicio: A0 (Fr = {Fr_A0:.1f} daN en Hl) (No hay componente angular)")
 
         # ================= AJUSTE DE RESISTENCIA =================
-        print(f"\n📏 AJUSTE DE RESISTENCIA PARA ALTURA TOTAL")
-        print("=" * 45)
-        print("Se ajustan las hipótesis críticas a la altura libre sumada al empotramiento, de la siguiente manera:")
-        print("Frt = Frl × Hl/Ht")
-        
-        # Ajustar tiros
-        Fr_max_ajustado = self._ajustar_tiro_altura_total(Fr_max_mono, dimensiones['Hl'], dimensiones['Ht_comercial'])
-        Fr_A0_ajustado = self._ajustar_tiro_altura_total(Fr_A0, dimensiones['Hl'], dimensiones['Ht_comercial'])
-        
-        print(f"\nHIPÓTESIS CRÍTICAS, TIROS AJUSTADOS A ALTURA TOTAL:")
-        print(f"  Estado de mayor solicitación: {hip_max_mono} (Frt = {Fr_max_ajustado:.1f} daN en Ht)")
-        if Fr_A0_ajustado > 1.0:
-            print(f"  Servicio: A0 (Frt = {Fr_A0_ajustado:.1f} daN en Ht)")
+        if self.AJUSTE_RO_POR_HT:
+            print(f"\n📏 AJUSTE DE RESISTENCIA PARA ALTURA TOTAL")
+            print("=" * 45)
+            print("Se ajustan las hipótesis críticas a la altura libre sumada al empotramiento, de la siguiente manera:")
+            print("Frt = Frl × Hl/Ht")
+            
+            # Ajustar tiros
+            Fr_max_ajustado = self._ajustar_tiro_altura_total(Fr_max_mono, dimensiones['Hl'], dimensiones['Ht_comercial'])
+            Fr_A0_ajustado = self._ajustar_tiro_altura_total(Fr_A0, dimensiones['Hl'], dimensiones['Ht_comercial'])
+            
+            print(f"\nHIPÓTESIS CRÍTICAS, TIROS AJUSTADOS A ALTURA TOTAL:")
+            print(f"  Estado de mayor solicitación: {hip_max_mono} (Frt = {Fr_max_ajustado:.1f} daN en Ht)")
+            if Fr_A0_ajustado > 1.0:
+                print(f"  Servicio: A0 (Frt = {Fr_A0_ajustado:.1f} daN en Ht)")
+            else:
+                print(f"  Servicio: A0 (Frt = {Fr_A0_ajustado:.1f} daN en Ht) (No hay componente angular)")
         else:
-            print(f"  Servicio: A0 (Frt = {Fr_A0_ajustado:.1f} daN en Ht) (No hay componente angular)")
+            print(f"\n⚠️  AJUSTE DE RESISTENCIA DESACTIVADO")
+            print("=" * 45)
+            print("Los tiros se utilizan directamente en altura libre (Hl) sin ajustar a altura total (Ht).")
 
         # ================= CONFIGURACIÓN =================
         config_seleccionada = resultados['config_seleccionada']
@@ -661,20 +673,25 @@ class PostesHormigon:
             datos = resultados['resultados_hipotesis'][nombre_hip]
             Fx, Fy = datos['Fx'], datos['Fy']
             Fr = self._calcular_fuerza_equivalente(Fx, Fy, config_seleccionada)
-            Fr_ajustado = self._ajustar_tiro_altura_total(Fr, dimensiones['Hl'], dimensiones['Ht_comercial'])
+            
+            # Usar Fr ajustado o sin ajustar según configuración
+            if self.AJUSTE_RO_POR_HT:
+                Fr_verificacion = self._ajustar_tiro_altura_total(Fr, dimensiones['Hl'], dimensiones['Ht_comercial'])
+            else:
+                Fr_verificacion = Fr
             
             if codigo == 'A0':
                 # Verificación de servicio
-                lado_izq = Fr_ajustado
+                lado_izq = Fr_verificacion
                 lado_der = factores['CoefServ'] * Rc_adopt
                 resultado = "CUMPLE" if lado_izq <= lado_der else "NO CUMPLE"
                 print(f"  A0 (Servicio): {lado_izq:.1f} ≤ {factores['CoefServ']} × {Rc_adopt:.0f} = {lado_der:.1f} → {resultado}")
             else:
                 # Verificación de estado último
-                lado_izq = factores['KE'] * factores['KC'] * Fr_ajustado
+                lado_izq = factores['KE'] * factores['KC'] * Fr_verificacion
                 lado_der = factores['φ_tc'] * Rc_adopt
                 resultado = "CUMPLE" if lado_izq <= lado_der else "NO CUMPLE"
-                print(f"  {codigo}: {factores['KE']} × {factores['KC']} × {Fr_ajustado:.1f} = {lado_izq:.1f} ≤ {factores['φ_tc']} × {Rc_adopt:.0f} = {lado_der:.1f} → {resultado}")
+                print(f"  {codigo}: {factores['KE']} × {factores['KC']} × {Fr_verificacion:.1f} = {lado_izq:.1f} ≤ {factores['φ_tc']} × {Rc_adopt:.0f} = {lado_der:.1f} → {resultado}")
 
         # ================= INFORMACIÓN ADICIONAL =================
         print(f"\n📊 INFORMACIÓN ADICIONAL DEL CÁLCULO")

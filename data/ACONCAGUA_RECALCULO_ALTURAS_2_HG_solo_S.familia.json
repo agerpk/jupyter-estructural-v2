@@ -1,7 +1,7 @@
 {
-  "nombre_familia": "ACONCAGUA_RECALCULO_ALTURAS_1_solo_HG_solo_S",
-  "fecha_creacion": "2026-01-19T10:29:59.385953",
-  "fecha_modificacion": "2026-01-19T12:04:07.090964",
+  "nombre_familia": "ACONCAGUA_RECALCULO_ALTURAS_2_HG_solo_S",
+  "fecha_creacion": "2026-01-19T16:16:52.118418",
+  "fecha_modificacion": "2026-01-19T16:16:52.119415",
   "estructuras": {
     "Estr.1": {
       "TIPO_ESTRUCTURA": "Suspensión Recta",
@@ -187,6 +187,8 @@
       "pendiente_postes_multiples": 4.0,
       "conicidad_poste": 1.5,
       "incremento_calculo": 0.01,
+      "AJUSTE_RO_POR_HT": false,
+      "KE_estructura_ensayada": 1.1,
       "costeo": {
         "postes": {
           "coef_a": 267.9232,
@@ -262,75 +264,7 @@
         "mostrar_tablas_resultados_por_elemento": false,
         "plots_interactivos": true
       },
-      "cantidad": 27,
-      "D_fases_add": 0.0,
-      "AJUSTE_RO_POR_HT": false,
-      "KE_estructura_ensayada": 1.1
-    }
-  },
-  "estados_climaticos": {
-    "1": {
-      "temperatura": 35,
-      "descripcion": "Tmáx",
-      "viento_velocidad": 0,
-      "espesor_hielo": 0,
-      "restriccion_conductor": 0.25,
-      "restriccion_guardia": 0.7,
-      "relflecha": 0.9
-    },
-    "2": {
-      "temperatura": -20,
-      "descripcion": "Tmín",
-      "viento_velocidad": 0,
-      "espesor_hielo": 0,
-      "restriccion_conductor": 0.4,
-      "restriccion_guardia": 0.7,
-      "relflecha": 0.9
-    },
-    "3": {
-      "temperatura": 10,
-      "descripcion": "Vmáx",
-      "viento_velocidad": 38.9,
-      "espesor_hielo": 0,
-      "restriccion_conductor": 0.4,
-      "restriccion_guardia": 0.7,
-      "relflecha": 0.9
-    },
-    "4": {
-      "temperatura": -5,
-      "descripcion": "Vmed",
-      "viento_velocidad": 15.56,
-      "espesor_hielo": 0.01,
-      "restriccion_conductor": 0.4,
-      "restriccion_guardia": 0.7,
-      "relflecha": 0.9
-    },
-    "5": {
-      "temperatura": 8,
-      "descripcion": "TMA",
-      "viento_velocidad": 0,
-      "espesor_hielo": 0,
-      "restriccion_conductor": 0.25,
-      "restriccion_guardia": 0.7,
-      "relflecha": 0.9
-    },
-    "6": {
-      "temperatura": -5,
-      "descripcion": "HIELO",
-      "viento_velocidad": 0,
-      "espesor_hielo": 0,
-      "restriccion_conductor": 0.4,
-      "restriccion_guardia": 0.7,
-      "relflecha": 0.9
-    },
-    "7": {
-      "temperatura": 85,
-      "descripcion": "TMAXCOND",
-      "viento_velocidad": 0,
-      "espesor_hielo": 0,
-      "restriccion_conductor": 0.25,
-      "restriccion_guardia": 0.7,
-      "relflecha": 0.9
+      "cantidad": 27
     }
   }
 }
