@@ -160,9 +160,18 @@ class CalculoCache:
         # Incluir nodos_editados en cache DGE
         nodos_editados = estructura_data.get("nodos_editados", [])
         
+        print(f"\n💾 DEBUG GUARDANDO CACHE DGE (calculo_cache.py):")
+        print(f"   servidumbre_data: {servidumbre_data is not None}")
+        if servidumbre_data:
+            print(f"   Keys: {list(servidumbre_data.keys())}")
+            print(f"   memoria_calculo: {servidumbre_data.get('memoria_calculo') is not None}")
+        print(f"   fig_servidumbre: {fig_servidumbre is not None}")
+        print(f"   imagen_servidumbre: {f'Servidumbre.{hash_params}.json' if fig_servidumbre else None}")
+        
         calculo_data = {
             "hash_parametros": hash_params,
             "fecha_calculo": datetime.now().isoformat(),
+            "parametros": estructura_data,
             "dimensiones": dimensiones,
             "nodes_key": nodes_key,
             "nodos_editados": nodos_editados,

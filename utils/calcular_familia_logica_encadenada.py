@@ -60,6 +60,32 @@ def ejecutar_calculo_familia_completa(familia_data: Dict, generar_plots: bool = 
         else:
             print(f"   ⚠️ NO hay restricciones_cables en familia_data")
         
+        # Aplicar parámetros de servidumbre de la familia O de la estructura
+        # Prioridad: familia_data > datos_estr (estructura individual)
+        if "mc_servidumbre" in familia_data:
+            datos_estr["mc_servidumbre"] = familia_data["mc_servidumbre"]
+            print(f"   ✅ mc_servidumbre aplicado desde familia: {datos_estr['mc_servidumbre']}")
+        elif "mc_servidumbre" not in datos_estr:
+            # Si no está en familia ni en estructura, usar False por defecto
+            datos_estr["mc_servidumbre"] = False
+            print(f"   ℹ️ mc_servidumbre no definido, usando False")
+        else:
+            print(f"   ℹ️ mc_servidumbre ya en estructura: {datos_estr.get('mc_servidumbre')}")
+        
+        if "plot_servidumbre" in familia_data:
+            datos_estr["plot_servidumbre"] = familia_data["plot_servidumbre"]
+            print(f"   ✅ plot_servidumbre aplicado desde familia: {datos_estr['plot_servidumbre']}")
+        elif "plot_servidumbre" not in datos_estr:
+            # Si no está en familia ni en estructura, usar False por defecto
+            datos_estr["plot_servidumbre"] = False
+            print(f"   ℹ️ plot_servidumbre no definido, usando False")
+        else:
+            print(f"   ℹ️ plot_servidumbre ya en estructura: {datos_estr.get('plot_servidumbre')}")
+        
+        # DEBUG: Verificar parámetros finales antes de ejecutar
+        print(f"   📋 DEBUG FINAL - mc_servidumbre: {datos_estr.get('mc_servidumbre', 'NO EXISTE')}")
+        print(f"   📋 DEBUG FINAL - plot_servidumbre: {datos_estr.get('plot_servidumbre', 'NO EXISTE')}")
+        
         # Ejecutar secuencia completa para esta estructura
         resultado_estr = _ejecutar_secuencia_estructura(datos_estr, titulo, generar_plots, calculos_activos)
         
@@ -456,7 +482,17 @@ def _crear_contenido_estructura(datos_estructura: Dict, calculos_activos: List[s
             componentes.append(html.H4("2. Diseño Geométrico"))
             componentes.append(html.Hr())
             try:
-                dge_content = generar_resultados_dge(resultados["dge"], {})
+                # Reconstruir estructura_actual desde resultados para verificar mc_servidumbre y plot_servidumbre
+                estructura_params = resultados["dge"].get("parametros", {})
+                print(f"   🔍 DEBUG DGE - Keys en parametros: {list(estructura_params.keys())}")
+                print(f"   🔍 DEBUG DGE - mc_servidumbre: {estructura_params.get('mc_servidumbre')}")
+                print(f"   🔍 DEBUG DGE - plot_servidumbre: {estructura_params.get('plot_servidumbre')}")
+                print(f"   🔍 DEBUG DGE - servidumbre en cache: {'servidumbre' in resultados['dge']}")
+                if 'servidumbre' in resultados['dge'] and resultados['dge']['servidumbre'] is not None:
+                    print(f"   🔍 DEBUG DGE - Keys en servidumbre: {list(resultados['dge']['servidumbre'].keys())}")
+                elif 'servidumbre' in resultados['dge']:
+                    print(f"   ⚠️ DEBUG DGE - servidumbre es None")
+                dge_content = generar_resultados_dge(resultados["dge"], estructura_params)
                 if dge_content:
                     if isinstance(dge_content, list):
                         componentes.extend(dge_content)
@@ -466,7 +502,8 @@ def _crear_contenido_estructura(datos_estructura: Dict, calculos_activos: List[s
                 else:
                     print(f"   ⚠️ DGE retornó None")
             except Exception as e:
-                print(f"   ❌ Error en DGE: {e}")
+                import traceback
+                print(f"   ❌ Error en DGE: {traceback.format_exc()}")
                 componentes.append(dbc.Alert(f"Error en DGE: {e}", color="warning"))
         
         # DME

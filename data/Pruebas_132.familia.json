@@ -1,7 +1,7 @@
 {
-  "nombre_familia": "ACONCAGUA_RECALCULO_ALTURAS_2_HG_solo_S",
-  "fecha_creacion": "2026-01-19T16:16:52.118418",
-  "fecha_modificacion": "2026-01-19T16:16:52.119415",
+  "nombre_familia": "Pruebas_132",
+  "fecha_creacion": "2026-01-23T12:12:43.289399",
+  "fecha_modificacion": "2026-01-23T12:13:29.726775",
   "estructuras": {
     "Estr.1": {
       "TIPO_ESTRUCTURA": "Suspensión Recta",
@@ -9,7 +9,7 @@
       "Zona_climatica": "B",
       "exposicion": "C",
       "clase": "C",
-      "TITULO": "ACON_S_24",
+      "TITULO": "ACON_S_24_doble_terna_cargada",
       "cable_conductor_id": "AlAc 300/50",
       "cable_guardia_id": "OPGW 44F70s 24FO 120mm2",
       "cable_guardia2_id": "Ac 50",
@@ -144,8 +144,8 @@
           "temperatura": -5,
           "descripcion": "HIELO",
           "viento_velocidad": 0,
-          "espesor_hielo": 0.025,
-          "restriccion_conductor": 0.25,
+          "espesor_hielo": 0,
+          "restriccion_conductor": 0.4,
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
         },
@@ -154,7 +154,7 @@
           "descripcion": "TMAXCOND",
           "viento_velocidad": 0,
           "espesor_hielo": 0,
-          "restriccion_conductor": 0.4,
+          "restriccion_conductor": 0.25,
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
         }
@@ -253,20 +253,85 @@
         "ACTIVAR_AEE": true,
         "DIAGRAMAS_ACTIVOS": {
           "MQNT": true,
-          "MRT": true,
-          "MFE": true
+          "MRT": false,
+          "MFE": false
         },
-        "GRAFICOS_3D_AEE": true,
-        "escala_graficos": "logaritmica",
-        "n_segmentar_conexion_corta": 10,
-        "n_segmentar_conexion_larga": 30,
+        "GRAFICOS_3D_AEE": false,
+        "escala_graficos": "lineal",
+        "n_segmentar_conexion_corta": 22,
+        "n_segmentar_conexion_larga": 44,
         "percentil_separacion_corta_larga": 50,
         "mostrar_tablas_resultados_por_elemento": false,
-        "plots_interactivos": true
+        "plots_interactivos": false
       },
-      "mc_servidumbre": false,
-      "plot_servidumbre": false,
+      "mc_servidumbre": true,
+      "plot_servidumbre": true,
       "cantidad": 27
+    }
+  },
+  "estados_climaticos": {
+    "1": {
+      "temperatura": 35,
+      "descripcion": "Tmáx",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.25,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
+    },
+    "2": {
+      "temperatura": -20,
+      "descripcion": "Tmín",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
+    },
+    "3": {
+      "temperatura": 10,
+      "descripcion": "Vmáx",
+      "viento_velocidad": 38.9,
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
+    },
+    "4": {
+      "temperatura": -5,
+      "descripcion": "Vmed",
+      "viento_velocidad": 15.56,
+      "espesor_hielo": 0.01,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
+    },
+    "5": {
+      "temperatura": 8,
+      "descripcion": "TMA",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.25,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
+    },
+    "6": {
+      "temperatura": -5,
+      "descripcion": "HIELO",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.4,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
+    },
+    "7": {
+      "temperatura": 85,
+      "descripcion": "TMAXCOND",
+      "viento_velocidad": 0,
+      "espesor_hielo": 0,
+      "restriccion_conductor": 0.25,
+      "restriccion_guardia": 0.7,
+      "relflecha": 0.9
     }
   }
 }

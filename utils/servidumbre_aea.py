@@ -6,16 +6,16 @@ import math
 class ServidumbreAEA:
     """Calcula franja de servidumbre para estructuras de transmisión"""
     
-    def __init__(self, estructura_geometria, flecha_max_conductor, tension_nominal, Lk):
+    def __init__(self, estructura_geometria, flecha_viento_max_conductor, tension_nominal, Lk):
         """
         Args:
             estructura_geometria: Objeto EstructuraAEA_Geometria
-            flecha_max_conductor: Flecha absoluta máxima en m (de CMC)
+            flecha_viento_max_conductor: Flecha total/absoluta en estado de viento máximo en m (de CMC)
             tension_nominal: Tensión nominal de línea en kV (Vn)
             Lk: Longitud de cadena en m
         """
         self.estructura = estructura_geometria
-        self.fi = flecha_max_conductor
+        self.fi = flecha_viento_max_conductor
         self.Vn = tension_nominal
         self.Lk = Lk
         self.theta_max = estructura_geometria.dimensiones['theta_max']
@@ -56,7 +56,7 @@ class ServidumbreAEA:
         memoria.append("PARÁMETROS DE ENTRADA:")
         memoria.append(f"  Tensión nominal (Vn): {self.Vn:.1f} kV")
         memoria.append(f"  Longitud cadena (Lk): {self.Lk:.3f} m")
-        memoria.append(f"  Flecha máxima conductor (fi): {self.fi:.3f} m")
+        memoria.append(f"  Flecha viento máximo conductor (fi): {self.fi:.3f} m")
         memoria.append(f"  Ángulo declinación máxima (theta_max): {self.theta_max:.2f}°")
         memoria.append("")
         memoria.append("CONSTANTES:")

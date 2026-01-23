@@ -153,6 +153,56 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
         # Generar memoria
         memoria_dge = gen_memoria_calculo_DGE(estructura_geometria)
         
+        # Calcular servidumbre si está habilitado
+        servidumbre_data = None
+        fig_servidumbre = None
+        
+        if estructura_actual.get('mc_servidumbre', False) or estructura_actual.get('plot_servidumbre', False):
+            try:
+                # Buscar estado de viento máximo
+                estados_climaticos = estructura_actual.get('estados_climaticos', {})
+                estado_viento_max = None
+                viento_max = 0
+                for estado_id, estado_data in estados_climaticos.items():
+                    viento = estado_data.get('viento_velocidad', 0)
+                    if viento > viento_max:
+                        viento_max = viento
+                        estado_viento_max = estado_id
+                
+                # Obtener flecha TOTAL (resultante) del estado de viento máximo
+                if estado_viento_max and estado_viento_max in state.calculo_mecanico.resultados_conductor:
+                    flecha_viento_max = state.calculo_mecanico.resultados_conductor[estado_viento_max]['flecha_resultante_m']
+                else:
+                    flecha_viento_max = fmax_conductor
+                
+                from utils.servidumbre_aea import ServidumbreAEA
+                from utils.grafico_servidumbre_aea import graficar_servidumbre
+                
+                servidumbre = ServidumbreAEA(
+                    estructura_geometria,
+                    flecha_viento_max,
+                    estructura_actual['TENSION'],
+                    estructura_actual['Lk']
+                )
+                
+                servidumbre_data = {
+                    'A': servidumbre.A,
+                    'C': servidumbre.C,
+                    'd': servidumbre.d,
+                    'dm': servidumbre.dm,
+                    'Vs': servidumbre.Vs,
+                    'memoria_calculo': servidumbre.generar_memoria_calculo() if estructura_actual.get('mc_servidumbre') else None
+                }
+                
+                if estructura_actual.get('plot_servidumbre', False) and generar_plots:
+                    fig_servidumbre = graficar_servidumbre(estructura_geometria, servidumbre, usar_plotly=True)
+            except Exception as e:
+                import traceback
+                print(f"⚠️ Error calculando servidumbre: {e}")
+                print(traceback.format_exc())
+                servidumbre_data = None
+                fig_servidumbre = None
+        
         # Guardar en cache
         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
         CalculoCache.guardar_calculo_dge(
@@ -164,7 +214,9 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             fig_cabezal,
             fig_nodos,
             memoria_dge,
-            estructura_geometria.conexiones
+            estructura_geometria.conexiones,
+            servidumbre_data,
+            fig_servidumbre
         )
         
         return {
@@ -1359,7 +1411,12 @@ def register_callbacks(app):
             servidumbre_data = None
             fig_servidumbre = None
             
+            print(f"\n🔍 DEBUG SERVIDUMBRE EN CONTROLADOR:")
+            print(f"   mc_servidumbre: {estructura_actual.get('mc_servidumbre', False)}")
+            print(f"   plot_servidumbre: {estructura_actual.get('plot_servidumbre', False)}")
+            
             if estructura_actual.get('mc_servidumbre', False) or estructura_actual.get('plot_servidumbre', False):
+                print(f"   ✅ CALCULANDO SERVIDUMBRE...")
                 # VALIDACIONES OBLIGATORIAS
                 if not fmax_conductor:
                     raise ValueError("ERROR: Debe ejecutar CMC primero para obtener flecha máxima del conductor")
@@ -1370,12 +1427,31 @@ def register_callbacks(app):
                 if estructura_actual.get('TENSION', 0) <= 0:
                     raise ValueError("ERROR: TENSION debe ser mayor a 0")
                 
+                # Buscar estado de viento máximo
+                estados_climaticos = estructura_actual.get('estados_climaticos', {})
+                estado_viento_max = None
+                viento_max = 0
+                for estado_id, estado_data in estados_climaticos.items():
+                    viento = estado_data.get('viento_velocidad', 0)
+                    if viento > viento_max:
+                        viento_max = viento
+                        estado_viento_max = estado_id
+                
+                # Obtener flecha TOTAL (resultante) del estado de viento máximo
+                if estado_viento_max and estado_viento_max in state.calculo_mecanico.resultados_conductor:
+                    flecha_viento_max = state.calculo_mecanico.resultados_conductor[estado_viento_max]['flecha_resultante_m']
+                    print(f"   ✅ Usando flecha TOTAL de estado {estado_viento_max} (Vmax={viento_max} m/s): {flecha_viento_max:.3f}m")
+                else:
+                    # Fallback: usar flecha máxima
+                    flecha_viento_max = fmax_conductor
+                    print(f"   ⚠️  No se encontró estado de viento máximo, usando flecha máxima: {flecha_viento_max:.3f}m")
+                
                 from utils.servidumbre_aea import ServidumbreAEA
                 from utils.grafico_servidumbre_aea import graficar_servidumbre
                 
                 servidumbre = ServidumbreAEA(
                     estructura_geometria,
-                    fmax_conductor,
+                    flecha_viento_max,
                     estructura_actual['TENSION'],
                     estructura_actual['Lk']
                 )
@@ -1389,15 +1465,29 @@ def register_callbacks(app):
                     'memoria_calculo': servidumbre.generar_memoria_calculo() if estructura_actual.get('mc_servidumbre') else None
                 }
                 
+                print(f"   ✅ Servidumbre calculada: A={servidumbre.A:.3f}m")
+                print(f"   memoria_calculo generada: {servidumbre_data['memoria_calculo'] is not None}")
+                
                 # Solo generar gráfico si plot_servidumbre=True
                 if estructura_actual.get('plot_servidumbre', False):
+                    print(f"   ✅ GENERANDO GRÁFICO SERVIDUMBRE...")
                     fig_servidumbre = graficar_servidumbre(estructura_geometria, servidumbre, usar_plotly=True)
+                    print(f"   fig_servidumbre generada: {fig_servidumbre is not None}")
+            else:
+                print(f"   ❌ Servidumbre NO habilitada en parámetros")
             
             # Guardar cálculo en cache CON EL NOMBRE CORRECTO
             from utils.calculo_cache import CalculoCache
             # Usar estructura_actual que ya fue recargada al inicio del callback
             nombre_estructura = estructura_actual.get('TITULO', 'estructura')
-            print(f"💾 DEBUG: Guardando cache con nombre: '{nombre_estructura}'")
+            print(f"\n💾 DEBUG GUARDANDO CACHE DGE:")
+            print(f"   nombre: '{nombre_estructura}'")
+            print(f"   servidumbre_data: {servidumbre_data is not None}")
+            if servidumbre_data:
+                print(f"   Keys en servidumbre_data: {list(servidumbre_data.keys())}")
+                print(f"   memoria_calculo: {servidumbre_data.get('memoria_calculo') is not None}")
+            print(f"   fig_servidumbre: {fig_servidumbre is not None}")
+            
             CalculoCache.guardar_calculo_dge(
                 nombre_estructura,
                 estructura_actual,
@@ -1433,6 +1523,28 @@ def register_callbacks(app):
             if fig_nodos:
                 # fig_nodos es ahora una figura Plotly, no matplotlib
                 output.append(dcc.Graph(figure=fig_nodos, config={'displayModeBar': True}, style={'height': '800px'}))
+            
+            # Agregar resultados de servidumbre si se calculó
+            if servidumbre_data:
+                output.append(html.H5("FRANJA DE SERVIDUMBRE", className="mb-2 mt-4"))
+                
+                serv_txt = (
+                    f"Ancho total franja (A): {servidumbre_data['A']:.3f} m\n" +
+                    f"Distancia conductores externos (C): {servidumbre_data['C']:.3f} m\n" +
+                    f"Distancia seguridad (d): {servidumbre_data['d']:.3f} m\n" +
+                    f"Distancia mínima (dm): {servidumbre_data['dm']:.3f} m\n" +
+                    f"Tensión sobretensión (Vs): {servidumbre_data['Vs']:.2f} kV"
+                )
+                output.append(html.Pre(serv_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem'}))
+                
+                # Memoria de cálculo
+                if servidumbre_data.get('memoria_calculo'):
+                    output.append(html.Pre(servidumbre_data['memoria_calculo'], style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '600px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
+                
+                # Gráfico
+                if fig_servidumbre:
+                    output.append(html.H5("GRAFICO DE SERVIDUMBRE", className="mb-2 mt-4"))
+                    output.append(dcc.Graph(figure=fig_servidumbre, config={'displayModeBar': True}, style={'height': '800px'}))
             
             # Agregar memoria de cálculo
             output.extend([

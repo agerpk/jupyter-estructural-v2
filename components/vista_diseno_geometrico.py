@@ -280,8 +280,9 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
                 import traceback
                 print(f"Error cargando gráfico 3D nodos: {traceback.format_exc()}")
         
-        # Agregar resultados de servidumbre
+        # Agregar resultados de servidumbre (si existen datos en cache)
         servidumbre_data = calculo_guardado.get('servidumbre')
+        
         if servidumbre_data:
             output.append(html.H5("FRANJA DE SERVIDUMBRE", className="mb-2 mt-4"))
             
@@ -294,10 +295,11 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
             )
             output.append(html.Pre(serv_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem'}))
             
+            # Memoria de cálculo
             if servidumbre_data.get('memoria_calculo'):
                 output.append(html.Pre(servidumbre_data['memoria_calculo'], style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '600px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
             
-            # Cargar gráfico interactivo si existe
+            # Gráfico
             if hash_params and calculo_guardado.get('imagen_servidumbre'):
                 fig_serv = ViewHelpers.cargar_figura_plotly_json(f"Servidumbre.{hash_params}.json")
                 if fig_serv:
