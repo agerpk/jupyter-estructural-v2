@@ -526,6 +526,20 @@ class ParametrosManager:
             "opciones": ["primera", "segunda", "tercera"],
             "categoria": "Cabezal"
         },
+        "mc_servidumbre": {
+            "simbolo": "MC_SERV",
+            "unidad": "-",
+            "descripcion": "Memoria de cálculo de servidumbre",
+            "tipo": "bool",
+            "categoria": "DGE"
+        },
+        "plot_servidumbre": {
+            "simbolo": "PLOT_SERV",
+            "unidad": "-",
+            "descripcion": "Graficar franja de servidumbre",
+            "tipo": "bool",
+            "categoria": "DGE"
+        },
         
         # PARÁMETROS DE DISEÑO DE LÍNEA
         "L_vano": {

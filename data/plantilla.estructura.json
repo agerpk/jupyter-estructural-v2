@@ -203,5 +203,7 @@
     "percentil_separacion_corta_larga": 50,
     "mostrar_tablas_resultados_por_elemento": false,
     "plots_interactivos": true
-  }
+  },
+  "mc_servidumbre": false,
+  "plot_servidumbre": false
 }

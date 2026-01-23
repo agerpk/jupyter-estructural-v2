@@ -228,6 +228,30 @@ def generar_seccion_dge(calculo_dge):
                 html.append(f'<h6>{titulo}</h6>')
                 html.append(f'<img src="data:image/png;base64,{img_str}" alt="{titulo}">')
     
+    # Servidumbre
+    servidumbre_data = calculo_dge.get('servidumbre')
+    if servidumbre_data:
+        html.append('<h5>Franja de Servidumbre AEA-95301-2007</h5>')
+        html.append('<table class="table table-bordered params-table">')
+        html.append(f'<tr><td>Ancho total franja (A)</td><td>{servidumbre_data["A"]:.3f} m</td></tr>')
+        html.append(f'<tr><td>Distancia conductores externos (C)</td><td>{servidumbre_data["C"]:.3f} m</td></tr>')
+        html.append(f'<tr><td>Distancia seguridad (d)</td><td>{servidumbre_data["d"]:.3f} m</td></tr>')
+        html.append(f'<tr><td>Distancia mínima (dm)</td><td>{servidumbre_data["dm"]:.3f} m</td></tr>')
+        html.append(f'<tr><td>Tensión sobretensión (Vs)</td><td>{servidumbre_data["Vs"]:.2f} kV</td></tr>')
+        html.append('</table>')
+        
+        if servidumbre_data.get('memoria_calculo'):
+            html.append('<h6>Memoria de Cálculo</h6>')
+            html.append(f'<pre>{servidumbre_data["memoria_calculo"]}</pre>')
+        
+        # Gráfico de servidumbre
+        if hash_params:
+            nombre_serv = f"Servidumbre.{hash_params}.png"
+            img_str = ViewHelpers.cargar_imagen_base64(nombre_serv)
+            if img_str:
+                html.append('<h6>Gráfico de Franja de Servidumbre</h6>')
+                html.append(f'<img src="data:image/png;base64,{img_str}" alt="Servidumbre">')
+    
     # Memoria de cálculo
     if calculo_dge.get('memoria_calculo'):
         html.append('<hr><h5>Memoria de Cálculo</h5>')

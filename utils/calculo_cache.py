@@ -97,7 +97,7 @@ class CalculoCache:
         return json.loads(archivo.read_text(encoding="utf-8"))
     
     @staticmethod
-    def guardar_calculo_dge(nombre_estructura, estructura_data, dimensiones, nodes_key, fig_estructura, fig_cabezal, fig_nodos=None, memoria_calculo=None, conexiones=None):
+    def guardar_calculo_dge(nombre_estructura, estructura_data, dimensiones, nodes_key, fig_estructura, fig_cabezal, fig_nodos=None, memoria_calculo=None, conexiones=None, servidumbre_data=None, fig_servidumbre=None):
         """Guarda resultados de Diseño Geométrico de Estructura"""
         nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
@@ -145,6 +145,18 @@ class CalculoCache:
             except Exception as e:
                 print(f"Advertencia: No se pudo guardar JSON de nodos: {e}")
         
+        # Guardar figura de servidumbre (PNG + JSON)
+        if fig_servidumbre:
+            try:
+                png_path = CACHE_DIR / f"Servidumbre.{hash_params}.png"
+                fig_servidumbre.write_image(str(png_path), width=1200, height=800)
+                
+                json_path = CACHE_DIR / f"Servidumbre.{hash_params}.json"
+                fig_servidumbre.write_json(str(json_path))
+                print(f"✅ Gráfico servidumbre guardado: PNG + JSON")
+            except Exception as e:
+                print(f"Advertencia: No se pudo guardar gráfico servidumbre: {e}")
+        
         # Incluir nodos_editados en cache DGE
         nodos_editados = estructura_data.get("nodos_editados", [])
         
@@ -158,7 +170,9 @@ class CalculoCache:
             "imagen_estructura": f"Estructura.{hash_params}.png",
             "imagen_cabezal": f"Cabezal.{hash_params}.png",
             "imagen_nodos": f"Nodos.{hash_params}.json" if fig_nodos else None,
-            "memoria_calculo": memoria_calculo
+            "memoria_calculo": memoria_calculo,
+            "servidumbre": servidumbre_data,
+            "imagen_servidumbre": f"Servidumbre.{hash_params}.json" if fig_servidumbre else None
         }
         
         archivo = CACHE_DIR / f"{nombre_estructura}.calculoDGE.json"

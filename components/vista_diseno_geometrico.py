@@ -280,6 +280,30 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
                 import traceback
                 print(f"Error cargando gráfico 3D nodos: {traceback.format_exc()}")
         
+        # Agregar resultados de servidumbre
+        servidumbre_data = calculo_guardado.get('servidumbre')
+        if servidumbre_data:
+            output.append(html.H5("FRANJA DE SERVIDUMBRE", className="mb-2 mt-4"))
+            
+            serv_txt = (
+                f"Ancho total franja (A): {servidumbre_data['A']:.3f} m\n" +
+                f"Distancia conductores externos (C): {servidumbre_data['C']:.3f} m\n" +
+                f"Distancia seguridad (d): {servidumbre_data['d']:.3f} m\n" +
+                f"Distancia mínima (dm): {servidumbre_data['dm']:.3f} m\n" +
+                f"Tensión sobretensión (Vs): {servidumbre_data['Vs']:.2f} kV"
+            )
+            output.append(html.Pre(serv_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem'}))
+            
+            if servidumbre_data.get('memoria_calculo'):
+                output.append(html.Pre(servidumbre_data['memoria_calculo'], style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem', 'maxHeight': '600px', 'overflowY': 'auto', 'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace'}))
+            
+            # Cargar gráfico interactivo si existe
+            if hash_params and calculo_guardado.get('imagen_servidumbre'):
+                fig_serv = ViewHelpers.cargar_figura_plotly_json(f"Servidumbre.{hash_params}.json")
+                if fig_serv:
+                    output.append(html.H5("GRAFICO DE SERVIDUMBRE", className="mb-2 mt-4"))
+                    output.append(dcc.Graph(figure=fig_serv, config={'displayModeBar': True}, style={'height': '800px'}))
+        
         # Agregar memoria de cálculo
         memoria_calculo = calculo_guardado.get('memoria_calculo')
         if memoria_calculo:
@@ -519,6 +543,20 @@ def crear_vista_diseno_geometrico(estructura_actual, calculo_guardado=None):
                         dbc.Select(id="select-mensula-defasar", value=estructura_actual.get("mensula_defasar", "primera"),
                                    options=[{"label": opt, "value": opt} for opt in obtener_config_control("mensula_defasar")["opciones"]]),
                     ], md=4),
+                ], className="mb-3"),
+                
+                # Cálculo de Servidumbre
+                html.H5("Cálculo de Servidumbre", className="mb-3 mt-4"),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("Memoria Cálculo Servidumbre", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(id="switch-mc-servidumbre", value=estructura_actual.get("mc_servidumbre", False)),
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Label("Graficar Servidumbre", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(id="switch-plot-servidumbre", value=estructura_actual.get("plot_servidumbre", False)),
+                    ], md=6),
                 ], className="mb-3"),
                 
                 dbc.Row([

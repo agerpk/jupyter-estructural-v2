@@ -868,6 +868,8 @@ def register_callbacks(app):
         State("switch-defasaje-hielo", "value"),
         State("slider-lmen-extra-hielo", "value"),
         State("select-mensula-defasar", "value"),
+        State("switch-mc-servidumbre", "value"),
+        State("switch-plot-servidumbre", "value"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
@@ -877,7 +879,8 @@ def register_callbacks(app):
                                      offset_col_base, offset_col_base_tipo, offset_col_base_inicio, offset_col_base_fin,
                                      offset_col_inter, offset_col_inter_tipo, offset_col_inter_inicio, offset_col_inter_fin,
                                      offset_men, offset_men_tipo, offset_men_inicio, offset_men_fin,
-                                     hg_centrado, autoajustar, defasaje_hielo, lmen_extra_hielo, mensula_defasar, estructura_actual):
+                                     hg_centrado, autoajustar, defasaje_hielo, lmen_extra_hielo, mensula_defasar,
+                                     mc_servidumbre, plot_servidumbre, estructura_actual):
         if not n_clicks:
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         
@@ -923,7 +926,9 @@ def register_callbacks(app):
                 "AUTOAJUSTAR_LMENHG": autoajustar,
                 "defasaje_mensula_hielo": defasaje_hielo,
                 "lmen_extra_hielo": lmen_extra_hielo,
-                "mensula_defasar": mensula_defasar
+                "mensula_defasar": mensula_defasar,
+                "mc_servidumbre": mc_servidumbre,
+                "plot_servidumbre": plot_servidumbre
             })
             
             # Guardar usando el manager
@@ -1350,6 +1355,44 @@ def register_callbacks(app):
             from utils.memoria_calculo_dge import gen_memoria_calculo_DGE
             memoria_calculo = gen_memoria_calculo_DGE(estructura_geometria)
             
+            # Calcular servidumbre si está habilitado
+            servidumbre_data = None
+            fig_servidumbre = None
+            
+            if estructura_actual.get('mc_servidumbre', False) or estructura_actual.get('plot_servidumbre', False):
+                # VALIDACIONES OBLIGATORIAS
+                if not fmax_conductor:
+                    raise ValueError("ERROR: Debe ejecutar CMC primero para obtener flecha máxima del conductor")
+                if 'theta_max' not in estructura_geometria.dimensiones:
+                    raise ValueError("ERROR: theta_max no disponible en dimensiones de DGE")
+                if estructura_actual.get('Lk', 0) <= 0:
+                    raise ValueError("ERROR: Lk debe ser mayor a 0")
+                if estructura_actual.get('TENSION', 0) <= 0:
+                    raise ValueError("ERROR: TENSION debe ser mayor a 0")
+                
+                from utils.servidumbre_aea import ServidumbreAEA
+                from utils.grafico_servidumbre_aea import graficar_servidumbre
+                
+                servidumbre = ServidumbreAEA(
+                    estructura_geometria,
+                    fmax_conductor,
+                    estructura_actual['TENSION'],
+                    estructura_actual['Lk']
+                )
+                
+                servidumbre_data = {
+                    'A': servidumbre.A,
+                    'C': servidumbre.C,
+                    'd': servidumbre.d,
+                    'dm': servidumbre.dm,
+                    'Vs': servidumbre.Vs,
+                    'memoria_calculo': servidumbre.generar_memoria_calculo() if estructura_actual.get('mc_servidumbre') else None
+                }
+                
+                # Solo generar gráfico si plot_servidumbre=True
+                if estructura_actual.get('plot_servidumbre', False):
+                    fig_servidumbre = graficar_servidumbre(estructura_geometria, servidumbre, usar_plotly=True)
+            
             # Guardar cálculo en cache CON EL NOMBRE CORRECTO
             from utils.calculo_cache import CalculoCache
             # Usar estructura_actual que ya fue recargada al inicio del callback
@@ -1364,7 +1407,9 @@ def register_callbacks(app):
                 fig_cabezal,
                 fig_nodos,
                 memoria_calculo,
-                estructura_geometria.conexiones
+                estructura_geometria.conexiones,
+                servidumbre_data,
+                fig_servidumbre
             )
             print(f"✅ Cache DGE guardado: {nombre_estructura}")
             
