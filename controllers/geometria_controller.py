@@ -175,15 +175,30 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
                 else:
                     flecha_viento_max = fmax_conductor
                 
-                from utils.servidumbre_aea import ServidumbreAEA
-                from utils.grafico_servidumbre_aea import graficar_servidumbre
+                from utils.grafico_servidumbre import graficar_servidumbre
                 
-                servidumbre = ServidumbreAEA(
-                    estructura_geometria,
-                    flecha_viento_max,
-                    estructura_actual['TENSION'],
-                    estructura_actual['Lk']
-                )
+                # Seleccionar método de cálculo
+                metodo_servidumbre = estructura_actual.get('metodo_servidumbre', 'AEA')
+                print(f"   🔍 DEBUG: metodo_servidumbre = '{metodo_servidumbre}'")
+                print(f"   🔍 DEBUG: Zona_estructura = '{estructura_actual.get('Zona_estructura', 'Rural')}'")
+                
+                if metodo_servidumbre == 'AyEE':
+                    from utils.servidumbre_ayee import ServidumbreAyEE
+                    servidumbre = ServidumbreAyEE(
+                        estructura_geometria,
+                        flecha_viento_max,
+                        estructura_actual['TENSION'],
+                        estructura_actual['Lk'],
+                        estructura_actual.get('Zona_estructura', 'Rural')
+                    )
+                else:
+                    from utils.servidumbre_aea import ServidumbreAEA
+                    servidumbre = ServidumbreAEA(
+                        estructura_geometria,
+                        flecha_viento_max,
+                        estructura_actual['TENSION'],
+                        estructura_actual['Lk']
+                    )
                 
                 servidumbre_data = {
                     'A': servidumbre.A,
@@ -195,7 +210,7 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
                 }
                 
                 if estructura_actual.get('plot_servidumbre', False) and generar_plots:
-                    fig_servidumbre = graficar_servidumbre(estructura_geometria, servidumbre, usar_plotly=True)
+                    fig_servidumbre = graficar_servidumbre(estructura_geometria, servidumbre, usar_plotly=True, metodo=metodo_servidumbre)
             except Exception as e:
                 import traceback
                 print(f"⚠️ Error calculando servidumbre: {e}")
@@ -1447,14 +1462,29 @@ def register_callbacks(app):
                     print(f"   ⚠️  No se encontró estado de viento máximo, usando flecha máxima: {flecha_viento_max:.3f}m")
                 
                 from utils.servidumbre_aea import ServidumbreAEA
-                from utils.grafico_servidumbre_aea import graficar_servidumbre
+                from utils.grafico_servidumbre import graficar_servidumbre
                 
-                servidumbre = ServidumbreAEA(
-                    estructura_geometria,
-                    flecha_viento_max,
-                    estructura_actual['TENSION'],
-                    estructura_actual['Lk']
-                )
+                # Seleccionar método de cálculo
+                metodo_servidumbre = estructura_actual.get('metodo_servidumbre', 'AEA')
+                print(f"   🔍 DEBUG: metodo_servidumbre = '{metodo_servidumbre}'")
+                print(f"   🔍 DEBUG: Zona_estructura = '{estructura_actual.get('Zona_estructura', 'Rural')}'")
+                
+                if metodo_servidumbre == 'AyEE':
+                    from utils.servidumbre_ayee import ServidumbreAyEE
+                    servidumbre = ServidumbreAyEE(
+                        estructura_geometria,
+                        flecha_viento_max,
+                        estructura_actual['TENSION'],
+                        estructura_actual['Lk'],
+                        estructura_actual.get('Zona_estructura', 'Rural')
+                    )
+                else:
+                    servidumbre = ServidumbreAEA(
+                        estructura_geometria,
+                        flecha_viento_max,
+                        estructura_actual['TENSION'],
+                        estructura_actual['Lk']
+                    )
                 
                 servidumbre_data = {
                     'A': servidumbre.A,
@@ -1471,7 +1501,7 @@ def register_callbacks(app):
                 # Solo generar gráfico si plot_servidumbre=True
                 if estructura_actual.get('plot_servidumbre', False):
                     print(f"   ✅ GENERANDO GRÁFICO SERVIDUMBRE...")
-                    fig_servidumbre = graficar_servidumbre(estructura_geometria, servidumbre, usar_plotly=True)
+                    fig_servidumbre = graficar_servidumbre(estructura_geometria, servidumbre, usar_plotly=True, metodo=metodo_servidumbre)
                     print(f"   fig_servidumbre generada: {fig_servidumbre is not None}")
             else:
                 print(f"   ❌ Servidumbre NO habilitada en parámetros")
@@ -1528,12 +1558,16 @@ def register_callbacks(app):
             if servidumbre_data:
                 output.append(html.H5("FRANJA DE SERVIDUMBRE", className="mb-2 mt-4"))
                 
+                # Formatear valores opcionales
+                dm_str = f"{servidumbre_data['dm']:.3f} m" if servidumbre_data['dm'] is not None else "N/A (método AyEE)"
+                vs_str = f"{servidumbre_data['Vs']:.2f} kV" if servidumbre_data['Vs'] is not None else "N/A (método AyEE)"
+                
                 serv_txt = (
                     f"Ancho total franja (A): {servidumbre_data['A']:.3f} m\n" +
                     f"Distancia conductores externos (C): {servidumbre_data['C']:.3f} m\n" +
                     f"Distancia seguridad (d): {servidumbre_data['d']:.3f} m\n" +
-                    f"Distancia mínima (dm): {servidumbre_data['dm']:.3f} m\n" +
-                    f"Tensión sobretensión (Vs): {servidumbre_data['Vs']:.2f} kV"
+                    f"Distancia mínima (dm): {dm_str}\n" +
+                    f"Tensión sobretensión (Vs): {vs_str}"
                 )
                 output.append(html.Pre(serv_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem'}))
                 

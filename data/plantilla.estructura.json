@@ -205,5 +205,6 @@
     "plots_interactivos": true
   },
   "mc_servidumbre": false,
-  "plot_servidumbre": false
+  "plot_servidumbre": false,
+  "metodo_servidumbre": "AEA"
 }

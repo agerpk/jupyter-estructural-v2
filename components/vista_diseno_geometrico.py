@@ -286,12 +286,16 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
         if servidumbre_data:
             output.append(html.H5("FRANJA DE SERVIDUMBRE", className="mb-2 mt-4"))
             
+            # Formatear valores opcionales
+            dm_str = f"{servidumbre_data['dm']:.3f} m" if servidumbre_data.get('dm') is not None else "N/A (método AyEE)"
+            vs_str = f"{servidumbre_data['Vs']:.2f} kV" if servidumbre_data.get('Vs') is not None else "N/A (método AyEE)"
+            
             serv_txt = (
                 f"Ancho total franja (A): {servidumbre_data['A']:.3f} m\n" +
                 f"Distancia conductores externos (C): {servidumbre_data['C']:.3f} m\n" +
                 f"Distancia seguridad (d): {servidumbre_data['d']:.3f} m\n" +
-                f"Distancia mínima (dm): {servidumbre_data['dm']:.3f} m\n" +
-                f"Tensión sobretensión (Vs): {servidumbre_data['Vs']:.2f} kV"
+                f"Distancia mínima (dm): {dm_str}\n" +
+                f"Tensión sobretensión (Vs): {vs_str}"
             )
             output.append(html.Pre(serv_txt, style={'backgroundColor': '#1e1e1e', 'color': '#d4d4d4', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '0.85rem'}))
             
