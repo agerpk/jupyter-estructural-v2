@@ -101,42 +101,40 @@ class FamiliaManager:
         familia_existente = None
         try:
             familia_existente = cls.cargar_familia(nombre_familia)
-            print(f"   💾 DEBUG tabla_a_familia: Familia existente cargada con keys: {list(familia_existente.keys())}")
+            print(f"   💾 DEBUG tabla_a_familia: Familia existente cargada")
         except:
-            print(f"   ⚠️ DEBUG tabla_a_familia: No se encontró familia existente, creando nueva")
+            print(f"   ⚠️ DEBUG tabla_a_familia: No se encontró familia existente")
         
         # Extraer columnas de estructura (Estr.1, Estr.2, etc.)
         columnas_estructura = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
         
         estructuras = {}
         for col_id in columnas_estructura:
-            # CRÍTICO: Partir de estructura existente si existe, sino de plantilla
+            # Partir de estructura existente si existe, sino de plantilla
             if familia_existente and col_id in familia_existente.get("estructuras", {}):
                 estructura_data = familia_existente["estructuras"][col_id].copy()
-                print(f"   ✅ DEBUG: Preservando estructura existente {col_id}")
+                print(f"   ✅ Preservando estructura existente {col_id}")
             else:
                 estructura_data = cls._cargar_plantilla().copy()
-                print(f"   ⚠️ DEBUG: Creando nueva estructura {col_id} desde plantilla")
+                print(f"   🆕 Creando nueva estructura {col_id}")
             
-            # Actualizar SOLO los campos que están en la tabla
+            # Actualizar campos que están en la tabla
             for fila in tabla_data:
                 parametro = fila['parametro']
                 valor = fila.get(col_id, fila.get('valor', ''))
                 
-                # Manejar parámetros anidados (ej: costeo.fundaciones.precio_m3_hormigon)
+                # Manejar parámetros anidados (costeo.*)
                 if "." in parametro:
                     partes = parametro.split(".")
                     if partes[0] == "costeo":
-                        # Inicializar costeo si no existe
                         if "costeo" not in estructura_data:
                             estructura_data["costeo"] = {}
                         
-                        if len(partes) == 3:  # costeo.subcampo.subsubcampo
+                        if len(partes) == 3:
                             subcampo, subsubcampo = partes[1], partes[2]
                             if subcampo not in estructura_data["costeo"]:
                                 estructura_data["costeo"][subcampo] = {}
                             
-                            # Convertir tipo
                             tipo = fila.get('tipo', 'str')
                             if tipo == 'int':
                                 try:
@@ -150,9 +148,8 @@ class FamiliaManager:
                                     valor = 0.0
                             
                             estructura_data["costeo"][subcampo][subsubcampo] = valor
-                        elif len(partes) == 2:  # costeo.subcampo
+                        elif len(partes) == 2:
                             subcampo = partes[1]
-                            # Convertir tipo
                             tipo = fila.get('tipo', 'str')
                             if tipo == 'int':
                                 try:
@@ -187,24 +184,18 @@ class FamiliaManager:
             
             estructuras[col_id] = estructura_data
         
-        # Crear familia_data base
+        # Crear familia_data
         if familia_existente:
-            # Preservar TODA la familia existente y solo actualizar estructuras
             familia_data = familia_existente.copy()
             familia_data["estructuras"] = estructuras
-            # NO actualizar fecha_modificacion aqui - solo al guardar
-            print(f"   ✅ DEBUG tabla_a_familia: Familia existente preservada completamente")
+            familia_data["fecha_modificacion"] = datetime.now().isoformat()
         else:
-            # Nueva familia - crear desde cero
             familia_data = {
                 "nombre_familia": nombre_familia,
                 "fecha_creacion": datetime.now().isoformat(),
                 "fecha_modificacion": datetime.now().isoformat(),
                 "estructuras": estructuras
             }
-            print(f"   ⚠️ DEBUG tabla_a_familia: Nueva familia creada")
-        
-        print(f"   💾 DEBUG tabla_a_familia: Retornando familia con keys: {list(familia_data.keys())}")
         
         return familia_data
     

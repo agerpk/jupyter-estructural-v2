@@ -1,7 +1,7 @@
 {
-  "nombre_familia": "Pruebas_132",
+  "nombre_familia": "Pruebas_132_stt",
   "fecha_creacion": "2026-01-23T12:12:43.289399",
-  "fecha_modificacion": "2026-01-23T15:49:28.035046",
+  "fecha_modificacion": "2026-01-26T16:33:08.525715",
   "estructuras": {
     "Estr.1": {
       "TIPO_ESTRUCTURA": "Suspensión Recta",
@@ -26,7 +26,7 @@
       "Cf_guardia": 1.0,
       "Cf_cadena": 0.9,
       "Cf_estructura": 0.9,
-      "L_vano": 250.0,
+      "L_vano": 260.0,
       "VANO_DESNIVELADO": false,
       "H_PIQANTERIOR": 0.0,
       "H_PIQPOSTERIOR": 0.0,

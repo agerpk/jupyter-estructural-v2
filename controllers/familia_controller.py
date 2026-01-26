@@ -86,43 +86,36 @@ def register_callbacks(app):
     
     @app.callback(
         Output("tabla-familia-original", "data", allow_duplicate=True),
-        Input("tabla-familia", "data"),
-        [State("tabla-familia-original", "data"),
-         State("filtro-categoria-familia", "value"),
-         State("buscar-parametro-familia", "value")],
+        Input("tabla-familia", "data_timestamp"),
+        [State("tabla-familia", "data"),
+         State("tabla-familia-original", "data")],
         prevent_initial_call=True
     )
-    def sincronizar_ediciones_directas(tabla_filtrada, tabla_original, filtro_cat, filtro_busq):
-        """Sincroniza ediciones directas en tabla filtrada hacia tabla original"""
+    def sincronizar_ediciones_directas(timestamp, tabla_filtrada, tabla_original):
+        """Sincroniza TODAS las ediciones de tabla hacia tabla original"""
         if not tabla_filtrada or not tabla_original:
             raise dash.exceptions.PreventUpdate
         
-        ctx = dash.callback_context
-        # Solo sincronizar si el trigger es edición de tabla, NO si es cambio de filtro
-        if ctx.triggered and ctx.triggered[0]['prop_id'] == 'tabla-familia.data':
-            # Verificar si hay filtros activos
-            hay_filtro = (filtro_cat and filtro_cat != "todas") or (filtro_busq and filtro_busq.strip())
-            
-            # Solo sincronizar si NO hay filtros (para evitar conflictos)
-            if not hay_filtro:
-                # Actualizar valores en tabla original basándose en parametro
-                for fila_filtrada in tabla_filtrada:
-                    parametro = fila_filtrada.get("parametro")
-                    if not parametro:
-                        continue
-                    
-                    # Buscar fila correspondiente en tabla original
-                    for fila_original in tabla_original:
-                        if fila_original.get("parametro") == parametro:
-                            # Copiar valores de columnas Estr.N
-                            for key in fila_filtrada.keys():
-                                if key.startswith("Estr."):
-                                    fila_original[key] = fila_filtrada[key]
-                            break
-                
-                return tabla_original
+        print(f"\n🔄 SINCRONIZANDO: {len(tabla_filtrada)} filas filtradas → {len(tabla_original)} filas originales")
         
-        raise dash.exceptions.PreventUpdate
+        # Actualizar valores en tabla original basándose en parametro
+        for fila_filtrada in tabla_filtrada:
+            parametro = fila_filtrada.get("parametro")
+            if not parametro:
+                continue
+            
+            # Buscar fila correspondiente en tabla original
+            for fila_original in tabla_original:
+                if fila_original.get("parametro") == parametro:
+                    # Copiar TODOS los valores de columnas Estr.N
+                    for key in fila_filtrada.keys():
+                        if key.startswith("Estr."):
+                            if fila_original.get(key) != fila_filtrada.get(key):
+                                print(f"  ✏️ Actualizando {parametro}.{key}: {fila_original.get(key)} → {fila_filtrada.get(key)}")
+                            fila_original[key] = fila_filtrada[key]
+                    break
+        
+        return tabla_original
     
     @app.callback(
         Output("tabla-familia-original", "data", allow_duplicate=True),
