@@ -419,6 +419,30 @@ class GeometriaEtapa2:
             )
             print(f"   🔵 Nodo C2_R creado en ({Lmen2:.2f}, 0, {h2a:.2f})")
         
+        elif self.geo.terna == "Simple" and self.geo.disposicion == "triangular-mensulas":
+            # Triangular-mensulas simple: C3 en ménsula derecha, luego reposicionar C2
+            self.geo.nodos["C3"] = NodoEstructural(
+                "C3", (Lmen2, 0.0, h2a), "conductor",
+                self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
+            )
+            print(f"   🔵 Nodo C3 creado en ({Lmen2:.2f}, 0, {h2a:.2f})")
+            
+            # Reposicionar C2 a altura intermedia entre h1a y h2a
+            h1a = self.geo.dimensiones["h1a"]
+            h1ab = (h1a + h2a) / 2.0
+            if "C2" in self.geo.nodos:
+                # Actualizar coordenadas de C2 existente
+                x_c2, y_c2, z_c2 = self.geo.nodos["C2"].coordenadas
+                self.geo.nodos["C2"].coordenadas = (x_c2, y_c2, h1ab)
+                print(f"   🔄 Nodo C2 reposicionado a ({x_c2:.2f}, 0, {h1ab:.2f})")
+            
+            # Crear CROSS_H3 en h1ab
+            self.geo.nodos["CROSS_H3"] = NodoEstructural("CROSS_H3", (0.0, 0.0, h1ab), "cruce")
+            print(f"   🔵 Nodo CROSS_H3 creado en (0, 0, {h1ab:.2f})")
+            
+            # Guardar h1ab en dimensiones
+            self.geo.dimensiones["h1ab"] = h1ab
+        
         elif self.geo.terna == "Doble" and self.geo.disposicion == "vertical":
             # Doble vertical: C2_R, C2_L
             self.geo.nodos["C2_R"] = NodoEstructural(

@@ -93,8 +93,8 @@ class GeometriaEtapa4:
     
     def _crear_guardia_no_centrado(self, conductores, ang_apant, hadd_hg, lmenhg_min, defasaje_y):
         """CANT_HG=1, HG_CENTRADO=False - Solo para disposición triangular terna simple"""
-        # Validar que solo aplica para triangular simple
-        if not (self.geo.disposicion == "triangular" and self.geo.terna == "Simple"):
+        # Validar que solo aplica para triangular simple (incluye triangular-mensulas)
+        if not ((self.geo.disposicion == "triangular" or self.geo.disposicion == "triangular-mensulas") and self.geo.terna == "Simple"):
             print(f"   ⚠️  Guardia no centrado solo aplica para triangular simple, usando centrado")
             self._crear_guardia_centrado(conductores, ang_apant, hadd_hg, defasaje_y)
             return

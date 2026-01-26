@@ -247,7 +247,7 @@ CONTROLES_PARAMETROS = {
     },
     "DISPOSICION": {
         "tipo": "select",
-        "opciones": ["triangular", "horizontal", "vertical"]
+        "opciones": ["triangular", "triangular-mensulas", "horizontal", "vertical"]
     },
     "TERNA": {
         "tipo": "select",
