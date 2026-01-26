@@ -117,6 +117,11 @@ class GeometriaEtapa4:
             lmenhg_min, h_max, conductores, pendiente_neg, ang_apant
         )
         
+        # Verificar apantallamiento de C2 (lado izquierdo) y ajustar si es necesario
+        lmenhg, hhg = self._ajustar_apantallamiento_c2(
+            lmenhg, hhg, conductores, pendiente_pos, ang_apant
+        )
+        
         # Altura final de nodos HG
         hhg_final = hhg + hadd_hg
         
@@ -293,10 +298,82 @@ class GeometriaEtapa4:
         
         return lmenhg, hhg
     
+    def _ajustar_apantallamiento_c2(self, lmenhg_inicial, hhg_inicial, conductores, pendiente_pos, ang_apant):
+        """Ajustar hhg y lmenhg para apantallar conductor C2 (lado izquierdo, x<0)
+        
+        Verifica que la línea de apantallamiento desde HG1 con pendiente positiva
+        cubra el conductor C2. Si no lo cubre:
+        1. Sube hhg en 0.01m
+        2. Verifica si C3 (conductor más alto) sigue apantallado
+        3. Si C3 sigue apantallado, reduce lmenhg en 0.01m
+        4. Repite hasta que C2 quede apantallado
+        """
+        # Identificar conductores C2 (x<0) y C3 (conductor más alto)
+        Lk = self.geo.lk
+        c2_conductor = None
+        c3_conductor = None
+        
+        # Buscar C2 (lado izquierdo, x<0)
+        for nombre, x_c, y_c, z_c in conductores:
+            if x_c < 0:
+                c2_conductor = (nombre, x_c, y_c, z_c)
+                break
+        
+        # Buscar C3 (conductor más alto)
+        z_max = max(c[3] for c in conductores)
+        for nombre, x_c, y_c, z_c in conductores:
+            if abs(z_c - z_max) < 0.01:
+                c3_conductor = (nombre, x_c, y_c, z_c)
+                break
+        
+        if not c2_conductor:
+            print(f"   ℹ️  No hay conductor C2 (x<0), no se requiere ajuste")
+            return lmenhg_inicial, hhg_inicial
+        
+        lmenhg = lmenhg_inicial
+        hhg = hhg_inicial
+        incremento = 0.01
+        max_iter = 10000
+        
+        nombre_c2, x_c2, y_c2, z_c2 = c2_conductor
+        
+        for i in range(max_iter):
+            # Verificar apantallamiento de C2
+            # Línea desde HG1 (lmenhg, hhg) con pendiente positiva
+            # z_recta = hhg + pendiente_pos * (x_c2 - lmenhg)
+            z_recta_c2 = hhg + pendiente_pos * (x_c2 - lmenhg)
+            
+            if z_c2 <= z_recta_c2:
+                # C2 está apantallado
+                if i > 0:
+                    print(f"   ✅ C2 apantallado después de {i} iteraciones: lmenhg={lmenhg:.3f}m, hhg={hhg:.3f}m")
+                break
+            
+            # C2 no está apantallado, subir hhg
+            hhg += incremento
+            
+            # Verificar si C3 sigue apantallado con el nuevo hhg
+            if c3_conductor:
+                nombre_c3, x_c3, y_c3, z_c3 = c3_conductor
+                # Pendiente negativa para x>0
+                pendiente_neg = -1.0 / math.tan(math.radians(ang_apant))
+                z_recta_c3 = hhg + pendiente_neg * (x_c3 - lmenhg)
+                
+                if z_c3 <= z_recta_c3:
+                    # C3 sigue apantallado, reducir lmenhg
+                    lmenhg -= incremento
+                    # Asegurar que no baje del mínimo
+                    lmenhg = max(lmenhg, self.geo.long_mensula_min_guardia)
+        
+        if i == max_iter - 1:
+            print(f"   ⚠️  Límite de iteraciones alcanzado ajustando C2")
+        
+        # Asegurar mínimos
+        lmenhg = max(lmenhg, self.geo.long_mensula_min_guardia)
+        hhg = max(hhg, self.geo.hadd_hg)
+        
+        return lmenhg, hhg
 
-    
-
-    
     def _crear_nodo_viento(self):
         """Crear nodo VIENTO en z=2/3*max(z_todos)"""
         z_max = max(nodo.coordenadas[2] for nodo in self.geo.nodos.values())
