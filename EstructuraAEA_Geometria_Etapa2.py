@@ -412,12 +412,12 @@ class GeometriaEtapa2:
             print(f"   🔵 Nodo C2 creado en ({Lmen2:.2f}, 0, {h2a:.2f})")
         
         elif self.geo.terna == "Simple" and self.geo.disposicion == "triangular":
-            # Triangular simple: C3 en (0, 0, h2a)
-            self.geo.nodos["C3"] = NodoEstructural(
-                "C3", (0.0, 0.0, h2a), "conductor",
+            # Triangular simple: C2_R en ménsula derecha (NO en centro)
+            self.geo.nodos["C2_R"] = NodoEstructural(
+                "C2_R", (Lmen2, 0.0, h2a), "conductor",
                 self.geo.cable_conductor, self.geo.alpha_quiebre, self.geo.tipo_fijacion_base
             )
-            print(f"   🔵 Nodo C3 creado en (0, 0, {h2a:.2f})")
+            print(f"   🔵 Nodo C2_R creado en ({Lmen2:.2f}, 0, {h2a:.2f})")
         
         elif self.geo.terna == "Doble" and self.geo.disposicion == "vertical":
             # Doble vertical: C2_R, C2_L
