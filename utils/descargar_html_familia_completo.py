@@ -118,7 +118,7 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
       {titulo}
     </button>
   </h2>
-  <div id="collapse_{titulo_id}" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}" data-bs-parent="#accordion_{familia_safe}">
+  <div id="collapse_{titulo_id}" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}">
     <div class="accordion-body">''')
 
         if "error" in datos_estr:
@@ -152,32 +152,44 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
     <title>Familia - {nombre_familia}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {{ padding: 20px; font-family: Arial, sans-serif; background-color: #f8f9fa; }}
-        .container-fluid {{ max-width: 1400px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
-        h1 {{ color: #0d6efd; border-bottom: 3px solid #0d6efd; padding-bottom: 10px; }}
-        h2 {{ color: #198754; margin-top: 40px; }}
-        h3 {{ color: #0dcaf0; margin-top: 30px; border-bottom: 2px solid #0dcaf0; padding-bottom: 8px; }}
+        :root {{
+            --color-blue: #0a4a94;
+            --color-green: #27a42f;
+            --accent: var(--color-blue);
+            --accent-alt: var(--color-green);
+        }}
+        body {{ padding: 20px; font-family: Arial, sans-serif; background-color: #f8f9fa; color: #212529; }}
+        .container-fluid {{ max-width: 1400px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 4px 12px rgba(10,74,148,0.06); border-top: 6px solid var(--accent); }}
+        h1 {{ color: var(--accent); border-bottom: 3px solid var(--accent); padding-bottom: 10px; }}
+        h2 {{ color: var(--accent-alt); margin-top: 40px; }}
+        h3 {{ color: var(--accent); margin-top: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }}
         h4 {{ color: #6c757d; margin-top: 20px; }}
         h5 {{ color: #adb5bd; margin-top: 15px; }}
-        table {{ margin: 20px 0; font-size: 0.9em; }}
-        table th {{ background-color: #e9ecef; font-weight: 600; }}
+        table {{ margin: 20px 0; font-size: 0.9em; border-collapse: separate; border-spacing: 0; }}
+        table th {{ background-color: rgba(10,74,148,0.06); color: var(--accent); font-weight: 700; border-bottom: 2px solid rgba(10,74,148,0.08); }}
         pre {{ background-color: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 5px; overflow-x: auto; }}
-        img {{ max-width: 100%; height: auto; margin: 20px 0; border: 1px solid #dee2e6; }}
+        img {{ max-width: 100%; height: auto; margin: 20px 0; border: 1px solid rgba(0,0,0,0.08); }}
         .alert {{ margin: 20px 0; padding: 15px; border-radius: 5px; }}
-        .alert-success {{ background-color: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; }}
+        .alert-success {{ background-color: rgba(39,164,47,0.08); border: 1px solid rgba(39,164,47,0.14); color: var(--accent-alt); }}
         .indice {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }}
         .indice ul {{ list-style: none; padding-left: 0; }}
         .indice ul ul {{ padding-left: 25px; margin-top: 5px; }}
         .indice li {{ margin: 8px 0; }}
-        .indice a {{ color: #0d6efd; text-decoration: none; }}
-        .indice a:hover {{ text-decoration: underline; }}
-        .timestamp {{ color: #6c757d; font-size: 0.9em; margin-bottom: 30px; }}
+        .indice a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
+        .indice a:hover {{ text-decoration: underline; color: var(--accent-alt); }}
+        .timestamp {{ color: rgba(0,0,0,0.5); font-size: 0.9em; margin-bottom: 30px; }}
         .grid-2col {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }}
         .grid-2col img {{ width: 100%; }}
-        /* Accordion buttons: bold, white text, blue background */
-        .accordion-button {{ font-weight: 700; color: #fff !important; background-color: #0d6efd !important; border: none; }}
+        /* Accent helper classes */
+        .accent {{ color: var(--accent); font-weight: 700; }}
+        .accent-alt {{ color: var(--accent-alt); font-weight: 700; }}
+        .accent-bar {{ background: linear-gradient(90deg, var(--accent), var(--accent-alt)); height: 6px; border-radius: 4px; display:block; margin: 8px 0; }}
+        /* Accordion buttons: bold, white text, blue (collapsed) -> green (expanded) */
+        .accordion-button {{ font-weight: 700; color: #fff !important; background-color: var(--accent) !important; border: none; transition: background-color 0.22s ease, color 0.22s ease; }}
         .accordion-button:focus {{ box-shadow: none; }}
         .accordion-button::after {{ filter: invert(1); }}
+        /* When expanded (not .collapsed), use green */
+        .accordion-button:not(.collapsed) {{ background-color: var(--accent-alt) !important; color: #fff !important; }}
     </style>
 </head>
 <body>
@@ -283,7 +295,7 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
       1. Cálculo Mecánico de Cables
     </button>
   </h2>
-  <div id="{titulo_id}_cmc_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_cmc" data-bs-parent="#{inner_acc}">
+  <div id="{titulo_id}_cmc_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_cmc">
     <div class="accordion-body">''')
         html.append(generar_seccion_cmc(resultados["cmc"]))
         html.append('</div></div></div>')
@@ -296,7 +308,7 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
       2. Diseño Geométrico
     </button>
   </h2>
-  <div id="{titulo_id}_dge_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_dge" data-bs-parent="#{inner_acc}">
+  <div id="{titulo_id}_dge_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_dge">
     <div class="accordion-body">''')
         html.append(generar_seccion_dge(resultados["dge"]))
         html.append('</div></div></div>')
@@ -309,7 +321,7 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
       3. Diseño Mecánico
     </button>
   </h2>
-  <div id="{titulo_id}_dme_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_dme" data-bs-parent="#{inner_acc}">
+  <div id="{titulo_id}_dme_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_dme">
     <div class="accordion-body">''')
         html.append(generar_seccion_dme(resultados["dme"]))
         html.append('</div></div></div>')
@@ -322,7 +334,7 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
       4. Árboles de Carga
     </button>
   </h2>
-  <div id="{titulo_id}_arboles_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_arboles" data-bs-parent="#{inner_acc}">
+  <div id="{titulo_id}_arboles_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_arboles">
     <div class="accordion-body">''')
         html.append(generar_seccion_arboles(resultados["arboles"]))
         html.append('</div></div></div>')
@@ -335,7 +347,7 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
       5. Selección de Poste
     </button>
   </h2>
-  <div id="{titulo_id}_sph_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_sph" data-bs-parent="#{inner_acc}">
+  <div id="{titulo_id}_sph_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_sph">
     <div class="accordion-body">''')
         html.append(generar_seccion_sph(resultados["sph"]))
         html.append('</div></div></div>')
@@ -348,7 +360,7 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
       6. Fundación
     </button>
   </h2>
-  <div id="{titulo_id}_fundacion_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_fundacion" data-bs-parent="#{inner_acc}">
+  <div id="{titulo_id}_fundacion_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_fundacion">
     <div class="accordion-body">''')
         html.append(generar_seccion_fund(resultados["fundacion"]))
         html.append('</div></div></div>')
@@ -361,7 +373,7 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
       7. Análisis Estático de Esfuerzos
     </button>
   </h2>
-  <div id="{titulo_id}_aee_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_aee" data-bs-parent="#{inner_acc}">
+  <div id="{titulo_id}_aee_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_aee">
     <div class="accordion-body">''')
         html.append(generar_seccion_aee(resultados["aee"], estructura_actual))
         html.append('</div></div></div>')
@@ -374,7 +386,7 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
       8. Costeo
     </button>
   </h2>
-  <div id="{titulo_id}_costeo_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_costeo" data-bs-parent="#{inner_acc}">
+  <div id="{titulo_id}_costeo_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_costeo">
     <div class="accordion-body">''')
         html.append(generar_seccion_costeo_estructura(resultados["costeo"]))
         html.append('</div></div></div>')

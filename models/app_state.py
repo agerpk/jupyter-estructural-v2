@@ -64,7 +64,10 @@ class AppState:
     def set_estructura_actual(self, estructura_data):
         """Establecer la estructura actual y actualizar el título"""
         if estructura_data:
-            titulo = estructura_data.get('TITULO', 'estructura')
+            # Manejo defensivo: si la clave existe pero está vacía, usar valor por defecto
+            titulo = estructura_data.get('TITULO') or 'estructura'
+            # Asegurar que la estructura_data contenga el TITULO efectivo
+            estructura_data['TITULO'] = titulo
             self._estructura_actual_titulo = titulo
             self._guardar_estructura_activa_persistente(titulo)
             

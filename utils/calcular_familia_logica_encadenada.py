@@ -43,6 +43,9 @@ def ejecutar_calculo_familia_completa(familia_data: Dict, generar_plots: bool = 
     for nombre_estr, datos_estr in estructuras.items():
         titulo = datos_estr.get("TITULO", nombre_estr)
         cantidad = datos_estr.get("cantidad", 1)
+        # Asegurar que la estructura tenga un TITULO no vacío (evita errores en AppState)
+        if not datos_estr.get('TITULO'):
+            datos_estr['TITULO'] = titulo
         
         print(f"\n🔧 Procesando estructura: {titulo}")
         
