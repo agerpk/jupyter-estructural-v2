@@ -37,6 +37,9 @@ def ejecutar_calculo_dme(estructura_actual, state, generar_plots=True):
             fig_polar = None
             fig_barras = None
         
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"DME: fig_polar={type(fig_polar)}, fig_barras={type(fig_barras)} - guardando cache con hash={CalculoCache.calcular_hash(estructura_actual)}")
         CalculoCache.guardar_calculo_dme(nombre_estructura, estructura_actual, df_reacciones, fig_polar, fig_barras)
         
         state.calculo_objetos.estructura_mecanica = estructura_mecanica

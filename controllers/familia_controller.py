@@ -928,6 +928,9 @@ def register_callbacks(app):
             checklist_dict = {calc: True for calc in (calculos_activos or [])}
             
             # Generar HTML con checklist
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Descargando HTML familia='{nombre_familia}' checklist={checklist_dict} resultados_keys={list(calculo_guardado.get('resultados', {}).keys())}")
             from utils.descargar_html import generar_html_familia
             html_content = generar_html_familia(nombre_familia, calculo_guardado["resultados"], checklist_dict)
             
@@ -935,8 +938,9 @@ def register_callbacks(app):
             return dict(content=html_content, filename=f"{nombre_familia}_familia.html")
             
         except Exception as e:
-            print(f"Error generando HTML: {e}")
-            return no_update
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error generando HTML para familia '{nombre_familia}': {e}")
 
     
     @app.callback(

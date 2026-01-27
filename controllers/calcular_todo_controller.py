@@ -353,16 +353,22 @@ def register_callbacks(app):
             raise dash.exceptions.PreventUpdate
         
         try:
+            import logging
+            logger = logging.getLogger(__name__)
             from utils.descargar_html import generar_html_completo
             
+            logger.debug(f"Generando HTML completo para descarga (estructura keys: {list(estructura_actual.keys()) if estructura_actual else None})")
             html_completo = generar_html_completo(estructura_actual)
             
             nombre_estructura = estructura_actual.get('TITULO', 'estructura') if estructura_actual else 'estructura'
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{nombre_estructura}_calculo_completo_{timestamp}.html"
+            logger.debug(f"HTML generado tamaño: {len(html_completo)} bytes, filename: {filename}")
             
-            return dcc.send_string(html_completo, f"{nombre_estructura}_calculo_completo_{timestamp}.html")
+            return dcc.send_string(html_completo, filename)
             
         except Exception as e:
-            import traceback
-            print(f"Error generando HTML: {traceback.format_exc()}")
+            import logging, traceback
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error generando HTML completo para {estructura_actual.get('TITULO', 'estructura') if estructura_actual else 'estructura'}: {traceback.format_exc()}")
             raise dash.exceptions.PreventUpdate

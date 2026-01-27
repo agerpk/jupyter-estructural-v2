@@ -610,11 +610,17 @@ def registrar_callbacks_comparar_cables(app):
             return dash.no_update
         
         try:
+            import logging
+            logger = logging.getLogger(__name__)
             from utils.descargar_html import generar_html_comparativa
             titulo = comparativa_actual.get("titulo", "Comparativa")
+            logger.debug(f"Generando HTML comparativa titulo={titulo} datos_keys={list(comparativa_actual.keys())}")
             html_content = generar_html_comparativa(titulo, comparativa_actual, resultados_html)
+            logger.debug(f"HTML comparativa generado size={len(html_content)} filename={titulo}_comparativa.html")
             
             return dict(content=html_content, filename=f"{titulo}_comparativa.html")
         except Exception as e:
-            print(f"Error generando HTML: {e}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error generando HTML comparativa '{comparativa_actual.get('titulo', 'Comparativa')}': {e}")
             return dash.no_update

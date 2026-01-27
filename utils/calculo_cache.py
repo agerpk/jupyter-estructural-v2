@@ -204,17 +204,25 @@ class CalculoCache:
         nombre_estructura = nombre_estructura.replace(' ', '_')
         hash_params = CalculoCache.calcular_hash(estructura_data)
         
+        import logging
+        logger = logging.getLogger(__name__)
         # Guardar imágenes (figuras matplotlib)
         try:
             if fig_polar:
                 img_path = CACHE_DIR / f"DME_Polar.{hash_params}.png"
                 fig_polar.savefig(str(img_path), format='png', dpi=100)
+                logger.debug(f"Guardada imagen DME Polar: {img_path}")
+            else:
+                logger.debug("No se generó figura polar (fig_polar is None)")
             
             if fig_barras:
                 img_path = CACHE_DIR / f"DME_Barras.{hash_params}.png"
                 fig_barras.savefig(str(img_path), format='png', dpi=100)
+                logger.debug(f"Guardada imagen DME Barras: {img_path}")
+            else:
+                logger.debug("No se generó figura de barras (fig_barras is None)")
         except Exception as e:
-            print(f"Advertencia: No se pudieron guardar imágenes DME: {e}")
+            logger.exception(f"Advertencia: No se pudieron guardar imágenes DME: {e}")
         
         calculo_data = {
             "hash_parametros": hash_params,

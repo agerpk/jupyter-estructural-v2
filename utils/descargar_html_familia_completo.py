@@ -1,5 +1,24 @@
 from datetime import datetime
+import logging
 from utils.descargar_html_familia_fix import generar_seccion_costeo_estructura
+
+logger = logging.getLogger(__name__)
+
+def _safe_format(value, fmt=None, default="N/A", name=None):
+    try:
+        if value is None:
+            logger.debug(f"Valor None al formatear: {name}")
+            return default
+        if fmt and isinstance(value, (int, float)):
+            try:
+                return format(value, fmt)
+            except Exception as e:
+                logger.debug(f"Error formateando {name} con fmt '{fmt}': {e} - valor={value}")
+                return default
+        return str(value)
+    except Exception as e:
+        logger.exception(f"Error en _safe_format {name}: {e}")
+        return default
 
 def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=None):
     """Genera índice con hyperlinks y subentradas por sección
@@ -79,6 +98,7 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    logger.debug(f"Generando HTML familia='{nombre_familia}' con {len(resultados_familia.get('resultados_estructuras', {}))} estructuras, checklist={checklist_activo}")
     indice = generar_indice_familia(nombre_familia, resultados_familia, checklist_activo)
     secciones = [indice]
     secciones.append(generar_seccion_resumen_familia(nombre_familia, resultados_familia))
@@ -92,11 +112,18 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
         if "error" in datos_estr:
             secciones.append(f'<div class="alert alert-danger">Error: {datos_estr["error"]}</div>')
         else:
-            secciones.append(generar_seccion_estructura_familia(datos_estr, titulo_id, checklist_activo))
+            try:
+                logger.debug(f"Generando secciones para estructura: {titulo} (id: {titulo_id})")
+                secciones.append(generar_seccion_estructura_familia(datos_estr, titulo_id, checklist_activo))
+            except Exception as e:
+                import traceback
+                logger.exception(f"Error generando secciones para estructura {titulo}: {e}\n{traceback.format_exc()}")
+                secciones.append(f'<div class="alert alert-danger">Error generando secciones de {titulo}: {e}</div>')
     
     costeo_global = resultados_familia.get("costeo_global", {})
     if costeo_global and (checklist_activo is None or checklist_activo.get("costeo", True)):
         secciones.append(generar_seccion_costeo_familia(costeo_global, estructuras))
+        logger.debug(f"Se agregó sección Costeo Global para familia '{nombre_familia}' con {len(estructuras)} estructuras")
     
     contenido_html = "\n".join(secciones)
     
@@ -155,8 +182,9 @@ def generar_seccion_resumen_familia(nombre_familia, resultados_familia):
     html.append(f'<tr><td><strong>Cantidad de Estructuras</strong></td><td>{len(estructuras)}</td></tr>')
     
     if costeo_global:
-        costo_global = costeo_global.get("costo_global", 0)
-        html.append(f'<tr><td><strong>Costo Global</strong></td><td>{costo_global:,.2f} UM</td></tr>')
+        costo_global = costeo_global.get("costo_global", None)
+        cg = _safe_format(costo_global, ",.2f", name="costeo_global.costo_global")
+        html.append(f'<tr><td><strong>Costo Global</strong></td><td>{cg} UM</td></tr>')
     
     html.append('</table>')
     
@@ -168,11 +196,14 @@ def generar_seccion_resumen_familia(nombre_familia, resultados_familia):
     for nombre_estr, datos_estr in estructuras.items():
         titulo = datos_estr.get("titulo", nombre_estr)
         cantidad = datos_estr.get("cantidad", 1)
-        costo_ind = datos_estr.get("costo_individual", 0)
-        costo_parc = costo_ind * cantidad
+        costo_ind = datos_estr.get("costo_individual", None)
+        costo_parc = (costo_ind or 0) * cantidad
+        
+        costo_ind_str = _safe_format(costo_ind, ",.2f", name=f"estructura.{nombre_estr}.costo_individual")
+        costo_parc_str = _safe_format(costo_parc, ",.2f", name=f"estructura.{nombre_estr}.costo_parcial")
         
         html.append(f'<tr><td>{nombre_estr}</td><td>{titulo}</td><td>{cantidad}</td>')
-        html.append(f'<td>{costo_ind:,.2f} UM</td><td>{costo_parc:,.2f} UM</td></tr>')
+        html.append(f'<td>{costo_ind_str} UM</td><td>{costo_parc_str} UM</td></tr>')
     
     html.append('</tbody></table>')
     return '\n'.join(html)
@@ -228,11 +259,12 @@ def generar_seccion_costeo_familia(costeo_global, estructuras):
     """Genera HTML para costeo global"""
     html = ['<h2 id="costeo-global" style="margin-top:60px; border-top:3px solid #198754; padding-top:20px;">COSTEO GLOBAL</h2>']
     
-    costo_global = costeo_global.get("costo_global", 0)
+    costo_global = costeo_global.get("costo_global", None)
     costos_individuales = costeo_global.get("costos_individuales", {})
     costos_parciales = costeo_global.get("costos_parciales", {})
     
-    html.append(f'<div class="alert alert-success"><h3>Costo Global: {costo_global:,.2f} UM</h3></div>')
+    cg = _safe_format(costo_global, ",.2f", name="costeo_global.costo_global")
+    html.append(f'<div class="alert alert-success"><h3>Costo Global: {cg} UM</h3></div>')
     
     html.append('<table class="table table-striped table-bordered">')
     html.append('<thead><tr><th>Estructura</th><th>Costo Individual</th><th>Cantidad</th><th>Costo Parcial</th></tr></thead>')
@@ -240,7 +272,7 @@ def generar_seccion_costeo_familia(costeo_global, estructuras):
     
     for titulo in sorted(costos_individuales.keys(), key=lambda x: costos_individuales[x], reverse=True):
         costo_ind = costos_individuales[titulo]
-        costo_parc = costos_parciales.get(titulo, 0)
+        costo_parc = costos_parciales.get(titulo, None)
         
         cantidad = 1
         for nombre_estr, datos_estr in estructuras.items():
@@ -248,8 +280,11 @@ def generar_seccion_costeo_familia(costeo_global, estructuras):
                 cantidad = datos_estr.get("cantidad", 1)
                 break
         
-        html.append(f'<tr><td>{titulo}</td><td>{costo_ind:,.2f} UM</td>')
-        html.append(f'<td>{cantidad}</td><td><strong>{costo_parc:,.2f} UM</strong></td></tr>')
+        costo_ind_str = _safe_format(costo_ind, ",.2f", name=f"costeo.{titulo}.costo_individual")
+        costo_parc_str = _safe_format(costo_parc, ",.2f", name=f"costeo.{titulo}.costo_parcial")
+        
+        html.append(f'<tr><td>{titulo}</td><td>{costo_ind_str} UM</td>')
+        html.append(f'<td>{cantidad}</td><td><strong>{costo_parc_str} UM</strong></td></tr>')
     
     html.append('</tbody></table>')
     return '\n'.join(html)

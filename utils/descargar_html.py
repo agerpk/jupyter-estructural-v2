@@ -6,11 +6,45 @@ import base64
 import json
 from io import StringIO
 from pathlib import Path
+import logging
 from config.app_config import CACHE_DIR
 from utils.calculo_cache import CalculoCache
 from utils.view_helpers import ViewHelpers
 from utils.descargar_html_familia_fix import generar_seccion_costeo_estructura
 from utils.descargar_html_familia_completo import generar_html_familia as generar_html_familia_completo
+
+# Logger y helpers para formateo seguro
+logger = logging.getLogger(__name__)
+
+def _safe_format(value, fmt=None, default="N/A", name=None):
+    """Formatea valores numéricos de forma segura. Devuelve 'N/A' si value es None o falla."""
+    try:
+        if value is None:
+            logger.debug(f"Valor None al formatear: {name}")
+            return default
+        if fmt and isinstance(value, (int, float)):
+            try:
+                return format(value, fmt)
+            except Exception as e:
+                logger.debug(f"Error formateando {name} con fmt '{fmt}': {e} - valor={value}")
+                return default
+        return str(value)
+    except Exception as e:
+        logger.exception(f"Error en _safe_format {name}: {e}")
+        return default
+
+
+def _load_image_base64(nombre, context=None):
+    """Cargar imagen en base64 con logging en DEBUG si falta o falla."""
+    try:
+        img_str = ViewHelpers.cargar_imagen_base64(nombre)
+        if not img_str:
+            logger.debug(f"Imagen no encontrada: {nombre} (context={context})")
+        return img_str
+    except Exception as e:
+        logger.exception(f"Error cargando imagen {nombre}: {e}")
+        return None
+
 
 
 def generar_html_completo(estructura_actual):
@@ -190,6 +224,7 @@ def generar_seccion_dge(calculo_dge):
     """Genera HTML para sección DGE"""
     html = ['<h3>2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)</h3>']
     
+    logger.debug(f"Generando DGE (keys: {list(calculo_dge.keys())})")
     # Dimensiones y parámetros
     dimensiones = calculo_dge.get('dimensiones', {})
     if dimensiones:
@@ -197,7 +232,8 @@ def generar_seccion_dge(calculo_dge):
         html.append('<table class="table table-bordered params-table">')
         for campo, valor in dimensiones.items():
             if isinstance(valor, (int, float)):
-                html.append(f'<tr><td>{campo}</td><td>{valor:.3f}</td></tr>')
+                formatted = _safe_format(valor, ".3f", name=f"dimensiones.{campo}")
+                html.append(f'<tr><td>{campo}</td><td>{formatted}</td></tr>')
             else:
                 html.append(f'<tr><td>{campo}</td><td>{valor}</td></tr>')
         html.append('</table>')
@@ -211,7 +247,10 @@ def generar_seccion_dge(calculo_dge):
         html.append('<tbody>')
         for nombre_nodo, coords in nodes_key.items():
             if isinstance(coords, (list, tuple)) and len(coords) >= 3:
-                html.append(f'<tr><td><strong>{nombre_nodo}</strong></td><td>{coords[0]:.3f}</td><td>{coords[1]:.3f}</td><td>{coords[2]:.3f}</td></tr>')
+                x = _safe_format(coords[0], ".3f", name=f"node.{nombre_nodo}.x")
+                y = _safe_format(coords[1], ".3f", name=f"node.{nombre_nodo}.y")
+                z = _safe_format(coords[2], ".3f", name=f"node.{nombre_nodo}.z")
+                html.append(f'<tr><td><strong>{nombre_nodo}</strong></td><td>{x}</td><td>{y}</td><td>{z}</td></tr>')
         html.append('</tbody></table>')
     
     # Imágenes
@@ -233,11 +272,16 @@ def generar_seccion_dge(calculo_dge):
     if servidumbre_data:
         html.append('<h5>Franja de Servidumbre AEA-95301-2007</h5>')
         html.append('<table class="table table-bordered params-table">')
-        html.append(f'<tr><td>Ancho total franja (A)</td><td>{servidumbre_data["A"]:.3f} m</td></tr>')
-        html.append(f'<tr><td>Distancia conductores externos (C)</td><td>{servidumbre_data["C"]:.3f} m</td></tr>')
-        html.append(f'<tr><td>Distancia seguridad (d)</td><td>{servidumbre_data["d"]:.3f} m</td></tr>')
-        html.append(f'<tr><td>Distancia mínima (dm)</td><td>{servidumbre_data["dm"]:.3f} m</td></tr>')
-        html.append(f'<tr><td>Tensión sobretensión (Vs)</td><td>{servidumbre_data["Vs"]:.2f} kV</td></tr>')
+        a_val = _safe_format(servidumbre_data.get("A"), ".3f", name="servidumbre.A")
+        c_val = _safe_format(servidumbre_data.get("C"), ".3f", name="servidumbre.C")
+        d_val = _safe_format(servidumbre_data.get("d"), ".3f", name="servidumbre.d")
+        dm_val = _safe_format(servidumbre_data.get("dm"), ".3f", name="servidumbre.dm")
+        vs_val = _safe_format(servidumbre_data.get("Vs"), ".2f", name="servidumbre.Vs")
+        html.append(f'<tr><td>Ancho total franja (A)</td><td>{a_val} m</td></tr>')
+        html.append(f'<tr><td>Distancia conductores externos (C)</td><td>{c_val} m</td></tr>')
+        html.append(f'<tr><td>Distancia seguridad (d)</td><td>{d_val} m</td></tr>')
+        html.append(f'<tr><td>Distancia mínima (dm)</td><td>{dm_val} m</td></tr>')
+        html.append(f'<tr><td>Tensión sobretensión (Vs)</td><td>{vs_val} kV</td></tr>')
         html.append('</table>')
         
         if servidumbre_data.get('memoria_calculo'):
@@ -247,7 +291,7 @@ def generar_seccion_dge(calculo_dge):
         # Gráfico de servidumbre
         if hash_params:
             nombre_serv = f"Servidumbre.{hash_params}.png"
-            img_str = ViewHelpers.cargar_imagen_base64(nombre_serv)
+            img_str = _load_image_base64(nombre_serv, context="servidumbre")
             if img_str:
                 html.append('<h6>Gráfico de Franja de Servidumbre</h6>')
                 html.append(f'<img src="data:image/png;base64,{img_str}" alt="Servidumbre">')
@@ -275,10 +319,13 @@ def generar_seccion_dme(calculo_dme):
             (f"DME_Polar.{hash_params}.png", "Diagrama Polar de Reacciones"),
             (f"DME_Barras.{hash_params}.png", "Diagrama de Barras")
         ]:
-            img_str = ViewHelpers.cargar_imagen_base64(nombre)
+            img_str = _load_image_base64(nombre, context="DME")
             if img_str:
                 html.append(f'<h5>{titulo}</h5>')
                 html.append(f'<img src="data:image/png;base64,{img_str}" alt="{titulo}">')
+            else:
+                logger.debug(f"Imagen DME faltante: {nombre}")
+                html.append(f'<div class="alert alert-warning">No se encontró imagen: {titulo} ({nombre})</div>')
     
     return '\n'.join(html)
 
@@ -319,9 +366,10 @@ def generar_seccion_sph(calculo_sph):
     desarrollo_texto = calculo_sph.get('desarrollo_texto', '')
     
     if resultados:
+        logger.debug(f"Generando SPH (config: {resultados.get('config_seleccionada')})")
         config_seleccionada = resultados.get('config_seleccionada', 'N/A')
         dimensiones = resultados.get('dimensiones', {})
-        Rc_adopt = resultados.get('Rc_adopt', 0)
+        Rc_adopt = resultados.get('Rc_adopt', None)
         
         # Determinar número de postes
         n_postes = 1 if "Monoposte" in config_seleccionada else 2 if "Biposte" in config_seleccionada else 3
@@ -330,10 +378,14 @@ def generar_seccion_sph(calculo_sph):
         html.append('<h5>Cálculo Completado</h5>')
         html.append('<hr>')
         html.append(f'<p><strong>Configuración:</strong> {config_seleccionada}<br>')
-        html.append(f'<strong>Código:</strong> {n_postes} x {dimensiones.get("Ht_comercial", 0):.1f}m / Ro {Rc_adopt:.0f}daN<br>')
-        html.append(f'<strong>Altura libre:</strong> {dimensiones.get("Hl", 0):.2f} m<br>')
-        html.append(f'<strong>Empotramiento:</strong> {dimensiones.get("He_final", 0):.2f} m<br>')
-        html.append(f'<strong>Resistencia en cima:</strong> {Rc_adopt:.0f} daN</p>')
+        ht = _safe_format(dimensiones.get("Ht_comercial"), ".1f", name="sph.Ht_comercial")
+        rc = _safe_format(Rc_adopt, ".0f", name="sph.Rc_adopt")
+        hl = _safe_format(dimensiones.get("Hl"), ".2f", name="sph.Hl")
+        he = _safe_format(dimensiones.get("He_final"), ".2f", name="sph.He_final")
+        html.append(f'<strong>Código:</strong> {n_postes} x {ht}m / Ro {rc}daN<br>')
+        html.append(f'<strong>Altura libre:</strong> {hl} m<br>')
+        html.append(f'<strong>Empotramiento:</strong> {he} m<br>')
+        html.append(f'<strong>Resistencia en cima:</strong> {rc} daN</p>')
         html.append('</div>')
     
     if desarrollo_texto:
@@ -724,7 +776,8 @@ def generar_seccion_fund(calculo_fund):
         html.append('<table class="table table-bordered params-table">')
         for campo, valor in resultados.items():
             if isinstance(valor, (int, float)):
-                html.append(f'<tr><td>{campo}</td><td>{valor:.2f}</td></tr>')
+                formatted = _safe_format(valor, ".2f", name=f"fund.{campo}")
+                html.append(f'<tr><td>{campo}</td><td>{formatted}</td></tr>')
             else:
                 html.append(f'<tr><td>{campo}</td><td>{valor}</td></tr>')
         html.append('</table>')
@@ -760,12 +813,15 @@ def generar_seccion_aee(calculo_aee, estructura_actual):
     if resultados.get('nodos_info'):
         nodos_data = []
         for nombre, info in resultados['nodos_info'].items():
+            x = _safe_format(info.get('x'), ".2f", name=f"aee.nodo.{nombre}.x")
+            y = _safe_format(info.get('y'), ".2f", name=f"aee.nodo.{nombre}.y")
+            z = _safe_format(info.get('z'), ".2f", name=f"aee.nodo.{nombre}.z")
             nodos_data.append({
                 'Nodo': nombre,
-                'X [m]': f"{info['x']:.2f}",
-                'Y [m]': f"{info['y']:.2f}",
-                'Z [m]': f"{info['z']:.2f}",
-                'Tipo': info['tipo']
+                'X [m]': x,
+                'Y [m]': y,
+                'Z [m]': z,
+                'Tipo': info.get('tipo')
             })
         df_nodos = pd.DataFrame(nodos_data)
         html.append('<h5>Nodos de la Estructura</h5>')

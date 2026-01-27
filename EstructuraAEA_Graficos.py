@@ -2,6 +2,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 class EstructuraAEA_Graficos:
     """
@@ -1190,8 +1193,10 @@ class EstructuraAEA_Graficos:
         ax.legend(loc='upper right', title="Hipótesis")
         
         plt.tight_layout()
-        
+        fig = plt.gcf()
+        logger.debug(f"Diagrama polar generado (max_tiro={max_tiro:.2f}) - devolviendo figura: {fig}")
         print(f"✅ Diagrama polar generado")
+        return fig
     
     def diagrama_barras_tiros(self, titulo=None, mostrar_c2=False):
         """
@@ -1259,7 +1264,10 @@ class EstructuraAEA_Graficos:
         
         plt.subplots_adjust(left=0.08, right=0.98, top=0.92, bottom=0.12)
         
+        fig = plt.gcf()
+        logger.debug(f"Diagrama de barras generado (n_barras={len(tiros_barras)}) - devolviendo figura: {fig}")
         print(f"✅ Diagrama de barras generado")
+        return fig
     
     def graficar_nodos_coordenadas(self, titulo_reemplazo=None):
         """Grafica nodos en 3D isométrico usando Plotly"""
