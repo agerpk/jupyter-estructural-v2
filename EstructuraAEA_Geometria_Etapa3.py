@@ -38,9 +38,10 @@ class GeometriaEtapa3:
         else:
             h3a_inicial = h2a + D_fases + HADD_ENTRE_AMARRES
         
-        # Inicializar Lmen3 PRE hielo (siempre basado en Lmen1 PRE hielo)
-        Lmen1_original = self.geo.dimensiones["Lmen1"]  # PRE hielo
+        # Inicializar Lmen3 PRE hielo (usar Lmen1 sin defasaje si existe)
+        Lmen1_original = self.geo.dimensiones.get("Lmen1_sin_defasaje", self.geo.dimensiones["Lmen1"])  # PRE hielo
         Lmen3 = max(Lmen1_original, self.geo.long_mensula_min_conductor)
+        print(f"   🔍 DEBUG: Lmen1 usado como base para Lmen3: {Lmen1_original:.3f}m")
         
         # Optimizar h3a considerando zonas prohibidas
         h3a_final = h3a_inicial
@@ -49,9 +50,14 @@ class GeometriaEtapa3:
         zoptimo3 = self._buscar_altura_fuera_zonas_prohibidas_h2a(Lmen3, h2a, D_fases, s_reposo, theta_max, theta_tormenta)
         h3a_final = zoptimo3 + HADD_ENTRE_AMARRES
         
+        # Debug: mostrar valores relacionados a defasaje por hielo
+        print(f"   🔬 DEBUG_VALUES: defasaje_mensula_hielo={getattr(self.geo, 'defasaje_mensula_hielo', None)}, lmen_extra_hielo={getattr(self.geo, 'lmen_extra_hielo', None)}, mensula_defasar={getattr(self.geo, 'mensula_defasar', None)}")
+        print(f"   🔬 DEBUG_TYPES: type(defasaje)={type(getattr(self.geo,'defasaje_mensula_hielo',None))}, type(lmen_extra_hielo)={type(getattr(self.geo,'lmen_extra_hielo',None))}, type(mensula_defasar)={type(getattr(self.geo,'mensula_defasar',None))}")
+
         # Aplicar defasaje por hielo si está activado
         if self.geo.defasaje_mensula_hielo and self.geo.lmen_extra_hielo > 0:
             mensula_defasar = self.geo.mensula_defasar
+            print(f"   🔍 DEBUG: defasaje_mensula_hielo={self.geo.defasaje_mensula_hielo}, mensula_defasar='{mensula_defasar}', lmen_extra_hielo={self.geo.lmen_extra_hielo}")
             
             if mensula_defasar == "tercera" or mensula_defasar == "primera y tercera":
                 # Lmen3 será incrementada, recalcular altura óptima

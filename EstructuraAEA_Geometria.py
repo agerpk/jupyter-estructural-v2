@@ -145,11 +145,16 @@ class EstructuraAEA_Geometria:
         self.metodo_altura_msnm = metodo_altura_msnm if metodo_altura_msnm is not None else self.METODO_ALTURA_MSNM
         self.altura_msnm = altura_msnm if altura_msnm is not None else self.ALTURA_MSNM
         
-        # Parámetros de defasaje por hielo
-        self.defasaje_mensula_hielo = defasaje_mensula_hielo
-        self.lmen_extra_hielo = lmen_extra_hielo
-        self.mensula_defasar = mensula_defasar
-        
+        # Parámetros de defasaje por hielo (si vienen en 'parametros' los usamos)
+        if parametros:
+            self.defasaje_mensula_hielo = parametros.get("defasaje_mensula_hielo", defasaje_mensula_hielo)
+            self.lmen_extra_hielo = parametros.get("lmen_extra_hielo", lmen_extra_hielo)
+            self.mensula_defasar = parametros.get("mensula_defasar", mensula_defasar)
+        else:
+            self.defasaje_mensula_hielo = defasaje_mensula_hielo
+            self.lmen_extra_hielo = lmen_extra_hielo
+            self.mensula_defasar = mensula_defasar
+
         # Parámetro de ajuste de D_fases
         self.d_fases_add = d_fases_add
         

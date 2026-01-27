@@ -30,9 +30,10 @@ class GeometriaEtapa2:
         Lk = self.geo.lk
         HADD_ENTRE_AMARRES = self.geo.hadd_entre_amarres
         
-        # Inicializar Lmen2 PRE hielo (siempre basado en Lmen1 PRE hielo)
-        Lmen1_original = self.geo.dimensiones["Lmen1"]  # PRE hielo
+        # Inicializar Lmen2 PRE hielo (usar Lmen1 sin defasaje si existe)
+        Lmen1_original = self.geo.dimensiones.get("Lmen1_sin_defasaje", self.geo.dimensiones["Lmen1"])  # PRE hielo
         Lmen2 = max(Lmen1_original, self.geo.long_mensula_min_conductor)
+        print(f"   🔍 DEBUG: Lmen1 usado como base para Lmen2: {Lmen1_original:.3f}m")
         
         if Lk > 0:
             h2a_inicial = max(
@@ -49,9 +50,14 @@ class GeometriaEtapa2:
         zoptimo2 = self._buscar_altura_fuera_zonas_prohibidas_h1a(Lmen2, h1a, D_fases, s_reposo, theta_max, theta_tormenta)
         h2a_final = zoptimo2 + HADD_ENTRE_AMARRES
         
+        # Debug: mostrar valores relacionados a defasaje por hielo
+        print(f"   🔬 DEBUG_VALUES: defasaje_mensula_hielo={getattr(self.geo, 'defasaje_mensula_hielo', None)}, lmen_extra_hielo={getattr(self.geo, 'lmen_extra_hielo', None)}, mensula_defasar={getattr(self.geo, 'mensula_defasar', None)}")
+        print(f"   🔬 DEBUG_TYPES: type(defasaje)={type(getattr(self.geo,'defasaje_mensula_hielo',None))}, type(lmen_extra_hielo)={type(getattr(self.geo,'lmen_extra_hielo',None))}, type(mensula_defasar)={type(getattr(self.geo,'mensula_defasar',None))}")
+
         # Aplicar defasaje por hielo si está activado
         if self.geo.defasaje_mensula_hielo and self.geo.lmen_extra_hielo > 0:
             mensula_defasar = self.geo.mensula_defasar
+            print(f"   🔍 DEBUG: defasaje_mensula_hielo={self.geo.defasaje_mensula_hielo}, mensula_defasar='{mensula_defasar}', lmen_extra_hielo={self.geo.lmen_extra_hielo}")
             
             if mensula_defasar == "segunda":
                 # Lmen2 será incrementada, recalcular altura óptima

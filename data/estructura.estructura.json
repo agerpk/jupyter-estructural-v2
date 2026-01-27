@@ -1,5 +1,5 @@
 {
-  "TITULO": "",
+  "TITULO": "estructura",
   "cantidad": 0,
   "TIPO_ESTRUCTURA": "",
   "Zona_climatica": "",
@@ -130,7 +130,7 @@
   },
   "doble_terna_una_terna_activa": false,
   "SOBREESCRIBIR_ALTURA_A_CABLE": false,
-  "ALTURA_A_CABLE_SOBREESCRITA": 0.0,
+  "ALTURA_A_CABLE_SOBREESCRITA": 6.5,
   "OFFSET_COLUMNA_BASE": false,
   "OFFSET_COLUMNA_INTER": false,
   "OFFSET_MENSULA": false,
@@ -153,11 +153,63 @@
   "mensula_defasar": "",
   "AJUSTE_RO_POR_HT": false,
   "KE_estructura_ensayada": 0.0,
-  "parametros_graficos": "",
-  "AnalisisEstaticoEsfuerzos": "",
+  "parametros_graficos": {
+    "colores": {
+      "conductor": "#1f77b4",
+      "guardia": "#2ca02c",
+      "poste": "#000000",
+      "cadena": "#717170",
+      "conductor_end": "red",
+      "circulo": "gray",
+      "apantallamiento": "#84FF6B",
+      "texto_verde": "#006400",
+      "dhg_circulo": "gray",
+      "terreno": "#8B4513",
+      "area_s_estructura": "lightblue"
+    },
+    "controles": {
+      "declinar_todos": false,
+      "dibujar_solo_circulos_declinados_trayectoria": true,
+      "dibujar_circulos_s_estructura": true,
+      "dibujar_areas_s_estructura": true,
+      "dibujar_circulos_d_fases": true,
+      "dibujar_circulos_dhg": true,
+      "linewidth_cadena": 2,
+      "linewidth_estructura": 4,
+      "linewidth_cruceta": 3,
+      "linewidth_circulo": 1.5,
+      "alpha_cruceta": 0.8,
+      "alpha_circulo": 0.7,
+      "alpha_circulo_trayectoria": 0.4,
+      "alpha_apantallamiento": 0.7,
+      "alpha_area_s_estructura": 0.15,
+      "size_nodo_conductor": 100,
+      "size_nodo_guardia": 100,
+      "size_nodo_estructura": 80,
+      "size_conductor_end": 80,
+      "zoom_cabezal_default": 0.7,
+      "zoom_estructura_default": 0.95,
+      "mostrar_c2": false
+    }
+  },
+  "AnalisisEstaticoEsfuerzos": {
+    "ACTIVAR_AEE": true,
+    "DIAGRAMAS_ACTIVOS": {
+      "MQNT": true,
+      "MRT": false,
+      "MFE": false
+    },
+    "GRAFICOS_3D_AEE": false,
+    "escala_graficos": "lineal",
+    "n_segmentar_conexion_corta": 40,
+    "n_segmentar_conexion_larga": 60,
+    "percentil_separacion_corta_larga": 50,
+    "mostrar_tablas_resultados_por_elemento": false,
+    "plots_interactivos": false
+  },
   "mc_servidumbre": false,
   "plot_servidumbre": false,
-  "metodo_servidumbre": "",
+  "metodo_servidumbre": "AyEE",
   "estados_climaticos": {
     "1": {
       "temperatura": 35,
@@ -222,5 +274,9 @@
       "restriccion_guardia": 0.7,
       "relflecha": 0.9
     }
-  }
+  },
+  "fecha_creacion": "",
+  "version": "1.0",
+  "D_fases_add": 0.0,
+  "fecha_modificacion": "2026-01-27T16:04:00.049872"
 }
