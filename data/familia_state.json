@@ -1,3 +1,11 @@
 {
-  "familia_activa": "PSJ_prueba"
+  "familia_activa": "PSJ_prueba",
+  "calculos_activos_familia": [
+    "cmc",
+    "dge",
+    "dme",
+    "arboles",
+    "sph",
+    "aee"
+  ]
 }

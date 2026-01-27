@@ -35,7 +35,7 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
     for nombre_estr, datos_estr in estructuras.items():
         titulo = datos_estr.get("titulo", nombre_estr)
         titulo_id = titulo.replace(" ", "_").replace("/", "_")
-        html.append(f'<li><a href="#{titulo_id}">{titulo}</a>')
+        html.append(f'<li><a href="#collapse_{titulo_id}" data-bs-toggle="collapse" data-bs-target="#collapse_{titulo_id}">{titulo}</a>')
         
         # Subentradas por sección (solo si están en checklist)
         if "error" not in datos_estr:
@@ -45,46 +45,46 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
             # Si hay checklist, verificar cada sección; si no hay checklist, incluir todo
             if checklist_activo:
                 if checklist_activo.get("cmc") and "cmc" in resultados and resultados["cmc"]:
-                    html.append(f'<li><a href="#{titulo_id}_cmc">1. Cálculo Mecánico de Cables</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_cmc_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
                 if checklist_activo.get("dge") and "dge" in resultados and resultados["dge"]:
-                    html.append(f'<li><a href="#{titulo_id}_dge">2. Diseño Geométrico</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
                 if checklist_activo.get("dme") and "dme" in resultados and resultados["dme"]:
-                    html.append(f'<li><a href="#{titulo_id}_dme">3. Diseño Mecánico</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_dme_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dme_collapse">3. Diseño Mecánico</a></li>')
                 if checklist_activo.get("arboles") and "arboles" in resultados and resultados["arboles"]:
-                    html.append(f'<li><a href="#{titulo_id}_arboles">4. Árboles de Carga</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_arboles_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_arboles_collapse">4. Árboles de Carga</a></li>')
                 if checklist_activo.get("sph") and "sph" in resultados and resultados["sph"]:
-                    html.append(f'<li><a href="#{titulo_id}_sph">5. Selección de Poste</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_sph_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_sph_collapse">5. Selección de Poste</a></li>')
                 if checklist_activo.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
-                    html.append(f'<li><a href="#{titulo_id}_fundacion">6. Fundación</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_fundacion_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_fundacion_collapse">6. Fundación</a></li>')
                 if checklist_activo.get("aee") and "aee" in resultados and resultados["aee"]:
-                    html.append(f'<li><a href="#{titulo_id}_aee">7. Análisis Estático</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_aee_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_aee_collapse">7. Análisis Estático</a></li>')
                 if checklist_activo.get("costeo") and "costeo" in resultados and resultados["costeo"]:
-                    html.append(f'<li><a href="#{titulo_id}_costeo">8. Costeo</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_costeo_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_costeo_collapse">8. Costeo</a></li>')
             else:
                 # Sin checklist, incluir todo lo que tenga datos
                 if "cmc" in resultados and resultados["cmc"]:
-                    html.append(f'<li><a href="#{titulo_id}_cmc">1. Cálculo Mecánico de Cables</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_cmc_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
                 if "dge" in resultados and resultados["dge"]:
-                    html.append(f'<li><a href="#{titulo_id}_dge">2. Diseño Geométrico</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
                 if "dme" in resultados and resultados["dme"]:
-                    html.append(f'<li><a href="#{titulo_id}_dme">3. Diseño Mecánico</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_dme_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dme_collapse">3. Diseño Mecánico</a></li>')
                 if "arboles" in resultados and resultados["arboles"]:
-                    html.append(f'<li><a href="#{titulo_id}_arboles">4. Árboles de Carga</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_arboles_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_arboles_collapse">4. Árboles de Carga</a></li>')
                 if "sph" in resultados and resultados["sph"]:
-                    html.append(f'<li><a href="#{titulo_id}_sph">5. Selección de Poste</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_sph_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_sph_collapse">5. Selección de Poste</a></li>')
                 if "fundacion" in resultados and resultados["fundacion"]:
-                    html.append(f'<li><a href="#{titulo_id}_fundacion">6. Fundación</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_fundacion_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_fundacion_collapse">6. Fundación</a></li>')
                 if "aee" in resultados and resultados["aee"]:
-                    html.append(f'<li><a href="#{titulo_id}_aee">7. Análisis Estático</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_aee_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_aee_collapse">7. Análisis Estático</a></li>')
                 if "costeo" in resultados and resultados["costeo"]:
-                    html.append(f'<li><a href="#{titulo_id}_costeo">8. Costeo</a></li>')
+                    html.append(f'<li><a href="#{titulo_id}_costeo_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_costeo_collapse">8. Costeo</a></li>')
             
             html.append('</ul>')
         html.append('</li>')
     
     # Costeo Global solo si está en checklist o no hay checklist
     if not checklist_activo or checklist_activo.get("costeo"):
-        html.append('<li><a href="#costeo-global">Costeo Global</a></li>')
+        html.append('<li><a href="#collapse_costeo_global" data-bs-toggle="collapse" data-bs-target="#collapse_costeo_global">Costeo Global</a></li>')
     html.append('</ul></div>')
     return '\n'.join(html)
 
@@ -104,11 +104,23 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
     secciones.append(generar_seccion_resumen_familia(nombre_familia, resultados_familia))
     
     estructuras = resultados_familia.get("resultados_estructuras", {})
+    familia_safe = nombre_familia.replace(' ', '_').replace('/', '_')
+    if estructuras:
+        secciones.append(f'<div class="accordion" id="accordion_{familia_safe}">')
+
     for nombre_estr, datos_estr in estructuras.items():
         titulo = datos_estr.get("titulo", nombre_estr)
         titulo_id = titulo.replace(" ", "_").replace("/", "_")
-        secciones.append(f'<h2 id="{titulo_id}" style="margin-top:60px; border-top:3px solid #0d6efd; padding-top:20px;">{titulo}</h2>')
-        
+        # Accordion item por estructura
+        secciones.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_{titulo_id}" aria-expanded="false" aria-controls="collapse_{titulo_id}">
+      {titulo}
+    </button>
+  </h2>
+  <div id="collapse_{titulo_id}" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}" data-bs-parent="#accordion_{familia_safe}">
+    <div class="accordion-body">''')
+
         if "error" in datos_estr:
             secciones.append(f'<div class="alert alert-danger">Error: {datos_estr["error"]}</div>')
         else:
@@ -119,6 +131,11 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
                 import traceback
                 logger.exception(f"Error generando secciones para estructura {titulo}: {e}\n{traceback.format_exc()}")
                 secciones.append(f'<div class="alert alert-danger">Error generando secciones de {titulo}: {e}</div>')
+
+        secciones.append('</div></div></div>')
+
+    if estructuras:
+        secciones.append('</div>')
     
     costeo_global = resultados_familia.get("costeo_global", {})
     if costeo_global and (checklist_activo is None or checklist_activo.get("costeo", True)):
@@ -157,6 +174,10 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
         .timestamp {{ color: #6c757d; font-size: 0.9em; margin-bottom: 30px; }}
         .grid-2col {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }}
         .grid-2col img {{ width: 100%; }}
+        /* Accordion buttons: bold, white text, blue background */
+        .accordion-button {{ font-weight: 700; color: #fff !important; background-color: #0d6efd !important; border: none; }}
+        .accordion-button:focus {{ box-shadow: none; }}
+        .accordion-button::after {{ filter: invert(1); }}
     </style>
 </head>
 <body>
@@ -166,6 +187,30 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
         <hr>
         {contenido_html}
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // Delegated click handler: abre la sección correspondiente desde el índice y hace scroll
+    document.addEventListener('DOMContentLoaded', function(){{
+      var index = document.querySelector('.indice');
+      if(!index) return;
+      index.addEventListener('click', function(ev){{
+        var link = ev.target.closest && ev.target.closest('a');
+        if(!link) return;
+        // Solo manejar links dentro del índice
+        if(!link.closest('.indice')) return;
+        var target = link.getAttribute('data-bs-target') || link.getAttribute('href');
+        if(target && target.startsWith('#')){{
+          ev.preventDefault();
+          var el = document.querySelector(target);
+          if(el) {{
+            var bs = bootstrap.Collapse.getOrCreateInstance(el);
+            bs.show();
+            setTimeout(function(){{ el.scrollIntoView({{behavior:'smooth', block:'start'}}); }}, 260);
+          }}
+        }}
+      }});
+    }});
+    </script>
 </body>
 </html>"""
 
@@ -226,38 +271,131 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
     # Si no hay checklist, incluir todo lo que tenga datos
     if checklist_activo is None:
         checklist_activo = {k: True for k in resultados.keys()}
-    
+
+    inner_acc = f"accordion_{titulo_id}_sub"
+    html.append(f'<div class="accordion" id="{inner_acc}">')
+
+    # 1. CMC
     if checklist_activo.get("cmc") and "cmc" in resultados and resultados["cmc"]:
-        html.append(f'<h4 id="{titulo_id}_cmc">1. Cálculo Mecánico de Cables</h4>')
+        html.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}_cmc">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_cmc_collapse" aria-expanded="false" aria-controls="{titulo_id}_cmc_collapse">
+      1. Cálculo Mecánico de Cables
+    </button>
+  </h2>
+  <div id="{titulo_id}_cmc_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_cmc" data-bs-parent="#{inner_acc}">
+    <div class="accordion-body">''')
         html.append(generar_seccion_cmc(resultados["cmc"]))
+        html.append('</div></div></div>')
+
+    # 2. DGE
     if checklist_activo.get("dge") and "dge" in resultados and resultados["dge"]:
-        html.append(f'<h4 id="{titulo_id}_dge">2. Diseño Geométrico</h4>')
+        html.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}_dge">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse" aria-expanded="false" aria-controls="{titulo_id}_dge_collapse">
+      2. Diseño Geométrico
+    </button>
+  </h2>
+  <div id="{titulo_id}_dge_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_dge" data-bs-parent="#{inner_acc}">
+    <div class="accordion-body">''')
         html.append(generar_seccion_dge(resultados["dge"]))
+        html.append('</div></div></div>')
+
+    # 3. DME
     if checklist_activo.get("dme") and "dme" in resultados and resultados["dme"]:
-        html.append(f'<h4 id="{titulo_id}_dme">3. Diseño Mecánico</h4>')
+        html.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}_dme">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dme_collapse" aria-expanded="false" aria-controls="{titulo_id}_dme_collapse">
+      3. Diseño Mecánico
+    </button>
+  </h2>
+  <div id="{titulo_id}_dme_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_dme" data-bs-parent="#{inner_acc}">
+    <div class="accordion-body">''')
         html.append(generar_seccion_dme(resultados["dme"]))
+        html.append('</div></div></div>')
+
+    # 4. Árboles
     if checklist_activo.get("arboles") and "arboles" in resultados and resultados["arboles"]:
-        html.append(f'<h4 id="{titulo_id}_arboles">4. Árboles de Carga</h4>')
+        html.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}_arboles">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_arboles_collapse" aria-expanded="false" aria-controls="{titulo_id}_arboles_collapse">
+      4. Árboles de Carga
+    </button>
+  </h2>
+  <div id="{titulo_id}_arboles_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_arboles" data-bs-parent="#{inner_acc}">
+    <div class="accordion-body">''')
         html.append(generar_seccion_arboles(resultados["arboles"]))
+        html.append('</div></div></div>')
+
+    # 5. SPH
     if checklist_activo.get("sph") and "sph" in resultados and resultados["sph"]:
-        html.append(f'<h4 id="{titulo_id}_sph">5. Selección de Poste</h4>')
+        html.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}_sph">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_sph_collapse" aria-expanded="false" aria-controls="{titulo_id}_sph_collapse">
+      5. Selección de Poste
+    </button>
+  </h2>
+  <div id="{titulo_id}_sph_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_sph" data-bs-parent="#{inner_acc}">
+    <div class="accordion-body">''')
         html.append(generar_seccion_sph(resultados["sph"]))
+        html.append('</div></div></div>')
+
+    # 6. Fundación
     if checklist_activo.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
-        html.append(f'<h4 id="{titulo_id}_fundacion">6. Fundación</h4>')
+        html.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}_fundacion">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_fundacion_collapse" aria-expanded="false" aria-controls="{titulo_id}_fundacion_collapse">
+      6. Fundación
+    </button>
+  </h2>
+  <div id="{titulo_id}_fundacion_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_fundacion" data-bs-parent="#{inner_acc}">
+    <div class="accordion-body">''')
         html.append(generar_seccion_fund(resultados["fundacion"]))
+        html.append('</div></div></div>')
+
+    # 7. AEE
     if checklist_activo.get("aee") and "aee" in resultados and resultados["aee"]:
-        html.append(f'<h4 id="{titulo_id}_aee">7. Análisis Estático de Esfuerzos</h4>')
+        html.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}_aee">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_aee_collapse" aria-expanded="false" aria-controls="{titulo_id}_aee_collapse">
+      7. Análisis Estático de Esfuerzos
+    </button>
+  </h2>
+  <div id="{titulo_id}_aee_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_aee" data-bs-parent="#{inner_acc}">
+    <div class="accordion-body">''')
         html.append(generar_seccion_aee(resultados["aee"], estructura_actual))
+        html.append('</div></div></div>')
+
+    # 8. Costeo
     if checklist_activo.get("costeo") and "costeo" in resultados and resultados["costeo"]:
-        html.append(f'<h4 id="{titulo_id}_costeo">8. Costeo</h4>')
+        html.append(f'''<div class="accordion-item">
+  <h2 class="accordion-header" id="heading_{titulo_id}_costeo">
+    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_costeo_collapse" aria-expanded="false" aria-controls="{titulo_id}_costeo_collapse">
+      8. Costeo
+    </button>
+  </h2>
+  <div id="{titulo_id}_costeo_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_costeo" data-bs-parent="#{inner_acc}">
+    <div class="accordion-body">''')
         html.append(generar_seccion_costeo_estructura(resultados["costeo"]))
-    
+        html.append('</div></div></div>')
+
+    html.append('</div>')
     return '\n'.join(html)
 
 
 def generar_seccion_costeo_familia(costeo_global, estructuras):
-    """Genera HTML para costeo global"""
-    html = ['<h2 id="costeo-global" style="margin-top:60px; border-top:3px solid #198754; padding-top:20px;">COSTEO GLOBAL</h2>']
+    """Genera HTML para costeo global (colapsable)"""
+    html = [
+        '<div class="accordion" id="accordion_costeo_global">',
+        '  <div class="accordion-item">',
+        '    <h2 class="accordion-header" id="heading_costeo_global">',
+        '      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_costeo_global" aria-expanded="false" aria-controls="collapse_costeo_global">',
+        '        COSTEO GLOBAL',
+        '      </button>',
+        '    </h2>',
+        '    <div id="collapse_costeo_global" class="accordion-collapse collapse" aria-labelledby="heading_costeo_global">',
+        '      <div class="accordion-body">'
+    ]
     
     costo_global = costeo_global.get("costo_global", None)
     costos_individuales = costeo_global.get("costos_individuales", {})
@@ -287,4 +425,8 @@ def generar_seccion_costeo_familia(costeo_global, estructuras):
         html.append(f'<td>{cantidad}</td><td><strong>{costo_parc_str} UM</strong></td></tr>')
     
     html.append('</tbody></table>')
+    html.append('      </div>')
+    html.append('    </div>')
+    html.append('  </div>')
+    html.append('</div>')
     return '\n'.join(html)
