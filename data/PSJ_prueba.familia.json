@@ -1,15 +1,15 @@
 {
-  "nombre_familia": "Pruebas_132",
-  "fecha_creacion": "2026-01-23T12:12:43.289399",
-  "fecha_modificacion": "2026-01-26T16:28:16.771473",
+  "nombre_familia": "PSJ_prueba",
+  "fecha_creacion": "2026-01-05T10:35:57.988330",
+  "fecha_modificacion": "2026-01-27T08:49:26.828252",
   "estructuras": {
     "Estr.1": {
+      "TITULO": "ACON_S_24_simple_terna_triangular-mensulas",
+      "cantidad": 27,
       "TIPO_ESTRUCTURA": "Suspensión Recta",
-      "doble_terna_una_terna_activa": false,
       "Zona_climatica": "B",
       "exposicion": "C",
       "clase": "C",
-      "TITULO": "ACON_S_24_simple_terna_triangular-mensulas",
       "cable_conductor_id": "AlAc 300/50",
       "cable_guardia_id": "OPGW 44F70s 24FO 120mm2",
       "cable_guardia2_id": "Ac 50",
@@ -52,8 +52,6 @@
       "CANT_HG": 1,
       "HG_CENTRADO": false,
       "ALTURA_MINIMA_CABLE": 2.0,
-      "SOBREESCRIBIR_ALTURA_A_CABLE": false,
-      "ALTURA_A_CABLE_SOBREESCRITA": 6.5,
       "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 0.0,
       "LONGITUD_MENSULA_MINIMA_GUARDIA": 0.0,
       "HADD": 0.0,
@@ -61,28 +59,8 @@
       "HADD_HG": 0.0,
       "HADD_LMEN": 0.0,
       "ANCHO_CRUCETA": 0.0,
-      "OFFSET_COLUMNA_BASE": true,
-      "OFFSET_COLUMNA_INTER": true,
-      "OFFSET_MENSULA": true,
-      "OFFSET_COLUMNA_BASE_TIPO": "Trapezoidal",
-      "OFFSET_COLUMNA_INTER_TIPO": "Trapezoidal",
-      "OFFSET_MENSULA_TIPO": "Trapezoidal",
-      "OFFSET_COLUMNA_BASE_INICIO": 0.7,
-      "OFFSET_COLUMNA_BASE_FIN": 0.4,
-      "OFFSET_COLUMNA_INTER_INICIO": 0.4,
-      "OFFSET_COLUMNA_INTER_FIN": 0.3,
-      "OFFSET_MENSULA_INICIO": 0.4,
-      "OFFSET_MENSULA_FIN": 0.3,
       "AUTOAJUSTAR_LMENHG": false,
       "DIST_REPOSICIONAR_HG": 0.05,
-      "altura_a_cable_sobreescrita": 5.9,
-      "SOBREESCRIBIR_S": true,
-      "s_reposo": 0.98,
-      "s_tormenta": 1.26,
-      "s_decmax": 0.88,
-      "defasaje_mensula_hielo": false,
-      "lmen_extra_hielo": 0.0,
-      "mensula_defasar": "primera",
       "MOSTRAR_C2": false,
       "SALTO_PORCENTUAL": 0.05,
       "PASO_AFINADO": 0.005,
@@ -94,75 +72,6 @@
       "REEMPLAZAR_TITULO_GRAFICO": false,
       "ADC_3D": false,
       "Vn": 132.0,
-      "estados_climaticos": {
-        "1": {
-          "temperatura": 35,
-          "descripcion": "Tmáx",
-          "viento_velocidad": 0,
-          "espesor_hielo": 0,
-          "restriccion_conductor": 0.25,
-          "restriccion_guardia": 0.7,
-          "relflecha": 0.9
-        },
-        "2": {
-          "temperatura": -20,
-          "descripcion": "Tmín",
-          "viento_velocidad": 0,
-          "espesor_hielo": 0,
-          "restriccion_conductor": 0.4,
-          "restriccion_guardia": 0.7,
-          "relflecha": 0.9
-        },
-        "3": {
-          "temperatura": 10,
-          "descripcion": "Vmáx",
-          "viento_velocidad": 38.9,
-          "espesor_hielo": 0,
-          "restriccion_conductor": 0.4,
-          "restriccion_guardia": 0.7,
-          "relflecha": 0.9
-        },
-        "4": {
-          "temperatura": -5,
-          "descripcion": "Vmed",
-          "viento_velocidad": 15.56,
-          "espesor_hielo": 0.01,
-          "restriccion_conductor": 0.4,
-          "restriccion_guardia": 0.7,
-          "relflecha": 0.9
-        },
-        "5": {
-          "temperatura": 8,
-          "descripcion": "TMA",
-          "viento_velocidad": 0,
-          "espesor_hielo": 0,
-          "restriccion_conductor": 0.25,
-          "restriccion_guardia": 0.7,
-          "relflecha": 0.9
-        },
-        "6": {
-          "temperatura": -5,
-          "descripcion": "HIELO",
-          "viento_velocidad": 0,
-          "espesor_hielo": 0,
-          "restriccion_conductor": 0.4,
-          "restriccion_guardia": 0.7,
-          "relflecha": 0.9
-        },
-        "7": {
-          "temperatura": 85,
-          "descripcion": "TMAXCOND",
-          "viento_velocidad": 0,
-          "espesor_hielo": 0,
-          "restriccion_conductor": 0.25,
-          "restriccion_guardia": 0.7,
-          "relflecha": 0.9
-        }
-      },
-      "fecha_creacion": "2024-01-01",
-      "version": "1.0",
-      "fecha_modificacion": "2024-01-01",
-      "nodos_editados": [],
       "metodo_fundacion": "sulzberger",
       "forma_fundacion": "monobloque",
       "tipo_base_fundacion": "Rombica",
@@ -187,8 +96,6 @@
       "pendiente_postes_multiples": 4.0,
       "conicidad_poste": 1.5,
       "incremento_calculo": 0.01,
-      "AJUSTE_RO_POR_HT": false,
-      "KE_estructura_ensayada": 1.1,
       "costeo": {
         "postes": {
           "coef_a": 267.9232,
@@ -210,6 +117,47 @@
         },
         "adicional_estructura": 2000.0
       },
+      "restricciones_cables": {
+        "conductor": {
+          "I": 0.25,
+          "II": 0.4,
+          "III": 0.4,
+          "IV": 0.4,
+          "V": 0.25
+        },
+        "guardia": {
+          "I": 0.7,
+          "II": 0.7,
+          "III": 0.7,
+          "IV": 0.7,
+          "V": 0.7
+        }
+      },
+      "doble_terna_una_terna_activa": false,
+      "SOBREESCRIBIR_ALTURA_A_CABLE": false,
+      "ALTURA_A_CABLE_SOBREESCRITA": 6.5,
+      "OFFSET_COLUMNA_BASE": true,
+      "OFFSET_COLUMNA_INTER": true,
+      "OFFSET_MENSULA": true,
+      "OFFSET_COLUMNA_BASE_TIPO": "Trapezoidal",
+      "OFFSET_COLUMNA_INTER_TIPO": "Trapezoidal",
+      "OFFSET_MENSULA_TIPO": "Trapezoidal",
+      "OFFSET_COLUMNA_BASE_INICIO": 0.7,
+      "OFFSET_COLUMNA_BASE_FIN": 0.4,
+      "OFFSET_COLUMNA_INTER_INICIO": 0.4,
+      "OFFSET_COLUMNA_INTER_FIN": 0.3,
+      "OFFSET_MENSULA_INICIO": 0.4,
+      "OFFSET_MENSULA_FIN": 0.3,
+      "altura_a_cable_sobreescrita": 5.9,
+      "SOBREESCRIBIR_S": true,
+      "s_reposo": 0.98,
+      "s_tormenta": 1.26,
+      "s_decmax": 0.88,
+      "defasaje_mensula_hielo": false,
+      "lmen_extra_hielo": 0.0,
+      "mensula_defasar": "primera",
+      "AJUSTE_RO_POR_HT": false,
+      "KE_estructura_ensayada": 1.1,
       "parametros_graficos": {
         "colores": {
           "conductor": "#1f77b4",
@@ -266,8 +214,72 @@
       },
       "mc_servidumbre": true,
       "plot_servidumbre": true,
-      "cantidad": 27,
-      "metodo_servidumbre": "AyEE"
+      "metodo_servidumbre": "AyEE",
+      "estados_climaticos": {
+        "1": {
+          "temperatura": 35,
+          "descripcion": "Tmáx",
+          "viento_velocidad": 0,
+          "espesor_hielo": 0,
+          "restriccion_conductor": 0.25,
+          "restriccion_guardia": 0.7,
+          "relflecha": 0.9
+        },
+        "2": {
+          "temperatura": -20,
+          "descripcion": "Tmín",
+          "viento_velocidad": 0,
+          "espesor_hielo": 0,
+          "restriccion_conductor": 0.4,
+          "restriccion_guardia": 0.7,
+          "relflecha": 0.9
+        },
+        "3": {
+          "temperatura": 10,
+          "descripcion": "Vmáx",
+          "viento_velocidad": 40,
+          "espesor_hielo": 0,
+          "restriccion_conductor": 0.4,
+          "restriccion_guardia": 0.7,
+          "relflecha": 0.9
+        },
+        "4": {
+          "temperatura": -5,
+          "descripcion": "Vmed",
+          "viento_velocidad": 16,
+          "espesor_hielo": 0.01,
+          "restriccion_conductor": 0.4,
+          "restriccion_guardia": 0.7,
+          "relflecha": 0.9
+        },
+        "5": {
+          "temperatura": 8,
+          "descripcion": "TMA",
+          "viento_velocidad": 0,
+          "espesor_hielo": 0,
+          "restriccion_conductor": 0.25,
+          "restriccion_guardia": 0.7,
+          "relflecha": 0.9
+        },
+        "6": {
+          "temperatura": -5,
+          "descripcion": "HIELO",
+          "viento_velocidad": 0,
+          "espesor_hielo": 0.025,
+          "restriccion_conductor": 0.4,
+          "restriccion_guardia": 0.7,
+          "relflecha": 0.9
+        },
+        "7": {
+          "temperatura": 85,
+          "descripcion": "TMAXCOND",
+          "viento_velocidad": 0,
+          "espesor_hielo": 0,
+          "restriccion_conductor": 0.25,
+          "restriccion_guardia": 0.7,
+          "relflecha": 0.9
+        }
+      }
     }
   },
   "estados_climaticos": {
@@ -292,7 +304,7 @@
     "3": {
       "temperatura": 10,
       "descripcion": "Vmáx",
-      "viento_velocidad": 38.9,
+      "viento_velocidad": 40,
       "espesor_hielo": 0,
       "restriccion_conductor": 0.4,
       "restriccion_guardia": 0.7,
@@ -301,7 +313,7 @@
     "4": {
       "temperatura": -5,
       "descripcion": "Vmed",
-      "viento_velocidad": 15.56,
+      "viento_velocidad": 16,
       "espesor_hielo": 0.01,
       "restriccion_conductor": 0.4,
       "restriccion_guardia": 0.7,
@@ -320,7 +332,7 @@
       "temperatura": -5,
       "descripcion": "HIELO",
       "viento_velocidad": 0,
-      "espesor_hielo": 0,
+      "espesor_hielo": 0.025,
       "restriccion_conductor": 0.4,
       "restriccion_guardia": 0.7,
       "relflecha": 0.9
