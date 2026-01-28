@@ -2,6 +2,10 @@
   "familia_activa": "PSJ_suspensiones_embonadas",
   "calculos_activos_familia": [
     "cmc",
-    "dge"
+    "dge",
+    "dme",
+    "arboles",
+    "sph",
+    "aee"
   ]
 }
