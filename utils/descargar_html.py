@@ -266,6 +266,10 @@ def generar_seccion_dge(calculo_dge):
             if img_str:
                 html.append(f'<h6>{titulo}</h6>')
                 html.append(f'<img src="data:image/png;base64,{img_str}" alt="{titulo}">')
+
+    # Nota: la tabla PLS-CADD se mostrará como una subsección independiente dentro de DGE en la versión "familia".
+    # Para la vista individual (calculo completo) no incluimos descarga ni preview de CSV aquí.
+    pass
     
     # Servidumbre
     servidumbre_data = calculo_dge.get('servidumbre')

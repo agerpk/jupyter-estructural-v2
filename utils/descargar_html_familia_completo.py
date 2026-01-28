@@ -1,5 +1,7 @@
 from datetime import datetime
 import logging
+from pathlib import Path
+from config.app_config import CACHE_DIR
 from utils.descargar_html_familia_fix import generar_seccion_costeo_estructura
 
 logger = logging.getLogger(__name__)
@@ -47,7 +49,24 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
                 if checklist_activo.get("cmc") and "cmc" in resultados and resultados["cmc"]:
                     html.append(f'<li><a href="#{titulo_id}_cmc_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
                 if checklist_activo.get("dge") and "dge" in resultados and resultados["dge"]:
-                    html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
+                    # DGE - incluir subentrada para Tabla PLS-CADD si existe
+                    dge = resultados["dge"]
+                    plscadd = dge.get('plscadd_csv')
+                    if not plscadd:
+                        hashp = dge.get('hash_parametros')
+                        if hashp:
+                            matches = list(Path(CACHE_DIR).glob(f"*{hashp}*.csv"))
+                            if matches:
+                                plscadd = matches[0].name
+
+                    if plscadd:
+                        html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a>')
+                        html.append('<ul>')
+                        html.append(f'<li><a href="#{titulo_id}_dge_plscadd" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_plscadd">2.1 Tabla PLS-CADD</a></li>')
+                        html.append('</ul>')
+                        html.append('</li>')
+                    else:
+                        html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
                 if checklist_activo.get("dme") and "dme" in resultados and resultados["dme"]:
                     html.append(f'<li><a href="#{titulo_id}_dme_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dme_collapse">3. Diseño Mecánico</a></li>')
                 if checklist_activo.get("arboles") and "arboles" in resultados and resultados["arboles"]:
@@ -65,7 +84,24 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
                 if "cmc" in resultados and resultados["cmc"]:
                     html.append(f'<li><a href="#{titulo_id}_cmc_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
                 if "dge" in resultados and resultados["dge"]:
-                    html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
+                    # DGE - incluir subentrada para Tabla PLS-CADD si existe (sin checklist)
+                    dge = resultados["dge"]
+                    plscadd = dge.get('plscadd_csv')
+                    if not plscadd:
+                        hashp = dge.get('hash_parametros')
+                        if hashp:
+                            matches = list(Path(CACHE_DIR).glob(f"*{hashp}*.csv"))
+                            if matches:
+                                plscadd = matches[0].name
+
+                    if plscadd:
+                        html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a>')
+                        html.append('<ul>')
+                        html.append(f'<li><a href="#{titulo_id}_dge_plscadd" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_plscadd">2.1 Tabla PLS-CADD</a></li>')
+                        html.append('</ul>')
+                        html.append('</li>')
+                    else:
+                        html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
                 if "dme" in resultados and resultados["dme"]:
                     html.append(f'<li><a href="#{titulo_id}_dme_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dme_collapse">3. Diseño Mecánico</a></li>')
                 if "arboles" in resultados and resultados["arboles"]:
@@ -201,7 +237,7 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // Delegated click handler: abre la sección correspondiente desde el índice y hace scroll
+    // Delegated click handler: abre la sección correspondiente desde el índice y salta instantáneamente a la subsección (abriendo todos los padres en una sola interacción)
     document.addEventListener('DOMContentLoaded', function(){{
       var index = document.querySelector('.indice');
       if(!index) return;
@@ -214,13 +250,84 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
         if(target && target.startsWith('#')){{
           ev.preventDefault();
           var el = document.querySelector(target);
-          if(el) {{
-            var bs = bootstrap.Collapse.getOrCreateInstance(el);
-            bs.show();
-            setTimeout(function(){{ el.scrollIntoView({{behavior:'smooth', block:'start'}}); }}, 260);
+          if(!el) return;
+
+          // Recopilar collapses ancestros (desde el más cercano al más lejano)
+          var ancestors = [];
+          try {{
+            var node = el;
+            while(true){{
+              var parentCandidate = node.parentElement ? node.parentElement.closest('.accordion-collapse') : null;
+              if(parentCandidate && ancestors.indexOf(parentCandidate) === -1){{
+                ancestors.push(parentCandidate);
+                node = parentCandidate;
+              }} else {{
+                break;
+              }}
+            }}
+            // Invertir para abrir desde el más lejano (outermost) al más cercano
+            ancestors.reverse();
+          }} catch(e){{ console && console.debug && console.debug('Error collecting ancestors for collapse', e); }}
+
+          // Función recursiva para abrir ancestros en orden y luego el objetivo
+          var openSequential = function(idx) {{
+            if(idx >= ancestors.length){{
+              // Si el objetivo ya está visible, hacer scroll inmediatamente
+              try {{
+                if(el.classList && el.classList.contains('show')){{
+                  try{{ el.scrollIntoView({{behavior:'auto', block:'start'}}); }}catch(e){{}}
+                  return;
+                }}
+              }} catch(e){{}}
+
+              // Asegurarse de abrir el objetivo y esperar a que termine la animación, luego saltar instantáneamente
+              var childBs = bootstrap.Collapse.getOrCreateInstance(el);
+              var onChildShown = function(){{
+                el.removeEventListener('shown.bs.collapse', onChildShown);
+                try{{ el.scrollIntoView({{behavior:'auto', block:'start'}}); }}catch(e){{}}
+              }};
+              el.addEventListener('shown.bs.collapse', onChildShown);
+              childBs.show();
+              return;
+            }}
+            var parentEl = ancestors[idx];
+            // Si parentEl ya está mostrado, continuar con el siguiente inmediatamente
+            try {{
+              if(parentEl.classList && parentEl.classList.contains('show')){{
+                openSequential(idx+1);
+                return;
+              }}
+            }} catch(e){{}}
+
+            var parentBs = bootstrap.Collapse.getOrCreateInstance(parentEl);
+            var onShown = function() {{
+              parentEl.removeEventListener('shown.bs.collapse', onShown);
+              openSequential(idx+1);
+            }};
+            parentEl.addEventListener('shown.bs.collapse', onShown);
+            parentBs.show();
+          }};
+
+          if(ancestors.length){{
+            openSequential(0);
+          }} else {{
+            // Si no hay ancestros, abrir objetivo y saltar instantáneamente al mostrarse
+            try {{
+              if(el.classList && el.classList.contains('show')){{
+                try{{ el.scrollIntoView({{behavior:'auto', block:'start'}}); }}catch(e){{}}
+              }} else {{
+                var bs = bootstrap.Collapse.getOrCreateInstance(el);
+                var onShownDirect = function(){{
+                  el.removeEventListener('shown.bs.collapse', onShownDirect);
+                  try{{ el.scrollIntoView({{behavior:'auto', block:'start'}}); }}catch(e){{}}
+                }};
+                el.addEventListener('shown.bs.collapse', onShownDirect);
+                bs.show();
+              }}
+            }} catch(e){{ console && console.debug && console.debug('Error opening target collapse', e); }}
           }}
         }}
-      }});
+      }}, false);
     }});
     </script>
 </body>
@@ -311,6 +418,59 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
   <div id="{titulo_id}_dge_collapse" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_dge">
     <div class="accordion-body">''')
         html.append(generar_seccion_dge(resultados["dge"]))
+
+        # Agregar subsección Tabla PLS-CADD al final de DGE si existe
+        try:
+            dge_calc = resultados["dge"]
+            plscadd = dge_calc.get('plscadd_csv')
+            if not plscadd:
+                hashp = dge_calc.get('hash_parametros')
+                if hashp:
+                    matches = list(Path(CACHE_DIR).glob(f"*{hashp}*.csv"))
+                    if matches:
+                        plscadd = matches[0].name
+        except Exception:
+            plscadd = None
+
+        if plscadd:
+            # Inserta un sub-acordeón para la tabla PLS-CADD
+            html.append(f'''<div class="accordion" id="{titulo_id}_dge_plscadd_acc">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="heading_{titulo_id}_dge_plscadd">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_plscadd" aria-expanded="false" aria-controls="{titulo_id}_dge_plscadd">
+        Tabla PLS-CADD
+      </button>
+    </h2>
+    <div id="{titulo_id}_dge_plscadd" class="accordion-collapse collapse" aria-labelledby="heading_{titulo_id}_dge_plscadd">
+      <div class="accordion-body">''')
+
+            # Intentar cargar y renderizar el CSV (skip rows si hay metadatos)
+            try:
+                from pathlib import Path as _P
+                import pandas as _pd
+                csv_path = _P(CACHE_DIR) / plscadd
+                if csv_path.exists():
+                    lines = csv_path.read_text(encoding='utf-8').splitlines()
+                    header_idx = 0
+                    for i, line in enumerate(lines[:30]):
+                        if line.strip().startswith('Set #') or 'Set #' in line:
+                            header_idx = i
+                            break
+                    if header_idx > 0:
+                        df_pls = _pd.read_csv(csv_path, skiprows=header_idx)
+                    else:
+                        df_pls = _pd.read_csv(csv_path)
+                    html.append('<div class="table-responsive">')
+                    html.append(df_pls.to_html(classes='table table-striped table-bordered table-sm', index=False))
+                    html.append('</div>')
+                else:
+                    html.append(f'<div class="alert alert-warning">CSV PLS-CADD no encontrado en cache: {plscadd}</div>')
+            except Exception as e:
+                logger.exception(f"Error mostrando CSV PLS-CADD en familia DGE: {e}")
+                html.append(f'<div class="alert alert-warning">No se pudo mostrar preview CSV PLS-CADD: {e}</div>')
+
+            html.append('</div></div></div>')
+
         html.append('</div></div></div>')
 
     # 3. DME
