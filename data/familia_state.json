@@ -2,12 +2,6 @@
   "familia_activa": "Pruebas_132_stt",
   "calculos_activos_familia": [
     "cmc",
-    "dge",
-    "dme",
-    "arboles",
-    "sph",
-    "fundacion",
-    "costeo",
-    "aee"
+    "dge"
   ]
 }

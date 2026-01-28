@@ -220,6 +220,16 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
         
         # Guardar en cache
         nombre_estructura = estructura_actual.get('TITULO', 'estructura')
+        # Generar tabla PLS-CADD si está habilitado
+        plscadd_csv = None
+        if estructura_actual.get('generar_estructura_plscadd_tabla', True):
+            try:
+                from utils.estructura_plscadd import generar_tabla_estructura_plscadd
+                df_plscadd, plscadd_csv_filename = generar_tabla_estructura_plscadd(estructura_geometria, estructura_actual)
+                plscadd_csv = plscadd_csv_filename
+            except Exception as e:
+                print(f"Advertencia: no se pudo generar CSV PLS-CADD: {e}")
+
         CalculoCache.guardar_calculo_dge(
             nombre_estructura,
             estructura_actual,
@@ -231,7 +241,8 @@ def ejecutar_calculo_dge(estructura_actual, state, generar_plots=True):
             memoria_dge,
             estructura_geometria.conexiones,
             servidumbre_data,
-            fig_servidumbre
+            fig_servidumbre,
+            plscadd_csv=plscadd_csv
         )
         
         return {

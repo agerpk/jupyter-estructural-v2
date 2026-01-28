@@ -331,6 +331,50 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
                     }
                 ))
             ], className="mt-3"))
+
+        # Agregar enlace y vista previa de CSV PLS-CADD si existe
+        plscadd_csv = calculo_guardado.get('plscadd_csv')
+        if plscadd_csv:
+            output.append(html.H5("TABLA PLS-CADD", className="mb-2 mt-3"))
+            output.append(dbc.Row([
+                dbc.Col(html.Div(f"Archivo: {plscadd_csv}"), md=8),
+                dbc.Col(html.A(dbc.Button("Descargar PLS-CADD CSV", color="primary"), href=f"/download_plscadd/{plscadd_csv}", target="_blank"), md=4)
+            ], className="mb-2"))
+
+            # Intentar cargar vista previa (primeras 10 filas)
+            try:
+                import pandas as pd
+                from pathlib import Path
+                from config.app_config import CACHE_DIR
+
+                csv_path = Path(CACHE_DIR) / plscadd_csv
+                if csv_path.exists():
+                    # Detectar la línea de encabezado de la tabla (buscamos la línea que empieza con 'Set #')
+                    header_line_idx = None
+                    with open(csv_path, 'r', encoding='utf-8') as f:
+                        for idx, line in enumerate(f):
+                            if line.strip().lower().startswith('set #'):
+                                header_line_idx = idx
+                                break
+
+                    if header_line_idx is not None:
+                        # skiprows = number of lines BEFORE the header row
+                        df_preview = pd.read_csv(csv_path, skiprows=header_line_idx, encoding='utf-8')
+                    else:
+                        # Fallback: intentar leer con engine='python' para tolerar pequeñas inconsistencias
+                        df_preview = pd.read_csv(csv_path, encoding='utf-8', engine='python')
+
+                    if not df_preview.empty:
+                        output.append(dash_table.DataTable(
+                            data=df_preview.head(10).to_dict('records'),
+                            columns=[{"name": c, "id": c} for c in df_preview.columns],
+                            style_table={"overflowX": "auto"},
+                            style_cell={"textAlign": "left"}
+                        ))
+                    else:
+                        output.append(html.Div("Advertencia: CSV válido pero vacío o sin filas de datos"))
+            except Exception as e:
+                output.append(html.Div(f"Advertencia: no se pudo previsualizar CSV: {str(e)}"))
         
         # Filtrar elementos None o inválidos y retornar lista directamente
         output_limpio = [elem for elem in output if elem is not None]

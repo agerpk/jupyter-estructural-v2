@@ -90,6 +90,9 @@
   "REEMPLAZAR_TITULO_GRAFICO": false,
   "ADC_3D": true,
   "Vn": 220,
+  "generar_estructura_plscadd_tabla": true,
+  "insulator_type_guardia": "Clamp",
+  "insulator_type_conductor": "Suspension",
   "estados_climaticos": {
     "1": {"temperatura": 35, "descripcion": "Tmáx", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.25, "restriccion_guardia": 0.7, "relflecha": 0.9},
     "2": {"temperatura": -20, "descripcion": "Tmín", "viento_velocidad": 0, "espesor_hielo": 0, "restriccion_conductor": 0.40, "restriccion_guardia": 0.70, "relflecha": 0.9},

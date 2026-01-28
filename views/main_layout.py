@@ -144,4 +144,5 @@ def crear_layout():
             accept='.json,.estructura.json'
         ),
         dcc.Download(id="download-estructura"),
+        dcc.Download(id="download-plscadd"),
     ])

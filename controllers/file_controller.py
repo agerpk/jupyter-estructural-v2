@@ -189,3 +189,39 @@ def register_callbacks(app):
             )
         except Exception as e:
             return dash.no_update, True, "Error", f"Error al descargar: {str(e)}", "danger", "danger"
+
+    @app.callback(
+        Output("download-plscadd", "data"),
+        Output("toast-notificacion", "is_open", allow_duplicate=True),
+        Output("toast-notificacion", "header", allow_duplicate=True),
+        Output("toast-notificacion", "children", allow_duplicate=True),
+        Output("toast-notificacion", "icon", allow_duplicate=True),
+        Output("toast-notificacion", "color", allow_duplicate=True),
+        Input("btn-descargar-plscadd", "n_clicks"),
+        State("estructura-actual", "data"),
+        prevent_initial_call=True
+    )
+    def descargar_plscadd(n_clicks, estructura_actual):
+        if not estructura_actual or "TITULO" not in estructura_actual:
+            return dash.no_update, True, "Error", "No hay estructura seleccionada", "danger", "danger"
+        try:
+            from utils.calculo_cache import CalculoCache
+            from config.app_config import CACHE_DIR
+            from pathlib import Path
+
+            nombre = estructura_actual.get("TITULO", "estructura")
+            calculo = CalculoCache.cargar_calculo_dge(nombre)
+            if not calculo:
+                return dash.no_update, True, "Error", "No hay cálculo DGE en cache para la estructura", "danger", "danger"
+            plscadd_csv = calculo.get("plscadd_csv")
+            if not plscadd_csv:
+                return dash.no_update, True, "Error", "No hay CSV PLS-CADD generado para esta estructura", "danger", "danger"
+            csv_path = Path(CACHE_DIR) / plscadd_csv
+            if not csv_path.exists():
+                return dash.no_update, True, "Error", f"Archivo CSV no encontrado: {plscadd_csv}", "danger", "danger"
+
+            contenido = csv_path.read_text(encoding='utf-8')
+            nombre_archivo = plscadd_csv
+            return dict(content=contenido, filename=nombre_archivo), True, "Éxito", f"CSV PLS-CADD descargado: {nombre_archivo}", "success", "success"
+        except Exception as e:
+            return dash.no_update, True, "Error", f"Error al descargar CSV: {str(e)}", "danger", "danger"

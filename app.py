@@ -117,6 +117,24 @@ estados_climaticos_controller.register_callbacks(app)
 # borrar_cache_controller no requiere register_callbacks - usa decorador @callback directo
 
 
+# Endpoint para descargar archivos PLS-CADD desde la carpeta de cache
+from flask import send_from_directory, abort
+from config.app_config import CACHE_DIR
+
+@server.route('/download_plscadd/<path:filename>')
+def download_plscadd(filename):
+    """Servir archivos TABLA-PLS-CADD desde CACHE_DIR de forma segura"""
+    try:
+        # Evitar path traversal
+        file_path = (CACHE_DIR / filename).resolve()
+        cache_dir_resolved = CACHE_DIR.resolve()
+        if cache_dir_resolved not in file_path.parents and file_path != cache_dir_resolved:
+            abort(404)
+        return send_from_directory(str(CACHE_DIR), filename, as_attachment=True)
+    except Exception as e:
+        return (f"Error al servir archivo: {e}"), 500
+
+
 def inicializar_datos():
     """Inicializar datos base de la aplicación"""
     
