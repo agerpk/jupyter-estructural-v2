@@ -1,7 +1,7 @@
 {
   "nombre_familia": "PSJ_Suspensiones_Embonadas",
   "fecha_creacion": "2026-01-05T10:35:57.988330",
-  "fecha_modificacion": "2026-01-27T09:02:39.203144",
+  "fecha_modificacion": "2026-01-28T14:06:30.968037",
   "estructuras": {
     "Estr.1": {
       "TITULO": "PSJ_S_DTV_Embo_1500_v350m",
@@ -130,7 +130,8 @@
           "II": 0.7,
           "III": 0.7,
           "IV": 0.7,
-          "V": 0.7
+          "V": 0.7,
+          "relflecha_max": 0.95
         }
       },
       "doble_terna_una_terna_activa": false,
@@ -279,7 +280,10 @@
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
         }
-      }
+      },
+      "generar_estructura_plscadd_tabla": true,
+      "insulator_type_guardia": "Clamp",
+      "insulator_type_conductor": "Suspension"
     },
     "Estr.2": {
       "TITULO": "PSJ_S_DTV_Embo_3000_v350m",
@@ -408,7 +412,8 @@
           "II": 0.7,
           "III": 0.7,
           "IV": 0.7,
-          "V": 0.7
+          "V": 0.7,
+          "relflecha_max": 0.95
         }
       },
       "doble_terna_una_terna_activa": false,
@@ -557,7 +562,10 @@
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
         }
-      }
+      },
+      "generar_estructura_plscadd_tabla": true,
+      "insulator_type_guardia": "Clamp",
+      "insulator_type_conductor": "Suspension"
     },
     "Estr.3": {
       "TITULO": "PSJ_S_DTV_Embo_1500_v400m",
@@ -686,7 +694,8 @@
           "II": 0.7,
           "III": 0.7,
           "IV": 0.7,
-          "V": 0.7
+          "V": 0.7,
+          "relflecha_max": 0.95
         }
       },
       "doble_terna_una_terna_activa": false,
@@ -835,7 +844,10 @@
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
         }
-      }
+      },
+      "generar_estructura_plscadd_tabla": true,
+      "insulator_type_guardia": "Clamp",
+      "insulator_type_conductor": "Suspension"
     },
     "Estr.4": {
       "TITULO": "PSJ_S_DTV_Embo_3000_v400m",
@@ -964,7 +976,8 @@
           "II": 0.7,
           "III": 0.7,
           "IV": 0.7,
-          "V": 0.7
+          "V": 0.7,
+          "relflecha_max": 0.95
         }
       },
       "doble_terna_una_terna_activa": false,
@@ -1113,7 +1126,10 @@
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
         }
-      }
+      },
+      "generar_estructura_plscadd_tabla": true,
+      "insulator_type_guardia": "Clamp",
+      "insulator_type_conductor": "Suspension"
     }
   },
   "estados_climaticos": {

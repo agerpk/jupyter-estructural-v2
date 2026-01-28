@@ -809,13 +809,24 @@ def register_callbacks(app):
             if not resultados_familia.get("exito"):
                 return (no_update, True, "Error", f"Error en cálculo: {resultados_familia.get('mensaje')}", "danger", "danger")
             
+            # Guardar familia en disco (sincronizado) para que el archivo en disco
+            # coincida con la familia usada en el cálculo y evitar mismatches de hash
+            try:
+                saved = FamiliaManager.guardar_familia(familia_data)
+                if saved:
+                    print(f"💾 Familia '{nombre_familia}' guardada en disco (coincide con cálculo)")
+                else:
+                    print(f"⚠️ No se pudo guardar la familia '{nombre_familia}' en disco")
+            except Exception as e:
+                print(f"⚠️ Error guardando familia en disco: {e}")
+
             # Guardar cache en background
             def guardar_cache_async():
                 try:
                     CalculoCache.guardar_calculo_familia(nombre_familia, familia_data, resultados_familia)
                 except Exception as e:
                     print(f"⚠️ Error guardando cache: {e}")
-            
+
             threading.Thread(target=guardar_cache_async, daemon=True).start()
             
             # Generar vista
@@ -885,7 +896,10 @@ def register_callbacks(app):
             
             if not calculo_guardado:
                 return (no_update, True, "Advertencia", "Cache no disponible", "warning", "warning")
-            
+
+            # Diagnostics: informar archivo origen y claves de resultados
+            print(f"ℹ️ Cache encontrado: archivo_origen={calculo_guardado.get('archivo_origen')} hash={calculo_guardado.get('hash_parametros')} resultados_keys={list(calculo_guardado.get('resultados', {}).keys())}")
+
             # Verificar vigencia
             familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
             vigente, mensaje = CalculoCache.verificar_vigencia_familia(calculo_guardado, familia_data)
@@ -930,6 +944,8 @@ def register_callbacks(app):
             # Generar HTML con checklist
             import logging
             logger = logging.getLogger(__name__)
+            # Diagnostics: imprimir información básica para depuración
+            print(f"ℹ️ descargar_html_familia: archivo_origen={calculo_guardado.get('archivo_origen')} resultados_keys={list(calculo_guardado.get('resultados', {}).keys())}")
             logger.debug(f"Descargando HTML familia='{nombre_familia}' checklist={checklist_dict} resultados_keys={list(calculo_guardado.get('resultados', {}).keys())}")
             from utils.descargar_html import generar_html_familia
             html_content = generar_html_familia(nombre_familia, calculo_guardado["resultados"], checklist_dict)

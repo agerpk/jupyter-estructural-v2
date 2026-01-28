@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from config.app_config import CACHE_DIR, DATA_DIR
 import glob
+import re
 
 
 class CalculoCache:
@@ -581,29 +582,104 @@ class CalculoCache:
         # Hacer copia profunda para no modificar original
         familia_hash = copy.deepcopy(familia_data)
         
-        # Excluir campos que no afectan cálculos de la familia
-        familia_hash.pop('fecha_creacion', None)
-        familia_hash.pop('fecha_modificacion', None)
-        
-        # Limpiar estructuras también (fecha_creacion, fecha_modificacion, version)
-        if 'estructuras' in familia_hash:
-            for nombre_estr in familia_hash['estructuras']:
-                familia_hash['estructuras'][nombre_estr].pop('fecha_creacion', None)
-                familia_hash['estructuras'][nombre_estr].pop('fecha_modificacion', None)
-                familia_hash['estructuras'][nombre_estr].pop('version', None)
-        
+        # Normalizar/limpiar antes de serializar
+        familia_hash = CalculoCache._clean_familia_for_hash(familia_hash)
+
         data_str = json.dumps(familia_hash, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(data_str.encode('utf-8')).hexdigest()
+
+    @staticmethod
+    def _clean_familia_for_hash(familia_hash: dict) -> dict:
+        """Devuelve una copia normalizada de la familia sin campos que no afectan cálculos.
+
+        Esto asegura que el hash sea estable entre distintas representaciones
+        (por ejemplo, diferencias en fechas o metadatos de estructura).
+        """
+        import copy
+        fh = copy.deepcopy(familia_hash)
+        # Excluir campos que no afectan cálculos de la familia
+        fh.pop('fecha_creacion', None)
+        fh.pop('fecha_modificacion', None)
+
+        # Limpiar estructuras también (fecha_creacion, fecha_modificacion, version)
+        if 'estructuras' in fh and isinstance(fh['estructuras'], dict):
+            for nombre_estr in fh['estructuras']:
+                if isinstance(fh['estructuras'][nombre_estr], dict):
+                    fh['estructuras'][nombre_estr].pop('fecha_creacion', None)
+                    fh['estructuras'][nombre_estr].pop('fecha_modificacion', None)
+                    fh['estructuras'][nombre_estr].pop('version', None)
+        return fh
+
+    @staticmethod
+    def _diff_familias(a: dict, b: dict, max_items: int = 10) -> list:
+        """Calcula un diff compacto entre dos dicts y retorna una lista de strings.
+
+        Se serializan subvalores (cuando no son dicts) para comparar y se limitan
+        los resultados a `max_items` elementos para logs breves.
+        """
+        diffs = []
+
+        def recurse(x, y, prefix=''):
+            if len(diffs) >= max_items:
+                return
+            if isinstance(x, dict) and isinstance(y, dict):
+                keys = set(x.keys()) | set(y.keys())
+                for k in sorted(keys):
+                    if len(diffs) >= max_items:
+                        return
+                    nx = x.get(k, '__MISSING__')
+                    ny = y.get(k, '__MISSING__')
+                    if nx == ny:
+                        continue
+                    if isinstance(nx, dict) and isinstance(ny, dict):
+                        recurse(nx, ny, prefix + k + '.')
+                    else:
+                        diffs.append(f"{prefix + k}: '{nx}' != '{ny}'")
+            else:
+                if x != y:
+                    diffs.append(f"{prefix.rstrip('.')}: '{x}' != '{y}'")
+
+        recurse(a, b)
+        return diffs
     
     @staticmethod
     def guardar_calculo_familia(nombre_familia, familia_data, resultados_familia):
-        """Guarda referencias a caches individuales de cada estructura"""
+        """Guarda referencias a caches individuales de cada estructura
+
+        Para evitar inconsistencias el hash se calcula preferentemente a partir
+        del archivo `.familia.json` en disco (si existe). Si no existe, se usa
+        la `familia_data` en memoria.
+        """
         nombre_familia = nombre_familia.replace(' ', '_')
-        hash_params = CalculoCache.calcular_hash_familia(familia_data)
-        
+        # Obligatorio: calcular hash exclusivamente desde el archivo en disco.
+        try:
+            from utils.familia_manager import FamiliaManager
+            familia_en_disco = FamiliaManager.cargar_familia(nombre_familia)
+        except FileNotFoundError:
+            print(f"⚠️ Archivo .familia.json no encontrado para '{nombre_familia}'. No se guardará cache.")
+            return None
+        except Exception as e:
+            print(f"⚠️ Error cargando familia desde disco para '{nombre_familia}': {e}. No se guardará cache.")
+            return None
+
+        hash_params = CalculoCache.calcular_hash_familia(familia_en_disco)
+        print(f"💾 Cache familia: calculando hash desde archivo_en_disco ({nombre_familia}.familia.json) -> {hash_params}")
+
+        # Si la familia en memoria difiere del archivo en disco, registrar diff para diagnóstico
+        try:
+            hash_mem = CalculoCache.calcular_hash_familia(familia_data)
+            if hash_mem != hash_params:
+                print("🔎 Aviso: la familia en memoria difiere de la familia en disco usada para calcular el hash:")
+                diffs = CalculoCache._diff_familias(familia_en_disco, familia_data, max_items=20)
+                for d in diffs:
+                    print(f"   - {d}")
+        except Exception as e:
+            print(f"⚠️ Error generando diff durante guardado de cache: {e}")
+
         # Solo guardar referencias a caches individuales, no duplicar datos
         referencias_estructuras = {}
         for nombre_estr, datos in resultados_familia.get("resultados_estructuras", {}).items():
+
             titulo = datos.get("titulo", nombre_estr)
             referencias_estructuras[nombre_estr] = {
                 "titulo": titulo,
@@ -636,40 +712,76 @@ class CalculoCache:
     
     @staticmethod
     def cargar_calculo_familia(nombre_familia):
-        """Carga cache de familia y reconstruye desde caches individuales"""
-        nombre_familia = nombre_familia.replace(' ', '_')
-        archivo = CACHE_DIR / f"{nombre_familia}.calculoFAMILIA.json"
-        
+        """Carga cache de familia y reconstruye desde caches individuales.
+
+        Búsqueda tolerant: acepta diferencias en mayúsculas/minúsculas y en
+        espacios/underscores en el nombre de la familia para evitar que la UI
+        haga fallar la carga por variaciones en el formato del nombre.
+        """
+        # Normalizar candidate (intentar reemplazar espacios por underscores)
+        nombre_candidato = str(nombre_familia).replace(' ', '_')
+        archivo = CACHE_DIR / f"{nombre_candidato}.calculoFAMILIA.json"
+
+        # Si no existe exactamente, buscar en CACHE_DIR archivos que terminen
+        # con '.calculoFAMILIA.json' y comparar stems normalizados
         if not archivo.exists():
-            return None
-        
+            encontrado = None
+            normalized_target = nombre_candidato.lower().replace('-', '_')
+            for f in CACHE_DIR.glob("*.calculoFAMILIA.json"):
+                stem = f.stem  # e.g., 'PSJ_Suspensiones_Embonadas.calculoFAMILIA' or with conflict suffix
+                # Extraer la parte antes de '.calculoFAMILIA' si existe (maneja sufijos como ' (Conflicted ...)')
+                if '.calculoFAMILIA' in stem:
+                    family_stem = stem.split('.calculoFAMILIA', 1)[0]
+                else:
+                    # Quitar sufijos entre paréntesis al final si existen
+                    family_stem = re.sub(r'\s*\(.*\)$', '', stem)
+                # Normalizar reemplazando espacios/guiones por underscore
+                norm = re.sub(r'[\s\-]+', '_', family_stem.lower())
+                normalized_target_clean = re.sub(r'[\s\-]+', '_', normalized_target)
+                if norm == normalized_target_clean:
+                    encontrado = f
+                    break
+            if encontrado:
+                archivo = encontrado
+                print(f"🔎 Info: archivo de cache de familia encontrado: {archivo.name}")
+            else:
+                print(f"🔎 Advertencia: no se encontró archivo de cache para '{nombre_familia}' (buscado '{nombre_candidato}.calculoFAMILIA.json')")
+                return None
+
+        # Cargar contenido
         cache_familia = json.loads(archivo.read_text(encoding="utf-8"))
-        
+
         # Reconstruir resultados desde caches individuales
         resultados_estructuras = {}
         for nombre_estr, datos in cache_familia.get("estructuras", {}).items():
-            titulo = datos["titulo"]
-            
-            # Cargar caches individuales
+            titulo = datos.get("titulo", nombre_estr)
+
+            # Cargar caches individuales referenciadas
             resultados = {}
             for tipo, archivo_ref in datos.get("cache_refs", {}).items():
                 archivo_cache = CACHE_DIR / archivo_ref
                 if archivo_cache.exists():
                     try:
                         resultados[tipo] = json.loads(archivo_cache.read_text(encoding="utf-8"))
-                    except:
-                        pass
-            
+                    except Exception as e:
+                        print(f"⚠️ No se pudo leer {archivo_cache.name}: {e}")
+                        # continuar (no frenar la reconstrucción)
+                        continue
+                else:
+                    # Informar que faltan caches individuales pero no cancelar
+                    print(f"⚠️ Falta cache individual: {archivo_ref}")
+
             resultados_estructuras[nombre_estr] = {
                 "titulo": titulo,
                 "cantidad": datos.get("cantidad", 1),
                 "costo_individual": datos.get("costo_individual", 0),
                 "resultados": resultados
             }
-        
+
         return {
             "hash_parametros": cache_familia.get("hash_parametros"),
             "fecha_calculo": cache_familia.get("fecha_calculo"),
+            "archivo_origen": archivo.name,
             "resultados": {
                 "exito": True,
                 "resultados_estructuras": resultados_estructuras,
@@ -691,34 +803,29 @@ class CalculoCache:
 
         hash_guardado = calculo_guardado.get("hash_parametros")
         hash_actual = None
-        fuente = "memoria"
+        fuente = None
 
-        # Si nos pasaron un dict con nombre de familia, preferimos usar el
-        # archivo en disco para calcular el hash (evita diferencias por la UI)
+        # Obligatorio: siempre calcular hash a partir del archivo `.familia.json` en disco
         try:
+            # Determinar nombre de familia (puede venir como dict o string)
             if isinstance(familia_actual, dict):
                 nombre_familia = familia_actual.get("nombre_familia")
-                if nombre_familia:
-                    # Importar aquí para evitar dependencias circulares
-                    from utils.familia_manager import FamiliaManager
-                    try:
-                        familia_en_disco = FamiliaManager.cargar_familia(nombre_familia)
-                        hash_actual = CalculoCache.calcular_hash_familia(familia_en_disco)
-                        fuente = f"archivo_en_disco ({nombre_familia}.familia.json)"
-                    except Exception:
-                        # No se pudo cargar el archivo, fallback a la memoria
-                        hash_actual = CalculoCache.calcular_hash_familia(familia_actual)
-                        fuente = "memoria (fallback)"
-                else:
-                    hash_actual = CalculoCache.calcular_hash_familia(familia_actual)
-                    fuente = "memoria"
             else:
-                # familia_actual puede ser un nombre de familia (string)
-                nombre_familia = str(familia_actual)
-                from utils.familia_manager import FamiliaManager
-                familia_en_disco = FamiliaManager.cargar_familia(nombre_familia)
-                hash_actual = CalculoCache.calcular_hash_familia(familia_en_disco)
-                fuente = f"archivo_en_disco ({nombre_familia}.familia.json)"
+                nombre_familia = str(familia_actual) if familia_actual is not None else None
+
+            if not nombre_familia:
+                print("⚠️ Nombre de familia no proporcionado; no se puede verificar cache sin archivo en disco")
+                return False, "Nombre de familia no proporcionado. Guarde la familia y reintente"
+
+            # Importar y cargar siempre desde disco (sin fallback)
+            from utils.familia_manager import FamiliaManager
+            familia_en_disco = FamiliaManager.cargar_familia(nombre_familia)
+            hash_actual = CalculoCache.calcular_hash_familia(familia_en_disco)
+            fuente = f"archivo_en_disco ({nombre_familia}.familia.json)"
+
+        except FileNotFoundError:
+            print(f"⚠️ Archivo .familia.json no encontrado para '{nombre_familia}'. Guarde la familia en disco y reintente")
+            return False, "Archivo .familia.json no encontrado. Guarde la familia y reintente"
         except Exception as e:
             # En caso extremo, devolver no vigente con detalle
             print(f"⚠️ Error al verificar vigencia de familia: {e}")
@@ -733,7 +840,22 @@ class CalculoCache:
         if hash_actual == hash_guardado:
             return True, "Cache vigente"
         else:
-            return False, "Hash no coincide, recalcular"
+            # Si hay familia en memoria además del archivo en disco, mostrar diff compacto
+            try:
+                if isinstance(familia_actual, dict) and fuente.startswith('archivo_en_disco'):
+                    familia_en_disco = CalculoCache._clean_familia_for_hash(familia_en_disco) if 'familia_en_disco' in locals() else None
+                    familia_mem = CalculoCache._clean_familia_for_hash(familia_actual)
+                    if familia_en_disco is not None:
+                        diffs = CalculoCache._diff_familias(familia_en_disco, familia_mem, max_items=10)
+                        if diffs:
+                            print("\n🔎 DIFERENCIAS DETECTADAS ENTRE archivo_en_disco Y tabla_en_memoria (resumen):")
+                            for d in diffs:
+                                print(f"   - {d}")
+                            print("   (Se muestran hasta 10 diferencias. Revisar archivos para detalles)")
+            except Exception as e:
+                print(f"⚠️ Error generando diff de familias: {e}")
+
+            return False, "Hash no coincide (revisar diferencias en logs)"
     
     @staticmethod
     def guardar_calculo_vano_economico(nombre_familia, parametros, resultados):
