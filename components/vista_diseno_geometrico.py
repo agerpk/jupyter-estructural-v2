@@ -341,40 +341,80 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
                 dbc.Col(html.A(dbc.Button("Descargar PLS-CADD CSV", color="primary"), href=f"/download_plscadd/{plscadd_csv}", target="_blank"), md=4)
             ], className="mb-2"))
 
-            # Intentar cargar vista previa (primeras 10 filas)
+            # Intentar cargar vista previa completa (metadata + tabla) y mostrar como HTML table para permitir copiar/pegar
             try:
-                import pandas as pd
+                import csv
                 from pathlib import Path
                 from config.app_config import CACHE_DIR
 
                 csv_path = Path(CACHE_DIR) / plscadd_csv
                 if csv_path.exists():
-                    # Detectar la línea de encabezado de la tabla (buscamos la línea que empieza con 'Set #')
-                    header_line_idx = None
+                    # Leer archivo completo
                     with open(csv_path, 'r', encoding='utf-8') as f:
-                        for idx, line in enumerate(f):
-                            if line.strip().lower().startswith('set #'):
-                                header_line_idx = idx
-                                break
+                        lines = [ln.rstrip('\n') for ln in f]
 
+                    # Buscar la línea de encabezado de la tabla (empieza por 'Set #')
+                    header_line_idx = None
+                    for idx, line in enumerate(lines):
+                        if line.strip().lower().startswith('set #'):
+                            header_line_idx = idx
+                            break
+
+                    # Preparar contenedor con fondo claro y texto oscuro para legibilidad y copia
+                    box_style = {'backgroundColor': '#ffffff', 'color': '#000000', 'padding': '12px', 'borderRadius': '6px', 'border': '1px solid #ddd'}
+
+                    # Mostrar metadata (todas las líneas antes de la tabla)
+                    metadata_rows = []
+                    if header_line_idx is not None and header_line_idx > 0:
+                        meta_lines = lines[:header_line_idx]
+                        # Retirar líneas vacías al final del bloque metadata
+                        while meta_lines and meta_lines[-1].strip() == '':
+                            meta_lines.pop()
+
+                        for ml in meta_lines:
+                            # Intentar parsear como CSV de 2 campos
+                            try:
+                                row = next(csv.reader([ml]))
+                                if len(row) >= 2:
+                                    metadata_rows.append((row[0].strip(), ','.join([c.strip() for c in row[1:]])))
+                                else:
+                                    metadata_rows.append((ml.strip(), ''))
+                            except Exception:
+                                metadata_rows.append((ml.strip(), ''))
+
+                    # Construir HTML para metadata
+                    if metadata_rows:
+                        meta_table = html.Table([
+                            html.Tbody([
+                                html.Tr([html.Td(str(k), style={'fontWeight': 'bold', 'padding': '4px 8px', 'verticalAlign': 'top'}), html.Td(str(v), style={'padding': '4px 8px'})]) for k, v in metadata_rows
+                            ])
+                        ], style={'width': '100%', 'marginBottom': '8px'})
+                        output.append(html.Div(meta_table, style=box_style))
+
+                    # Construir tabla a partir de la parte tabular (si existe)
                     if header_line_idx is not None:
-                        # skiprows = number of lines BEFORE the header row
-                        df_preview = pd.read_csv(csv_path, skiprows=header_line_idx, encoding='utf-8')
-                    else:
-                        # Fallback: intentar leer con engine='python' para tolerar pequeñas inconsistencias
-                        df_preview = pd.read_csv(csv_path, encoding='utf-8', engine='python')
+                        table_lines = lines[header_line_idx:]
+                        table_rows = list(csv.reader(table_lines)) if table_lines else []
+                        if table_rows:
+                            header = table_rows[0]
+                            body = table_rows[1:]
 
-                    if not df_preview.empty:
-                        output.append(dash_table.DataTable(
-                            data=df_preview.head(10).to_dict('records'),
-                            columns=[{"name": c, "id": c} for c in df_preview.columns],
-                            style_table={"overflowX": "auto"},
-                            style_cell={"textAlign": "left"}
-                        ))
+                            # Crear html.Table para permitir selección y copia
+                            html_table = html.Table([
+                                html.Thead(html.Tr([html.Th(h, style={'padding': '6px', 'borderBottom': '1px solid #ddd', 'textAlign': 'left', 'backgroundColor': '#f7f7f7'}) for h in header])),
+                                html.Tbody([
+                                    html.Tr([html.Td(cell, style={'padding': '6px', 'borderBottom': '1px solid #eee'}) for cell in row]) for row in body
+                                ])
+                            ], style={'width': '100%', 'borderCollapse': 'collapse', 'marginTop': '6px'})
+
+                            output.append(html.Div(html_table, style=box_style))
+                        else:
+                            output.append(html.Div("Advertencia: CSV contiene encabezado pero no filas", style={'color': '#d9534f'}))
                     else:
-                        output.append(html.Div("Advertencia: CSV válido pero vacío o sin filas de datos"))
+                        # Si no se encuentra encabezado, intentar mostrar todo el archivo como preformateado
+                        output.append(html.Pre('\n'.join(lines), style={'whiteSpace': 'pre-wrap', 'backgroundColor': '#fff', 'color': '#000', 'padding': '8px', 'borderRadius': '6px', 'border': '1px solid #ddd'}))
             except Exception as e:
-                output.append(html.Div(f"Advertencia: no se pudo previsualizar CSV: {str(e)}"))
+                output.append(html.Div(f"Advertencia: no se pudo previsualizar CSV: {str(e)}", style={'color': '#d9534f'}))
         
         # Filtrar elementos None o inválidos y retornar lista directamente
         output_limpio = [elem for elem in output if elem is not None]

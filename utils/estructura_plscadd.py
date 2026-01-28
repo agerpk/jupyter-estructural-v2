@@ -51,6 +51,26 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
     z_values = [coords[2] for coords in nodes_key.values()]
     altura_max = max(z_values) if z_values else 0.0
 
+    import re
+
+    def _extract_trailing_index(name):
+        m = re.search(r"(\d+)(?!.*\d)", str(name))
+        return int(m.group(1)) if m else None
+
+    def _parse_conductor(name):
+        """Intentar extraer índice y lado (r/l) de nombres como C1, C2_r, C3-L, c1r"""
+        s = str(name).lower()
+        m = re.match(r'c\s*([0-9]+)(?:[_\-\s]?([rl]|right|left))?', s)
+        if m:
+            idx = int(m.group(1))
+            side = m.group(2)
+            if side:
+                side = 'r' if side.startswith('r') else 'l' if side.startswith('l') else None
+            return idx, side
+        # Fallback: buscar cualquier número al final
+        idx = _extract_trailing_index(s)
+        return idx, None
+
     # Clasificar nodos
     nodos_guardia = []
     nodos_conductor = []
@@ -74,9 +94,14 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
     # Asignar sets y phases
     rows = []
 
-    # Set 1: guardia
+    # Set 1: guardia (ordenar por índice si existe: HG1, HG2...)
     phase = 1
-    for nombre, coords in sorted(nodos_guardia, key=lambda x: x[0]):
+    def _guard_sort_key(item):
+        nombre = item[0]
+        idx = _extract_trailing_index(nombre)
+        return (idx if idx is not None else 9999, nombre)
+
+    for nombre, coords in sorted(nodos_guardia, key=_guard_sort_key):
         x, y, z = coords
         insul_type = estructura_data.get('insulator_type_guardia', 'Clamp')
         insul_weight = 0.0
@@ -94,7 +119,7 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
             'Set Description': 'HG',
             'Insulator Type': insul_type,
             'Insul. Weight (N)': insul_weight,
-            'Insul. Wind Area (cm^2)': round(insul_wind_area, 2),
+            'Insul. Wind Area (cm^2)': f"{insul_wind_area:.4f}",
             'Insul. Length (m)': insul_length,
             'Attach. Trans. Offset (m)': round(attach_trans, 3),
             'Attach. Dist. Below Top (m)': round(attach_dist_below, 3),
@@ -109,18 +134,27 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
     cond_neg = [n for n in nodos_conductor if n[1][0] < 0]
 
     if terna.lower().startswith('simple'):
-        # All conductors in Set 2
+        # All conductors in Set 2 — order by conductor index (C1,C2,C3) if available, else by x coordinate
         set_num = 2
         phase = 1
-        for nombre, coords in sorted(nodos_conductor, key=lambda x: (x[1][0], x[0])):
+
+        def _cond_simple_sort(item):
+            nombre, coords = item
+            idx, _ = _parse_conductor(nombre)
+            if idx is not None:
+                return (0, idx)
+            # fallback: ordenar por Z ascendente (altura de enganche), luego por X
+            return (1, coords[2], coords[0], nombre)
+
+        for nombre, coords in sorted(nodos_conductor, key=_cond_simple_sort):
             x, y, z = coords
             insul_type = estructura_data.get('insulator_type_conductor', 'Suspension')
             insul_weight = float(PCADENA) * 10.0  # PCADENA en daN --> N = daN*10
-            # Wind area formula
+            # Wind area formula (corrección: multiplicar por 10000)
             if 'suspension' in tipo_estructura or 'suspensión' in tipo_estructura:
-                insul_wind_area = ((0.5 + Vn / 150.0) * Ka * 0.146) / 10000.0
+                insul_wind_area = ((0.5 + Vn / 150.0) * Ka * 0.146) * 10000.0
             else:
-                insul_wind_area = ((0.5 + Vn / 75.0) * Ka * 0.146) / 10000.0
+                insul_wind_area = ((0.5 + Vn / 75.0) * Ka * 0.146) * 10000.0
             insul_length = Lk
             attach_trans = x
             attach_dist_below = round(altura_max - z, 3)
@@ -134,7 +168,7 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
                 'Set Description': 'COND',
                 'Insulator Type': insul_type,
                 'Insul. Weight (N)': round(insul_weight, 2),
-                'Insul. Wind Area (cm^2)': round(insul_wind_area, 2),
+                'Insul. Wind Area (cm^2)': f"{insul_wind_area:.4f}",
                 'Insul. Length (m)': round(insul_length, 3),
                 'Attach. Trans. Offset (m)': round(attach_trans, 3),
                 'Attach. Dist. Below Top (m)': round(attach_dist_below, 3),
@@ -143,17 +177,44 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
             })
             phase += 1
     else:
-        # Doble terna: categorize pos->set 2, neg->set 3
-        # Set 2 (x>=0)
+        # Doble terna: queremos orden: c1_r,c2_r,c3_r, c1_l,c2_l,c3_l — usar sufijo si existe, sino usar signo de x
+        # Clasificar según lado
+        right_nodes = []
+        left_nodes = []
+        for nombre, coords in nodos_conductor:
+            idx, side = _parse_conductor(nombre)
+            if side == 'r':
+                right_nodes.append((nombre, coords, idx))
+            elif side == 'l':
+                left_nodes.append((nombre, coords, idx))
+            else:
+                # fallback según posición x
+                if coords[0] >= 0:
+                    right_nodes.append((nombre, coords, idx))
+                else:
+                    left_nodes.append((nombre, coords, idx))
+
+        # Ordenar por índice (si existe) o por X
+        def _sort_nodes_by_idx_or_x(item):
+            nombre, coords, idx = item
+            if idx is not None:
+                return (idx, nombre)
+            # fallback: ordenar por Z ascendente, luego por X
+            return (9999, coords[2], coords[0], nombre)
+
+        right_nodes_sorted = sorted(right_nodes, key=_sort_nodes_by_idx_or_x)
+        left_nodes_sorted = sorted(left_nodes, key=_sort_nodes_by_idx_or_x)
+
+        # Set 2 (right)
         phase = 1
-        for nombre, coords in sorted(cond_pos, key=lambda x: x[0]):
+        for nombre, coords, _ in right_nodes_sorted:
             x, y, z = coords
             insul_type = estructura_data.get('insulator_type_conductor', 'Suspension')
             insul_weight = float(PCADENA) * 10.0
             if 'suspension' in tipo_estructura or 'suspensión' in tipo_estructura:
-                insul_wind_area = ((0.5 + Vn / 150.0) * Ka * 0.146) / 10000.0
+                insul_wind_area = ((0.5 + Vn / 150.0) * Ka * 0.146) * 10000.0
             else:
-                insul_wind_area = ((0.5 + Vn / 75.0) * Ka * 0.146) / 10000.0
+                insul_wind_area = ((0.5 + Vn / 75.0) * Ka * 0.146) * 10000.0
             insul_length = Lk
             attach_trans = x
             attach_dist_below = round(altura_max - z, 3)
@@ -167,7 +228,7 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
                 'Set Description': '1TERNA',
                 'Insulator Type': insul_type,
                 'Insul. Weight (N)': round(insul_weight, 2),
-                'Insul. Wind Area (cm^2)': round(insul_wind_area, 2),
+                'Insul. Wind Area (cm^2)': f"{insul_wind_area:.4f}",
                 'Insul. Length (m)': round(insul_length, 3),
                 'Attach. Trans. Offset (m)': round(attach_trans, 3),
                 'Attach. Dist. Below Top (m)': round(attach_dist_below, 3),
@@ -176,16 +237,16 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
             })
             phase += 1
 
-        # Set 3 (x<0)
+        # Set 3 (left)
         phase = 1
-        for nombre, coords in sorted(cond_neg, key=lambda x: x[0]):
+        for nombre, coords, _ in left_nodes_sorted:
             x, y, z = coords
             insul_type = estructura_data.get('insulator_type_conductor', 'Suspension')
             insul_weight = float(PCADENA) * 10.0
             if 'suspension' in tipo_estructura or 'suspensión' in tipo_estructura:
-                insul_wind_area = ((0.5 + Vn / 150.0) * Ka * 0.146) / 10000.0
+                insul_wind_area = ((0.5 + Vn / 150.0) * Ka * 0.146) * 10000.0
             else:
-                insul_wind_area = ((0.5 + Vn / 75.0) * Ka * 0.146) / 10000.0
+                insul_wind_area = ((0.5 + Vn / 75.0) * Ka * 0.146) * 10000.0
             insul_length = Lk
             attach_trans = x
             attach_dist_below = round(altura_max - z, 3)
@@ -199,7 +260,7 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
                 'Set Description': '2TERNA',
                 'Insulator Type': insul_type,
                 'Insul. Weight (N)': round(insul_weight, 2),
-                'Insul. Wind Area (cm^2)': round(insul_wind_area, 2),
+                'Insul. Wind Area (cm^2)': f"{insul_wind_area:.4f}",
                 'Insul. Length (m)': round(insul_length, 3),
                 'Attach. Trans. Offset (m)': round(attach_trans, 3),
                 'Attach. Dist. Below Top (m)': round(attach_dist_below, 3),
