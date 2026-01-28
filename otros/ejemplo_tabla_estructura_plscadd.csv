@@ -1,0 +1,12 @@
+Structure file name
+Description,"HERE GOES THE "TITULO" FIELD FROM THE STRUCTURE"
+Height (ground to top of structure (m),"HERE GOES THE HIGHEST Z VALUE OF A NODE IN THE RESULTS OF DISEÑO GEOMETRICO"
+Embedded lenght (for report purposes only) (m), "HERE GOES 0.1*"HIGHEST Z VALUE OF A NODE IN THE RESULTS OF DISEÑO GEOMETRICO""
+Lowest wire attachment point height above ground (m), "HERE GOES LOWEST Z VALUE OF A CONDUCTOR NODE"
+
+Set #,Phase #,Dead End Set,Set Description,Insulator Type,Insul. Weight (N),Insul. Wind Area (cm^2),Insul. Length (m),Attach. Trans. Offset (m),Attach. Dist. Below Top (m),Attach. Longit. Offset (m),Min. Req. Vertical Load (uplift) (N),Allowable Suspension Swing Angles and 2-Part Load Angles (deg),Draw Sheds,Insul. Weight Side 2 (N),Insul. Wind Area Side 2 (cm^2),Insul. Length Side 2 (m),Attach. Trans. Offset Side 2 (m),Attach. Dist. Below Top Side 2 (m),Attach. Longit. Offset Side 2 (m),Suspension or 2-Part Side 1 Tension Only,2-Part Tension Only Side 2,2-Part Bottom Right
+1,1,No,HG,Post,NA,NA,NA,NA,NA,NA,No Uplift,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+2,2,No,COND,Suspension,500.00,NA,NA,2.00,2.00,NA,No Uplift,"0,0,0,0,0,0,0,0",Yes,NA,NA,NA,NA,NA,NA,No,NA,NA
+3,2,NA,NA,Suspension,500.00,NA,NA,2.00,4.00,NA,No Uplift,"0,0,0,0,0,0,0,0",Yes,NA,NA,NA,NA,NA,NA,No,NA,NA
+4,2,NA,NA,Suspension,500.00,NA,NA,-2.00,4.00,NA,No Uplift,"0,0,0,0,0,0,0,0",Yes,NA,NA,NA,NA,NA,NA,No,NA,NA
+5,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA

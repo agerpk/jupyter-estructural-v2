@@ -1,0 +1,52 @@
+TYPE='STRUCT FILE' VERSION='13' UNITS='SI' SOURCE='PLS-CADD Version 20.01' USER='DISTROCUYO - Argentina' FILENAME='//Sdt.stk'
+Sdf
+
+
+25 2 0
+2
+'HG' 'P' 'N' 'N' 0 1
+0 0 0 0
+0 0 0 'UNDEF' 'UNDEF' 'UNDEF' 0 1 0
+'COND' 'I' 'I' 'I' 0 3
+500 0 0 0 0 0 0 0 0 0 0 0 1
+2 2 0 'UNDEF' 'UNDEF' 0 1 0
+500 0 0 0 0 0 0 0 0 0 0 0 1
+2 4 0 'UNDEF' 'UNDEF' 0 1 0
+500 0 0 0 0 0 0 0 0 0 0 0 1
+-2 4 0 'UNDEF' 'UNDEF' 0 1 0
+S
+
+
+
+0
+0 0 0 0
+
+
+-1 0 0 0
+0
+0 0 0 0
+TYPE='PRT FILE' VERSION='4' UNITS='SI' SOURCE='PLS-CADD Version 20.01' USER='DISTROCUYO - Argentina' FILENAME=''
+0 0 13; total number of columns (including user defined columns), sort column, and number of protected columns
+0 0 0 ; number of parts, assemblies, and resolve-list items
+0 0
+0; number of custom counting units
+TYPE='PLT FILE' VERSION='4.4' UNITS='SI' SOURCE='PLS-CADD Version 20.01' USER='DISTROCUYO - Argentina' FILENAME=''
+
+0 0 0 0 0 0 0
+0 ; # shapes for each shape shape index, # points, x,y for each point
+TYPE='DXF ATTACHMENTS' VERSION='5' UNITS='SI' SOURCE='PLS-CADD Version 20.01' USER='DISTROCUYO - Argentina' FILENAME=''
+0 ; number dxf/shp files attached
+TYPE='BMP ATTACHMENTS' VERSION='7' UNITS='SI' SOURCE='PLS-CADD Version 20.01' USER='DISTROCUYO - Argentina' FILENAME=''
+0 1.000000 ; number bmp files attached, minimum pixel size
+TYPE='ANNOTATION' VERSION='8' UNITS='SI' SOURCE='PLS-CADD Version 20.01' USER='DISTROCUYO - Argentina' FILENAME=''
+0 ; Number annotation records
+-1 -1 -1 -1 -1 0 -1 -1 -1 0 '' 0
+''
+''
+'' ''
+TYPE='ANNOTATION' VERSION='8' UNITS='SI' SOURCE='PLS-CADD Version 20.01' USER='DISTROCUYO - Argentina' FILENAME=''
+0 ; Number annotation records
+-1 -1 -1 -1 -1 0 -1 -1 -1 0 '' 0
+''
+''
+'' ''
