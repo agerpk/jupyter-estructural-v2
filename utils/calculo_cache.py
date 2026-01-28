@@ -679,19 +679,57 @@ class CalculoCache:
     
     @staticmethod
     def verificar_vigencia_familia(calculo_guardado, familia_actual):
-        """Verifica si el cache de familia sigue vigente"""
+        """Verifica si el cache de familia sigue vigente.
+
+        Ahora compara el hash guardado con el hash calculado a partir del
+        archivo `.familia.json` en disco (si está disponible para la familia
+        indicada). Si no se puede cargar el archivo en disco, hace fallback a
+        comparar con la `familia_actual` en memoria.
+        """
         if not calculo_guardado:
             return False, "Cache no disponible"
-        
-        hash_actual = CalculoCache.calcular_hash_familia(familia_actual)
+
         hash_guardado = calculo_guardado.get("hash_parametros")
-        
-        # DEBUG: Imprimir hashes para diagnóstico
-        print(f"\n🔍 DEBUG HASH FAMILIA:")
+        hash_actual = None
+        fuente = "memoria"
+
+        # Si nos pasaron un dict con nombre de familia, preferimos usar el
+        # archivo en disco para calcular el hash (evita diferencias por la UI)
+        try:
+            if isinstance(familia_actual, dict):
+                nombre_familia = familia_actual.get("nombre_familia")
+                if nombre_familia:
+                    # Importar aquí para evitar dependencias circulares
+                    from utils.familia_manager import FamiliaManager
+                    try:
+                        familia_en_disco = FamiliaManager.cargar_familia(nombre_familia)
+                        hash_actual = CalculoCache.calcular_hash_familia(familia_en_disco)
+                        fuente = f"archivo_en_disco ({nombre_familia}.familia.json)"
+                    except Exception:
+                        # No se pudo cargar el archivo, fallback a la memoria
+                        hash_actual = CalculoCache.calcular_hash_familia(familia_actual)
+                        fuente = "memoria (fallback)"
+                else:
+                    hash_actual = CalculoCache.calcular_hash_familia(familia_actual)
+                    fuente = "memoria"
+            else:
+                # familia_actual puede ser un nombre de familia (string)
+                nombre_familia = str(familia_actual)
+                from utils.familia_manager import FamiliaManager
+                familia_en_disco = FamiliaManager.cargar_familia(nombre_familia)
+                hash_actual = CalculoCache.calcular_hash_familia(familia_en_disco)
+                fuente = f"archivo_en_disco ({nombre_familia}.familia.json)"
+        except Exception as e:
+            # En caso extremo, devolver no vigente con detalle
+            print(f"⚠️ Error al verificar vigencia de familia: {e}")
+            return False, f"Error verificando cache: {e}"
+
+        # DEBUG: Imprimir hashes para diagnóstico (ahora con fuente)
+        print(f"\n🔍 DEBUG HASH FAMILIA (fuente={fuente}):")
         print(f"   Hash guardado: {hash_guardado}")
         print(f"   Hash actual:   {hash_actual}")
         print(f"   Coinciden: {hash_actual == hash_guardado}")
-        
+
         if hash_actual == hash_guardado:
             return True, "Cache vigente"
         else:

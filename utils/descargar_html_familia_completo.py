@@ -37,7 +37,7 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
     for nombre_estr, datos_estr in estructuras.items():
         titulo = datos_estr.get("titulo", nombre_estr)
         titulo_id = titulo.replace(" ", "_").replace("/", "_")
-        html.append(f'<li><a href="#collapse_{titulo_id}" data-bs-toggle="collapse" data-bs-target="#collapse_{titulo_id}">{titulo}</a>')
+        html.append(f'<li><a href="#collapse_{titulo_id}">{titulo}</a>')
         
         # Subentradas por sección (solo si están en checklist)
         if "error" not in datos_estr:
@@ -47,7 +47,7 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
             # Si hay checklist, verificar cada sección; si no hay checklist, incluir todo
             if checklist_activo:
                 if checklist_activo.get("cmc") and "cmc" in resultados and resultados["cmc"]:
-                    html.append(f'<li><a href="#{titulo_id}_cmc_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
                 if checklist_activo.get("dge") and "dge" in resultados and resultados["dge"]:
                     # DGE - incluir subentrada para Tabla PLS-CADD si existe
                     dge = resultados["dge"]
@@ -68,21 +68,21 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
                     else:
                         html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
                 if checklist_activo.get("dme") and "dme" in resultados and resultados["dme"]:
-                    html.append(f'<li><a href="#{titulo_id}_dme_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dme_collapse">3. Diseño Mecánico</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_dme_collapse">3. Diseño Mecánico</a></li>')
                 if checklist_activo.get("arboles") and "arboles" in resultados and resultados["arboles"]:
-                    html.append(f'<li><a href="#{titulo_id}_arboles_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_arboles_collapse">4. Árboles de Carga</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_arboles_collapse">4. Árboles de Carga</a></li>')
                 if checklist_activo.get("sph") and "sph" in resultados and resultados["sph"]:
-                    html.append(f'<li><a href="#{titulo_id}_sph_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_sph_collapse">5. Selección de Poste</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_sph_collapse">5. Selección de Poste</a></li>')
                 if checklist_activo.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
-                    html.append(f'<li><a href="#{titulo_id}_fundacion_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_fundacion_collapse">6. Fundación</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_fundacion_collapse">6. Fundación</a></li>')
                 if checklist_activo.get("aee") and "aee" in resultados and resultados["aee"]:
-                    html.append(f'<li><a href="#{titulo_id}_aee_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_aee_collapse">7. Análisis Estático</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_aee_collapse">7. Análisis Estático</a></li>')
                 if checklist_activo.get("costeo") and "costeo" in resultados and resultados["costeo"]:
-                    html.append(f'<li><a href="#{titulo_id}_costeo_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_costeo_collapse">8. Costeo</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_costeo_collapse">8. Costeo</a></li>')
             else:
                 # Sin checklist, incluir todo lo que tenga datos
                 if "cmc" in resultados and resultados["cmc"]:
-                    html.append(f'<li><a href="#{titulo_id}_cmc_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
                 if "dge" in resultados and resultados["dge"]:
                     # DGE - incluir subentrada para Tabla PLS-CADD si existe (sin checklist)
                     dge = resultados["dge"]
@@ -95,32 +95,32 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
                                 plscadd = matches[0].name
 
                     if plscadd:
-                        html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a>')
+                        html.append(f'<li><a href="#{{titulo_id}}_dge_collapse">2. Diseño Geométrico</a>')
                         html.append('<ul>')
-                        html.append(f'<li><a href="#{titulo_id}_dge_plscadd" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_plscadd">2.1 Tabla PLS-CADD</a></li>')
+                        html.append(f'<li><a href="#{{titulo_id}}_dge_plscadd">2.1 Tabla PLS-CADD</a></li>')
                         html.append('</ul>')
                         html.append('</li>')
                     else:
-                        html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
+                        html.append(f'<li><a href="#{{titulo_id}}_dge_collapse">2. Diseño Geométrico</a></li>')
                 if "dme" in resultados and resultados["dme"]:
-                    html.append(f'<li><a href="#{titulo_id}_dme_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dme_collapse">3. Diseño Mecánico</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_dme_collapse">3. Diseño Mecánico</a></li>')
                 if "arboles" in resultados and resultados["arboles"]:
-                    html.append(f'<li><a href="#{titulo_id}_arboles_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_arboles_collapse">4. Árboles de Carga</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_arboles_collapse">4. Árboles de Carga</a></li>')
                 if "sph" in resultados and resultados["sph"]:
-                    html.append(f'<li><a href="#{titulo_id}_sph_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_sph_collapse">5. Selección de Poste</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_sph_collapse">5. Selección de Poste</a></li>')
                 if "fundacion" in resultados and resultados["fundacion"]:
-                    html.append(f'<li><a href="#{titulo_id}_fundacion_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_fundacion_collapse">6. Fundación</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_fundacion_collapse">6. Fundación</a></li>')
                 if "aee" in resultados and resultados["aee"]:
-                    html.append(f'<li><a href="#{titulo_id}_aee_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_aee_collapse">7. Análisis Estático</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_aee_collapse">7. Análisis Estático</a></li>')
                 if "costeo" in resultados and resultados["costeo"]:
-                    html.append(f'<li><a href="#{titulo_id}_costeo_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_costeo_collapse">8. Costeo</a></li>')
+                    html.append(f'<li><a href="#{{titulo_id}}_costeo_collapse">8. Costeo</a></li>')
             
             html.append('</ul>')
         html.append('</li>')
     
     # Costeo Global solo si está en checklist o no hay checklist
     if not checklist_activo or checklist_activo.get("costeo"):
-        html.append('<li><a href="#collapse_costeo_global" data-bs-toggle="collapse" data-bs-target="#collapse_costeo_global">Costeo Global</a></li>')
+        html.append('<li><a href="#collapse_costeo_global">Costeo Global</a></li>')
     html.append('</ul></div>')
     return '\n'.join(html)
 
@@ -267,6 +267,7 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
             }}
             // Invertir para abrir desde el más lejano (outermost) al más cercano
             ancestors.reverse();
+
           }} catch(e){{ console && console.debug && console.debug('Error collecting ancestors for collapse', e); }}
 
           // Función recursiva para abrir ancestros en orden y luego el objetivo
@@ -456,10 +457,39 @@ def generar_seccion_estructura_familia(datos_estructura, titulo_id, checklist_ac
                         if line.strip().startswith('Set #') or 'Set #' in line:
                             header_idx = i
                             break
+
+                    # Parse and render metadata lines (lines before header)
+                    try:
+                        import csv as _csv
+                        from io import StringIO as _StringIO
+                        meta_lines = lines[:header_idx] if header_idx > 0 else []
+                        meta_rows = []
+                        if meta_lines:
+                            reader = _csv.reader(_StringIO('\n'.join(meta_lines)))
+                            for r in reader:
+                                # Ignore fully empty rows
+                                if any((cell or '').strip() for cell in r):
+                                    meta_rows.append(r)
+                        if meta_rows:
+                            html.append('<h6>Información de Estructura</h6>')
+                            html.append('<table class="table table-sm table-borderless">')
+                            for row in meta_rows:
+                                if len(row) == 1:
+                                    html.append(f'<tr><td colspan="2"><strong>{row[0]}</strong></td></tr>')
+                                else:
+                                    key = row[0]
+                                    val = row[1] if len(row) > 1 else ''
+                                    html.append(f'<tr><td><strong>{key}</strong></td><td>{val}</td></tr>')
+                            html.append('</table>')
+                    except Exception as e:
+                        logger.exception(f"Error parseando metadata PLS-CADD: {e}")
+
+                    # Leer la tabla principal saltando las filas de metadatos
                     if header_idx > 0:
                         df_pls = _pd.read_csv(csv_path, skiprows=header_idx)
                     else:
                         df_pls = _pd.read_csv(csv_path)
+
                     html.append('<div class="table-responsive">')
                     html.append(df_pls.to_html(classes='table table-striped table-bordered table-sm', index=False))
                     html.append('</div>')
