@@ -27,6 +27,9 @@ class EstructuraAEA_Mecanica:
         # Para almacenar resultados de reacciones
         self.resultados_reacciones = {}
         self.df_reacciones = None
+
+        # Registrar hipótesis A5 que aplicaron reducción 15% para trazabilidad
+        self.hipotesis_a5_aplico_15pc = []
         
         print(f"✅ ESTRUCTURA_AEA MECÁNICA CREADA")
     
@@ -319,6 +322,20 @@ class EstructuraAEA_Mecanica:
                     config_tiro = config["tiro"] if config["tiro"] else None
                     patron_tiro = config_tiro["patron"] if config_tiro else "bilateral"
                     
+                    # Ajuste por HIPÓTESIS A5: si corresponde y Lk>2.5 y parámetro activo -> reduccion_cond = 0.15
+                    if config_tiro and ((codigo_hip == "A5") or (config.get("desc", "").lower().startswith("tiro unilateral"))):
+                        if getattr(self.geometria, "hipotesis_a5_dme_15pc_si_lk_mayor_2_5", True) and getattr(self.geometria, "lk", 0) > 2.5:
+                            prev_val = config_tiro.get("reduccion_cond", None)
+                            config_tiro["reduccion_cond"] = 0.15
+                            logger.info(f"HIPÓTESIS A5: Lk={self.geometria.lk} > 2.5 -> reduccion_cond {prev_val} -> 0.15")
+                            # Registrar para memoria/trazabilidad
+                            try:
+                                # Usar nombre legible de hipótesis
+                                self.hipotesis_a5_aplico_15pc.append(nombre_completo)
+                            except Exception:
+                                # No causar fallo si por alguna razón no existe la lista
+                                pass
+
                     factor_peso = config["peso"]["factor"]
                     
                     # Calcular pesos globales (solo para guardias, conductores se calculan por nodo)

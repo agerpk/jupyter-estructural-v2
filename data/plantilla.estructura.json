@@ -38,6 +38,7 @@
   "TENSION": 220,
   "Zona_estructura": "Rural",
   "Lk": 2.5,
+  "hipotesis_a5_dme_15pc_si_lk_mayor_2_5": true,
   "ANG_APANTALLAMIENTO": 30.0,
   "AJUSTAR_POR_ALTURA_MSNM": true,
   "METODO_ALTURA_MSNM": "AEA 3%/300m",

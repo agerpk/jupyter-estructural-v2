@@ -220,6 +220,14 @@ class ParametrosManager:
             "categoria": "Mecánica"
         },
         
+        "hipotesis_a5_dme_15pc_si_lk_mayor_2_5": {
+            "simbolo": "A5_15pc",
+            "unidad": "-",
+            "descripcion": "Aplicar 15% en hipótesis A5 (tiro unilateral reducido) si Lk > 2.5m",
+            "tipo": "bool",
+            "categoria": "Mecánica"
+        },
+        
         # CONFIGURACIÓN DISEÑO DE CABEZAL
         "TENSION": {
             "simbolo": "U",

@@ -163,10 +163,12 @@ def register_callbacks(app):
         State("select-tipo-estructura-dme", "value"),
         State("switch-mostrar-c2", "value"),
         State("switch-reemplazar-titulo", "value"),
+        State("switch-hipotesis-a5-dme-15pc-lk-mayor-2-5", "value"),
         State("estructura-actual", "data"),
         prevent_initial_call=True
     )
-    def guardar_parametros_mecanica(n_clicks, tipo_estructura, mostrar_c2, reemplazar_titulo, estructura_actual):
+    def guardar_parametros_mecanica(n_clicks, tipo_estructura, mostrar_c2, reemplazar_titulo, hip_a5_value, estructura_actual):
+
         if not n_clicks:
             raise dash.exceptions.PreventUpdate
         
@@ -175,6 +177,8 @@ def register_callbacks(app):
             estructura_actualizada["TIPO_ESTRUCTURA"] = tipo_estructura
             estructura_actualizada["MOSTRAR_C2"] = mostrar_c2
             estructura_actualizada["REEMPLAZAR_TITULO_GRAFICO"] = reemplazar_titulo
+            # Guardar nuevo parámetro hipotesis A5
+            estructura_actualizada["hipotesis_a5_dme_15pc_si_lk_mayor_2_5"] = hip_a5_value
             
             state.set_estructura_actual(estructura_actualizada)
             
@@ -332,6 +336,19 @@ def register_callbacks(app):
                 f"🔴 Hipótesis más desfavorable por carga vertical:\n" +
                 f"   {hip_min_fz}: {min_fz:.1f} daN"
             )
+
+            # Nota: indicar en el resumen ejecutivo si A5 aplicó reducción 15% (Lk>2.5 y parámetro activo)
+            try:
+                hip_aplicadas = getattr(estructura_mecanica, 'hipotesis_a5_aplico_15pc', [])
+                if hip_aplicadas:
+                    hip_unicas = sorted(set(hip_aplicadas))
+                    hip_str = ", ".join(hip_unicas)
+                    resumen_txt += (
+                        "\n\n💡 Nota: Hipótesis A5 - reducción conductor aplicada = 15% (Lk > 2.5 m)"
+                        + (f" — {hip_str}" if hip_str else "")
+                    )
+            except Exception:
+                pass
             
             # Generar output
             output = [

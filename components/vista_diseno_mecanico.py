@@ -134,6 +134,17 @@ def crear_vista_diseno_mecanico(estructura_actual, calculo_guardado=None, hipote
                         ),
                     ], md=6),
                 ], className="mb-3"),
+
+                # Nuevo control: hipotesis A5 (reducción 15% si Lk > 2.5 m)
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label("A5: 15% si Lk > 2.5 m", style={"fontSize": "1.125rem"}),
+                        dbc.Switch(
+                            id="switch-hipotesis-a5-dme-15pc-lk-mayor-2-5",
+                            value=estructura_actual.get("hipotesis_a5_dme_15pc_si_lk_mayor_2_5", True)
+                        ),
+                    ], md=6),
+                ], className="mb-3"),
                 
                 html.H5("Configuración Gráficos", className="mb-3 mt-4"),
                 

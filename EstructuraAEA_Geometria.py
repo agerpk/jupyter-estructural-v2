@@ -150,10 +150,14 @@ class EstructuraAEA_Geometria:
             self.defasaje_mensula_hielo = parametros.get("defasaje_mensula_hielo", defasaje_mensula_hielo)
             self.lmen_extra_hielo = parametros.get("lmen_extra_hielo", lmen_extra_hielo)
             self.mensula_defasar = parametros.get("mensula_defasar", mensula_defasar)
+            # Nuevo parámetro A5 (reducción 15% si Lk>2.5m)
+            self.hipotesis_a5_dme_15pc_si_lk_mayor_2_5 = parametros.get("hipotesis_a5_dme_15pc_si_lk_mayor_2_5", True)
         else:
             self.defasaje_mensula_hielo = defasaje_mensula_hielo
             self.lmen_extra_hielo = lmen_extra_hielo
             self.mensula_defasar = mensula_defasar
+            # Default: activar la hipótesis A5 por compatibilidad hacia atrás
+            self.hipotesis_a5_dme_15pc_si_lk_mayor_2_5 = True
 
         # Parámetro de ajuste de D_fases
         self.d_fases_add = d_fases_add

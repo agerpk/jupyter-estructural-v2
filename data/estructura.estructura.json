@@ -125,7 +125,8 @@
       "II": 0.7,
       "III": 0.7,
       "IV": 0.7,
-      "V": 0.7
+      "V": 0.7,
+      "relflecha_max": 0.95
     }
   },
   "doble_terna_una_terna_activa": false,
@@ -275,8 +276,12 @@
       "relflecha": 0.9
     }
   },
+  "generar_estructura_plscadd_tabla": true,
+  "insulator_type_guardia": "Clamp",
+  "insulator_type_conductor": "Suspension",
   "fecha_creacion": "",
   "version": "1.0",
   "D_fases_add": 0.0,
-  "fecha_modificacion": "2026-01-27T16:04:00.049872"
+  "hipotesis_a5_dme_15pc_si_lk_mayor_2_5": false,
+  "fecha_modificacion": "2026-01-29T09:37:17.246699"
 }

@@ -266,7 +266,7 @@
           "temperatura": -5,
           "descripcion": "HIELO",
           "viento_velocidad": 0,
-          "espesor_hielo": 0.025,
+          "espesor_hielo": 0.015,
           "restriccion_conductor": 0.4,
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
@@ -548,7 +548,7 @@
           "temperatura": -5,
           "descripcion": "HIELO",
           "viento_velocidad": 0,
-          "espesor_hielo": 0.025,
+          "espesor_hielo": 0.015,
           "restriccion_conductor": 0.4,
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
@@ -830,7 +830,7 @@
           "temperatura": -5,
           "descripcion": "HIELO",
           "viento_velocidad": 0,
-          "espesor_hielo": 0.025,
+          "espesor_hielo": 0.015,
           "restriccion_conductor": 0.4,
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
@@ -1112,7 +1112,7 @@
           "temperatura": -5,
           "descripcion": "HIELO",
           "viento_velocidad": 0,
-          "espesor_hielo": 0.025,
+          "espesor_hielo": 0.015,
           "restriccion_conductor": 0.4,
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
@@ -1182,7 +1182,7 @@
       "temperatura": -5,
       "descripcion": "HIELO",
       "viento_velocidad": 0,
-      "espesor_hielo": 0.025,
+      "espesor_hielo": 0.015,
       "restriccion_conductor": 0.4,
       "restriccion_guardia": 0.7,
       "relflecha": 0.9
