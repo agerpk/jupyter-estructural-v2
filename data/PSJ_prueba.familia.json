@@ -1,7 +1,7 @@
 {
   "nombre_familia": "PSJ_prueba",
   "fecha_creacion": "2026-01-05T10:35:57.988330",
-  "fecha_modificacion": "2026-01-30T15:18:16.805785",
+  "fecha_modificacion": "2026-01-30T17:54:35.525945",
   "estructuras": {
     "Estr.1": {
       "TITULO": "PSJ_S_DTV_Embo_1500_v350m",
@@ -51,7 +51,7 @@
       "TERNA": "Doble",
       "CANT_HG": 2,
       "HG_CENTRADO": false,
-      "ALTURA_MINIMA_CABLE": 2.0,
+      "ALTURA_MINIMA_CABLE": 7.5,
       "LONGITUD_MENSULA_MINIMA_CONDUCTOR": 0.0,
       "LONGITUD_MENSULA_MINIMA_GUARDIA": 0.0,
       "HADD": 0.0,
@@ -153,7 +153,7 @@
       "SOBREESCRIBIR_S": true,
       "s_reposo": 2.1,
       "s_tormenta": 1.76,
-      "s_decmax": 1.38,
+      "s_decmax": 1.45,
       "defasaje_mensula_hielo": true,
       "lmen_extra_hielo": 1.5,
       "mensula_defasar": "segunda",

@@ -25,7 +25,7 @@ class GeometriaEtapa1:
         
         theta_tormenta = self.geo.calcular_theta_tormenta(vano, self.geo.Vtormenta)
         
-        distancias = self.geo.calcular_distancias_minimas(flecha_max_conductor, theta_max)
+        distancias = self.geo.calcular_distancias_minimas(flecha_max_conductor, theta_max, theta_tormenta)
         
         # SOBREESCRIBIR s si flag está activo
         if getattr(self.geo, 'sobreescribir_s', False):
@@ -65,12 +65,8 @@ class GeometriaEtapa1:
             distancias['s_decmax'] = distancias['s_estructura']
         
         # Imprimir valores finales usados en checkeos
-        print(f"   📏 Distancias usadas en checkeos:")
-        print(f"      s_estructura (calculado): {distancias['s_estructura']:.3f}m")
-        print(f"      s_reposo: {distancias.get('s_reposo', distancias['s_estructura']):.3f}m")
-        print(f"      s_tormenta: {distancias.get('s_tormenta', distancias['s_estructura']):.3f}m")
-        print(f"      s_decmax: {distancias.get('s_decmax', distancias['s_estructura']):.3f}m")
-        
+        # Las distancias usadas en checkeos se registran en 'distancias' y el resumen se imprime desde EstructuraAEA_Geometria
+        # Evitamos duplicar output aquí para que la generación de texto DGE sea centralizada.        
         # Calcular h1a con fórmula obligatoria: h1a = max(a + b, altura_minima_cable) + fmax + Lk + HADD
         a = self.geo.ALTURAS_MINIMAS_TERRENO.get(self.geo.zona_estructura, 5.90)
         
@@ -128,7 +124,15 @@ class GeometriaEtapa1:
         print(f"      s_reposo: {self.geo.dimensiones.get('s_reposo', 'NO EXISTE')}")
         print(f"      s_tormenta: {self.geo.dimensiones.get('s_tormenta', 'NO EXISTE')}")
         print(f"      s_decmax: {self.geo.dimensiones.get('s_decmax', 'NO EXISTE')}")
-        
+
+        # Imprimir resumen DGE usando las dimensiones finales (incluye s sobrescritos si correspondiera)
+        try:
+            resumen = self.geo.formato_resumen_distancias(self.geo.dimensiones, None, None)
+            print("\n" + resumen)
+        except Exception as e:
+            print(f"   ⚠️ Error formateando resumen DGE: {e}")
+
+
         # Crear nodos conductores según disposición/terna
         self._crear_nodos_conductores_h1a(h1a, Lmen1)
         

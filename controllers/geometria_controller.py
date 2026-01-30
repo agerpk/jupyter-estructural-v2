@@ -1405,15 +1405,19 @@ def register_callbacks(app):
                 f"Coeficiente Ka (altura): {float(Ka):.3f}"
             )
             
-            # Distancias
-            dist_txt = (
-                f"D_fases: {float(D_fases):.3f} m\n" +
-                f"Dhg: {float(Dhg):.3f} m\n" +
-                f"s_estructura: {float(s_estructura):.3f} m\n" +
-                f"a: {float(a):.3f} m\n" +
-                f"b: {float(b):.3f} m\n" +
-                f"Altura base eléctrica: {float(altura_base_electrica):.3f} m"
-            )
+            # Usar el formateador centralizado desde la clase geometría (si está disponible)
+            try:
+                dist_txt = EstructuraAEA_Geometria.formato_resumen_distancias(dims, estructura_actual, calculo_guardado)
+            except Exception:
+                # Caída segura: mantener un mensaje clásico en caso de error
+                dist_txt = (
+                    f"D_fases: {float(D_fases):.3f} m\n" +
+                    f"Dhg: {float(Dhg):.3f} m\n" +
+                    f"s_estructura: {float(s_estructura):.3f} m\n" +
+                    f"a: {float(a):.3f} m\n" +
+                    f"b: {float(b):.3f} m\n" +
+                    f"Altura base eléctrica: {float(altura_base_electrica):.3f} m"
+                )
             
             output = [
                 dbc.Alert("GEOMETRIA COMPLETADA: {} nodos creados".format(len(nodes_key)), color="success", className="mb-3"),

@@ -247,6 +247,14 @@ class GraficoEstructura2D:
         primera_vez_conductor = True
         primera_vez_extremo = True
         primera_vez_cadena = True
+        # Determinar el primer conductor acotado (misma lógica que en _dibujar_cables)
+        nodo_ref_nombre = None
+        if conductores:
+            z_min = min(nodo.coordenadas[2] for _, nodo in conductores)
+            primera_altura = [(n, nodo) for n, nodo in conductores if abs(nodo.coordenadas[2] - z_min) < 0.01]
+            if primera_altura:
+                nodo_ref_nombre = max(primera_altura, key=lambda item: item[1].coordenadas[0])[0]
+        lk_annot_done = False
         
         for nombre, nodo in conductores:
             x, y, z = nodo.coordenadas
@@ -302,6 +310,19 @@ class GraficoEstructura2D:
                 legendgroup='cadena',
                 hoverinfo='skip'
             ))
+            # Etiqueta Lk centrada en la cadena (solo en el primer conductor acotado)
+            if not lk_annot_done and nombre == nodo_ref_nombre:
+                fig.add_annotation(
+                    x=x + 0.2,
+                    y=(z + z_extremo) / 2,
+                    text=f'Lk={Lk:.2f}m',
+                    showarrow=False,
+                    xanchor='left',
+                    font=dict(size=9, color='gray'),
+                    bgcolor='white',
+                    borderpad=2
+                )
+                lk_annot_done = True
             primera_vez_cadena = False
         
         # Dibujar nodos guardia (verde)
@@ -509,107 +530,99 @@ class GraficoEstructura2D:
     
     def _dibujar_cotas(self, fig):
         """Dibujar cotas de distancias verticales y horizontales"""
-        # Cota vertical entre BASE y primer CROSS_H*
-        if 'BASE' in self.geo.nodos:
-            cross_nodes = sorted(
-                [(n, nodo) for n, nodo in self.geo.nodos.items() if 'CROSS_H' in n],
-                key=lambda x: x[1].coordenadas[2]
+        # --- COTAS VERTICALES (migradas a la izquierda) ---
+        # Calculamos niveles de desfase respecto al nodo con x más negativo
+        x_vals = [nodo.coordenadas[0] for nodo in self.geo.nodos.values()]
+        x_min, x_max = min(x_vals), max(x_vals)
+        ancho = x_max - x_min if x_max != x_min else 1.0
+        nivel = 0.1 * ancho
+        x_nivel_1 = x_min - nivel     # desfase 1 nivel (cotas columnas)
+        x_nivel_2 = x_min - 3 * nivel # desfase 2 niveles (altura libre) - separación duplicada
+
+        def _add_vertical_cota(x_pos, z_a, z_b, texto):
+            """Dibuja línea vertical fina gris con marcadores circulares en extremos y texto en el medio"""
+            z0, z1 = (z_a, z_b) if z_a <= z_b else (z_b, z_a)
+            # Línea vertical
+            fig.add_trace(go.Scatter(
+                x=[x_pos, x_pos],
+                y=[z0, z1],
+                mode='lines',
+                line=dict(color='gray', width=1),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+            # Marcadores circulares en extremos
+            fig.add_trace(go.Scatter(
+                x=[x_pos, x_pos],
+                y=[z0, z1],
+                mode='markers',
+                marker=dict(size=6, color='gray'),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+            # Texto central (centrado sobre la línea de cota)
+            fig.add_annotation(
+                x=x_pos,
+                y=(z0 + z1) / 2,
+                text=texto,
+                showarrow=False,
+                xanchor='center',
+                yanchor='middle',
+                font=dict(size=9, color='black'),
+                bgcolor='white',
+                borderpad=2
             )
-            
-            if cross_nodes:
-                nodo_base = self.geo.nodos['BASE']
-                primer_cross = cross_nodes[0][1]
-                x_base, y_base, z_base = nodo_base.coordenadas
-                x_cross, y_cross, z_cross = primer_cross.coordenadas
-                dist = z_cross - z_base
-                z_medio = (z_base + z_cross) / 2
-                
-                # Línea de cota
-                fig.add_trace(go.Scatter(
-                    x=[0.3, 0.6],
-                    y=[z_medio, z_medio],
-                    mode='lines',
-                    line=dict(color='gray', width=1, dash='dot'),
-                    showlegend=False,
-                    hoverinfo='skip'
-                ))
-                
-                # Texto de cota
-                fig.add_annotation(
-                    x=0.6,
-                    y=z_medio,
-                    text=f'{dist:.2f}m',
-                    showarrow=False,
-                    xanchor='left',
-                    font=dict(size=9, color='black'),
-                    bgcolor='white',
-                    borderpad=2
-                )
-        
-        # 4. Cotas verticales entre CROSS_H*
+
+        # Cotas entre CROSS_H* (columnas) y entre BASE - primer CROSS
         cross_nodes = sorted(
             [(n, nodo) for n, nodo in self.geo.nodos.items() if 'CROSS_H' in n],
             key=lambda x: x[1].coordenadas[2]
         )
-        
+
+        # BASE -> primer CROSS (si existe)
+        if 'BASE' in self.geo.nodos and cross_nodes:
+            nodo_base = self.geo.nodos['BASE']
+            primer_cross = cross_nodes[0][1]
+            z_base = nodo_base.coordenadas[2]
+            z_cross = primer_cross.coordenadas[2]
+            dist = z_cross - z_base
+            _add_vertical_cota(x_nivel_1, z_base, z_cross, f'{dist:.2f}m')
+
+        # Cotas entre CROSS consecutivos
         for i in range(len(cross_nodes) - 1):
             n1, nodo1 = cross_nodes[i]
             n2, nodo2 = cross_nodes[i + 1]
-            x1, y1, z1 = nodo1.coordenadas
-            x2, y2, z2 = nodo2.coordenadas
+            z1 = nodo1.coordenadas[2]
+            z2 = nodo2.coordenadas[2]
             dist = z2 - z1
-            z_medio = (z1 + z2) / 2
-            
-            # Línea de cota
-            fig.add_trace(go.Scatter(
-                x=[0.3, 0.6],
-                y=[z_medio, z_medio],
-                mode='lines',
-                line=dict(color='gray', width=1, dash='dot'),
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-            
-            # Texto de cota
-            fig.add_annotation(
-                x=0.6,
-                y=z_medio,
-                text=f'{dist:.2f}m',
-                showarrow=False,
-                xanchor='left',
-                font=dict(size=9, color='black'),
-                bgcolor='white',
-                borderpad=2
-            )
-        
+            _add_vertical_cota(x_nivel_1, z1, z2, f'{dist:.2f}m')
+
         # Cota entre último CROSS y TOP (si existe)
         if cross_nodes and 'TOP' in self.geo.nodos:
             ultimo_cross = cross_nodes[-1][1]
             nodo_top = self.geo.nodos['TOP']
-            x1, y1, z1 = ultimo_cross.coordenadas
-            x2, y2, z2 = nodo_top.coordenadas
+            z1 = ultimo_cross.coordenadas[2]
+            z2 = nodo_top.coordenadas[2]
             dist = z2 - z1
-            z_medio = (z1 + z2) / 2
-            
-            fig.add_trace(go.Scatter(
-                x=[0.3, 0.6],
-                y=[z_medio, z_medio],
-                mode='lines',
-                line=dict(color='gray', width=1, dash='dot'),
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-            
-            fig.add_annotation(
-                x=0.6,
-                y=z_medio,
-                text=f'{dist:.2f}m',
-                showarrow=False,
-                xanchor='left',
-                font=dict(size=9, color='black'),
-                bgcolor='white',
-                borderpad=2
-            )
+            _add_vertical_cota(x_nivel_1, z1, z2, f'{dist:.2f}m')
+        else:
+            # Si no hay TOP, verificar si existe HG (guardia) y acotar con el último CROSS
+            hg_nodes = [(n, nodo) for n, nodo in self.geo.nodos.items() if n.startswith('HG')]
+            if cross_nodes and hg_nodes:
+                ultimo_cross = cross_nodes[-1][1]
+                # Elegir HG más cercano por altura
+                hg_closest = min(hg_nodes, key=lambda item: abs(item[1].coordenadas[2] - ultimo_cross.coordenadas[2]))[1]
+                z1 = ultimo_cross.coordenadas[2]
+                z2 = hg_closest.coordenadas[2]
+                dist = abs(z2 - z1)
+                _add_vertical_cota(x_nivel_1, z1, z2, f'{dist:.2f}m')
+
+        # Altura libre (tierra (z=0) a nodo más alto) en el nivel 2
+        z_max = max(nodo.coordenadas[2] for nodo in self.geo.nodos.values())
+        z_terreno = 0
+        _add_vertical_cota(x_nivel_2, z_terreno, z_max, f'{(z_max - z_terreno):.2f}m')
+
+        # --- fin cotas verticales migradas ---
         
         # 5. Cotas horizontales entre CROSS y conductores (x positivo)
         for nombre_cross, nodo_cross in [(n, nodo) for n, nodo in self.geo.nodos.items() if 'CROSS_H' in n]:

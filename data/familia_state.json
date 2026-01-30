@@ -5,26 +5,5 @@
     "dge",
     "dme",
     "arboles"
-  ],
-  "descargar_html_secciones": {
-    "familia:resumen": false,
-    "cmc": false,
-    "dge": false,
-    "dge.dimensiones": false,
-    "dge.nodos": true,
-    "dge.diagramas.graf_estructura": true,
-    "dge.diagramas.graf_cabezal": true,
-    "dge.diagramas.graf_nodos": false,
-    "dge.servidumbre": false,
-    "dge.memoria": false,
-    "dge.plscadd": false,
-    "dme": false,
-    "dme.tabla": false,
-    "dme.polar": false,
-    "dme.barras": false,
-    "arboles": true,
-    "arboles.imagenes": true,
-    "aee": false,
-    "familia:costeo": false
-  }
+  ]
 }

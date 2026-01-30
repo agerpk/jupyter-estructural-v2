@@ -203,24 +203,16 @@ def generar_resultados_dge(calculo_guardado, estructura_actual, mostrar_alerta_c
             f"Coeficiente Ka (altura): {Ka:.3f}"
         )
         
-        # Distancias - Verificar si hay sobreescritura
-        sobreescribir_s = estructura_actual.get('SOBREESCRIBIR_S', False)
-        s_reposo = dims.get('s_reposo', s_estructura)
-        s_tormenta = dims.get('s_tormenta', s_estructura)
-        s_decmax = dims.get('s_decmax', s_estructura)
-        
-        if sobreescribir_s:
-            dist_txt = (
-                f"D_fases: {D_fases:.3f} m\n" +
-                f"Dhg: {Dhg:.3f} m\n" +
-                f"s_reposo: {s_reposo:.3f} m (sobreescrito)\n" +
-                f"s_tormenta: {s_tormenta:.3f} m (sobreescrito)\n" +
-                f"s_decmax: {s_decmax:.3f} m (sobreescrito)\n" +
-                f"a: {a:.3f} m\n" +
-                f"b: {b:.3f} m\n" +
-                f"Altura base eléctrica: {altura_base_electrica:.3f} m"
-            )
-        else:
+        # Usar formateador centralizado de EstructuraAEA_Geometria
+        try:
+            from EstructuraAEA_Geometria import EstructuraAEA_Geometria
+            dist_txt = EstructuraAEA_Geometria.formato_resumen_distancias(dims, estructura_actual, calculo_guardado)
+        except Exception:
+            # Fallback seguro
+            sobreescribir_s = estructura_actual.get('SOBREESCRIBIR_S', False)
+            s_reposo = dims.get('s_reposo', s_estructura)
+            s_tormenta = dims.get('s_tormenta', s_estructura)
+            s_decmax = dims.get('s_decmax', s_estructura)
             dist_txt = (
                 f"D_fases: {D_fases:.3f} m\n" +
                 f"Dhg: {Dhg:.3f} m\n" +
