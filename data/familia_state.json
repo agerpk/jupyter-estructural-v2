@@ -1,5 +1,5 @@
 {
-  "familia_activa": "PSJ_suspensiones_embonadas",
+  "familia_activa": "PSJ_prueba",
   "calculos_activos_familia": [
     "cmc",
     "dge",
@@ -9,16 +9,22 @@
   "descargar_html_secciones": {
     "familia:resumen": false,
     "cmc": false,
-    "dge": false,
+    "dge": true,
     "dge.dimensiones": false,
-    "dge.nodos": true,
-    "dge.diagramas": true,
+    "dge.nodos": false,
+    "dge.diagramas.graf_estructura": false,
+    "dge.diagramas.graf_cabezal": false,
+    "dge.diagramas.graf_nodos": false,
     "dge.servidumbre": false,
-    "dge.memoria": true,
+    "dge.memoria": false,
     "dge.plscadd": false,
-    "dme": false,
+    "dme": true,
+    "dme.polar": true,
+    "dme.barras": true,
     "arboles": true,
+    "arboles.imagenes": true,
     "aee": false,
-    "familia:costeo": false
+    "familia:costeo": false,
+    "dme.tabla": true
   }
 }

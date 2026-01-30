@@ -168,10 +168,17 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual, mostrar_aler
                     codes = df_dict['column_codes'][level_idx]
                     arrays.append([level_values[code] for code in codes])
                 multi_idx = pd.MultiIndex.from_arrays(arrays)
+                # Nombrar niveles para que aparezca la hipótesis en el header
+                try:
+                    multi_idx.names = ['Hipótesis', 'Componente']
+                except Exception:
+                    pass
                 df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)
             else:
                 # Fallback: usar orient='split' para preservar MultiIndex
                 df_cargas = pd.read_json(json.dumps(df_dict), orient='split')
+                
+                # Si no tiene MultiIndex, intentar reconstruirlo desde nombres de columnas
                 
                 # Si no tiene MultiIndex, intentar reconstruirlo desde nombres de columnas
                 if not isinstance(df_cargas.columns, pd.MultiIndex) and len(df_cargas.columns) > 2:
@@ -202,12 +209,7 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual, mostrar_aler
             
             imagenes_html.extend([
                 html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
-                ViewHelpers.crear_tabla_html_iframe(
-                    df_cargas_fmt,
-                    altura_fila=25,
-                    altura_min=150,
-                    altura_max=600
-                )
+                ViewHelpers.crear_tabla_html_iframe(df_cargas_fmt)
             ])
         
         # Organizar imágenes en dos columnas (verificar si hay JSON para 3D)

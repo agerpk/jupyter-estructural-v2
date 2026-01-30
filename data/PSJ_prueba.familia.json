@@ -1,7 +1,7 @@
 {
   "nombre_familia": "PSJ_prueba",
   "fecha_creacion": "2026-01-05T10:35:57.988330",
-  "fecha_modificacion": "2026-01-27T09:02:39.203144",
+  "fecha_modificacion": "2026-01-30T15:02:34.474080",
   "estructuras": {
     "Estr.1": {
       "TITULO": "PSJ_S_DTV_Embo_1500_v350m",
@@ -130,7 +130,8 @@
           "II": 0.7,
           "III": 0.7,
           "IV": 0.7,
-          "V": 0.7
+          "V": 0.7,
+          "relflecha_max": 0.95
         }
       },
       "doble_terna_una_terna_activa": false,
@@ -279,7 +280,11 @@
           "restriccion_guardia": 0.7,
           "relflecha": 0.9
         }
-      }
+      },
+      "hipotesis_a5_dme_15pc_si_lk_mayor_2_5": true,
+      "generar_estructura_plscadd_tabla": true,
+      "insulator_type_guardia": "Clamp",
+      "insulator_type_conductor": "Suspension"
     }
   },
   "estados_climaticos": {

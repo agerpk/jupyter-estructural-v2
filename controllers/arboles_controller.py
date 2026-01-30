@@ -364,24 +364,12 @@ def register_callbacks(app):
                 # Formatear floats a 2 decimales
                 df_cargas_fmt = df_cargas.round(2)
                 
-                # Crear HTML con estilos embebidos
-                html_table = f'''<html><head><style>
-                    body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
-                    table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
-                    th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
-                    th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
-                    tr:nth-child(even) {{ background-color: #f8f9fa; }}
-                    tr:hover {{ background-color: #e9ecef; }}
-                </style></head><body>{df_cargas_fmt.to_html(border=0, index=False)}</body></html>'''
-                
+                # Usar helper para generar tabla con fila de hipótesis
+                from utils.view_helpers import ViewHelpers
                 altura_tabla = min(max(len(df_cargas) * 25 + 80, 150), 600)
-                
                 imagenes_html.extend([
                     html.H5("Cargas Aplicadas por Nodo", className="mt-4 mb-3"),
-                    html.Iframe(
-                        srcDoc=html_table,
-                        style={'width': '100%', 'height': f'{altura_tabla}px', 'border': '1px solid #dee2e6', 'borderRadius': '4px'}
-                    )
+                    ViewHelpers.crear_tabla_html_iframe(df_cargas_fmt)
                 ])
             
             imagenes_cards = []

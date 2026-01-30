@@ -24,18 +24,47 @@ class ViewHelpers:
             String base64 o None si no existe
         """
         img_path = CACHE_DIR / nombre_archivo
-        print(f"Buscando imagen: {img_path}")
-        if not img_path.exists():
-            print(f"❌ Imagen no encontrada: {img_path}")
-            return None
-        
-        try:
-            with open(img_path, 'rb') as f:
-                print(f"✅ Imagen cargada: {nombre_archivo}")
-                return base64.b64encode(f.read()).decode()
-        except Exception as e:
-            print(f"❌ Error cargando imagen: {e}")
-            return None
+        print(f"Buscando imagen en cache: {img_path}")
+        if img_path.exists():
+            try:
+                with open(img_path, 'rb') as f:
+                    print(f"✅ Imagen cargada desde cache: {nombre_archivo}")
+                    return base64.b64encode(f.read()).decode()
+            except Exception as e:
+                print(f"❌ Error cargando imagen desde cache: {e}")
+                # seguir a búsqueda en repo root
+        else:
+            print(f"🔎 No encontrada en cache: {img_path}")
+
+        # Intentar buscar en carpeta raíz del proyecto (persistente aunque se borre cache)
+        repo_root = Path(__file__).resolve().parents[1]
+        candidate = repo_root / nombre_archivo
+        print(f"Buscando imagen en repo root: {candidate}")
+        if candidate.exists():
+            try:
+                with open(candidate, 'rb') as f:
+                    print(f"✅ Imagen cargada desde repo root: {candidate.name}")
+                    return base64.b64encode(f.read()).decode()
+            except Exception as e:
+                print(f"❌ Error cargando imagen desde repo root: {e}")
+
+        # Búsqueda más tolerante (case-insensitive / tokens) en repo root
+        lower_target = nombre_archivo.lower()
+        for p in repo_root.iterdir():
+            try:
+                if p.is_file() and p.suffix.lower() in ('.png', '.jpg', '.jpeg'):
+                    if p.name.lower() == lower_target or ('logo' in p.name.lower() and 'distrocuyo' in p.name.lower()):
+                        try:
+                            with open(p, 'rb') as f:
+                                print(f"✅ Imagen encontrada por heurística en repo root: {p.name}")
+                                return base64.b64encode(f.read()).decode()
+                        except Exception as e:
+                            print(f"❌ Error cargando imagen heurística: {e}")
+            except Exception:
+                continue
+
+        print(f"❌ Imagen no encontrada en cache ni en repo root: {nombre_archivo}")
+        return None
     
     @staticmethod
     def crear_img_component(nombre_archivo, style=None, className=None):
@@ -351,7 +380,9 @@ class ViewHelpers:
     
     @staticmethod
     def crear_tabla_html_iframe(df, altura_fila=25, altura_min=150, altura_max=600):
-        """Crea tabla HTML en iframe con altura dinámica
+        """Crea tabla HTML en iframe con altura dinámica. Si el DataFrame tiene MultiIndex
+        en columnas (Hipótesis / Componente x,y,z) se genera una cabecera adicional con
+        los códigos de hipótesis (A0, A1, ...).
         
         Args:
             df: DataFrame de pandas
@@ -362,16 +393,97 @@ class ViewHelpers:
         Returns:
             html.Iframe component
         """
-        html_table = f'''<html><head><style>
+        # Estilos comunes
+        style_head = '''<html><head><style>
             body {{ margin: 0; padding: 10px; background: white; font-family: Arial, sans-serif; }}
-            table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
-            th, td {{ border: 1px solid #dee2e6; padding: 4px 6px; text-align: right; }}
-            th {{ background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 10; }}
-            tr:nth-child(even) {{ background-color: #f8f9fa; }}
-            tr:hover {{ background-color: #e9ecef; }}
-        </style></head><body>{df.to_html(border=0, index=False)}</body></html>'''
+            table {{ border-collapse: collapse; width: 100%; font-size: 13px; background: white !important; }}
+            /* Forzar fondo y color aunque haya tema oscuro */
+            th, td {{ border: 1px solid #cfcfcf; padding: 8px 10px; text-align: right; background: white !important; color: #000 !important; vertical-align: middle; font-size: 13px; opacity: 1 !important; filter: none !important; -webkit-text-fill-color: #000 !important; text-shadow: none !important; }}
+            thead th {{ background: white !important; color: #000 !important; font-weight: 700 !important; }}
+            tbody td, tbody tr {{ background: white !important; color: #000 !important; opacity: 1 !important; filter: none !important; }}
+            /* Anular cualquier regla de alternado */
+            tr:nth-child(even) {{ background-color: white !important; }}
+            tr:hover {{ background-color: #f6f7f8 !important; }}
+            /* Selección más clara y legible */
+            ::selection {{ background: #d9edf7 !important; color: #000 !important; }}
+            ::-moz-selection {{ background: #d9edf7 !important; color: #000 !important; }}
+        </style></head>'''
         
-        altura_tabla = min(max(len(df) * altura_fila + 80, altura_min), altura_max)
+        df_display = df.copy()
+        try:
+            df_display = df_display.round(2)
+        except Exception:
+            pass
+        
+        # Si tiene MultiIndex en columnas y tiene al menos 3 columnas por hipótesis, construir cabecera personalizada
+        if hasattr(df_display.columns, 'levels') and len(df_display.columns) > 2:
+            cols = list(df_display.columns)
+            # Agrupar columnas por etiqueta del primer nivel para evitar desfaces entre código y sus subcolumnas
+            left_n = 2  # asumimos primeras 2 columnas: Nodo y Unidad
+            groups = []
+            current_label = None
+            current_group = []
+            for col in cols[left_n:]:
+                label = col[0] if isinstance(col, tuple) else col
+                if current_label is None:
+                    current_label = label
+                    current_group = [col]
+                elif label == current_label:
+                    current_group.append(col)
+                else:
+                    groups.append((current_label, current_group))
+                    current_label = label
+                    current_group = [col]
+            if current_group:
+                groups.append((current_label, current_group))
+
+            # Primera fila: Nodo/Unidad (rowspan=2) + códigos por grupo (colspan=len(grp))
+            top_row = '<tr style="background:#ffffff; font-weight:700; text-align:center; color:#000">'
+            top_row += '<th rowspan="2" style="text-align:left; vertical-align:middle; padding:6px 8px; color:#000">Nodo</th>'
+            top_row += '<th rowspan="2" style="text-align:left; vertical-align:middle; padding:6px 8px; color:#000">Unidad</th>'
+            for label, grp in groups:
+                try:
+                    lstr = str(label)
+                    if 'HIP_' in lstr or '_' in lstr:
+                        code = lstr.split('_')[-2]
+                    else:
+                        code = lstr
+                except Exception:
+                    code = str(label)
+                top_row += f'<th colspan="{len(grp)}" style="text-align:center; color:#000; padding:6px 8px">{code}</th>'
+            top_row += '</tr>'
+
+            # Segunda fila: subcolumnas (x,y,z,...)
+            second_row = '<tr style="font-weight:600; text-align:center; color:#000">'
+            for label, grp in groups:
+                for col in grp:
+                    sub = col[1] if isinstance(col, tuple) and len(col) > 1 else ''
+                    second_row += f'<th style="color:#000">{sub}</th>'
+            second_row += '</tr>'
+
+            # Cuerpo: iterar por columnas en orden para evitar desfaces
+            body_rows = []
+            for _, row in df_display.iterrows():
+                r = '<tr>'
+                r += f'<td style="text-align:left">{row.iloc[0]}</td>'
+                r += f'<td style="text-align:left">{row.iloc[1]}</td>'
+                for col in cols[left_n:]:
+                    v = row[col] if col in row.index else ''
+                    r += f'<td>{v}</td>'
+                r += '</tr>'
+                body_rows.append(r)
+            body_html = '\n'.join(body_rows)
+            table_html = f'<body><table>\n{top_row}\n{second_row}\n{body_html}\n</table></body>'
+            html_table = style_head + table_html
+        else:
+            # Fallback: usar el método simple de pandas y añadir inline-style a la tabla para evitar que estilos externos la afecten
+            pandas_html = df_display.to_html(border=0, index=False)
+            # Inserta inline styles en la etiqueta <table>
+            if '<table' in pandas_html:
+                pandas_html = pandas_html.replace('<table', '<table style="background:white; color:#000"', 1)
+            html_table = style_head + f'<body>{pandas_html}</body>'
+        
+        altura_tabla = min(max(len(df_display) * altura_fila + 80, altura_min), altura_max)
         
         return html.Iframe(
             srcDoc=html_table,
@@ -382,9 +494,63 @@ class ViewHelpers:
                 'borderRadius': '4px'
             }
         )
-    
+
+    @staticmethod
+    def crear_datatable(df, altura=None, table_id=None):
+        """Crea un componente Dash DataTable a partir de un DataFrame.
+        Soporta MultiIndex en columnas (los nombres se usan como cabeceras multilínea).
+        """
+        from dash import dash_table, html
+        import pandas as pd
+
+        df2 = df.copy()
+        columns = []
+
+        if isinstance(df2.columns, pd.MultiIndex):
+            # crear columnas con ids únicos y nombres multilínea
+            for col in df2.columns:
+                lvl0 = str(col[0])
+                lvl1 = str(col[1]) if len(col) > 1 else ''
+                col_id = f"{lvl0}__{lvl1}" if lvl1 else lvl0
+                # mover la columna a nuevo id
+                df2[col_id] = df2[col]
+                columns.append({'name': [lvl0, lvl1], 'id': col_id})
+            # eliminar columnas originales para evitar duplicados
+            # (las nuevas columnas ya contienen los valores)
+            # Asegurarse de mantener orden
+            cols_order = [c['id'] for c in columns]
+            # Prepend index columns si existen (ej. Nodo, Unidad)
+            # Detectar si las primeras columnas no pertenecen a hipotesis
+            # Si las primeras columnas no tienen formato tuple, las dejamos como están
+            # Para simplicidad asumimos que df ya contiene Nodo y Unidad como primeras dos columnas
+            data = df2[cols_order].to_dict('records')
+        else:
+            for col in df2.columns:
+                columns.append({'name': str(col), 'id': str(col)})
+            data = df2.to_dict('records')
+
+        # DataTable con estilos forzados para fondo blanco y texto negro
+        dt = dash_table.DataTable(
+            id=table_id or 'datatable-cargas-aplicadas',
+            columns=columns,
+            data=data,
+            fixed_rows={'headers': True},
+            page_action='none',
+            style_table={'overflowX': 'auto', 'maxHeight': f'{altura}px' if altura else '400px'},
+            style_cell={'textAlign': 'right', 'backgroundColor': 'white', 'color': '#000', 'whiteSpace': 'nowrap', 'padding': '6px 8px', 'fontSize': '13px'},
+            style_header={'backgroundColor': 'white', 'fontWeight': '700', 'color': '#000', 'textAlign': 'center'},
+            style_cell_conditional=[
+                {'if': {'column_id': c['id']}, 'textAlign': 'right'} for c in columns
+            ],
+            style_as_list_view=True,
+            tooltip_header={},
+            virtualization=False
+        )
+
+        return html.Div(dt, style={'border': '1px solid #dee2e6', 'padding': '6px', 'borderRadius': '4px', 'background': 'white'})
+
     # ==================== HELPERS DE GUARDADO ====================
-    
+
     @staticmethod
     def guardar_imagenes_calculo(hash_params, imagenes_config):
         """Guarda múltiples imágenes de un cálculo (PNG + JSON para Plotly)

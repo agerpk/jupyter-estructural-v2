@@ -795,13 +795,22 @@ class EstructuraAEA_Mecanica:
         
         codigos_hipotesis = []
         for hip_larga in hipotesis_filtradas:
+            # Extraer código corto de hipótesis (penúltimo token) — funciona con tipos que contienen '_' en el nombre
             partes = hip_larga.split('_')
-            codigo_corto = partes[-3] if len(partes) > 3 else hip_larga
+            if len(partes) >= 2:
+                codigo_corto = partes[-2]
+            else:
+                codigo_corto = hip_larga
             codigos_hipotesis.append(codigo_corto)
             nivel_superior.extend([codigo_corto] * 3)
             nivel_inferior.extend(['x', 'y', 'z'])
         
         multi_index = pd.MultiIndex.from_arrays([nivel_superior, nivel_inferior])
+        # Nombrar niveles para facilitar visualización (Hipótesis / Componente)
+        try:
+            multi_index.names = ['Hipótesis', 'Componente']
+        except Exception:
+            pass
         
         # Crear filas desde nodos
         filas = []

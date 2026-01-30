@@ -61,7 +61,18 @@ def generar_html_completo(estructura_actual):
     
     nombre_estructura = estructura_actual.get('TITULO', 'estructura')
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
+    # Intentar cargar logo embebido (logo_distrocuyo.png)
+    try:
+        logo_b64 = _load_image_base64('logo_distrocuyo.png', context='global')
+        if logo_b64:
+            logo_html = f'<img id="logo_distrocuyo" src="data:image/png;base64,{logo_b64}" alt="logo" draggable="false" style="position:fixed; top:20px; right:30px; height:50px; width:auto; pointer-events:none; user-select:none; -webkit-user-drag:none; z-index:9999;">'
+        else:
+            logo_html = ''
+    except Exception as e:
+        logger.debug(f"Logo no encontrado o error cargando logo: {e}")
+        logo_html = ''
+
     # Generar secciones HTML
     secciones = []
     
@@ -76,12 +87,12 @@ def generar_html_completo(estructura_actual):
     # 2. DGE
     calculo_dge = CalculoCache.cargar_calculo_dge(nombre_estructura)
     if calculo_dge:
-        secciones.append(generar_seccion_dge(calculo_dge))
+        secciones.append(generar_seccion_dge(calculo_dge, id_prefix=nombre_estructura.replace(' ','_').replace('/','_')))
     
     # 3. DME
     calculo_dme = CalculoCache.cargar_calculo_dme(nombre_estructura)
     if calculo_dme:
-        secciones.append(generar_seccion_dme(calculo_dme))
+        secciones.append(generar_seccion_dme(calculo_dme, id_prefix=nombre_estructura.replace(' ','_').replace('/','_')))
     
     # 4. Árboles
     calculo_arboles = CalculoCache.cargar_calculo_arboles(nombre_estructura)
@@ -115,7 +126,8 @@ def generar_html_completo(estructura_actual):
     <script src="https://cdn.plot.ly/plotly-2.18.0.min.js"></script>
     <style>
         body {{ padding: 20px; font-family: Arial, sans-serif; background-color: #f8f9fa; }}
-        .container-fluid {{ max-width: 1400px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+        .container-fluid {{ position: relative; max-width: 1400px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+        /* logo image is absolutely positioned within the container and is non-interactive */
         h1 {{ color: #0d6efd; border-bottom: 3px solid #0d6efd; padding-bottom: 10px; }}
         h3 {{ color: #198754; margin-top: 40px; border-bottom: 2px solid #198754; padding-bottom: 8px; }}
         h4 {{ color: #0dcaf0; margin-top: 30px; }}
@@ -138,7 +150,7 @@ def generar_html_completo(estructura_actual):
     </style>
 </head>
 <body>
-    <div class="container-fluid">
+    <div class="container-fluid">{logo_html}
         <h1>Cálculo Completo - {nombre_estructura}</h1>
         <p class="timestamp">Generado: {timestamp}</p>
         <hr>
@@ -220,15 +232,18 @@ def generar_seccion_cmc(calculo_cmc):
     return '\n'.join(html)
 
 
-def generar_seccion_dge(calculo_dge):
-    """Genera HTML para sección DGE"""
+def generar_seccion_dge(calculo_dge, id_prefix=None):
+    """Genera HTML para sección DGE (acepta id_prefix para anclar subsecciones)"""
     html = ['<h3>2. DISEÑO GEOMÉTRICO DE ESTRUCTURA (DGE)</h3>']
     
     logger.debug(f"Generando DGE (keys: {list(calculo_dge.keys())})")
     # Dimensiones y parámetros
     dimensiones = calculo_dge.get('dimensiones', {})
     if dimensiones:
-        html.append('<h5>Dimensiones de Estructura</h5>')
+        if id_prefix:
+            html.append(f'<h5 id="{id_prefix}_dge_dimensiones">Dimensiones de Estructura</h5>')
+        else:
+            html.append('<h5>Dimensiones de Estructura</h5>')
         html.append('<table class="table table-bordered params-table">')
         for campo, valor in dimensiones.items():
             if isinstance(valor, (int, float)):
@@ -241,7 +256,10 @@ def generar_seccion_dge(calculo_dge):
     # Nodos estructurales
     nodes_key = calculo_dge.get('nodes_key', {})
     if nodes_key:
-        html.append('<h5>Nodos Estructurales</h5>')
+        if id_prefix:
+            html.append(f'<h5 id="{id_prefix}_dge_nodos">Nodos Estructurales</h5>')
+        else:
+            html.append('<h5>Nodos Estructurales</h5>')
         html.append('<table class="table table-striped table-bordered table-sm">')
         html.append('<thead><tr><th>Nodo</th><th>X (m)</th><th>Y (m)</th><th>Z (m)</th></tr></thead>')
         html.append('<tbody>')
@@ -257,14 +275,17 @@ def generar_seccion_dge(calculo_dge):
     hash_params = calculo_dge.get('hash_parametros')
     if hash_params:
         html.append('<h5>Diagramas</h5>')
-        for nombre, titulo in [
-            (f"Estructura.{hash_params}.png", "Estructura Completa"),
-            (f"Cabezal.{hash_params}.png", "Detalle Cabezal"),
-            (f"Nodos.{hash_params}.png", "Nodos y Coordenadas")
+        for nombre, titulo, shortid in [
+            (f"Estructura.{hash_params}.png", "Estructura Completa", 'graf_estructura'),
+            (f"Cabezal.{hash_params}.png", "Detalle Cabezal", 'graf_cabezal'),
+            (f"Nodos.{hash_params}.png", "Nodos y Coordenadas", 'graf_nodos')
         ]:
             img_str = ViewHelpers.cargar_imagen_base64(nombre)
             if img_str:
-                html.append(f'<h6>{titulo}</h6>')
+                if id_prefix:
+                    html.append(f'<h6 id="{id_prefix}_dge_{shortid}">{titulo}</h6>')
+                else:
+                    html.append(f'<h6>{titulo}</h6>')
                 html.append(f'<img src="data:image/png;base64,{img_str}" alt="{titulo}">')
 
     # Nota: la tabla PLS-CADD se mostrará como una subsección independiente dentro de DGE en la versión "familia".
@@ -308,24 +329,45 @@ def generar_seccion_dge(calculo_dge):
     return '\n'.join(html)
 
 
-def generar_seccion_dme(calculo_dme):
-    """Genera HTML para sección DME"""
+def generar_seccion_dme(calculo_dme, id_prefix=None):
+    """Genera HTML para sección DME (acepta id_prefix para anclar subsecciones)"""
     html = ['<h3>3. DISEÑO MECÁNICO DE ESTRUCTURA (DME)</h3>']
     
+    # Resumen ejecutivo (opcional)
+    resumen_keys = ['resumen_ejecutivo','resumen','texto_resumen','resumen_html']
+    resumen = None
+    for k in resumen_keys:
+        if calculo_dme.get(k):
+            resumen = calculo_dme.get(k)
+            break
+    if resumen:
+        if id_prefix:
+            html.append(f'<h5 id="{id_prefix}_dme_resumen">Resumen Ejecutivo</h5>')
+        else:
+            html.append('<h5>Resumen Ejecutivo</h5>')
+        html.append(f'<pre>{resumen}</pre>')
+
+    # Tabla resumen de reacciones
     if calculo_dme.get('df_reacciones_html'):
         df = pd.read_json(StringIO(calculo_dme['df_reacciones_html']), orient='split').round(2)
-        html.append('<h5>Reacciones por Hipótesis</h5>')
+        if id_prefix:
+            html.append(f'<h5 id="{id_prefix}_dme_tabla_reacciones">Tabla Resumen de Reacciones y Tiros</h5>')
+        else:
+            html.append('<h5>Tabla Resumen de Reacciones y Tiros</h5>')
         html.append(df.to_html(classes='table table-striped table-bordered table-hover table-sm'))
     
     hash_params = calculo_dme.get('hash_parametros')
     if hash_params:
-        for nombre, titulo in [
-            (f"DME_Polar.{hash_params}.png", "Diagrama Polar de Reacciones"),
-            (f"DME_Barras.{hash_params}.png", "Diagrama de Barras")
+        for nombre, titulo, shortid in [
+            (f"DME_Polar.{hash_params}.png", "Diagrama Polar de Reacciones", 'polar'),
+            (f"DME_Barras.{hash_params}.png", "Diagrama de Barras", 'barras')
         ]:
             img_str = _load_image_base64(nombre, context="DME")
             if img_str:
-                html.append(f'<h5>{titulo}</h5>')
+                if id_prefix:
+                    html.append(f'<h5 id="{id_prefix}_dme_{shortid}">{titulo}</h5>')
+                else:
+                    html.append(f'<h5>{titulo}</h5>')
                 html.append(f'<img src="data:image/png;base64,{img_str}" alt="{titulo}">')
             else:
                 logger.debug(f"Imagen DME faltante: {nombre}")
@@ -437,6 +479,16 @@ def generar_html_comparativa(titulo, comparativa_data, resultados_html=None):
     secciones = []
     
     # 1. Parámetros de comparativa
+    # Intentar cargar logo embebido (logo_distrocuyo.png)
+    try:
+        logo_b64 = ViewHelpers.cargar_imagen_base64('logo_distrocuyo.png')
+        if logo_b64:
+            logo_html = f'<img id="logo_distrocuyo" src="data:image/png;base64,{logo_b64}" alt="logo" draggable="false" style="position:absolute; top:20px; right:30px; height:50px; width:auto; pointer-events:none; user-select:none; -webkit-user-drag:none;">'
+        else:
+            logo_html = ''
+    except Exception:
+        logo_html = ''
+
     secciones.append(generar_seccion_parametros_comparativa(comparativa_data))
     
     # 2. Tabla comparativa
@@ -462,7 +514,8 @@ def generar_html_comparativa(titulo, comparativa_data, resultados_html=None):
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {{ padding: 20px; font-family: Arial, sans-serif; background-color: #f8f9fa; }}
-        .container-fluid {{ max-width: 1400px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+        .container-fluid {{ position: relative; max-width: 1400px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+        /* logo image is absolutely positioned within the container and is non-interactive */
         h1 {{ color: #0d6efd; border-bottom: 3px solid #0d6efd; padding-bottom: 10px; }}
         h3 {{ color: #198754; margin-top: 40px; border-bottom: 2px solid #198754; padding-bottom: 8px; }}
         h4 {{ color: #0dcaf0; margin-top: 30px; }}

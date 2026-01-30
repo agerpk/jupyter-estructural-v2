@@ -226,10 +226,29 @@ class CalculoCache:
         except Exception as e:
             logger.exception(f"Advertencia: No se pudieron guardar imágenes DME: {e}")
         
+        # Crear versión JSON/tabla para la sección DME descargable (misma apariencia que en la UI)
+        df_reacciones_html = None
+        if df_reacciones is not None:
+            try:
+                df_display = df_reacciones.copy()
+                df_display.index = [idx.split('_')[-2] if len(idx.split('_')) >= 2 else idx for idx in df_display.index]
+                df_display.index.name = 'Hipótesis'
+                df_display = df_display.reset_index()
+                df_display = df_display[['Hipótesis', 'Reaccion_Fx_daN', 'Reaccion_Fy_daN', 'Reaccion_Fz_daN',
+                                         'Reaccion_Mx_daN_m', 'Reaccion_My_daN_m', 'Reaccion_Mz_daN_m',
+                                         'Tiro_X_daN', 'Tiro_Y_daN', 'Tiro_resultante_daN', 'Angulo_grados']]
+                df_display.columns = ['Hipótesis', 'Fx [daN]', 'Fy [daN]', 'Fz [daN]', 'Mx [daN·m]', 'My [daN·m]',
+                                      'Mz [daN·m]', 'Tiro_X [daN]', 'Tiro_Y [daN]', 'Tiro_Res [daN]', 'Ángulo [°]']
+                df_reacciones_html = df_display.to_json(orient='split', force_ascii=False)
+            except Exception as e:
+                logger.exception(f"Error serializando df_reacciones_html: {e}")
+                df_reacciones_html = None
+
         calculo_data = {
             "hash_parametros": hash_params,
             "fecha_calculo": datetime.now().isoformat(),
             "df_reacciones": df_reacciones.to_dict(orient='index') if df_reacciones is not None else None,
+            "df_reacciones_html": df_reacciones_html,
             "imagen_polar": f"DME_Polar.{hash_params}.png" if fig_polar else None,
             "imagen_barras": f"DME_Barras.{hash_params}.png" if fig_barras else None,
             "hipotesis_activa": estructura_data.get('HIPOTESIS_ACTIVA') if estructura_data else None
