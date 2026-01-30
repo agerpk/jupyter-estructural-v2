@@ -594,6 +594,11 @@ def construir_html_personalizado(nombre_familia: str, resultados_familia: Dict[s
         table th {{ background-color: rgba(10,74,148,0.06); color: var(--accent); font-weight: 700; border-bottom: 2px solid rgba(10,74,148,0.08); }}
         pre {{ background-color: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 5px; overflow-x: auto; }}
         img {{ max-width: 100%; height: auto; margin: 20px 0; border: 1px solid rgba(0,0,0,0.08); }}
+        .grid-2col {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 20px 0; align-items: start; }}
+        .grid-2col img {{ width: 100%; height: auto; display: block; margin: 0 auto; }}
+        @media (max-width: 720px) {{
+            .grid-2col {{ grid-template-columns: 1fr; }}
+        }}
         .alert {{ margin: 20px 0; padding: 15px; border-radius: 5px; }}
     </style>
 </head>

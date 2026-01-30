@@ -283,8 +283,11 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
         .indice a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
         .indice a:hover {{ text-decoration: underline; color: var(--accent-alt); }}
         .timestamp {{ color: rgba(0,0,0,0.5); font-size: 0.9em; margin-bottom: 30px; }}
-        .grid-2col {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin: 20px 0; }}
-        .grid-2col img {{ width: 100%; height: auto; }}
+        .grid-2col {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 20px 0; align-items:start; }}
+        .grid-2col img {{ width: 100%; height: auto; display: block; margin: 0 auto; }}
+        @media (max-width: 720px) {{
+            .grid-2col {{ grid-template-columns: 1fr; }}
+        }}
         /* Smaller table style for wide tables like Árboles de Carga */
         .small-table table {{ font-size: 0.86rem; }}
         .table-responsive {{ overflow-x: auto; -webkit-overflow-scrolling: touch; }} 

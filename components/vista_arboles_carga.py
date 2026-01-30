@@ -229,11 +229,11 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual, mostrar_aler
                                 dcc.Graph(
                                     figure=fig_dict,
                                     config={'displayModeBar': True, 'responsive': True},
-                                    style={'height': '900px', 'width': '100%'}
-                                )
+                                    style={'height': '600px', 'width': '100%'},
+                                    )
                             ], style={'padding': '0.5rem'})
                         ], className="mb-3")
-                    ], lg=12, md=12)
+                    ], lg=6, md=6)
                 )
             else:
                 # Gráfico 2D estático
@@ -247,11 +247,11 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual, mostrar_aler
                             dbc.CardHeader(html.H6(f"Hipótesis: {img_info['hipotesis']}", className="mb-0 text-center")),
                             dbc.CardBody([
                                 html.Img(src=f'data:image/png;base64,{img_str}', 
-                                        style={'width': '50%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
+                                        style={'width': '100%', 'height': 'auto', 'display': 'block', 'margin': '0 auto'}, 
                                         className="img-fluid")
                             ], style={'padding': '0.5rem'})
                         ], className="mb-3")
-                    ], lg=5, md=6)
+                    ], lg=6, md=6)
                 )
         
         # Crear filas de 2 columnas centradas

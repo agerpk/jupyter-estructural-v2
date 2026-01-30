@@ -143,8 +143,11 @@ def generar_html_completo(estructura_actual):
         img {{ max-width: 100%; height: auto; margin: 20px 0; border: 1px solid #dee2e6; }}
         .plotly-graph-div {{ margin: 20px 0; }}
         .timestamp {{ color: #6c757d; font-size: 0.9em; margin-bottom: 30px; }}
-        .grid-2col {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }}
-        .grid-2col img {{ width: 100%; }}
+        .grid-2col {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 20px 0; align-items: start; }}
+        .grid-2col img {{ width: 100%; height: auto; display: block; margin: 0 auto; }}
+        @media (max-width: 720px) {{
+            .grid-2col {{ grid-template-columns: 1fr; }}
+        }}
         .params-table {{ font-size: 0.9em; }}
         .params-table td:first-child {{ font-weight: 600; background-color: #f8f9fa; }}
     </style>
