@@ -444,15 +444,21 @@ def register_callbacks(app):
         if not tabla_original or not columnas:
             return True, "Error", "No hay datos de familia para actualizar", "danger", "danger"
         
+        # Intentar cargar la familia existente desde disco (más seguro que reconstruir desde tabla)
         try:
-            # Convertir tabla a familia para obtener estructura completa
-            familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
+            familia_data = FamiliaManager.cargar_familia(nombre_familia)
+            print(f"   💾 DEBUG guardar_estados_familia: familia cargada desde disco: {nombre_familia}")
         except Exception as e:
-            return True, "Error", f"Error cargando familia: {str(e)}", "danger", "danger"
-        
+            # Si no se puede cargar, intentar reconstruir desde la tabla (fallback)
+            try:
+                familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
+                print(f"   ⚠️ WARN guardar_estados_familia: no se encontró famiglia en disco, reconstruyendo desde tabla: {e}")
+            except Exception as ee:
+                return True, "Error", f"Error cargando familia: {str(ee)}", "danger", "danger"
+
         # Construir estados climáticos unificados (con restricciones incluidas)
         estados_climaticos = {}
-        
+
         for i in range(len(temps)):
             estado_id = str(i + 1)
             estados_climaticos[estado_id] = {
@@ -464,20 +470,22 @@ def register_callbacks(app):
                 "restriccion_guardia": rest_guard[i],
                 "relflecha": relflechas[i]
             }
-        
-        # Actualizar estados en familia Y en cada estructura
+
+        # Actualizar estados en familia sin tocar otros campos
         familia_data["estados_climaticos"] = estados_climaticos
-        
-        # Propagar estados a cada estructura individual
-        for estructura_id in familia_data.get("estructuras", {}):
-            familia_data["estructuras"][estructura_id]["estados_climaticos"] = estados_climaticos
-        
+
+        # Propagar estados a cada estructura individual conservando sus demás parámetros
+        for estructura_id, estructura in familia_data.get("estructuras", {}).items():
+            if not isinstance(estructura, dict):
+                continue
+            estructura["estados_climaticos"] = estados_climaticos
+
         # Guardar familia actualizada
         exito = FamiliaManager.guardar_familia(familia_data)
-        
+
         if not exito:
             return True, "Error", "Error guardando familia", "danger", "danger"
-        
+
         return True, "Éxito", "Estados climáticos guardados en familia y estructuras", "success", "success"
 
     @app.callback(

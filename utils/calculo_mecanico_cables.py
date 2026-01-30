@@ -94,9 +94,23 @@ class CalculoMecanicoCables:
                         self.df_conductor[col] = self.df_conductor[col].round(3)
                     else:
                         self.df_conductor[col] = self.df_conductor[col].round(2)
+
+            # DEBUG: inspeccionar resultados del conductor
+            try:
+                print("💡 DEBUG resultados_conductor keys:", list(self.resultados_conductor.keys())[:5])
+                sample_vals = {k: v.get('flecha_vertical_m') for k, v in list(self.resultados_conductor.items())[:5]}
+                print("💡 DEBUG sample flecha_vertical_m:", sample_vals)
+            except Exception:
+                print("⚠️ DEBUG: no se pudo inspeccionar resultados_conductor")
             
             # Calcular guardia 1
-            flecha_max_conductor = max([r["flecha_vertical_m"] for r in self.resultados_conductor.values()])
+            try:
+                flecha_max_conductor = max([r["flecha_vertical_m"] for r in self.resultados_conductor.values() if r and r.get('flecha_vertical_m') is not None])
+            except ValueError:
+                return {"exito": False, "mensaje": "No se obtuvieron valores de flecha válidos del conductor"}
+            except Exception as e:
+                return {"exito": False, "mensaje": f"Error calculando flecha_max_conductor: {e}"}
+
             flecha_max_guardia = flecha_max_conductor * RELFLECHA_MAX_GUARDIA
             
             self.df_guardia1, self.resultados_guardia1, estado_limitante_guard1, self.memoria_guardia1 = \

@@ -340,7 +340,16 @@ def ejecutar_calculo_cmc_automatico(estructura_actual, state, generar_plots=True
         sys.stdout = buffer = io.StringIO()
         
         # Ejecutar cálculo
-        resultado = state.calculo_mecanico.calcular(params, estados_climaticos, restricciones_dict)
+        try:
+            resultado = state.calculo_mecanico.calcular(params, estados_climaticos, restricciones_dict)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            # Mostrar parámetros críticos para debug
+            print("💥 DEBUG EXCEPCIÓN CMC - params:", params)
+            print("💥 DEBUG EXCEPCIÓN CMC - estados_climaticos keys:", list(estados_climaticos.keys()))
+            sys.stdout = old_stdout
+            return {"exito": False, "mensaje": f"Error en cálculo: {str(e)}"}
         
         console_output = buffer.getvalue()
         sys.stdout = old_stdout

@@ -261,7 +261,7 @@
       "temperatura": -5,
       "descripcion": "HIELO",
       "viento_velocidad": 0,
-      "espesor_hielo": 0.025,
+      "espesor_hielo": 0.015,
       "restriccion_conductor": 0.4,
       "restriccion_guardia": 0.7,
       "relflecha": 0.9
@@ -279,9 +279,9 @@
   "generar_estructura_plscadd_tabla": true,
   "insulator_type_guardia": "Clamp",
   "insulator_type_conductor": "Suspension",
+  "hipotesis_a5_dme_15pc_si_lk_mayor_2_5": false,
   "fecha_creacion": "",
   "version": "1.0",
   "D_fases_add": 0.0,
-  "hipotesis_a5_dme_15pc_si_lk_mayor_2_5": false,
-  "fecha_modificacion": "2026-01-29T09:37:17.246699"
+  "fecha_modificacion": "2026-01-29T10:31:57.953721"
 }

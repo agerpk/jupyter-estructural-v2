@@ -42,10 +42,18 @@ class Cable_AEA:
         self.propiedades = propiedades
         self.tipocable = tipocable  # Nueva propiedad obligatoria
         
-        # Propiedades básicas
-        self.diametro_m = propiedades["diametro_total_mm"] / 1000.0
-        self.peso_unitario_dan_m = propiedades["peso_unitario_dan_m"]
-        self.carga_rotura_dan = propiedades["carga_rotura_minima_dan"]
+        # Propiedades básicas (validar y convertir a numéricas)
+        try:
+            self.diametro_m = float(propiedades.get("diametro_total_mm")) / 1000.0
+            self.peso_unitario_dan_m = float(propiedades.get("peso_unitario_dan_m"))
+            self.carga_rotura_dan = float(propiedades.get("carga_rotura_minima_dan"))
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"ERROR: Parámetros numéricos faltantes o inválidos al crear Cable '{nombre}': "
+                f"diametro_total_mm={propiedades.get('diametro_total_mm')}, "
+                f"peso_unitario_dan_m={propiedades.get('peso_unitario_dan_m')}, "
+                f"carga_rotura_minima_dan={propiedades.get('carga_rotura_minima_dan')}"
+            )
         
         # Propiedades que dependen del tipo de cable (ACSS usa valores de acero)
         if "ACSS" in tipocable:
@@ -61,16 +69,22 @@ class Cable_AEA:
             if valores_faltantes:
                 print(f"ERROR: Cable ACSS '{nombre}' - Faltan valores de acero: {', '.join(valores_faltantes)}")
             
-            # Usar valores de acero para ACSS
-            self.seccion_mm2 = propiedades.get("seccion_acero_mm2", propiedades["seccion_total_mm2"])
-            self.modulo_elasticidad_dan_mm2 = propiedades.get("modulo_elasticidad_acero_dan_mm2", propiedades["modulo_elasticidad_dan_mm2"])
-            self.coeficiente_dilatacion = propiedades.get("coeficiente_dilatacion_acero_1_c", propiedades["coeficiente_dilatacion_1_c"])
+            # Usar valores de acero para ACSS (validar conversión a numérico)
+            try:
+                self.seccion_mm2 = float(propiedades.get("seccion_acero_mm2") if propiedades.get("seccion_acero_mm2") is not None else propiedades.get("seccion_total_mm2"))
+                self.modulo_elasticidad_dan_mm2 = float(propiedades.get("modulo_elasticidad_acero_dan_mm2") if propiedades.get("modulo_elasticidad_acero_dan_mm2") is not None else propiedades.get("modulo_elasticidad_dan_mm2"))
+                self.coeficiente_dilatacion = float(propiedades.get("coeficiente_dilatacion_acero_1_c") if propiedades.get("coeficiente_dilatacion_acero_1_c") is not None else propiedades.get("coeficiente_dilatacion_1_c"))
+            except (TypeError, ValueError):
+                raise ValueError(f"ERROR: Parámetros numéricos de acero inválidos para cable ACSS '{nombre}'")
         else:
             # Usar valores normales para otros tipos de cable
-            self.seccion_mm2 = propiedades["seccion_total_mm2"]
-            self.modulo_elasticidad_dan_mm2 = propiedades["modulo_elasticidad_dan_mm2"]
-            self.coeficiente_dilatacion = propiedades["coeficiente_dilatacion_1_c"]
-        
+            try:
+                self.seccion_mm2 = float(propiedades.get("seccion_total_mm2"))
+                self.modulo_elasticidad_dan_mm2 = float(propiedades.get("modulo_elasticidad_dan_mm2"))
+                self.coeficiente_dilatacion = float(propiedades.get("coeficiente_dilatacion_1_c"))
+            except (TypeError, ValueError):
+                raise ValueError(f"ERROR: Parámetros numéricos faltantes o inválidos al crear Cable '{nombre}' (seccion/modulo/coefi)")
+
         # Cache de cálculos de viento base (OBLIGATORIO)
         if viento_base_params is None:
             raise ValueError("ERROR: No se pudo crear objeto cable, faltan parámetros iniciales de viento base.")
@@ -376,17 +390,17 @@ class Cable_AEA:
     
     def _calcular_estado(self, vano, estado_data, t0, q0, parametros_viento):
         """Calcula tensiones y flechas para un estado climático específico dado un estado básico"""
-        # Obtener parámetros del estado
+        # Obtener parámetros del estado (asegurar valores por defecto si vienen como None)
         q = estado_data["temperatura"]
-        viento_velocidad = estado_data.get("viento_velocidad", 0)
-        espesor_hielo = estado_data.get("espesor_hielo", 0)
+        viento_velocidad = estado_data.get("viento_velocidad") or 0
+        espesor_hielo = estado_data.get("espesor_hielo") or 0
         
         # Calcular cargas
         peso_total = self.cargaPeso(espesor_hielo_m=espesor_hielo, densidad_hielo_kg_m3=900)
         peso_hielo = self._calcular_peso_hielo(espesor_hielo, 900)
         
         # Calcular viento si hay velocidad
-        if viento_velocidad > 0:
+        if viento_velocidad and viento_velocidad > 0:
             resultado_viento = self.cargaViento(
                 V=viento_velocidad,
                 phi_rel_deg=90,
@@ -936,7 +950,7 @@ class Cable_AEA:
                 "carga_unitaria_daN_m": float('nan'),
                 "descripcion": estado_data["descripcion"],
                 "porcentaje_rotura": float('nan'),
-                "espesor_hielo_cm": estado_data.get("espesor_hielo", 0) * 100,
+                "espesor_hielo_cm": (estado_data.get("espesor_hielo") or 0) * 100,
                 "viento_velocidad": estado_data.get("viento_velocidad", 0),
                 "carga_viento_daN_m": float('nan'),
                 "peso_total_daN_m": float('nan'),
@@ -958,6 +972,17 @@ class Cable_AEA:
         print(f"\n🔧 Cálculo mecánico para {self.nombre} ({'Guardia' if es_guardia else 'Conductor'})")
         print(f"   Objetivo: {objetivo}, Vano: {vano} m")
         
+        # Validar propiedades antes de cálculos
+        if self.carga_rotura_dan is None or self.seccion_mm2 is None or self.modulo_elasticidad_dan_mm2 is None:
+            raise ValueError(
+                f"ERROR: Propiedades del cable incompletas para '{self.nombre}': "
+                f"carga_rotura_dan={self.carga_rotura_dan}, seccion_mm2={self.seccion_mm2}, modulo_elasticidad_dan_mm2={self.modulo_elasticidad_dan_mm2}"
+            )
+        if self.seccion_mm2 <= 0 or self.carga_rotura_dan <= 0:
+            raise ValueError(
+                f"ERROR: Propiedades del cable inválidas para '{self.nombre}': seccion_mm2={self.seccion_mm2}, carga_rotura_dan={self.carga_rotura_dan}"
+            )
+
         # DEBUG: Mostrar valores usados en cálculos
         print(f"   📊 Valores para cálculos mecánicos:")
         print(f"      Sección: {self.seccion_mm2} mm²")
@@ -988,7 +1013,12 @@ class Cable_AEA:
         # Para guardia, agregar restricción de relación de flecha si no existe
         if es_guardia and "relflecha_max" not in restricciones:
             restricciones["relflecha_max"] = 0.9
-        
+
+        # Normalizar estados_climaticos: asegurar que campos numéricos no sean None
+        for est_id, est_data in estados_climaticos.items():
+            est_data['espesor_hielo'] = est_data.get('espesor_hielo') or 0
+            est_data['viento_velocidad'] = est_data.get('viento_velocidad') or 0
+
         # Para guardia con TiroMin, calcular flecha máxima basada en relación con conductor
         if (es_guardia and objetivo == 'TiroMin' and resultados_conductor and 
             (flecha_max_permitida is None or flecha_max_permitida == 0)):

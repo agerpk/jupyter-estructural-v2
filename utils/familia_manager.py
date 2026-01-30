@@ -65,8 +65,16 @@ class FamiliaManager:
     @classmethod
     def cargar_familia(cls, nombre_familia: str) -> Dict:
         """Cargar familia por nombre"""
-        nombre_archivo = nombre_familia.replace(" ", "_").replace("/", "_")
+        # Normalizar nombre: aceptar entradas con sufijos '.familia' o '.familia.json'
+        nombre_archivo = nombre_familia
+        if nombre_archivo.endswith('.familia.json'):
+            nombre_archivo = nombre_archivo[:-len('.familia.json')]
+        elif nombre_archivo.endswith('.familia'):
+            nombre_archivo = nombre_archivo[:-len('.familia')]
+        nombre_archivo = nombre_archivo.replace(" ", "_").replace("/", "_")
         archivo_familia = cls.DATA_DIR / f"{nombre_archivo}.familia.json"
+        # DEBUG: mostrar ruta de archivo buscada y nombre original para evitar errores de coincidencia
+        print(f"   💾 DEBUG cargar_familia: buscando archivo '{archivo_familia}' (nombre original: '{nombre_familia}')")
         
         if not archivo_familia.exists():
             raise FileNotFoundError(f"Familia '{nombre_familia}' no encontrada")
@@ -121,32 +129,39 @@ class FamiliaManager:
             # Actualizar campos que están en la tabla
             for fila in tabla_data:
                 parametro = fila['parametro']
-                valor = fila.get(col_id, fila.get('valor', ''))
-                
+                raw_val = fila.get(col_id, fila.get('valor', ''))
+
+                # Si la celda está vacía (usuario no la editó), NO sobreescribir la estructura existente
+                if raw_val is None or (isinstance(raw_val, str) and raw_val.strip() == ''):
+                    continue
+
+                valor = raw_val
+
                 # Manejar parámetros anidados (costeo.*)
                 if "." in parametro:
                     partes = parametro.split(".")
                     if partes[0] == "costeo":
                         if "costeo" not in estructura_data:
                             estructura_data["costeo"] = {}
-                        
+
                         if len(partes) == 3:
                             subcampo, subsubcampo = partes[1], partes[2]
                             if subcampo not in estructura_data["costeo"]:
                                 estructura_data["costeo"][subcampo] = {}
-                            
+
                             tipo = fila.get('tipo', 'str')
                             if tipo == 'int':
                                 try:
                                     valor = int(valor)
                                 except:
-                                    valor = 0
+                                    # Si conversión falla, no sobrescribimos
+                                    continue
                             elif tipo == 'float':
                                 try:
                                     valor = float(valor)
                                 except:
-                                    valor = 0.0
-                            
+                                    continue
+
                             estructura_data["costeo"][subcampo][subsubcampo] = valor
                         elif len(partes) == 2:
                             subcampo = partes[1]
@@ -155,31 +170,32 @@ class FamiliaManager:
                                 try:
                                     valor = int(valor)
                                 except:
-                                    valor = 0
+                                    continue
                             elif tipo == 'float':
                                 try:
                                     valor = float(valor)
                                 except:
-                                    valor = 0.0
-                            
+                                    continue
+
                             estructura_data["costeo"][subcampo] = valor
                     continue
-                
+
                 # Convertir tipos para parámetros normales
                 tipo = fila.get('tipo', 'str')
                 if tipo == 'int':
                     try:
                         valor = int(valor)
                     except:
-                        valor = 0
+                        # No sobrescribir si no es un entero válido
+                        continue
                 elif tipo == 'float':
                     try:
                         valor = float(valor)
                     except:
-                        valor = 0.0
+                        continue
                 elif tipo == 'bool':
                     valor = bool(valor) if isinstance(valor, bool) else str(valor).lower() == 'true'
-                
+
                 estructura_data[parametro] = valor
             
             estructuras[col_id] = estructura_data

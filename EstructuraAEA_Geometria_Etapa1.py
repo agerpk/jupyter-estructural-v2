@@ -1,8 +1,10 @@
 # EstructuraAEA_Geometria_Etapa1.py
 import math
+import logging
 from NodoEstructural import NodoEstructural
 from utils.geometria_zonas import Nodo, crear_verificador_desde_nodos
 
+logger = logging.getLogger(__name__)
 
 class GeometriaEtapa1:
     """Etapa 1: h1a y Lmen1 (Primer Amarre)"""
@@ -12,9 +14,10 @@ class GeometriaEtapa1:
     
     def ejecutar(self, vano, flecha_max_conductor, flecha_max_guardia):
         print("🔧 ETAPA 1: h1a y Lmen1")
+        logger.debug("Entrando ETAPA 1: LONGITUD_MENSULA_MINIMA_CONDUCTOR=%s, LONGITUD_MENSULA_MINIMA_GUARDIA=%s", getattr(self.geo, 'long_mensula_min_conductor', None), getattr(self.geo, 'long_mensula_min_guardia', None))
         
         # Calcular parámetros base
-        theta_max = self.geo.calcular_theta_max(vano)
+        theta_max = self.geo.calcular_theta_max(vano) 
         
         # Calcular theta_tormenta usando Vtormenta
         if not hasattr(self.geo, 'Vtormenta'):
@@ -225,6 +228,7 @@ class GeometriaEtapa1:
             break
         
         resultado = max(Lmen1, Lmen_minima)
+        logger.debug("Lmen_minima=%s, Lmen1_iter=%s, resultado=%s, iter=%s", Lmen_minima, Lmen1, resultado, i+1)
         print(f"   ✅ Lmen1={resultado:.3f}m ({i+1} iter)")
         return resultado
     

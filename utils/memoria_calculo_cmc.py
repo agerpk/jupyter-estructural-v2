@@ -59,8 +59,10 @@ def gen_memoria_calculo_CMC(cable_aea, vano, estados_climaticos, parametros_vien
     # Estados climáticos
     lineas.append("Estados climáticos:")
     for estado_id, datos in estados_climaticos.items():
-        viento_str = f"{datos.get('viento_velocidad', 0)*3.6:.0f} km/h" if datos.get('viento_velocidad', 0) > 0 else "sin viento"
-        hielo_str = f"{datos.get('espesor_hielo', 0)*1000:.0f}mm hielo" if datos.get('espesor_hielo', 0) > 0 else "sin hielo"
+        viento_val = datos.get('viento_velocidad') or 0
+        hielo_val = datos.get('espesor_hielo') or 0
+        viento_str = f"{viento_val*3.6:.0f} km/h" if viento_val > 0 else "sin viento"
+        hielo_str = f"{hielo_val*1000:.0f}mm hielo" if hielo_val > 0 else "sin hielo"
         lineas.append(f"  {estado_id} - {datos['descripcion']} ({datos['temperatura']}°C, {viento_str}, {hielo_str})")
     lineas.append("")
     
