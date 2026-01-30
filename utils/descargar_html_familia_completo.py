@@ -28,7 +28,9 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
     Args:
         nombre_familia: Nombre de la familia
         resultados_familia: Resultados de cálculos
-        checklist_activo: Dict con secciones activas {"cmc": True, "dge": True, ...}
+        checklist_activo: Dict con secciones activas por estructura.
+            Puede ser un dict global ("cmc": True, ...) o un mapping por estructura:
+            {"Estr.1": {"cmc": True, "dge.dimensiones": True, ...}, ...}
     """
     html = ['<div class="indice"><h3>Índice</h3><ul>']
     html.append('<li><a href="#resumen">Resumen de Familia</a></li>')
@@ -44,12 +46,24 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
             resultados = datos_estr.get("resultados", {})
             html.append('<ul>')
             
+            # Determinar checklist local: si checklist_activo es mapping por estructura, usarlo, si no, usar checklist_activo directamente
+            local_check = None
+            if isinstance(checklist_activo, dict) and checklist_activo:
+                # mapping por estructura?
+                if any(isinstance(v, dict) for v in checklist_activo.values()):
+                    local_check = checklist_activo.get(nombre_estr, {})
+                else:
+                    local_check = checklist_activo
+            else:
+                local_check = None
+
             # Si hay checklist, verificar cada sección; si no hay checklist, incluir todo
-            if checklist_activo:
-                if checklist_activo.get("cmc") and "cmc" in resultados and resultados["cmc"]:
+            if local_check:
+                # CMC
+                if local_check.get("cmc") and "cmc" in resultados and resultados["cmc"]:
                     html.append(f'<li><a href="#{{titulo_id}}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
-                if checklist_activo.get("dge") and "dge" in resultados and resultados["dge"]:
-                    # DGE - incluir subentrada para Tabla PLS-CADD si existe
+                # DGE (y subentradas)
+                if (local_check.get("dge") or local_check.get("dge.dimensiones") or local_check.get("dge.nodos") or local_check.get("dge.diagramas") or local_check.get("dge.plscadd")) and "dge" in resultados and resultados["dge"]:
                     dge = resultados["dge"]
                     plscadd = dge.get('plscadd_csv')
                     if not plscadd:
@@ -59,32 +73,42 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
                             if matches:
                                 plscadd = matches[0].name
 
-                    if plscadd:
-                        html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a>')
-                        html.append('<ul>')
-                        html.append(f'<li><a href="#{titulo_id}_dge_plscadd" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_plscadd">2.1 Tabla PLS-CADD</a></li>')
-                        html.append('</ul>')
-                        html.append('</li>')
-                    else:
-                        html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a></li>')
-                if checklist_activo.get("dme") and "dme" in resultados and resultados["dme"]:
+                    html.append(f'<li><a href="#{titulo_id}_dge_collapse" data-bs-toggle="collapse" data-bs-target="#{titulo_id}_dge_collapse">2. Diseño Geométrico</a>')
+                    # Sublista con las subsecciones seleccionadas
+                    html.append('<ul>')
+                    if local_check.get('dge.dimensiones') and dge.get('dimensiones'):
+                        html.append(f'<li><a href="#">Dimensiones de Estructura</a></li>')
+                    if local_check.get('dge.nodos') and dge.get('nodes_key'):
+                        html.append(f'<li><a href="#">Nodos Estructurales</a></li>')
+                    if local_check.get('dge.diagramas'):
+                        html.append(f'<li><a href="#">Diagramas (Estructura/Cabezal/Nodos)</a></li>')
+                    if plscadd and local_check.get('dge.plscadd'):
+                        html.append(f'<li><a href="#">Tabla PLS-CADD</a></li>')
+                    html.append('</ul>')
+                    html.append('</li>')
+                # DME
+                if local_check.get("dme") and "dme" in resultados and resultados["dme"]:
                     html.append(f'<li><a href="#{{titulo_id}}_dme_collapse">3. Diseño Mecánico</a></li>')
-                if checklist_activo.get("arboles") and "arboles" in resultados and resultados["arboles"]:
+                # Árboles
+                if local_check.get("arboles") and "arboles" in resultados and resultados["arboles"]:
                     html.append(f'<li><a href="#{{titulo_id}}_arboles_collapse">4. Árboles de Carga</a></li>')
-                if checklist_activo.get("sph") and "sph" in resultados and resultados["sph"]:
+                # SPH
+                if local_check.get("sph") and "sph" in resultados and resultados["sph"]:
                     html.append(f'<li><a href="#{{titulo_id}}_sph_collapse">5. Selección de Poste</a></li>')
-                if checklist_activo.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
+                # Fundación
+                if local_check.get("fundacion") and "fundacion" in resultados and resultados["fundacion"]:
                     html.append(f'<li><a href="#{{titulo_id}}_fundacion_collapse">6. Fundación</a></li>')
-                if checklist_activo.get("aee") and "aee" in resultados and resultados["aee"]:
+                # AEE
+                if local_check.get("aee") and "aee" in resultados and resultados["aee"]:
                     html.append(f'<li><a href="#{{titulo_id}}_aee_collapse">7. Análisis Estático</a></li>')
-                if checklist_activo.get("costeo") and "costeo" in resultados and resultados["costeo"]:
+                # Costeo por estructura
+                if local_check.get("costeo") and "costeo" in resultados and resultados["costeo"]:
                     html.append(f'<li><a href="#{{titulo_id}}_costeo_collapse">8. Costeo</a></li>')
             else:
                 # Sin checklist, incluir todo lo que tenga datos
                 if "cmc" in resultados and resultados["cmc"]:
                     html.append(f'<li><a href="#{{titulo_id}}_cmc_collapse">1. Cálculo Mecánico de Cables</a></li>')
                 if "dge" in resultados and resultados["dge"]:
-                    # DGE - incluir subentrada para Tabla PLS-CADD si existe (sin checklist)
                     dge = resultados["dge"]
                     plscadd = dge.get('plscadd_csv')
                     if not plscadd:
@@ -93,15 +117,18 @@ def generar_indice_familia(nombre_familia, resultados_familia, checklist_activo=
                             matches = list(Path(CACHE_DIR).glob(f"*{hashp}*.csv"))
                             if matches:
                                 plscadd = matches[0].name
-
+                    html.append(f'<li><a href="#{{titulo_id}}_dge_collapse">2. Diseño Geométrico</a>')
+                    html.append('<ul>')
+                    if dge.get('dimensiones'):
+                        html.append(f'<li><a href="#">Dimensiones de Estructura</a></li>')
+                    if dge.get('nodes_key'):
+                        html.append(f'<li><a href="#">Nodos Estructurales</a></li>')
+                    if dge.get('hash_parametros'):
+                        html.append(f'<li><a href="#">Diagramas (Estructura/Cabezal/Nodos)</a></li>')
                     if plscadd:
-                        html.append(f'<li><a href="#{{titulo_id}}_dge_collapse">2. Diseño Geométrico</a>')
-                        html.append('<ul>')
-                        html.append(f'<li><a href="#{{titulo_id}}_dge_plscadd">2.1 Tabla PLS-CADD</a></li>')
-                        html.append('</ul>')
-                        html.append('</li>')
-                    else:
-                        html.append(f'<li><a href="#{{titulo_id}}_dge_collapse">2. Diseño Geométrico</a></li>')
+                        html.append(f'<li><a href="#">Tabla PLS-CADD</a></li>')
+                    html.append('</ul>')
+                    html.append('</li>')
                 if "dme" in resultados and resultados["dme"]:
                     html.append(f'<li><a href="#{{titulo_id}}_dme_collapse">3. Diseño Mecánico</a></li>')
                 if "arboles" in resultados and resultados["arboles"]:

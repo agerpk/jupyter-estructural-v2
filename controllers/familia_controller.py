@@ -849,15 +849,18 @@ def register_callbacks(app):
             return (no_update, True, "Error", f"Error: {str(e)}", "danger", "danger")
     
     @app.callback(
-        Output("btn-descargar-html-familia", "style"),
+        [Output("btn-descargar-html-familia", "style"),
+         Output("btn-descargar-html-personalizado", "style")],
         Input("resultados-familia", "children"),
         prevent_initial_call=False
     )
     def mostrar_boton_descargar(resultados):
-        """Mostrar botón descargar cuando hay resultados"""
+        """Mostrar botones descargar cuando hay resultados (completo y personalizado)"""
         if resultados and len(resultados) > 0:
-            return {"display": "block", "margin-top": "20px"}
-        return {"display": "none"}
+            style = {"display": "block", "margin-top": "20px"}
+            return style, style
+        hidden = {"display": "none"}
+        return hidden, hidden
     
     @app.callback(
         Output("calculos-activos-familia-store", "data"),
@@ -966,6 +969,88 @@ def register_callbacks(app):
             logger = logging.getLogger(__name__)
             logger.exception(f"Error generando HTML para familia '{nombre_familia}': {e}")
 
+    # Callback unificado para manejar modal de HTML personalizado (abrir, cancelar, descargar)
+    @app.callback(
+        [Output("modal-descargar-html-familia", "is_open"),
+         Output("chk-secciones-html-familia", "options"),
+         Output("chk-secciones-html-familia", "value"),
+         Output("download-html-personalizado", "data"),
+         Output("store-secciones-html-familia-options", "data")],
+        [Input("btn-descargar-html-personalizado", "n_clicks"),
+         Input("modal-descargar-html-familia-confirm", "n_clicks"),
+         Input("modal-descargar-html-familia-cancel", "n_clicks")],
+        [State("input-nombre-familia", "value"),
+         State("chk-secciones-html-familia", "value")],
+        prevent_initial_call=True
+    )
+    def manejar_modal_descarga_personalizada(n_open, n_confirm, n_cancel, nombre_familia, selected_keys):
+        """Abrir modal (cargar lista), cancelar o confirmar descarga. Evita callbacks duplicados sobre is_open."""
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        # Abrir modal y preparar checklist
+        if trigger_id == "btn-descargar-html-personalizado":
+            try:
+                calculo_guardado = CalculoCache.cargar_calculo_familia(nombre_familia)
+                if not calculo_guardado:
+                    return no_update, [], [], no_update, no_update
+
+                from utils.descargar_html_familia_personalizado import listar_secciones_disponibles
+                secciones = listar_secciones_disponibles(nombre_familia, calculo_guardado)
+                options = [{"label": s.label, "value": s.key} for s in secciones]
+
+                # Cargar persistencia y aplicar valores guardados. Nuevas secciones -> True por defecto
+                from models.app_state import AppState
+                state = AppState()
+                persisted = state.get_descargar_html_secciones() or {}
+                updated = False
+                values_list = []
+                for opt in options:
+                    key = opt['value']
+                    if key in persisted:
+                        if persisted[key]:
+                            values_list.append(key)
+                    else:
+                        # Nueva sección, activada por defecto y persistida
+                        persisted[key] = True
+                        updated = True
+                        values_list.append(key)
+
+                if updated:
+                    state.set_descargar_html_secciones(persisted)
+
+                # Devolver opciones, valores y guardar options en store para uso posterior
+                option_keys = [opt['value'] for opt in options]
+                return True, options, values_list, no_update, option_keys
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.exception(f"Error al preparar modal descargar html personalizado para '{nombre_familia}': {e}")
+                return no_update, [], [], no_update, no_update
+
+        # Cancelar -> cerrar modal
+        if trigger_id == "modal-descargar-html-familia-cancel":
+            return False, no_update, no_update, no_update, no_update
+
+        # Confirmar -> generar HTML y cerrar modal
+        if trigger_id == "modal-descargar-html-familia-confirm":
+            try:
+                calculo_guardado = CalculoCache.cargar_calculo_familia(nombre_familia)
+                if not calculo_guardado:
+                    return False, no_update, no_update, no_update, no_update
+
+                from utils.descargar_html_familia_personalizado import construir_html_personalizado
+                html_content = construir_html_personalizado(nombre_familia, calculo_guardado, selected_keys or [])
+                return False, no_update, no_update, dict(content=html_content, filename=f"{nombre_familia}_familia_personalizado.html"), no_update
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.exception(f"Error generando HTML personalizado para familia '{nombre_familia}': {e}")
+                return False, no_update, no_update, no_update, no_update
+
+        raise dash.exceptions.PreventUpdate
     
     @app.callback(
         [Output("modal-familia-parametro", "is_open"),

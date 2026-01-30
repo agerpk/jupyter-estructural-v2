@@ -229,3 +229,31 @@ class AppState:
         except Exception as e:
             print(f"⚠️ Error cargando cálculos activos familia: {e}")
         return ["cmc", "dge", "dme", "arboles", "sph"]
+
+    # -----------------------------------------------
+    # Persistencia para selecciones del modal "Descargar HTML"
+    # -----------------------------------------------
+    def set_descargar_html_secciones(self, secciones_map: dict):
+        """Guardar mapeo {section_key: bool} en persistencia de familia."""
+        try:
+            state_data = {}
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+            state_data['descargar_html_secciones'] = secciones_map
+            with open(FAMILIA_STATE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(state_data, f, indent=2, ensure_ascii=False)
+            print(f"💾 Persistencia: guardadas {len(secciones_map)} selecciones de 'descargar_html'")
+        except Exception as e:
+            print(f"⚠️ Error guardando selecciones descargar_html: {e}")
+
+    def get_descargar_html_secciones(self):
+        """Obtener mapeo {section_key: bool} guardado anteriormente. Devuelve dict vacío si no existe."""
+        try:
+            if FAMILIA_STATE_FILE.exists():
+                with open(FAMILIA_STATE_FILE, 'r', encoding='utf-8') as f:
+                    state_data = json.load(f)
+                    return state_data.get('descargar_html_secciones', {})
+        except Exception as e:
+            print(f"⚠️ Error cargando selecciones descargar_html: {e}")
+        return {}

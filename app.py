@@ -109,6 +109,10 @@ fundacion_controller.registrar_callbacks_fundacion(app)
 costeo_controller.registrar_callbacks_costeo(app)
 comparar_cables_controller.registrar_callbacks_comparar_cables(app)
 familia_controller.register_callbacks(app)
+# Callbacks adicionales para la persistencia de selecciones del modal Descargar HTML
+from controllers import familia_controller_callbacks_extra
+familia_controller_callbacks_extra.register_callbacks(app)
+
 vano_economico_controller.register_callbacks(app)
 aee_controller.register_callbacks(app)
 estados_climaticos_controller.register_callbacks(app)

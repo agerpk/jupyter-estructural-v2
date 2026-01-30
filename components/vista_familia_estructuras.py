@@ -9,6 +9,7 @@ from typing import Dict, List, Any
 import json
 from components.modal_estados_climaticos import crear_modal_estados_climaticos
 from components.modal_copiar_estados import crear_modal_copiar_estados
+from components.modal_descargar_html_familia import crear_modal_descargar_html_familia
 
 def crear_vista_familia_estructuras(familia_actual=None):
     """Crear vista principal de Familias de Estructuras"""
@@ -383,17 +384,31 @@ def crear_modal_familia():
         # Área de resultados
         html.Div(id="resultados-familia", className="mt-4"),
         
-        # Botón descargar HTML familia
+        # Botones y modal para descargar HTML familia
         html.Div([
             dbc.Button(
                 "Descargar HTML Familia Completa",
                 id="btn-descargar-html-familia",
                 color="success",
                 size="lg",
-                className="mt-3",
+                className="mt-3 me-2",
                 style={"display": "none"}  # Oculto por defecto
             ),
-            dcc.Download(id="download-html-familia")
+            dbc.Button(
+                "Descargar html seleccionando contenido",
+                id="btn-descargar-html-personalizado",
+                color="primary",
+                size="lg",
+                className="mt-3",
+                style={"display": "none"}  # Oculto por defecto; se mostrará junto al otro botón
+            ),
+            dcc.Download(id="download-html-familia"),
+            dcc.Download(id="download-html-personalizado"),
+            # Store para opciones actuales del modal y para persistencia de la selección
+            dcc.Store(id="store-secciones-html-familia-options", data=None),
+            dcc.Store(id="store-seleccion-secciones-html", data=None),
+            # Modal para selección de secciones (componente reutilizable)
+            crear_modal_descargar_html_familia()
         ], id="container-descargar-html"),
         
         # Toast para notificaciones

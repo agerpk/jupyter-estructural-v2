@@ -4,7 +4,21 @@
     "cmc",
     "dge",
     "dme",
-    "arboles",
-    "aee"
-  ]
+    "arboles"
+  ],
+  "descargar_html_secciones": {
+    "familia:resumen": false,
+    "cmc": false,
+    "dge": false,
+    "dge.dimensiones": false,
+    "dge.nodos": true,
+    "dge.diagramas": true,
+    "dge.servidumbre": false,
+    "dge.memoria": true,
+    "dge.plscadd": false,
+    "dme": false,
+    "arboles": true,
+    "aee": false,
+    "familia:costeo": false
+  }
 }

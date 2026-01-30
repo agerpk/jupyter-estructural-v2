@@ -337,17 +337,29 @@ def generar_seccion_dme(calculo_dme):
 def generar_seccion_arboles(calculo_arboles):
     """Genera HTML para sección Árboles de Carga"""
     html = ['<h3>4. ÁRBOLES DE CARGA</h3>']
-    
+
+    # Debug: keys present en calculo_arboles
+    logger.debug(f"Generando Árboles - keys disponibles: {list(calculo_arboles.keys())}")
+
     if calculo_arboles.get('df_resumen_html'):
-        df = pd.read_json(StringIO(calculo_arboles['df_resumen_html']), orient='split')
-        html.append('<h5>Resumen de Cargas por Hipótesis</h5>')
-        html.append(df.to_html(classes='table table-striped table-bordered table-hover table-sm'))
-    
+        try:
+            df = pd.read_json(StringIO(calculo_arboles['df_resumen_html']), orient='split')
+            logger.debug(f"Arboles - df_resumen_html rows={len(df)} cols={len(df.columns)} columns={list(df.columns)} head={df.head(2).to_dict(orient='records')}")
+            html.append('<h5>Resumen de Cargas por Hipótesis</h5>')
+            html.append(df.to_html(classes='table table-striped table-bordered table-hover table-sm'))
+        except Exception as e:
+            logger.exception(f"Error parseando df_resumen_html en Árboles: {e}")
+            html.append('<div class="alert alert-warning">Error al cargar resumen de cargas.</div>')
+    else:
+        logger.debug("Arboles - No se encontró 'df_resumen_html' en calculo_arboles")
+
     imagenes = calculo_arboles.get('imagenes', [])
+    logger.debug(f"Arboles - imágenes detectadas: count={len(imagenes)} preview={[ (i if isinstance(i,str) else i.get('nombre')) for i in imagenes][:10]}")
+
     if imagenes:
         html.append('<h5>Diagramas de Árboles de Carga</h5>')
         html.append('<div class="grid-2col">')
-        
+
         for img_item in imagenes:
             # imagenes puede ser lista de strings o lista de dicts
             img_nombre = img_item if isinstance(img_item, str) else img_item.get('nombre', '')
@@ -356,9 +368,12 @@ def generar_seccion_arboles(calculo_arboles):
                 if img_str:
                     titulo = img_nombre.split("HIP_")[-1].replace(".png", "") if "HIP_" in img_nombre else img_nombre
                     html.append(f'<div><h6>{titulo}</h6><img src="data:image/png;base64,{img_str}" alt="{img_nombre}"></div>')
-        
+                    logger.debug(f"Arboles - imagen cargada: {img_nombre} (titulo={titulo})")
+                else:
+                    logger.debug(f"Arboles - imagen faltante en cache: {img_nombre}")
+
         html.append('</div>')
-    
+
     return '\n'.join(html)
 
 
