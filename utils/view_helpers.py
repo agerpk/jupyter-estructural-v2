@@ -404,6 +404,8 @@ class ViewHelpers:
             /* Anular cualquier regla de alternado */
             tr:nth-child(even) {{ background-color: white !important; }}
             tr:hover {{ background-color: #f6f7f8 !important; }}
+            /* Alinear las dos primeras columnas a la izquierda (Nodo/Unidad) */
+            tbody td:nth-child(1), tbody td:nth-child(2) {{ text-align:left !important; }}
             /* Selección más clara y legible */
             ::selection {{ background: #d9edf7 !important; color: #000 !important; }}
             ::-moz-selection {{ background: #d9edf7 !important; color: #000 !important; }}
@@ -415,66 +417,39 @@ class ViewHelpers:
         except Exception:
             pass
         
-        # Si tiene MultiIndex en columnas y tiene al menos 3 columnas por hipótesis, construir cabecera personalizada
+        # Si tiene MultiIndex en columnas y tiene al menos 3 columnas por hipótesis, aplanar las columnas
         if hasattr(df_display.columns, 'levels') and len(df_display.columns) > 2:
-            cols = list(df_display.columns)
-            # Agrupar columnas por etiqueta del primer nivel para evitar desfaces entre código y sus subcolumnas
-            left_n = 2  # asumimos primeras 2 columnas: Nodo y Unidad
-            groups = []
-            current_label = None
-            current_group = []
-            for col in cols[left_n:]:
-                label = col[0] if isinstance(col, tuple) else col
-                if current_label is None:
-                    current_label = label
-                    current_group = [col]
-                elif label == current_label:
-                    current_group.append(col)
-                else:
-                    groups.append((current_label, current_group))
-                    current_label = label
-                    current_group = [col]
-            if current_group:
-                groups.append((current_label, current_group))
-
-            # Primera fila: Nodo/Unidad (rowspan=2) + códigos por grupo (colspan=len(grp))
-            top_row = '<tr style="background:#ffffff; font-weight:700; text-align:center; color:#000">'
-            top_row += '<th rowspan="2" style="text-align:left; vertical-align:middle; padding:6px 8px; color:#000">Nodo</th>'
-            top_row += '<th rowspan="2" style="text-align:left; vertical-align:middle; padding:6px 8px; color:#000">Unidad</th>'
-            for label, grp in groups:
-                try:
-                    lstr = str(label)
-                    if 'HIP_' in lstr or '_' in lstr:
-                        code = lstr.split('_')[-2]
+            try:
+                # Construir columnas planas: Nodo, Unidad se mantienen, y para (Hipótesis, Componente) -> 'Hipótesis.Componente'
+                new_cols = []
+                for col in df_display.columns:
+                    if isinstance(col, tuple):
+                        lvl0 = '' if col[0] is None else str(col[0])
+                        lvl1 = '' if len(col) < 2 or col[1] is None else str(col[1])
+                        if lvl0 == '' or lvl0.lower() == '':
+                            # columnas índice originales como ('','Nodo') -> usar el nombre de la segunda posición
+                            new_name = lvl1
+                        else:
+                            new_name = f"{lvl0}.{lvl1}" if lvl1 else lvl0
                     else:
-                        code = lstr
-                except Exception:
-                    code = str(label)
-                top_row += f'<th colspan="{len(grp)}" style="text-align:center; color:#000; padding:6px 8px">{code}</th>'
-            top_row += '</tr>'
+                        new_name = str(col)
+                    new_cols.append(new_name)
+                df_flat = df_display.copy()
+                df_flat.columns = new_cols
+            except Exception:
+                df_flat = df_display.copy()
 
-            # Segunda fila: subcolumnas (x,y,z,...)
-            second_row = '<tr style="font-weight:600; text-align:center; color:#000">'
-            for label, grp in groups:
-                for col in grp:
-                    sub = col[1] if isinstance(col, tuple) and len(col) > 1 else ''
-                    second_row += f'<th style="color:#000">{sub}</th>'
-            second_row += '</tr>'
+            # Esto garantiza que cada celda sea un <td> separado y que se pueda copiar/pegar a Excel.
+            pandas_html = df_flat.to_html(border=0, index=False)
+            # Insertar estilos inline para asegurar fondo blanco y color negro en celdas y encabezados
+            if '<table' in pandas_html:
+                pandas_html = pandas_html.replace('<table', '<table style="border-collapse: collapse; width: 100%; font-size: 13px; background: white !important;"', 1)
+            pandas_html = pandas_html.replace('<th>', '<th style="background:white; color:#000; padding:8px 10px; text-align:center; font-weight:700">')
+            pandas_html = pandas_html.replace('<td>', '<td style="background:white; color:#000; padding:8px 10px; text-align:right">')
+            # Asegurar que las dos primeras columnas estén alineadas a la izquierda (Nodo, Unidad)
+            pandas_html = pandas_html.replace('<td style="background:white; color:#000; padding:8px 10px; text-align:right">', '<td style="background:white; color:#000; padding:8px 10px; text-align:left">', 2)
 
-            # Cuerpo: iterar por columnas en orden para evitar desfaces
-            body_rows = []
-            for _, row in df_display.iterrows():
-                r = '<tr>'
-                r += f'<td style="text-align:left">{row.iloc[0]}</td>'
-                r += f'<td style="text-align:left">{row.iloc[1]}</td>'
-                for col in cols[left_n:]:
-                    v = row[col] if col in row.index else ''
-                    r += f'<td>{v}</td>'
-                r += '</tr>'
-                body_rows.append(r)
-            body_html = '\n'.join(body_rows)
-            table_html = f'<body><table>\n{top_row}\n{second_row}\n{body_html}\n</table></body>'
-            html_table = style_head + table_html
+            html_table = style_head + f'<body>{pandas_html}</body>'
         else:
             # Fallback: usar el método simple de pandas y añadir inline-style a la tabla para evitar que estilos externos la afecten
             pandas_html = df_display.to_html(border=0, index=False)

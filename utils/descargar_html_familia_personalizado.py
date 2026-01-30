@@ -480,16 +480,48 @@ def _render_arboles_parcial(calculo_arboles: Dict[str, Any], include_subkeys: Li
     html_parts = ['<h3>4. ÁRBOLES DE CARGA</h3>']
 
     # Tabla de cargas aplicadas por nodo
-    if 'tabla' in include_subkeys and calculo_arboles.get('df_resumen_html'):
-        try:
-            df = pd.read_json(StringIO(calculo_arboles['df_resumen_html']), orient='split')
-            if id_prefix:
-                html_parts.append(f'<h5 id="{id_prefix}_arboles_tabla">Cargas Aplicadas por Nodo</h5>')
-            else:
-                html_parts.append('<h5>Cargas Aplicadas por Nodo</h5>')
-            html_parts.append(df.to_html(classes='table table-striped table-bordered table-hover table-sm'))
-        except Exception as e:
-            html_parts.append('<div class="alert alert-warning">Error cargando tabla de Árboles de Carga.</div>')
+    if 'tabla' in include_subkeys:
+        if calculo_arboles.get('df_resumen_html'):
+            try:
+                df = pd.read_json(StringIO(calculo_arboles['df_resumen_html']), orient='split')
+                if id_prefix:
+                    html_parts.append(f'<h5 id="{id_prefix}_arboles_tabla">Cargas Aplicadas por Nodo</h5>')
+                else:
+                    html_parts.append('<h5>Cargas Aplicadas por Nodo</h5>')
+                html_parts.append(df.to_html(classes='table table-striped table-bordered table-hover table-sm'))
+            except Exception as e:
+                html_parts.append('<div class="alert alert-warning">Error cargando tabla de Árboles de Carga.</div>')
+        elif calculo_arboles.get('df_cargas_completo'):
+            try:
+                df_dict = calculo_arboles['df_cargas_completo']
+                if isinstance(df_dict, dict) and 'columns' in df_dict and 'column_codes' in df_dict:
+                    arrays = []
+                    for level_idx in range(len(df_dict['columns'])):
+                        level_values = df_dict['columns'][level_idx]
+                        codes = df_dict['column_codes'][level_idx]
+                        arrays.append([level_values[code] for code in codes])
+                    multi_idx = pd.MultiIndex.from_arrays(arrays)
+                    try:
+                        # No label for second level to avoid 'Componente' header
+                        multi_idx.names = ['Hipótesis', None]
+                    except Exception:
+                        pass
+                    df = pd.DataFrame(df_dict.get('data', []), columns=multi_idx)
+                else:
+                    df = pd.read_json(pd.io.json.dumps(df_dict), orient='split')
+                df = df.round(2)
+                if id_prefix:
+                    html_parts.append(f'<h5 id="{id_prefix}_arboles_tabla">Cargas Aplicadas por Nodo</h5>')
+                else:
+                    html_parts.append('<h5>Cargas Aplicadas por Nodo</h5>')
+                html_parts.append('<div class="table-responsive small-table">')
+                html_parts.append(df.to_html(classes='table table-striped table-bordered table-hover table-sm'))
+                html_parts.append('</div>')
+            except Exception as e:
+                html_parts.append('<div class="alert alert-warning">Error cargando tabla de Árboles de Carga.</div>')
+        else:
+            # No table available
+            pass
 
     # Imágenes
     if 'imagenes' in include_subkeys and calculo_arboles.get('imagenes'):
@@ -786,6 +818,7 @@ def construir_html_personalizado(nombre_familia: str, resultados_familia: Dict[s
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+    // Index click: open necessary collapses (if any) and scroll to the target header/element with offset
     document.addEventListener('DOMContentLoaded', function(){{
       var index = document.querySelector('.indice');
       if(!index) return;
@@ -796,15 +829,93 @@ def construir_html_personalizado(nombre_familia: str, resultados_familia: Dict[s
         var href = link.getAttribute('href') || link.getAttribute('data-bs-target');
         if(!href || !href.startsWith('#')) return;
         ev.preventDefault();
+        ev.stopPropagation(); // prevent Bootstrap default toggle handlers so we control showing
+
         var id = href.substring(1);
         var headerBtn = document.querySelector('[aria-controls="' + id + '"]');
-        var el = headerBtn || document.getElementById(id) || document.querySelector(href);
-        if(!el) return;
-        var offset = 80; // height to account for fixed panel
-        try{{
-          var top = el.getBoundingClientRect().top + window.scrollY - offset;
-          window.scrollTo({{ top: top, behavior: 'smooth' }});
-        }}catch(e){{}}
+        var targetEl = document.getElementById(id) || document.querySelector(href) || headerBtn;
+        if(!targetEl) return;
+
+        // Collect ancestor collapses that need to be opened (outermost first)
+        var ancestors = [];
+        try {{
+          var node = targetEl;
+          while(node){{
+            var parentCollapse = node.closest && node.closest('.accordion-collapse');
+            if(parentCollapse && ancestors.indexOf(parentCollapse) === -1){{
+              ancestors.push(parentCollapse);
+              node = parentCollapse.parentElement;
+            }} else {{
+              break;
+            }}
+          }}
+        }} catch(e){{ console && console.debug && console.debug('Error collecting ancestor collapses', e); }}
+
+        ancestors.reverse();
+
+        var offset = 80; // space for header/logo
+        var scrollToTarget = function(){{
+          try{{
+            var btn = document.querySelector('[aria-controls="' + id + '"]');
+            var scrollEl = btn || targetEl;
+            var top = scrollEl.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({{ top: top, behavior: 'smooth' }});
+          }}catch(e){{}}
+        }};
+
+        var openSequential = function(idx){{
+          if(idx >= ancestors.length){{
+            // Ensure target collapse is shown if it's a collapse element
+            var targetCollapse = document.getElementById(id);
+            if(targetCollapse && targetCollapse.classList && !targetCollapse.classList.contains('show')){{
+              var inst = bootstrap.Collapse.getOrCreateInstance(targetCollapse);
+              var onShown = function(){{
+                targetCollapse.removeEventListener('shown.bs.collapse', onShown);
+                scrollToTarget();
+              }};
+              targetCollapse.addEventListener('shown.bs.collapse', onShown);
+              inst.show();
+            }} else {{
+              // Nothing to open, just scroll
+              scrollToTarget();
+            }}
+            return;
+          }}
+
+          var parentEl = ancestors[idx];
+          try{{
+            if(parentEl.classList && parentEl.classList.contains('show')){{
+              openSequential(idx+1);
+              return;
+            }}
+          }}catch(e){{}}
+
+          var inst = bootstrap.Collapse.getOrCreateInstance(parentEl);
+          var onShownParent = function(){{
+            parentEl.removeEventListener('shown.bs.collapse', onShownParent);
+            openSequential(idx+1);
+          }};
+          parentEl.addEventListener('shown.bs.collapse', onShownParent);
+          inst.show();
+        }};
+
+        if(ancestors.length){{
+          openSequential(0);
+        }} else {{
+          // No ancestors, just ensure target collapse is open or scroll immediately
+          var targetCollapse = document.getElementById(id);
+          if(targetCollapse && targetCollapse.classList && !targetCollapse.classList.contains('show')){{
+            var inst2 = bootstrap.Collapse.getOrCreateInstance(targetCollapse);
+            var onShown2 = function(){{
+              targetCollapse.removeEventListener('shown.bs.collapse', onShown2);
+              scrollToTarget();
+            }};
+            targetCollapse.addEventListener('shown.bs.collapse', onShown2);
+            inst2.show();
+          }} else {{
+            scrollToTarget();
+          }}
+        }}
       }}, false);
     }});
     </script>

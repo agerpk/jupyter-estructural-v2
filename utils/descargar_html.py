@@ -383,6 +383,7 @@ def generar_seccion_arboles(calculo_arboles):
     # Debug: keys present en calculo_arboles
     logger.debug(f"Generando Árboles - keys disponibles: {list(calculo_arboles.keys())}")
 
+    # Preferencia: df_resumen_html (stringified JSON). Fallback: df_cargas_completo (dict saved form)
     if calculo_arboles.get('df_resumen_html'):
         try:
             df = pd.read_json(StringIO(calculo_arboles['df_resumen_html']), orient='split')
@@ -392,8 +393,37 @@ def generar_seccion_arboles(calculo_arboles):
         except Exception as e:
             logger.exception(f"Error parseando df_resumen_html en Árboles: {e}")
             html.append('<div class="alert alert-warning">Error al cargar resumen de cargas.</div>')
+    elif calculo_arboles.get('df_cargas_completo'):
+        # df_cargas_completo is stored as a dict (from DataFrame.to_dict or custom structure)
+        try:
+            df_dict = calculo_arboles['df_cargas_completo']
+            # Reconstruct DataFrame similar to UI: support 'columns' + 'column_codes' format
+            if isinstance(df_dict, dict) and 'columns' in df_dict and 'column_codes' in df_dict:
+                arrays = []
+                for level_idx in range(len(df_dict['columns'])):
+                    level_values = df_dict['columns'][level_idx]
+                    codes = df_dict['column_codes'][level_idx]
+                    arrays.append([level_values[code] for code in codes])
+                multi_idx = pd.MultiIndex.from_arrays(arrays)
+                try:
+                    # No label on second level (remove 'Componente' header to match UI)
+                    multi_idx.names = ['Hipótesis', None]
+                except Exception:
+                    pass
+                df = pd.DataFrame(df_dict.get('data', []), columns=multi_idx)
+            else:
+                # Try to load as orient='split' JSON if dict-like
+                df = pd.read_json(pd.io.json.dumps(df_dict), orient='split')
+            df = df.round(2)
+            html.append('<h5> Cargas Aplicadas por Nodo</h5>')
+            html.append('<div class="table-responsive small-table">')
+            html.append(df.to_html(classes='table table-striped table-bordered table-hover table-sm'))
+            html.append('</div>')
+        except Exception as e:
+            logger.exception(f"Error reconstruyendo df_cargas_completo en Árboles: {e}")
+            html.append('<div class="alert alert-warning">Error al cargar tabla de cargas por nodo.</div>')
     else:
-        logger.debug("Arboles - No se encontró 'df_resumen_html' en calculo_arboles")
+        logger.debug("Arboles - No se encontró 'df_resumen_html' ni 'df_cargas_completo' en calculo_arboles")
 
     imagenes = calculo_arboles.get('imagenes', [])
     logger.debug(f"Arboles - imágenes detectadas: count={len(imagenes)} preview={[ (i if isinstance(i,str) else i.get('nombre')) for i in imagenes][:10]}")

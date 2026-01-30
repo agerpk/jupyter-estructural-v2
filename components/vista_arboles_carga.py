@@ -168,9 +168,9 @@ def generar_resultados_arboles(calculo_guardado, estructura_actual, mostrar_aler
                     codes = df_dict['column_codes'][level_idx]
                     arrays.append([level_values[code] for code in codes])
                 multi_idx = pd.MultiIndex.from_arrays(arrays)
-                # Nombrar niveles para que aparezca la hipótesis en el header
+                # Nombrar niveles para que aparezca la hipótesis en el header; no nombre para el segundo nivel
                 try:
-                    multi_idx.names = ['Hipótesis', 'Componente']
+                    multi_idx.names = ['Hipótesis', None]
                 except Exception:
                     pass
                 df_cargas = pd.DataFrame(df_dict['data'], columns=multi_idx)

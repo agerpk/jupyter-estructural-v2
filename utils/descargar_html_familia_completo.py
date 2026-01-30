@@ -283,8 +283,11 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
         .indice a {{ color: var(--accent); text-decoration: none; font-weight: 600; }}
         .indice a:hover {{ text-decoration: underline; color: var(--accent-alt); }}
         .timestamp {{ color: rgba(0,0,0,0.5); font-size: 0.9em; margin-bottom: 30px; }}
-        .grid-2col {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }}
-        .grid-2col img {{ width: 100%; }}
+        .grid-2col {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin: 20px 0; }}
+        .grid-2col img {{ width: 100%; height: auto; }}
+        /* Smaller table style for wide tables like Árboles de Carga */
+        .small-table table {{ font-size: 0.86rem; }}
+        .table-responsive {{ overflow-x: auto; -webkit-overflow-scrolling: touch; }} 
         /* Accent helper classes */
         .accent {{ color: var(--accent); font-weight: 700; }}
         .accent-alt {{ color: var(--accent-alt); font-weight: 700; }}
@@ -307,7 +310,7 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // Index click: smooth scroll to target header or element with offset accounting for fixed panel
+    // Index click: open necessary collapses (if any) and scroll to the target header/element with offset
     document.addEventListener('DOMContentLoaded', function(){{
       var index = document.querySelector('.indice');
       if(!index) return;
@@ -318,15 +321,93 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
         var href = link.getAttribute('href') || link.getAttribute('data-bs-target');
         if(!href || !href.startsWith('#')) return;
         ev.preventDefault();
+        ev.stopPropagation(); // prevent Bootstrap default toggle handlers so we control showing
+
         var id = href.substring(1);
         var headerBtn = document.querySelector('[aria-controls="' + id + '"]');
-        var el = headerBtn || document.getElementById(id) || document.querySelector(href);
-        if(!el) return;
-        var offset = 80; // height to account for fixed panel
-        try{{
-          var top = el.getBoundingClientRect().top + window.scrollY - offset;
-          window.scrollTo({{ top: top, behavior: 'smooth' }});
-        }}catch(e){{}}
+        var targetEl = document.getElementById(id) || document.querySelector(href) || headerBtn;
+        if(!targetEl) return;
+
+        // Collect ancester collapses that need to be opened (outermost first)
+        var ancestors = [];
+        try {{
+          var node = targetEl;
+          while(node){{
+            var parentCollapse = node.closest && node.closest('.accordion-collapse');
+            if(parentCollapse && ancestors.indexOf(parentCollapse) === -1){{
+              ancestors.push(parentCollapse);
+              node = parentCollapse.parentElement;
+            }} else {{
+              break;
+            }}
+          }}
+        }} catch(e){{ console && console.debug && console.debug('Error collecting ancestor collapses', e); }}
+
+        ancestors.reverse();
+
+        var offset = 80; // space for header/logo
+        var scrollToTarget = function(){{
+          try{{
+            var btn = document.querySelector('[aria-controls="' + id + '"]');
+            var scrollEl = btn || targetEl;
+            var top = scrollEl.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({{ top: top, behavior: 'smooth' }});
+          }}catch(e){{}}
+        }};
+
+        var openSequential = function(idx){{
+          if(idx >= ancestors.length){{
+            // Ensure target collapse is shown if it's a collapse element
+            var targetCollapse = document.getElementById(id);
+            if(targetCollapse && targetCollapse.classList && !targetCollapse.classList.contains('show')){{
+              var inst = bootstrap.Collapse.getOrCreateInstance(targetCollapse);
+              var onShown = function(){{
+                targetCollapse.removeEventListener('shown.bs.collapse', onShown);
+                scrollToTarget();
+              }};
+              targetCollapse.addEventListener('shown.bs.collapse', onShown);
+              inst.show();
+            }} else {{
+              // Nothing to open, just scroll
+              scrollToTarget();
+            }}
+            return;
+          }}
+
+          var parentEl = ancestors[idx];
+          try{{
+            if(parentEl.classList && parentEl.classList.contains('show')){{
+              openSequential(idx+1);
+              return;
+            }}
+          }}catch(e){{}}
+
+          var inst = bootstrap.Collapse.getOrCreateInstance(parentEl);
+          var onShownParent = function(){{
+            parentEl.removeEventListener('shown.bs.collapse', onShownParent);
+            openSequential(idx+1);
+          }};
+          parentEl.addEventListener('shown.bs.collapse', onShownParent);
+          inst.show();
+        }};
+
+        if(ancestors.length){{
+          openSequential(0);
+        }} else {{
+          // No ancestors, just ensure target collapse is open or scroll immediately
+          var targetCollapse = document.getElementById(id);
+          if(targetCollapse && targetCollapse.classList && !targetCollapse.classList.contains('show')){{
+            var inst2 = bootstrap.Collapse.getOrCreateInstance(targetCollapse);
+            var onShown2 = function(){{
+              targetCollapse.removeEventListener('shown.bs.collapse', onShown2);
+              scrollToTarget();
+            }};
+            targetCollapse.addEventListener('shown.bs.collapse', onShown2);
+            inst2.show();
+          }} else {{
+            scrollToTarget();
+          }}
+        }}
       }}, false);
     }});
     </script>
