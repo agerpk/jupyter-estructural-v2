@@ -269,6 +269,127 @@ class FamiliaManager:
             return [archivo.stem.replace(".familia", "") for archivo in archivos]
         except:
             return []
+
+    @classmethod
+    def tabla_a_familia_con_tabla(cls, tabla_data: List[Dict], columnas: List[Dict], nombre_familia: str, preserve_existing: bool = True) -> Dict:
+        """Convierte datos de tabla a estructura de familia (inversa de familia_a_tabla).
+        preserve_existing: si True intenta cargar la familia existente y preserva
+        campos no proporcionados en la tabla; si False se parte desde plantilla siempre.
+        """
+        from datetime import datetime
+
+        # Intentar cargar familia existente para preservar TODA la estructura si preserve_existing
+        familia_existente = None
+        if preserve_existing:
+            try:
+                familia_existente = cls.cargar_familia(nombre_familia)
+                print(f"   💾 DEBUG tabla_a_familia: Familia existente cargada (preservar=True)")
+            except:
+                print(f"   ⚠️ DEBUG tabla_a_familia: No se encontró familia existente (preservar=True)")
+        else:
+            print(f"   ⚠️ DEBUG tabla_a_familia: Preservación deshabilitada (preserve_existing=False); creando estructuras desde plantilla")
+
+        # Extraer columnas de estructura (Estr.1, Estr.2, etc.)
+        columnas_estructura = [col['id'] for col in columnas if col['id'].startswith('Estr.')]
+        
+        estructuras = {}
+        for col_id in columnas_estructura:
+            # Partir de estructura existente si existe y preservation está activado, sino de plantilla
+            if familia_existente and col_id in familia_existente.get("estructuras", {}):
+                estructura_data = familia_existente["estructuras"][col_id].copy()
+                print(f"   ✅ Preservando estructura existente {col_id}")
+            else:
+                estructura_data = cls._cargar_plantilla().copy()
+                print(f"   🆕 Creando nueva estructura {col_id}")
+            
+            # Actualizar campos que están en la tabla
+            for fila in tabla_data:
+                parametro = fila['parametro']
+                raw_val = fila.get(col_id, fila.get('valor', ''))
+
+                # Si la celda está vacía (usuario no la editó), NO sobreescribir la estructura existente
+                if raw_val is None or (isinstance(raw_val, str) and raw_val.strip() == ''):
+                    continue
+
+                valor = raw_val
+
+                # Manejar parámetros anidados (costeo.*)
+                if "." in parametro:
+                    partes = parametro.split(".")
+                    if partes[0] == "costeo":
+                        if "costeo" not in estructura_data:
+                            estructura_data["costeo"] = {}
+
+                        if len(partes) == 3:
+                            subcampo, subsubcampo = partes[1], partes[2]
+                            if subcampo not in estructura_data["costeo"]:
+                                estructura_data["costeo"][subcampo] = {}
+
+                            tipo = fila.get('tipo', 'str')
+                            if tipo == 'int':
+                                try:
+                                    valor = int(valor)
+                                except:
+                                    # Si conversión falla, no sobrescribimos
+                                    continue
+                            elif tipo == 'float':
+                                try:
+                                    valor = float(valor)
+                                except:
+                                    continue
+
+                            estructura_data["costeo"][subcampo][subsubcampo] = valor
+                        elif len(partes) == 2:
+                            subcampo = partes[1]
+                            tipo = fila.get('tipo', 'str')
+                            if tipo == 'int':
+                                try:
+                                    valor = int(valor)
+                                except:
+                                    continue
+                            elif tipo == 'float':
+                                try:
+                                    valor = float(valor)
+                                except:
+                                    continue
+
+                            estructura_data["costeo"][subcampo] = valor
+                    continue
+
+                # Convertir tipos para parámetros normales
+                tipo = fila.get('tipo', 'str')
+                if tipo == 'int':
+                    try:
+                        valor = int(valor)
+                    except:
+                        # No sobrescribir si no es un entero válido
+                        continue
+                elif tipo == 'float':
+                    try:
+                        valor = float(valor)
+                    except:
+                        continue
+                elif tipo == 'bool':
+                    valor = bool(valor) if isinstance(valor, bool) else str(valor).lower() == 'true'
+
+                estructura_data[parametro] = valor
+            
+            estructuras[col_id] = estructura_data
+        
+        # Crear familia_data
+        if familia_existente:
+            familia_data = familia_existente.copy()
+            familia_data["estructuras"] = estructuras
+            familia_data["fecha_modificacion"] = datetime.now().isoformat()
+        else:
+            familia_data = {
+                "nombre_familia": nombre_familia,
+                "fecha_creacion": datetime.now().isoformat(),
+                "fecha_modificacion": datetime.now().isoformat(),
+                "estructuras": estructuras
+            }
+        
+        return familia_data
     
     @classmethod
     def eliminar_familia(cls, nombre_familia: str) -> bool:

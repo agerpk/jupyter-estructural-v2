@@ -807,9 +807,13 @@ def register_callbacks(app):
             if not nombre_familia or not tabla_original or not columnas:
                 return (no_update, True, "Error", "Faltan datos para calcular", "danger", "danger")
             
-            # Convertir tabla ORIGINAL a formato familia
-            familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
-            
+            # Leer la familia COMPLETA desde disco (ignorar valores en memoria/tabla)
+            try:
+                familia_data = FamiliaManager.cargar_familia(nombre_familia)
+                print(f"   ✅ Familia cargada desde disco para cálculo: {nombre_familia}")
+            except FileNotFoundError:
+                return (no_update, True, "Error", "Familia no encontrada en disco. Guarde la familia antes de calcular.", "danger", "danger")
+
             # Ejecutar cálculo con calculos_activos
             from utils.calcular_familia_logica_encadenada import ejecutar_calculo_familia_completa
             resultados_familia = ejecutar_calculo_familia_completa(familia_data, calculos_activos=calculos_activos)
@@ -817,16 +821,9 @@ def register_callbacks(app):
             if not resultados_familia.get("exito"):
                 return (no_update, True, "Error", f"Error en cálculo: {resultados_familia.get('mensaje')}", "danger", "danger")
             
-            # Guardar familia en disco (sincronizado) para que el archivo en disco
-            # coincida con la familia usada en el cálculo y evitar mismatches de hash
-            try:
-                saved = FamiliaManager.guardar_familia(familia_data)
-                if saved:
-                    print(f"💾 Familia '{nombre_familia}' guardada en disco (coincide con cálculo)")
-                else:
-                    print(f"⚠️ No se pudo guardar la familia '{nombre_familia}' en disco")
-            except Exception as e:
-                print(f"⚠️ Error guardando familia en disco: {e}")
+            # Guardado automático DESHABILITADO: no escribir archivo .familia.json durante el cálculo
+            # La familia sólo debe guardarse explícitamente con el botón 'Guardar Familia'.
+            print("ℹ️ Guardado automático de .familia.json deshabilitado durante cálculo (guardar manual requerido)")
 
             # Guardar cache en background
             def guardar_cache_async():
@@ -911,8 +908,13 @@ def register_callbacks(app):
             # Diagnostics: informar archivo origen y claves de resultados
             print(f"ℹ️ Cache encontrado: archivo_origen={calculo_guardado.get('archivo_origen')} hash={calculo_guardado.get('hash_parametros')} resultados_keys={list(calculo_guardado.get('resultados', {}).keys())}")
 
-            # Verificar vigencia
-            familia_data = FamiliaManager.tabla_a_familia(tabla_original, columnas, nombre_familia)
+            # Verificar vigencia: leer la familia completa desde disco (ignorar tabla en memoria)
+            try:
+                familia_data = FamiliaManager.cargar_familia(nombre_familia)
+                print(f"   ✅ Familia cargada desde disco para verificación de cache: {nombre_familia}")
+            except FileNotFoundError:
+                return (no_update, True, "Error", "Familia no encontrada en disco. Guarde la familia antes de cargar cache.", "danger", "danger")
+
             vigente, mensaje = CalculoCache.verificar_vigencia_familia(calculo_guardado, familia_data)
             
             if not vigente:
