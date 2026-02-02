@@ -52,6 +52,9 @@ def _collect_sections_for_structure(nombre_estr: str, datos_estr: Dict[str, Any]
         if dge.get("dimensiones"):
             secciones.append(SectionDescriptor(id=f"{nombre_estr}_dge_dimensiones", key=f"{nombre_estr}:dge.dimensiones", label="DGE: Dimensiones de Estructura", orden=orden, parent_id=f"{nombre_estr}_dge"))
             orden += 1
+            # Resumen de distancias: D_fases, Dhg, Lk y alturas derivadas
+            secciones.append(SectionDescriptor(id=f"{nombre_estr}_dge_distancias", key=f"{nombre_estr}:dge.distancias", label="DGE: Distancias de Estructura", orden=orden, parent_id=f"{nombre_estr}_dge"))
+            orden += 1
         # Nodos
         if dge.get("nodes_key"):
             secciones.append(SectionDescriptor(id=f"{nombre_estr}_dge_nodos", key=f"{nombre_estr}:dge.nodos", label="DGE: Nodos Estructurales", orden=orden, parent_id=f"{nombre_estr}_dge"))
@@ -166,6 +169,7 @@ def listar_secciones_disponibles(nombre_familia: str, resultados_familia: Dict[s
         'dge.servidumbre': False,
         'dge.memoria': False,
         'dge.plscadd': False,
+        'dge.distancias': False,
         'dme': False,
         'dme.resumen': False,
         'dme.tabla': False,
@@ -188,6 +192,8 @@ def listar_secciones_disponibles(nombre_familia: str, resultados_familia: Dict[s
             dge = resultados['dge'] or {}
             if dge.get('dimensiones'):
                 has['dge.dimensiones'] = True
+                # Habilitar resumen de distancias si existen dimensiones
+                has['dge.distancias'] = True
             if dge.get('nodes_key'):
                 has['dge.nodos'] = True
             if dge.get('hash_parametros'):
@@ -279,6 +285,9 @@ def listar_secciones_disponibles(nombre_familia: str, resultados_familia: Dict[s
         if has['dge.plscadd']:
             secciones.append(SectionDescriptor(id="dge.plscadd", key="dge.plscadd", label="DGE: Tabla PLS-CADD", orden=orden))
             orden += 1
+        if has.get('dge.distancias'):
+            secciones.append(SectionDescriptor(id="dge.distancias", key="dge.distancias", label="DGE: Distancias de Estructura", orden=orden))
+            orden += 1
     if has['dme']:
         secciones.append(SectionDescriptor(id="dme", key="dme", label="DME - Diseño Mecánico (completo)", orden=orden))
         orden += 1
@@ -353,6 +362,26 @@ def _render_dge_parcial(calculo_dge: Dict[str, Any], include_subkeys: List[str],
             else:
                 html_parts.append(f'<tr><td>{campo}</td><td>{valor}</td></tr>')
         html_parts.append('</table>')
+
+    # Resumen de distancias (usar formateador centralizado si está disponible)
+    if "distancias" in include_subkeys and calculo_dge.get('dimensiones'):
+        dimensiones = calculo_dge.get('dimensiones', {})
+        try:
+            from EstructuraAEA_Geometria import EstructuraAEA_Geometria
+            dist_txt = EstructuraAEA_Geometria.formato_resumen_distancias(dimensiones)
+        except Exception:
+            # Fallback simple
+            D_fases = dimensiones.get('D_fases', 0.0)
+            Dhg = dimensiones.get('Dhg', 0.0)
+            Lk = dimensiones.get('Lk', 0.0)
+            dist_txt = (f"Distancia entre Fases (D_Fases): {D_fases:.2f} m\n"
+                        f"Distancia Guardia-Fase (Dhg): {Dhg:.2f} m\n\n"
+                        f"Longitud de Cadena Oscilante (Lk): {Lk:.2f} m\n")
+        if id_prefix:
+            html_parts.append(f'<h5 id="{id_prefix}_dge_distancias">Distancias de Estructura</h5>')
+        else:
+            html_parts.append('<h5>Distancias de Estructura</h5>')
+        html_parts.append(f'<pre style="white-space: pre-wrap;">{dist_txt}</pre>')
 
     if "nodos" in include_subkeys and calculo_dge.get('nodes_key'):
         nodes_key = calculo_dge.get('nodes_key', {})

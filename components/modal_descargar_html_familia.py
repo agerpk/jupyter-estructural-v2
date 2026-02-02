@@ -8,6 +8,11 @@ def crear_modal_descargar_html_familia(modal_id="modal-descargar-html-familia"):
         dbc.ModalHeader(dbc.ModalTitle("Descargar HTML - Seleccionar contenido")),
         dbc.ModalBody([
             html.P("Seleccione las secciones que desea incluir en el HTML descargado."),
+            # Botones para seleccionar/desmarcar todo
+            html.Div([
+                dbc.Button("Seleccionar Todas", id="btn-seleccionar-todas", color="secondary", size="sm", className="me-2"),
+                dbc.Button("Seleccionar Ninguna", id="btn-seleccionar-ninguna", color="secondary", size="sm")
+            ], className="mb-3"),
             # Checklist dinámico: options y value se actualizarán por callback
             dbc.Checklist(id="chk-secciones-html-familia", options=[], value=[], inline=False),
             html.Div(id="modal-descargar-html-familia-aviso", className="mt-2 text-muted")

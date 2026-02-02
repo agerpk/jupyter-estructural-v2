@@ -255,6 +255,16 @@ def generar_seccion_dge(calculo_dge, id_prefix=None):
             else:
                 html.append(f'<tr><td>{campo}</td><td>{valor}</td></tr>')
         html.append('</table>')
+
+        # Resumen de distancias (formateado por la clase de geometría si está disponible)
+        try:
+            from EstructuraAEA_Geometria import EstructuraAEA_Geometria
+            dist_txt = EstructuraAEA_Geometria.formato_resumen_distancias(dimensiones)
+            html.append('<h5>Distancias de Estructura</h5>')
+            html.append(f'<pre style="white-space: pre-wrap;">{dist_txt}</pre>')
+        except Exception:
+            # No interrumpir si falta la clase
+            pass
     
     # Nodos estructurales
     nodes_key = calculo_dge.get('nodes_key', {})

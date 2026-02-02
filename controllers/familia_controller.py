@@ -1050,6 +1050,26 @@ def register_callbacks(app):
                 logger.exception(f"Error generando HTML personalizado para familia '{nombre_familia}': {e}")
                 return False, no_update, no_update, no_update, no_update
 
+        # Callbacks para botones de Seleccionar Todas / Ninguna en modal
+        @app.callback(
+            Output("chk-secciones-html-familia", "value"),
+            [Input("btn-seleccionar-todas", "n_clicks"), Input("btn-seleccionar-ninguna", "n_clicks")],
+            State("store-secciones-html-familia-options", "data"),
+            prevent_initial_call=True
+        )
+        def _seleccionar_todas_ninguna(n_todas, n_ninguna, option_keys):
+            """Maneja los botones Seleccionar Todas / Seleccionar Ninguna del modal"""
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                raise dash.exceptions.PreventUpdate
+            trigger = ctx.triggered[0]["prop_id"].split(".")[0]
+            if trigger == "btn-seleccionar-todas":
+                # option_keys es la lista de keys guardada al abrir modal
+                return option_keys or []
+            if trigger == "btn-seleccionar-ninguna":
+                return []
+            raise dash.exceptions.PreventUpdate
+
         raise dash.exceptions.PreventUpdate
     
     @app.callback(

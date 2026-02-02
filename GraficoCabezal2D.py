@@ -376,6 +376,15 @@ class GraficoCabezal2D:
 
         # GENERAL ON/OFF (GENERAL should show base + general traces)
         vis_general_on = visibility_activate_exclusive(indices_general)
+        # Hide primary reposo punto when GENERAL is ON (so GENERAL doesn't show base reposo marker)
+        if primary_name:
+            # Find any trace whose name matches '<primary>_reposo_punto' case-insensitive and hide it
+            primary_key = f'{primary_name.lower()}_reposo_punto'
+            for i, t in enumerate(fig.data):
+                name_i = (t.name or '').lower()
+                if name_i == primary_key:
+                    if 0 <= i < len(vis_general_on):
+                        vis_general_on[i] = False
         vis_general_off = visibility_all_off()
 
         updatemenus = [
@@ -944,7 +953,7 @@ class GraficoCabezal2D:
                     x=[x_tor], y=[z_tor], mode='markers', marker=dict(size=7, color='orange'),
                     name=f'GENERAL_{name_c1}_tormenta_punto', showlegend=False, hoverinfo='skip', visible=False
                 ))
-                # Label placed to the right of the area (user requested right side)
+                # Label placed to the right of the area (aligned outside)
                 fig.add_trace(go.Scatter(
                     x=[x_tor + s_tormenta + 0.05], y=[z_tor],
                     mode='text', text=[f's_tormenta<br>{s_tormenta:.2f}m<br>θ={theta_tormenta:.1f}°'], textfont=dict(size=9, color='blue'),
@@ -965,7 +974,7 @@ class GraficoCabezal2D:
                 ))
                 # Conductor/point at decmax
                 fig.add_trace(go.Scatter(
-                    x=[x_dec], y=[z_dec], mode='markers', marker=dict(size=7, color='blue'),
+                    x=[x_dec], y=[z_dec], mode='markers', marker=dict(size=7, color='red'),
                     name=f'GENERAL_{name_c1}_decmax_punto', showlegend=False, hoverinfo='skip', visible=False
                 ))
                 # Label centered below the area

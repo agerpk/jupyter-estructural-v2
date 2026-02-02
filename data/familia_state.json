@@ -2,8 +2,28 @@
   "familia_activa": "PSJ_Suspensiones_Embonadas_400_450_1500MSNM",
   "calculos_activos_familia": [
     "cmc",
-    "dge",
-    "dme",
-    "arboles"
-  ]
+    "dge"
+  ],
+  "descargar_html_secciones": {
+    "familia:resumen": false,
+    "cmc": false,
+    "dge": false,
+    "dge.dimensiones": false,
+    "dge.nodos": true,
+    "dge.diagramas.graf_estructura": true,
+    "dge.diagramas.graf_cabezal": true,
+    "dge.diagramas.graf_nodos": false,
+    "dge.servidumbre": false,
+    "dge.memoria": false,
+    "dge.plscadd": false,
+    "dge.distancias": true,
+    "dme": false,
+    "dme.tabla": false,
+    "dme.polar": false,
+    "dme.barras": false,
+    "arboles": true,
+    "arboles.imagenes": true,
+    "aee": false,
+    "familia:costeo": false
+  }
 }
