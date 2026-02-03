@@ -94,13 +94,13 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
     # Asignar sets y phases
     rows = []
 
-    # Set 1: guardia (ordenar por índice si existe: HG1, HG2...)
-    phase = 1
+    # Sets for guardia: one set per guard node, phase always 1 (HG1 -> Set 1 Phase 1, HG2 -> Set 2 Phase 1)
     def _guard_sort_key(item):
         nombre = item[0]
         idx = _extract_trailing_index(nombre)
         return (idx if idx is not None else 9999, nombre)
 
+    set_num = 1
     for nombre, coords in sorted(nodos_guardia, key=_guard_sort_key):
         x, y, z = coords
         insul_type = estructura_data.get('insulator_type_guardia', 'Clamp')
@@ -112,11 +112,14 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
         attach_long = y
         min_req = "No Limit"
 
+        # Dead End: same rule as conductors — 'No' only for suspension structures, else 'Yes'
+        dead_end = 'No' if ('suspension' in tipo_estructura or 'suspensión' in tipo_estructura) else 'Yes'
+
         rows.append({
-            'Set #': 1,
-            'Phase #': phase,
-            'Dead End Set': 'No',
-            'Set Description': 'HG',
+            'Set #': set_num,
+            'Phase #': 1,
+            'Dead End Set': dead_end,
+            'Set Description': nombre,
             'Insulator Type': insul_type,
             'Insul. Weight (N)': insul_weight,
             'Insul. Wind Area (cm^2)': f"{insul_wind_area:.4f}",
@@ -126,16 +129,17 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
             'Attach. Longit. Offset (m)': round(attach_long, 3),
             'Min. Req. Vertical Load (uplift) (N)': min_req
         })
-        phase += 1
+        set_num += 1
 
-    # Set 2/3: conductores
+    # Conductores: asignar sets empezando después de los sets de guardia
+    base_set = set_num if 'set_num' in locals() else 1
     # Determinar sets según terna y signo x
     cond_pos = [n for n in nodos_conductor if n[1][0] >= 0]
     cond_neg = [n for n in nodos_conductor if n[1][0] < 0]
 
     if terna.lower().startswith('simple'):
-        # All conductors in Set 2 — order by conductor index (C1,C2,C3) if available, else by x coordinate
-        set_num = 2
+        # All conductors in the next available set — order by conductor index (C1,C2,C3) if available, else by x coordinate
+        set_num = base_set
         phase = 1
 
         def _cond_simple_sort(item):
@@ -258,7 +262,7 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
             dead_end = 'No' if ('suspension' in tipo_estructura or 'suspensión' in tipo_estructura) else 'Yes'
 
             rows.append({
-                'Set #': 3,
+                'Set #': base_set + 1,
                 'Phase #': phase,
                 'Dead End Set': dead_end,
                 'Set Description': '2TERNA',

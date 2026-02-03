@@ -1,3 +1,7 @@
 {
-  "familia_activa": "PSJ_Reticuladas_R_400_450_3100MSNM"
+  "familia_activa": "PSJ_Reticuladas_S_400_450_3100MSNM",
+  "calculos_activos_familia": [
+    "cmc",
+    "dge"
+  ]
 }
