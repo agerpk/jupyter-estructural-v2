@@ -453,14 +453,13 @@ class EstructuraAEA_Geometria:
         
         return theta_tormenta
     
-    def calcular_distancias_minimas(self, flecha_max_conductor, theta_max, theta_tormenta=None):
+    def calcular_distancias_minimas(self, flecha_max_conductor, theta_max):
         """
         Calcula las distancias mínimas según norma AEA según el proceso indicado
         
         Args:
             flecha_max_conductor (float): Flecha máxima del conductor en metros
             theta_max (float): Ángulo máximo de declinación en grados
-            theta_tormenta (float, optional): Ángulo de declinación en tormenta calculado en otra etapa
             
         Returns:
             dict: Diccionario con distancias calculadas
@@ -498,14 +497,6 @@ class EstructuraAEA_Geometria:
         h_base_electrica = self._calcular_altura_base_electrica(b)
         
         # Guardar en diccionario de resultados
-        # Obtener altura 'a' (considerar sobreescritura disponible en parámetros)
-        a = self.ALTURAS_MINIMAS_TERRENO.get(self.zona_estructura, 5.90)
-        if getattr(self, 'sobreescribir_altura_a_cable', False) and getattr(self, 'altura_a_cable_sobreescrita', 0) > 0:
-            a = self.altura_a_cable_sobreescrita
-
-        altura_electrica = a + b
-        altura_adoptada = max(h_base_electrica, altura_electrica)
-
         distancias = {
             'theta_max': theta_max,
             'k': k,
@@ -513,99 +504,22 @@ class EstructuraAEA_Geometria:
             'D_fases': D_fases,
             's_estructura': s_estructura,
             'Dhg': Dhg,
-            'a': a,
             'b': b,
-            'altura_electrica': altura_electrica,
-            'altura_adoptada': altura_adoptada,
             'h_base_electrica': h_base_electrica,
-            'altura_minima_cable': getattr(self, 'altura_minima_cable', None),
-            'Lk': self.lk,
-            'flecha_max_conductor': flecha_max_conductor,
             'termino_flecha': termino_flecha
         }
-
-        # Añadir theta_tormenta a distancias si fue provisto
-        if theta_tormenta is not None:
-            distancias['theta_tormenta'] = theta_tormenta
-
-        # NOTA: El resumen DGE se imprime después de la Etapa1 para que refleje los valores finales
-        # (por ejemplo, si se usan valores sobrescritos de s). No imprimir aquí para evitar
-        # mostrar valores previos a posibles sobrescrituras.
-
+        
+        print(f"   📊 Distancias calculadas:")
+        print(f"      - k: {k:.3f}")
+        print(f"      - Ka (coef. altura): {Ka:.3f}")  # ← NUEVO
+        print(f"      - D_fases: {D_fases:.3f} m")
+        print(f"      - s_estructura: {s_estructura:.3f} m")
+        print(f"      - Dhg: {Dhg:.3f} m")
+        print(f"      - b: {b:.3f} m")
+        print(f"      - Altura base eléctrica: {h_base_electrica:.3f} m")
+        
         return distancias
     
-    @staticmethod
-    def formato_resumen_distancias(dims: dict, estructura_actual: dict = None, calculo_guardado: dict = None) -> str:
-        """Formatea y devuelve el resumen de distancias a partir del diccionario `dims`.
-        Este método es la fuente única de formato para la DGE y permite que la UI y controladores
-        muestren texto consistente sin duplicar lógica."""
-        D_fases = dims.get('D_fases', 0.0)
-        Dhg = dims.get('Dhg', 0.0)
-        Lk = dims.get('Lk', 0.0)
-        # Altura mínima (parámetro de familia) y alturas calculadas
-        altura_minima_param = None
-        if estructura_actual:
-            # Preferir el parámetro tal como viene en la familia (mayúsculas)
-            altura_minima_param = estructura_actual.get('ALTURA_MINIMA_CABLE', None)
-        if altura_minima_param is None:
-            altura_minima_param = dims.get('altura_minima_cable', None)
-        h_base_electrica = dims.get('h_base_electrica', dims.get('altura_base_electrica', 0.0))
-        a = dims.get('a', dims.get('altura_libre', 0.0))
-        b = dims.get('b', 0.0)
-        altura_electrica = dims.get('altura_electrica', a + b)
-        altura_adoptada = dims.get('altura_adoptada', max(h_base_electrica, altura_electrica))
-        # Obtener flecha máxima: preferir calculo_guardado, sino usar valor en dims
-        flecha = None
-        if calculo_guardado:
-            flecha = calculo_guardado.get('flechas', {}).get('conductor') or calculo_guardado.get('resultados', {}).get('fmax_conductor')
-        if flecha is None:
-            flecha = dims.get('flecha_max_conductor', None)
-        flecha_txt = f"{flecha:.2f} m" if isinstance(flecha, (int, float)) else "xxx m"
-        h1a = dims.get('h1a', None)
-        # Calcular altura de primer amarre cuando sea posible
-        altura_adoptada_val = altura_adoptada if isinstance(altura_adoptada, (int, float)) else None
-        Lk = dims.get('Lk', 0.0)
-        if isinstance(flecha, (int, float)) and altura_adoptada_val is not None:
-            altura_primer_amarre = altura_adoptada_val + flecha + Lk
-            altura_primer_amarre_txt = f"{altura_primer_amarre:.2f} m"
-        else:
-            altura_primer_amarre_txt = "xxx m"
-        s_reposo = dims.get('s_reposo', dims.get('s_estructura', None))
-        s_tormenta = dims.get('s_tormenta', dims.get('s_estructura', None))
-        s_decmax = dims.get('s_decmax', dims.get('s_estructura', None))
-        theta_tormenta = dims.get('theta_tormenta', None)
-        theta_max = dims.get('theta_max', None)
-
-        lines = []
-        lines.append("RESUMEN DE DISTANCIAS DE ESTRUCTURA\n")
-        lines.append(f"Distancia entre Fases (D_Fases): {D_fases:.2f} m")
-        lines.append(f"Distancia Guardia-Fase (Dhg): {Dhg:.2f} m\n")
-        lines.append(f"Longitud de Cadena Oscilante (Lk): {Lk:.2f} m\n")
-        lines.append("Distancias a Tierra")
-        if altura_minima_param is not None:
-            lines.append(f"Altura Mínima: {altura_minima_param:.2f} m")
-        else:
-            lines.append(f"Altura Mínima: {h_base_electrica:.2f} m")
-        lines.append(f"Altura Eléctrica (a+b): {altura_electrica:.2f} m")
-        if altura_adoptada_val is not None:
-            lines.append(f"Altura Adoptada: {altura_adoptada_val:.2f} m")
-        else:
-            lines.append("Altura Adoptada: xxx m")
-        lines.append(f"Flecha Máxima: {flecha_txt}")
-        # Altura de primer amarre: altura_adoptada + flecha_max + Lk
-        lines.append(f"Altura de Primer Amarre de Conductor: {altura_primer_amarre_txt}")
-        lines.append("")
-        lines.append("Distancias de Fase a Elementos Puestos a tierra:")
-        lines.append(f"Estado de Reposo (s_reposo): {s_reposo:.2f} m" if s_reposo is not None else "Estado de Reposo (s_reposo): xxx m")
-        lines.append(f"Estado de Declinación por Tormenta (s_tormenta): {s_tormenta:.2f} m" if s_tormenta is not None else "Estado de Declinación por Tormenta (s_tormenta): xxx m")
-        lines.append(f"Estado de Declinación Máxima (s_decmax): {s_decmax:.2f} m" if s_decmax is not None else "Estado de Declinación Máxima (s_decmax): xxx m")
-        lines.append("")
-        lines.append("Ángulos de Declinación Calculados")
-        lines.append(f"Ángulo de Declinación en Tormenta (theta_tormenta): {theta_tormenta:.1f} °" if theta_tormenta is not None else "Ángulo de Declinación en Tormenta (theta_tormenta): xx.x °")
-        lines.append(f"Ángulo de Declinación Máxima (theta_max): {theta_max:.1f} °" if theta_max is not None else "Ángulo de Declinación Máxima (theta_max): xx.x °")
-
-        return "\n".join(lines)
-
     def _calcular_alturas_fases(self, D_fases, s_estructura, flecha_max_conductor):
         """Calcula las alturas h1a, h2a, h3a según el proceso indicado"""
         # 1. h1a = HADD + h_base_electrica + fmax + Lk

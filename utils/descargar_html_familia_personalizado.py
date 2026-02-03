@@ -16,6 +16,8 @@ from utils.descargar_html_familia_completo import generar_seccion_resumen_famili
 from utils.descargar_html import _safe_format, _load_image_base64, generar_seccion_cmc, generar_seccion_dge, generar_seccion_dme, generar_seccion_arboles, generar_seccion_sph, generar_seccion_fund, generar_seccion_aee
 from utils.descargar_html_familia_completo import generar_indice_familia
 from utils.view_helpers import ViewHelpers
+from config.app_config import CACHE_DIR
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -441,6 +443,62 @@ def _render_dge_parcial(calculo_dge: Dict[str, Any], include_subkeys: List[str],
     if "memoria" in include_subkeys and calculo_dge.get('memoria_calculo'):
         html_parts.append('<hr><h5>Memoria de Cálculo</h5>')
         html_parts.append(f'<pre>{calculo_dge["memoria_calculo"]}</pre>')
+
+    # Tabla PLS-CADD (si fue seleccionada)
+    if "plscadd" in include_subkeys:
+        plscadd = calculo_dge.get('plscadd_csv')
+        if not plscadd:
+            hashp = calculo_dge.get('hash_parametros')
+            if hashp:
+                matches = list(Path(CACHE_DIR).glob(f"*{hashp}*.csv"))
+                if matches:
+                    plscadd = matches[0].name
+        if plscadd:
+            html_parts.append('<hr><h5>Tabla PLS-CADD</h5>')
+            try:
+                from pathlib import Path as _P
+                import pandas as _pd
+                import csv as _csv
+                from io import StringIO as _StringIO
+                csv_path = _P(CACHE_DIR) / plscadd
+                if csv_path.exists():
+                    lines = csv_path.read_text(encoding='utf-8').splitlines()
+                    header_idx = 0
+                    for i, line in enumerate(lines[:30]):
+                        if line.strip().startswith('Set #') or 'Set #' in line:
+                            header_idx = i
+                            break
+
+                    # Parse metadata lines
+                    meta_lines = lines[:header_idx] if header_idx > 0 else []
+                    if meta_lines:
+                        html_parts.append('<h6>Información de Estructura</h6>')
+                        html_parts.append('<table class="table table-sm table-borderless">')
+                        reader = _csv.reader(_StringIO('\n'.join(meta_lines)))
+                        for r in reader:
+                            if any((cell or '').strip() for cell in r):
+                                if len(r) == 1:
+                                    html_parts.append(f'<tr><td colspan="2"><strong>{r[0]}</strong></td></tr>')
+                                else:
+                                    key = r[0]
+                                    val = r[1] if len(r) > 1 else ''
+                                    html_parts.append(f'<tr><td><strong>{key}</strong></td><td>{val}</td></tr>')
+                        html_parts.append('</table>')
+
+                    # Read table skipping metadata rows
+                    if header_idx > 0:
+                        df_pls = _pd.read_csv(csv_path, skiprows=header_idx)
+                    else:
+                        df_pls = _pd.read_csv(csv_path)
+
+                    html_parts.append('<div class="table-responsive">')
+                    html_parts.append(df_pls.to_html(classes='"table table-striped table-bordered table-sm"', index=False))
+                    html_parts.append('</div>')
+                else:
+                    html_parts.append(f'<div class="alert alert-warning">CSV PLS-CADD no encontrado en cache: {plscadd}</div>')
+            except Exception as e:
+                logger.exception(f"Error mostrando CSV PLS-CADD en familia personalizado DGE: {e}")
+                html_parts.append(f'<div class="alert alert-warning">No se pudo mostrar CSV PLS-CADD: {e}</div>')
 
     return '\n'.join(html_parts)
 

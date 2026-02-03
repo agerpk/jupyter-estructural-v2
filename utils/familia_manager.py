@@ -64,7 +64,11 @@ class FamiliaManager:
     
     @classmethod
     def cargar_familia(cls, nombre_familia: str) -> Dict:
-        """Cargar familia por nombre"""
+        """Cargar familia por nombre. Búsqueda tolerante:
+        1) Busca archivo con nombre exacto normalizado
+        2) Si no existe, escanea todos los `.familia.json` y compara el campo interno `nombre_familia` normalizado
+        3) Si aún no encuentra, lanza FileNotFoundError
+        """
         # Normalizar nombre: aceptar entradas con sufijos '.familia' o '.familia.json'
         nombre_archivo = nombre_familia
         if nombre_archivo.endswith('.familia.json'):
@@ -75,14 +79,36 @@ class FamiliaManager:
         archivo_familia = cls.DATA_DIR / f"{nombre_archivo}.familia.json"
         # DEBUG: mostrar ruta de archivo buscada y nombre original para evitar errores de coincidencia
         print(f"   💾 DEBUG cargar_familia: buscando archivo '{archivo_familia}' (nombre original: '{nombre_familia}')")
-        
-        if not archivo_familia.exists():
-            raise FileNotFoundError(f"Familia '{nombre_familia}' no encontrada")
-        
-        with open(archivo_familia, "r", encoding="utf-8") as f:
-            familia_data = json.load(f)
-        
-        return familia_data
+
+        # Si existe el archivo esperado, cargar y devolver
+        if archivo_familia.exists():
+            with open(archivo_familia, "r", encoding="utf-8") as f:
+                familia_data = json.load(f)
+            return familia_data
+
+        # Si no existe, intentar encontrarlo buscando por campo interno 'nombre_familia'
+        nombre_normalizado = nombre_familia.replace(" ", "_").replace("/", "_").lower()
+        for archivo in cls.DATA_DIR.glob("*.familia.json"):
+            try:
+                with open(archivo, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    internal = str(data.get("nombre_familia", "")).replace(" ", "_").replace("/", "_").lower()
+                    stem = archivo.stem.replace(" ", "_").replace("/", "_").lower()
+
+                    # Coincidencia exacta del campo interno o del stem del archivo
+                    if internal == nombre_normalizado or stem == nombre_normalizado:
+                        print(f"   🔎 Encontrado por contenido interno en archivo '{archivo}' (internal='{data.get('nombre_familia')}')")
+                        return data
+
+                    # Coincidencia parcial (subcadena) – tolerante para desajustes menores
+                    if nombre_normalizado in internal or nombre_normalizado in stem or internal in nombre_normalizado:
+                        print(f"   🔎 Coincidencia parcial encontrada en archivo '{archivo}' (internal='{data.get('nombre_familia')}')")
+                        return data
+            except Exception:
+                continue
+
+        # Si seguimos sin encontrar, error
+        raise FileNotFoundError(f"Familia '{nombre_familia}' no encontrada")
     
     @classmethod
     def listar_familias_disponibles(cls) -> List[str]:

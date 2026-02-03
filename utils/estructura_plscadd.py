@@ -160,11 +160,13 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
             attach_dist_below = round(altura_max - z, 3)
             attach_long = y
             min_req = "No Uplift" if ('suspension' in tipo_estructura or 'suspensión' in tipo_estructura) else "No Limit"
+            # Dead End: sólo No si la estructura es tipo suspension
+            dead_end = 'No' if ('suspension' in tipo_estructura or 'suspensión' in tipo_estructura) else 'Yes'
 
             rows.append({
                 'Set #': set_num,
                 'Phase #': phase,
-                'Dead End Set': 'No',
+                'Dead End Set': dead_end,
                 'Set Description': 'COND',
                 'Insulator Type': insul_type,
                 'Insul. Weight (N)': round(insul_weight, 2),
@@ -220,11 +222,12 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
             attach_dist_below = round(altura_max - z, 3)
             attach_long = y
             min_req = "No Uplift" if ('suspension' in tipo_estructura or 'suspensión' in tipo_estructura) else "No Limit"
+            dead_end = 'No' if ('suspension' in tipo_estructura or 'suspensión' in tipo_estructura) else 'Yes'
 
             rows.append({
                 'Set #': 2,
                 'Phase #': phase,
-                'Dead End Set': 'No',
+                'Dead End Set': dead_end,
                 'Set Description': '1TERNA',
                 'Insulator Type': insul_type,
                 'Insul. Weight (N)': round(insul_weight, 2),
@@ -252,11 +255,12 @@ def generar_tabla_estructura_plscadd(estructura_geometria, estructura_data):
             attach_dist_below = round(altura_max - z, 3)
             attach_long = y
             min_req = "No Uplift" if ('suspension' in tipo_estructura or 'suspensión' in tipo_estructura) else "No Limit"
+            dead_end = 'No' if ('suspension' in tipo_estructura or 'suspensión' in tipo_estructura) else 'Yes'
 
             rows.append({
                 'Set #': 3,
                 'Phase #': phase,
-                'Dead End Set': 'No',
+                'Dead End Set': dead_end,
                 'Set Description': '2TERNA',
                 'Insulator Type': insul_type,
                 'Insul. Weight (N)': round(insul_weight, 2),
