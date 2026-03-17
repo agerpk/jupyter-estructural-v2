@@ -206,12 +206,6 @@ def generar_html_familia(nombre_familia, resultados_familia, checklist_activo=No
     # Construir el contenido final e insertar logo si existe (logo_html)
     contenido_html = "\n".join(secciones)
 
-    return f"""<!DOCTYPE html>
-<html lang="es">
-<head>
-... (template continues below, no change here)
-"""
-
     for nombre_estr, datos_estr in estructuras.items():
         titulo = datos_estr.get("titulo", nombre_estr)
         titulo_id = titulo.replace(" ", "_").replace("/", "_")
