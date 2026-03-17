@@ -29,6 +29,21 @@
     "tension_max_trabajo": null,
     "norma_fabricacion": null
   },
+  "OPGW 180mm2 Aprox CDP": {
+    "tipo": "OPGW",
+    "material": "ACS",
+    "seccion_nominal": 180,
+    "seccion_total_mm2": 180,
+    "diametro_total_mm": 18.0,
+    "peso_unitario_dan_m": 0.981,
+    "coeficiente_dilatacion_1_c": 1.47e-05,
+    "modulo_elasticidad_dan_mm2": 12000.0,
+    "carga_rotura_minima_dan": 12000.0,
+    "tension_rotura_minima": 66.6,
+    "carga_max_trabajo": null,
+    "tension_max_trabajo": null,
+    "norma_fabricacion": "IEC/EN 60794"
+  },
   "AlAc 435/55": {
     "tipo": "ACSR",
     "material": "Al/Ac",
